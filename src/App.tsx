@@ -75,7 +75,17 @@ export default function App() {
           backdropFilter: "blur(10px)",
         }}
       >
-        <Link to="/" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none", minWidth: 0, flexShrink: 1 }}>
+        <Link
+          to="/"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            textDecoration: "none",
+            minWidth: 0,
+            flexShrink: 1,
+          }}
+        >
           <div
             style={{
               width: 34,
@@ -92,17 +102,39 @@ export default function App() {
           </div>
           {!compact && (
             <div>
-              <div style={{ fontFamily: DISPLAY, fontSize: 18, fontWeight: 600, lineHeight: 1, color: C.text }}>
+              <div
+                style={{
+                  fontFamily: DISPLAY,
+                  fontSize: 18,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  color: C.text,
+                }}
+              >
                 WorshipStudio
               </div>
-              <div style={{ fontSize: 10.5, color: C.dim, letterSpacing: 1, textTransform: "uppercase" }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  color: C.dim,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                }}
+              >
                 Presentation Studio
               </div>
             </div>
           )}
         </Link>
 
-        <nav style={{ display: "flex", gap: 4, marginLeft: compact ? 0 : 12, flexShrink: 0 }}>
+        <nav
+          style={{
+            display: "flex",
+            gap: 4,
+            marginLeft: compact ? 0 : 12,
+            flexShrink: 0,
+          }}
+        >
           {NAV.map(([path, label, Ico]) => {
             const active = location.pathname === path;
             return (
@@ -132,12 +164,40 @@ export default function App() {
           })}
         </nav>
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
-          <IconBtn icon={HelpCircle} title="About & Help" onClick={() => openOverlay("about")} />
-          <IconBtn icon={ImageIcon} title="Asset library" onClick={() => openOverlay("assets")} />
-          <IconBtn icon={Palette} title="Themes" onClick={() => openOverlay("themes")} />
-          <IconBtn icon={Keyboard} title="Keyboard shortcuts" onClick={() => openOverlay("shortcuts")} />
-          <IconBtn icon={Settings} title="Settings" onClick={() => openOverlay("settings")} />
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            gap: 4,
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <IconBtn
+            icon={HelpCircle}
+            title="About & Help"
+            onClick={() => openOverlay("about")}
+          />
+          <IconBtn
+            icon={ImageIcon}
+            title="Asset library"
+            onClick={() => openOverlay("assets")}
+          />
+          <IconBtn
+            icon={Palette}
+            title="Themes"
+            onClick={() => openOverlay("themes")}
+          />
+          <IconBtn
+            icon={Keyboard}
+            title="Keyboard shortcuts"
+            onClick={() => openOverlay("shortcuts")}
+          />
+          <IconBtn
+            icon={Settings}
+            title="Settings"
+            onClick={() => openOverlay("settings")}
+          />
         </div>
       </header>
 
@@ -146,11 +206,21 @@ export default function App() {
           flex: 1,
           minHeight: 0,
           overflowX: "hidden",
-          overflowY: location.pathname.startsWith("/editor") ? "hidden" : "auto",
+          overflowY: location.pathname.startsWith("/editor")
+            ? "hidden"
+            : "auto",
         }}
       >
         {loading ? (
-          <div style={{ display: "grid", placeItems: "center", height: "100%", color: C.dim, fontFamily: UI }}>
+          <div
+            style={{
+              display: "grid",
+              placeItems: "center",
+              height: "100%",
+              color: C.dim,
+              fontFamily: UI,
+            }}
+          >
             Loading library…
           </div>
         ) : (

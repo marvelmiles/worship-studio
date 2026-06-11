@@ -60,17 +60,32 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 ### Keyboard shortcuts (presentation)
 
-| Key                         | Action               |
-| --------------------------- | -------------------- |
-| → / Space / Page Down / `l` | Next slide           |
-| ← / Page Up / `h`           | Previous slide       |
-| Home / End                  | First / last         |
-| `B`                         | Black screen         |
-| `W`                         | White screen         |
-| `P`                         | Pause timer/audio    |
-| `F`                         | Toggle fullscreen    |
-| `I`                         | Toggle presenter bar |
-| Esc                         | Exit                 |
+**Navigation**
+
+| Key                        | Action         |
+| -------------------------- | -------------- |
+| → / Space / Page Dn / `L`  | Next slide     |
+| ← / Page Up / `H`          | Previous slide |
+| Home                       | First slide    |
+| End                        | Last slide     |
+
+**Playback**
+
+| Key | Action              |
+| --- | ------------------- |
+| `P` | Pause / resume      |
+| Esc | Exit presentation   |
+
+**View**
+
+| Key | Action                                   |
+| --- | ---------------------------------------- |
+| `F` | Toggle fullscreen                        |
+| `I` | Toggle presenter bar                     |
+| `V` | Cycle screen fit (normal / cover / fill) |
+| `+` | Zoom in                                  |
+| `-` | Zoom out                                 |
+| `0` | Reset zoom                               |
 
 ## Project structure
 
