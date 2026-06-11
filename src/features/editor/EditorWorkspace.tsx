@@ -93,7 +93,7 @@ export function EditorWorkspace({ song }: { song: Song }) {
       bgMap={bgMap}
       onReorder={editor.setSlides}
       onContextMenu={(index, x, y) => setMenu({ index, x, y })}
-      onAdd={() => editor.insertSlideAt(editor.slides.length)}
+      onAdd={() => editor.insertSlideAt(editor.selectedIndex >= 0 ? editor.selectedIndex + 1 : editor.slides.length)}
     />
   );
 
