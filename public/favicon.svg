@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WorshipStudio">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ecc784"/>
+      <stop offset="1" stop-color="#d8a24a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0a0e"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="url(#g)" stroke-width="10" opacity="0.35"/>
+  <g fill="url(#g)">
+    <!-- music note -->
+    <path d="M306 150c0-9-8-16-17-14l-104 26c-7 2-12 8-12 15v150c-12-7-28-7-42 1-22 12-31 36-20 54s38 21 60 9c16-9 25-25 25-41V236l108-27v97c-12-7-28-7-42 1-22 12-31 36-20 54s38 21 60 9c16-9 25-25 25-42V150z"/>
+  </g>
+</svg>

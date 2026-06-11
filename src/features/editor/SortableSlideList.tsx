@@ -1,0 +1,181 @@
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
+import type { Background, Slide, Song, Theme } from "../../types";
+import { C, UI } from "../../theme/tokens";
+import { resolveBackground, resolveStyle } from "../../lib/resolve";
+import { SlideCanvas } from "../../components/SlideCanvas";
+
+interface SortableSlideListProps {
+  slides: Slide[];
+  selId: string | null;
+  setSelId: (id: string) => void;
+  song: Song;
+  theme: Theme;
+  bgMap: Record<string, Background>;
+  onReorder: (next: Slide[]) => void;
+  onContextMenu: (idx: number, x: number, y: number) => void;
+}
+
+interface RowProps {
+  slide: Slide;
+  index: number;
+  selId: string | null;
+  setSelId: (id: string) => void;
+  song: Song;
+  theme: Theme;
+  bgMap: Record<string, Background>;
+  onContextMenu: (idx: number, x: number, y: number) => void;
+}
+
+function SortableRow({
+  slide,
+  index,
+  selId,
+  setSelId,
+  song,
+  theme,
+  bgMap,
+  onContextMenu,
+}: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: slide.id });
+
+  const selected = slide.id === selId;
+
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={() => setSelId(slide.id)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setSelId(slide.id);
+        onContextMenu(index, e.clientX, e.clientY);
+      }}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        display: "flex",
+        gap: 9,
+        alignItems: "stretch",
+        padding: 7,
+        marginBottom: 8,
+        borderRadius: 11,
+        cursor: "pointer",
+        background: selected ? "rgba(216,162,74,0.12)" : "transparent",
+        border: `1px solid ${selected ? "rgba(216,162,74,0.35)" : "transparent"}`,
+        opacity: isDragging ? 0.4 : 1,
+      }}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        title="Drag to reorder"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          color: C.dim,
+          cursor: "grab",
+          touchAction: "none",
+        }}
+      >
+        <GripVertical size={15} />
+      </div>
+      <div
+        style={{
+          width: 32,
+          fontFamily: UI,
+          fontSize: 12,
+          color: C.dim,
+          display: "flex",
+          alignItems: "center",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {index + 1}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <SlideCanvas
+          slide={slide}
+          bg={resolveBackground(slide, song, theme, bgMap)}
+          style={resolveStyle(slide, song, theme)}
+          showLabel={false}
+          radius={7}
+        />
+        <div
+          style={{
+            fontFamily: UI,
+            fontSize: 11,
+            color: selected ? C.goldSoft : C.sub,
+            marginTop: 5,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {slide.label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function SortableSlideList({
+  slides,
+  selId,
+  setSelId,
+  song,
+  theme,
+  bgMap,
+  onReorder,
+  onContextMenu,
+}: SortableSlideListProps) {
+  // Small activation distance so a plain click still selects the slide.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const from = slides.findIndex((s) => s.id === active.id);
+    const to = slides.findIndex((s) => s.id === over.id);
+    if (from < 0 || to < 0) return;
+    onReorder(arrayMove(slides, from, to));
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+        {slides.map((s, i) => (
+          <SortableRow
+            key={s.id}
+            slide={s}
+            index={i}
+            selId={selId}
+            setSelId={setSelId}
+            song={song}
+            theme={theme}
+            bgMap={bgMap}
+            onContextMenu={onContextMenu}
+          />
+        ))}
+      </SortableContext>
+    </DndContext>
+  );
+}

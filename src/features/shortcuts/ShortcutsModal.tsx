@@ -1,0 +1,60 @@
+import { useStore } from "../../store/useStore";
+import { C, UI } from "../../theme/tokens";
+import { Modal } from "../../components/ui/Modal";
+import { SectionTitle } from "../../components/ui/Field";
+import { SHORTCUT_GROUPS } from "../../lib/shortcuts";
+
+const keyStyle = {
+  fontFamily: "ui-monospace, monospace",
+  fontSize: 12,
+  fontWeight: 600,
+  color: C.text,
+  background: "rgba(255,255,255,0.07)",
+  border: `1px solid ${C.border}`,
+  borderRadius: 6,
+  padding: "3px 8px",
+  minWidth: 22,
+  textAlign: "center" as const,
+};
+
+export function ShortcutsModal() {
+  const overlay = useStore((s) => s.overlay);
+  const close = useStore((s) => s.closeOverlay);
+
+  return (
+    <Modal open={overlay === "shortcuts"} onClose={close} title="Keyboard Shortcuts" width={540}>
+      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+        These shortcuts are available while presenting.
+      </p>
+      {SHORTCUT_GROUPS.map((group) => (
+        <div key={group.title} style={{ marginBottom: 6 }}>
+          <SectionTitle>{group.title}</SectionTitle>
+          {group.shortcuts.map((shortcut, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "8px 0",
+                borderBottom: i < group.shortcuts.length - 1 ? `1px solid ${C.border}` : "none",
+              }}
+            >
+              <span style={{ fontFamily: UI, fontSize: 13.5, color: C.text }}>
+                {shortcut.description}
+              </span>
+              <span style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+                {shortcut.keys.map((key) => (
+                  <kbd key={key} style={keyStyle}>
+                    {key}
+                  </kbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </Modal>
+  );
+}
