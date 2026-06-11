@@ -42,7 +42,7 @@ Then open the URL Vite prints (default http://localhost:5173).
 ## Features
 
 - **Lyrics → slides engine.** Recognises `[verse] [chorus] [bridge] [intro]
-  [outro] [tag] [refrain] [pre-chorus]` (and custom) tags. Repeated sections
+[outro] [tag] [refrain] [pre-chorus]` (and custom) tags. Repeated sections
   auto‑number (Verse 1, Verse 2). With no tags, blank‑line‑separated stanzas
   become numbered verses. Long sections split across slides at a configurable
   max‑lines.
@@ -64,17 +64,17 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 ### Keyboard shortcuts (presentation)
 
-| Key                         | Action            |
-| --------------------------- | ----------------- |
-| → / Space / Page Down / `l` | Next slide        |
-| ← / Page Up / `h`           | Previous slide    |
-| Home / End                  | First / last      |
-| `B`                         | Black screen      |
-| `W`                         | White screen      |
-| `P`                         | Pause timer/audio |
-| `F`                         | Toggle fullscreen |
+| Key                         | Action               |
+| --------------------------- | -------------------- |
+| → / Space / Page Down / `l` | Next slide           |
+| ← / Page Up / `h`           | Previous slide       |
+| Home / End                  | First / last         |
+| `B`                         | Black screen         |
+| `W`                         | White screen         |
+| `P`                         | Pause timer/audio    |
+| `F`                         | Toggle fullscreen    |
 | `I`                         | Toggle presenter bar |
-| Esc                         | Exit              |
+| Esc                         | Exit                 |
 
 ## Project structure
 
