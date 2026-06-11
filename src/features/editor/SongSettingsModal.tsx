@@ -1,8 +1,25 @@
-import type { AudioItem, Background, Song, TextStyle, Theme } from "../../types";
+import type {
+  AudioItem,
+  Background,
+  Song,
+  TextStyle,
+  Theme,
+} from "../../types";
 import { C, CATEGORIES, UI } from "../../theme/tokens";
-import { resolveAutoPlay, resolveSlideDuration, resolveStyle } from "../../lib/resolve";
+import {
+  resolveAutoPlay,
+  resolveSlideDuration,
+  resolveStyle,
+} from "../../lib/resolve";
 import { Modal } from "../../components/ui/Modal";
-import { Field, Range, Select, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
+import {
+  Field,
+  Range,
+  Select,
+  TextInput,
+  Toggle,
+  SectionTitle,
+} from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
@@ -21,7 +38,11 @@ interface SongSettingsModalProps {
   onAddColor: (value: string, name?: string) => string;
 }
 
-const GRID = { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12 } as const;
+const GRID = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+  gap: 12,
+} as const;
 
 export function SongSettingsModal({
   open,
@@ -38,19 +59,32 @@ export function SongSettingsModal({
   const songStyle = resolveStyle(undefined, song, theme);
   const duration = resolveSlideDuration(song, theme);
   const autoPlay = resolveAutoPlay(song, theme);
-  const themeAudio = theme.defaultAudioId ? audio.find((a) => a.id === theme.defaultAudioId) : undefined;
+  const themeAudio = theme.defaultAudioId
+    ? audio.find((a) => a.id === theme.defaultAudioId)
+    : undefined;
 
   return (
     <Modal open={open} onClose={onClose} title="Song Settings" width={620}>
-      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
-        These settings apply to every slide in this song. Individual slides can still override them
-        in the inspector.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: C.sub,
+          marginTop: 0,
+          lineHeight: 1.6,
+        }}
+      >
+        These settings apply to every slide in this song. Individual slides can
+        still override them in the inspector.
       </p>
 
       <SectionTitle>Details</SectionTitle>
       <div style={GRID}>
         <Field label="Title">
-          <TextInput value={song.title} onChange={(e) => onPatchSong({ title: e.target.value })} />
+          <TextInput
+            value={song.title}
+            onChange={(e) => onPatchSong({ title: e.target.value })}
+          />
         </Field>
         <Field label="Artist">
           <TextInput
@@ -85,14 +119,18 @@ export function SongSettingsModal({
         inheritLabel={`Use theme (${theme.name})`}
         onSelect={(id) => onPatchSong({ defaultBackgroundId: id })}
         onUploaded={(id) => onPatchSong({ defaultBackgroundId: id })}
-        onAddColor={(value, name) => onPatchSong({ defaultBackgroundId: onAddColor(value, name) })}
+        onAddColor={(value, name) =>
+          onPatchSong({ defaultBackgroundId: onAddColor(value, name) })
+        }
       />
 
       <SectionTitle>Audio</SectionTitle>
       <AudioPicker
         audio={audio}
         value={song.defaultAudioId || ""}
-        inheritLabel={themeAudio ? `Use theme audio (${themeAudio.name})` : "None"}
+        inheritLabel={
+          themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
+        }
         onSelect={(id) => onPatchSong({ defaultAudioId: id || null })}
         onUploaded={(id) => onPatchSong({ defaultAudioId: id })}
       />
@@ -101,13 +139,15 @@ export function SongSettingsModal({
       <AnimationPicker
         value={song.animation || ""}
         inheritLabel="Use theme / app default"
-        onSelect={(value) => onPatchSong({ animation: (value || undefined) as Song["animation"] })}
+        onSelect={(value) =>
+          onPatchSong({ animation: (value || undefined) as Song["animation"] })
+        }
       />
 
       <SectionTitle>Playback</SectionTitle>
       <div style={{ marginBottom: 12 }}>
         <Toggle
-          label="Auto-advance slides while presenting"
+          label="Auto-play slides while presenting"
           checked={autoPlay}
           onChange={(checked) => onPatchSong({ autoPlay: checked })}
         />
@@ -118,13 +158,15 @@ export function SongSettingsModal({
           min={3}
           max={60}
           suffix="s"
-          onChange={(e) => onPatchSong({ slideDurationSeconds: Number(e.target.value) })}
+          onChange={(e) =>
+            onPatchSong({ slideDurationSeconds: Number(e.target.value) })
+          }
         />
       </Field>
       {!autoPlay && (
         <p style={{ fontFamily: UI, fontSize: 12, color: C.dim, margin: 0 }}>
-          Auto-advance is off — slides change only when you navigate, animating in with their chosen
-          animation.
+          Auto-play is off — slides change only when you navigate, animating in
+          with their chosen animation.
         </p>
       )}
     </Modal>

@@ -7,7 +7,13 @@ import { C, UI } from "../../theme/tokens";
 import { resolveStyle } from "../../lib/resolve";
 import { Modal } from "../../components/ui/Modal";
 import { Btn } from "../../components/ui/Button";
-import { Field, Range, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
+import {
+  Field,
+  Range,
+  TextInput,
+  Toggle,
+  SectionTitle,
+} from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
@@ -36,7 +42,9 @@ export function ThemesModal() {
   const { width } = useViewport();
   const stacked = width < 760;
 
-  const [selectedId, setSelectedId] = useState<string | null>(themes[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    themes[0]?.id ?? null,
+  );
   const selected = themes.find((t) => t.id === selectedId) || themes[0];
 
   const bgMap = useMemo(() => {
@@ -45,7 +53,8 @@ export function ThemesModal() {
     return map;
   }, [backgrounds]);
 
-  const patch = (changes: Partial<Theme>) => upsertTheme({ ...selected, ...changes });
+  const patch = (changes: Partial<Theme>) =>
+    upsertTheme({ ...selected, ...changes });
 
   const remove = () => {
     if (!selected || selected.builtIn) return;
@@ -54,10 +63,29 @@ export function ThemesModal() {
   };
 
   return (
-    <Modal open={overlay === "themes"} onClose={close} title="Themes" width={860}>
-      <div style={{ display: stacked ? "block" : "grid", gridTemplateColumns: "240px 1fr", gap: 18 }}>
+    <Modal
+      open={overlay === "themes"}
+      onClose={close}
+      title="Themes"
+      width={860}
+    >
+      <div
+        style={{
+          display: stacked ? "block" : "grid",
+          gridTemplateColumns: "240px 1fr",
+          gap: 18,
+        }}
+      >
         <div style={{ marginBottom: stacked ? 18 : 0 }}>
-          <Btn variant="ghost" size="sm" onClick={() => { const t = createTheme(); if (t) setSelectedId(t.id); }} style={{ width: "100%" }}>
+          <Btn
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const t = createTheme();
+              if (t) setSelectedId(t.id);
+            }}
+            style={{ width: "100%" }}
+          >
             <Plus size={14} />
             New Theme
           </Btn>
@@ -87,9 +115,14 @@ export function ThemesModal() {
         {selected && (
           <div>
             <Field label="Theme name">
-              <TextInput value={selected.name} onChange={(e) => patch({ name: e.target.value })} />
+              <TextInput
+                value={selected.name}
+                onChange={(e) => patch({ name: e.target.value })}
+              />
             </Field>
-            <div style={{ marginBottom: 14, borderRadius: 10, overflow: "hidden" }}>
+            <div
+              style={{ marginBottom: 14, borderRadius: 10, overflow: "hidden" }}
+            >
               <SlideCanvas
                 slide={SAMPLE}
                 style={resolveStyle(undefined, undefined, selected)}
@@ -99,36 +132,46 @@ export function ThemesModal() {
             </div>
             <StyleControls
               style={resolveStyle(undefined, undefined, selected)}
-              onChange={(key, value) => patch({ [key]: value } as Partial<Theme>)}
+              onChange={(key, value) =>
+                patch({ [key]: value } as Partial<Theme>)
+              }
             />
             <BackgroundPicker
               backgrounds={backgrounds}
               value={selected.backgroundId}
               onSelect={(id) => patch({ backgroundId: id })}
               onUploaded={(id) => patch({ backgroundId: id })}
-              onAddColor={(value, name) => patch({ backgroundId: addCustomBackground(value, name) })}
+              onAddColor={(value, name) =>
+                patch({ backgroundId: addCustomBackground(value, name) })
+              }
             />
             <AnimationPicker
               value={selected.animation || ""}
               inheritLabel="App default"
-              onSelect={(value) => patch({ animation: (value || undefined) as Theme["animation"] })}
+              onSelect={(value) =>
+                patch({ animation: (value || undefined) as Theme["animation"] })
+              }
             />
 
             <SectionTitle>Playback</SectionTitle>
             <div style={{ marginBottom: 12 }}>
               <Toggle
-                label="Auto-advance slides"
+                label="Auto-play slides"
                 checked={Boolean(selected.autoPlay)}
                 onChange={(checked) => patch({ autoPlay: checked })}
               />
             </div>
-            <Field label={`Seconds per slide (${selected.slideDurationSeconds ?? 15}s)`}>
+            <Field
+              label={`Seconds per slide (${selected.slideDurationSeconds ?? 15}s)`}
+            >
               <Range
                 value={selected.slideDurationSeconds ?? 15}
                 min={3}
                 max={60}
                 suffix="s"
-                onChange={(e) => patch({ slideDurationSeconds: Number(e.target.value) })}
+                onChange={(e) =>
+                  patch({ slideDurationSeconds: Number(e.target.value) })
+                }
               />
             </Field>
             <AudioPicker
@@ -140,11 +183,24 @@ export function ThemesModal() {
             />
 
             {selected.builtIn ? (
-              <p style={{ fontFamily: UI, fontSize: 12.5, color: C.dim, margin: "8px 0 0" }}>
-                This is a default theme — you can edit it, but it can't be deleted.
+              <p
+                style={{
+                  fontFamily: UI,
+                  fontSize: 12.5,
+                  color: C.dim,
+                  margin: "8px 0 0",
+                }}
+              >
+                This is a default theme — you can edit it, but it can't be
+                deleted.
               </p>
             ) : (
-              <Btn variant="danger" size="sm" onClick={remove} style={{ marginTop: 10 }}>
+              <Btn
+                variant="danger"
+                size="sm"
+                onClick={remove}
+                style={{ marginTop: 10 }}
+              >
                 <Trash2 size={13} />
                 Delete theme
               </Btn>
@@ -182,7 +238,12 @@ function ThemeCard({
       }}
     >
       <div style={{ borderRadius: 7, overflow: "hidden" }}>
-        <SlideCanvas slide={SAMPLE} style={resolveStyle(undefined, undefined, theme)} bg={background} radius={7} />
+        <SlideCanvas
+          slide={SAMPLE}
+          style={resolveStyle(undefined, undefined, theme)}
+          bg={background}
+          radius={7}
+        />
       </div>
       <div
         style={{
@@ -194,7 +255,9 @@ function ThemeCard({
         }}
       >
         {theme.name}
-        {theme.builtIn && <span style={{ color: C.dim, fontWeight: 500 }}> · default</span>}
+        {theme.builtIn && (
+          <span style={{ color: C.dim, fontWeight: 500 }}> · default</span>
+        )}
       </div>
     </button>
   );

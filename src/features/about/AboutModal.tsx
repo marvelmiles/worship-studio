@@ -41,8 +41,8 @@ const FAQS: { q: string; a: string }[] = [
     a: "Yes. Attach audio to a whole song, to a theme, or to a single slide, and it plays and loops softly while you present. Four gentle worship pads are built in, and you can upload your own. Background volume lives in Settings.",
   },
   {
-    q: "How does auto-advance work?",
-    a: "Turn on Auto-advance for a song (or set it on a theme) and choose how many seconds each slide should hold — slides then progress on their own with your chosen animation. With auto-advance off, you move through slides manually and each one animates in as you go.",
+    q: "How does auto-play work?",
+    a: "Turn on Auto-play for a song (or set it on a theme) and choose how many seconds each slide should hold — slides then progress on their own with your chosen animation. With auto-play off, you move through slides manually and each one animates in as you go.",
   },
   {
     q: "How do I control the presentation?",
@@ -64,7 +64,12 @@ export function AboutModal() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <Modal open={overlay === "about"} onClose={close} title="About & Help" width={640}>
+    <Modal
+      open={overlay === "about"}
+      onClose={close}
+      title="About & Help"
+      width={640}
+    >
       <div
         style={{
           display: "flex",
@@ -80,16 +85,34 @@ export function AboutModal() {
       >
         <Sparkles size={14} /> Why WorshipStudio
       </div>
-      <p style={{ fontFamily: UI, fontSize: 14, color: C.text, lineHeight: 1.7, marginTop: 10 }}>
-        WorshipStudio was born out of frustration. While running media at my church, the presentation
-        software we relied on kept lagging mid-service — stuttering on hymns, images, and videos
-        right when the congregation needed to follow along. Those freezes chipped away at the trust
-        people had in the media team and pulled focus away from worship.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 14,
+          color: C.text,
+          lineHeight: 1.7,
+          marginTop: 10,
+        }}
+      >
+        WorshipStudio was born out of frustration. While running media at my
+        church, the presentation software we relied on kept lagging mid-service
+        — stuttering on hymns, images, and videos right when the congregation
+        needed to follow along. Those freezes chipped away at the trust people
+        had in the media team and pulled focus away from worship.
       </p>
-      <p style={{ fontFamily: UI, fontSize: 14, color: C.sub, lineHeight: 1.7, marginTop: 0 }}>
-        I wanted something lighter and purpose-built — fast, calm, and made for one job: displaying
-        worship content beautifully and reliably. That frustration became the spark for WorshipStudio,
-        so the focus can stay on worship, not the technology.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 14,
+          color: C.sub,
+          lineHeight: 1.7,
+          marginTop: 0,
+        }}
+      >
+        I wanted something lighter and purpose-built — fast, calm, and made for
+        one job: displaying worship content beautifully and reliably. That
+        frustration became the spark for WorshipStudio, so the focus can stay on
+        worship, not the technology.
       </p>
 
       <SectionTitle>Frequently Asked</SectionTitle>
@@ -120,11 +143,25 @@ export function AboutModal() {
                 {faq.q}
                 <ChevronDown
                   size={17}
-                  style={{ flexShrink: 0, transition: "transform 0.2s ease", transform: isOpen ? "rotate(180deg)" : "none", color: C.sub }}
+                  style={{
+                    flexShrink: 0,
+                    transition: "transform 0.2s ease",
+                    transform: isOpen ? "rotate(180deg)" : "none",
+                    color: C.sub,
+                  }}
                 />
               </button>
               {isOpen && (
-                <p style={{ fontFamily: UI, fontSize: 13.5, color: C.sub, lineHeight: 1.7, margin: "0 0 14px", paddingRight: 24 }}>
+                <p
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 13.5,
+                    color: C.sub,
+                    lineHeight: 1.7,
+                    margin: "0 0 14px",
+                    paddingRight: 24,
+                  }}
+                >
                   {faq.a}
                 </p>
               )}
@@ -134,8 +171,17 @@ export function AboutModal() {
       </div>
 
       <SectionTitle>Contact</SectionTitle>
-      <p style={{ fontFamily: UI, fontSize: 13.5, color: C.sub, lineHeight: 1.6, marginTop: 0 }}>
-        Have feedback, found a bug, or want a feature? I'd genuinely love to hear from you.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13.5,
+          color: C.sub,
+          lineHeight: 1.6,
+          marginTop: 0,
+        }}
+      >
+        Have feedback, found a bug, or want a feature? I'd genuinely love to
+        hear from you.
       </p>
       <a
         href={`mailto:${CONTACT_EMAIL}`}
@@ -156,7 +202,15 @@ export function AboutModal() {
         <Mail size={16} />
         {CONTACT_EMAIL}
       </a>
-      <p style={{ fontFamily: DISPLAY, fontSize: 13, color: C.dim, marginTop: 18, marginBottom: 0 }}>
+      <p
+        style={{
+          fontFamily: DISPLAY,
+          fontSize: 13,
+          color: C.dim,
+          marginTop: 18,
+          marginBottom: 0,
+        }}
+      >
         Built with care, for the local church. ✝
       </p>
     </Modal>
