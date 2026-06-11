@@ -1,10 +1,6 @@
 # WorshipStudio
 
-A church worship presentation studio that runs entirely in the browser. Paste
-song lyrics and WorshipStudio turns them into beautifully typeset slides, then
-projects them full‑screen with themes, backgrounds, presenter notes and full
-keyboard control. All data is stored locally (IndexedDB) and the app works
-offline once loaded.
+WorshipStudio is a church worship presentation studio that runs entirely in the browser. Paste song lyrics and WorshipStudio automatically transforms them into beautifully formatted slides, then projects them full-screen with customizable themes, backgrounds, presenter notes, and full keyboard control. All data is stored locally using IndexedDB, and the app continues to work offline once loaded. Try the live demo at https://worshipstudio.netlify.app/.
 
 ## Quick start
 
