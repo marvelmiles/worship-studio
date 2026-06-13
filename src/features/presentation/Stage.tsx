@@ -25,6 +25,18 @@ function viewSize(view: PresentationView): CSSProperties {
   return { width: "min(100vw,177.78vh)", height: "min(100vh,56.25vw)" };
 }
 
+function resolveBgStyle(background: Background): CSSProperties {
+  if (background?.type === "image") {
+    return {
+      backgroundImage: `url(${background.dataUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+  if (background?.type === "solid") return { background: background.color };
+  return { background: background?.css || "#000" };
+}
+
 export function Stage({
   idx,
   slide,
@@ -69,7 +81,7 @@ export function Stage({
       style={{
         position: "fixed",
         inset: 0,
-        background: "#000",
+        ...resolveBgStyle(background),
         overflow: "hidden",
         display: "grid",
         placeItems: "center",
@@ -94,7 +106,7 @@ export function Stage({
               transformOrigin: "center",
             }}
           >
-            <SlideCanvas slide={slide} style={style} bg={background} scrim={slide.overrides?.scrim} radius={0} fill />
+            <SlideCanvas slide={slide} style={style} bg={background} scrim={slide.overrides?.scrim} radius={0} fill noBackground />
           </div>
         </motion.div>
       </AnimatePresence>

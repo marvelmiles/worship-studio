@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { resolveBackground, resolveStyle } from "../../lib/resolve";
@@ -6,6 +6,13 @@ import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
+import type { Background } from "../../types";
+
+function resolveStageBg(bg: Background): CSSProperties {
+  if (bg?.type === "image") return { backgroundImage: `url(${bg.dataUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
+  if (bg?.type === "solid") return { background: bg.color };
+  return { background: bg?.css || "#000" };
+}
 
 export function Presentation() {
   const p = usePresentation();
@@ -87,7 +94,7 @@ export function Presentation() {
         window.clearTimeout(hideTimer.current);
         if (!hovering.current) setChromeActive(false);
       }}
-      style={{ position: "fixed", inset: 0, zIndex: 150, background: "#000" }}
+      style={{ position: "fixed", inset: 0, zIndex: 150, ...resolveStageBg(p.background) }}
     >
       <Stage
         idx={p.idx}

@@ -9,6 +9,7 @@ interface SlideCanvasProps {
   scrim?: boolean;
   radius?: number;
   fill?: boolean;
+  noBackground?: boolean;
 }
 
 /**
@@ -25,19 +26,21 @@ export function SlideCanvas({
   scrim,
   radius = 14,
   fill,
+  noBackground,
 }: SlideCanvasProps) {
-  const bgStyle =
-    bg?.type === "image"
-      ? {
-          backgroundImage: `url(${bg.dataUrl})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }
-      : bg?.type === "solid"
-      ? { background: bg.color }
-      : { background: bg?.css || "#111" };
+  const bgStyle = noBackground
+    ? {}
+    : bg?.type === "image"
+    ? {
+        backgroundImage: `url(${bg.dataUrl})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : bg?.type === "solid"
+    ? { background: bg.color }
+    : { background: bg?.css || "#111" };
 
-  const wantScrim = scrim ?? bg?.type === "image";
+  const wantScrim = !noBackground && (scrim ?? bg?.type === "image");
   const lines = slide.lines && slide.lines.length ? slide.lines : [""];
 
   return (
