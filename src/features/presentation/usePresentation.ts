@@ -10,6 +10,7 @@ import {
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
+import { computeTagGroups } from "../../lib/tagGroups";
 
 const VIEW_ORDER: PresentationView[] = ["normal", "cover", "fill"];
 const ZOOM_MIN = 0.5;
@@ -47,6 +48,10 @@ export function usePresentation() {
   const [view, setView] = useState<PresentationView>(prefs.presentationView);
   const [showInfo, setShowInfo] = useState(prefs.showPresenterBar);
   const [elapsed, setElapsed] = useState(0);
+
+  const tagGroups = useMemo(() => computeTagGroups(slides), [slides]);
+  // Accumulates digit keys pressed while Ctrl is held; flushed on Ctrl keyup.
+  const ctrlNumBuffer = useRef<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -109,8 +114,24 @@ export function usePresentation() {
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       const key = e.key;
+
+      // Tag navigation: Ctrl+digits accumulate into a buffer, flushed on Ctrl keyup.
+      if (e.ctrlKey && /^[0-9]$/.test(key)) {
+        e.preventDefault();
+        ctrlNumBuffer.current += key;
+        return;
+      }
+      // Ctrl+C: jump directly to the first Chorus slide.
+      if (e.ctrlKey && key.toLowerCase() === "c") {
+        e.preventDefault();
+        ctrlNumBuffer.current = "";
+        const chorusGroup = tagGroups.find((g) => g.type === "chorus");
+        if (chorusGroup) goTo(chorusGroup.firstIndex);
+        return;
+      }
+
       if (["ArrowRight", " ", "PageDown", "l"].includes(key)) {
         e.preventDefault();
         go(1);
@@ -135,12 +156,28 @@ export function usePresentation() {
         zoomIn();
       } else if (key === "-" || key === "_") {
         zoomOut();
-      } else if (key === "0") {
+      } else if (key === "0" && !e.ctrlKey) {
         resetZoom();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Control") {
+        const buf = ctrlNumBuffer.current;
+        ctrlNumBuffer.current = "";
+        if (!buf) return;
+        const num = parseInt(buf, 10);
+        const group = tagGroups.find((g) => g.shortcutNum === num);
+        if (group) goTo(group.firstIndex);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
   }, [
     go,
     goTo,
@@ -153,6 +190,7 @@ export function usePresentation() {
     zoomOut,
     resetZoom,
     slides.length,
+    tagGroups,
   ]);
 
   useEffect(() => {
@@ -187,6 +225,7 @@ export function usePresentation() {
     audioRef,
     song,
     slides,
+    tagGroups,
     theme,
     bgMap,
     idx,

@@ -18,6 +18,7 @@ import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { resolveBackground, resolveStyle } from "../../lib/resolve";
+import { computeTagGroups } from "../../lib/tagGroups";
 import { Btn, IconBtn } from "../../components/ui/Button";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
@@ -49,6 +50,7 @@ export function EditorWorkspace({ song }: { song: Song }) {
   const addCustomBackground = useStore((s) => s.addCustomBackground);
 
   const editor = useEditorSong(song);
+  const tagGroups = useMemo(() => computeTagGroups(editor.slides), [editor.slides]);
   const theme = useMemo(
     () => themes.find((t) => t.id === song.defaultThemeId) || themes[0],
     [themes, song.defaultThemeId]
@@ -94,6 +96,7 @@ export function EditorWorkspace({ song }: { song: Song }) {
       onReorder={editor.setSlides}
       onContextMenu={(index, x, y) => setMenu({ index, x, y })}
       onAdd={() => editor.insertSlideAt(editor.selectedIndex >= 0 ? editor.selectedIndex + 1 : editor.slides.length)}
+      tagGroups={tagGroups}
     />
   );
 

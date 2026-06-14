@@ -6,6 +6,7 @@ export interface Shortcut {
 export interface ShortcutGroup {
   title: string;
   shortcuts: Shortcut[];
+  note?: string;
 }
 
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
@@ -16,6 +17,20 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["←", "Page Up", "H"], description: "Previous slide" },
       { keys: ["Home"], description: "First slide" },
       { keys: ["End"], description: "Last slide" },
+    ],
+  },
+  {
+    title: "Tag Navigation",
+    note: "Numbers are assigned in the order each section type first appears in the slide list. Reordering slides changes the numbers dynamically.",
+    shortcuts: [
+      {
+        keys: ["Ctrl", "hold", "1 – 9…", "then release Ctrl"],
+        description: "Jump to first slide of tag group N (dynamic)",
+      },
+      {
+        keys: ["Ctrl", "+", "C"],
+        description: "Jump to first Chorus slide (fixed shortcut)",
+      },
     ],
   },
   {

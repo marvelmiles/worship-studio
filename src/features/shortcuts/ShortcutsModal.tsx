@@ -29,6 +29,20 @@ export function ShortcutsModal() {
       {SHORTCUT_GROUPS.map((group) => (
         <div key={group.title} style={{ marginBottom: 6 }}>
           <SectionTitle>{group.title}</SectionTitle>
+          {group.note && (
+            <p
+              style={{
+                fontFamily: UI,
+                fontSize: 12,
+                color: C.sub,
+                margin: "4px 0 10px",
+                lineHeight: 1.55,
+                fontStyle: "italic",
+              }}
+            >
+              {group.note}
+            </p>
+          )}
           {group.shortcuts.map((shortcut, i) => (
             <div
               key={i}
@@ -44,7 +58,7 @@ export function ShortcutsModal() {
               <span style={{ fontFamily: UI, fontSize: 13.5, color: C.text }}>
                 {shortcut.description}
               </span>
-              <span style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+              <span style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 260 }}>
                 {shortcut.keys.map((key) => (
                   <kbd key={key} style={keyStyle}>
                     {key}

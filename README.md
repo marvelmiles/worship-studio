@@ -69,6 +69,19 @@ Then open the URL Vite prints (default http://localhost:5173).
 | Home                       | First slide    |
 | End                        | Last slide     |
 
+**Tag navigation** _(dynamic — numbers reflect the order sections appear in the slide list)_
+
+Hold `Ctrl`, type one or more digits, then release `Ctrl` to jump to the first slide of the matching tag group. If you reorder slides, the numbers update automatically.
+
+| Keys                       | Action                                              |
+| -------------------------- | --------------------------------------------------- |
+| `Ctrl` hold + `1`, `2`…  then release | Jump to first slide of tag group N       |
+| `Ctrl` + `C`               | Jump to first **Chorus** slide (fixed shortcut)     |
+
+Examples: if your song opens with Verse → Chorus → Bridge, `Ctrl+1` jumps to Verse, `Ctrl+2` to Chorus, `Ctrl+3` to Bridge. For a two-digit group like 12, hold `Ctrl`, type `1` then `2`, then release `Ctrl`.
+
+In the editor slide list, each section's first slide shows a small `^N` badge (and `^C` in gold for the Chorus), so you can see which number to use before you start presenting.
+
 **Playback**
 
 | Key | Action              |

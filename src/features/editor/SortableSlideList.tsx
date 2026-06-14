@@ -18,6 +18,7 @@ import type { Background, Slide, Song, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { resolveBackground, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
+import type { TagGroup } from "../../lib/tagGroups";
 
 interface SortableSlideListProps {
   slides: Slide[];
@@ -28,6 +29,7 @@ interface SortableSlideListProps {
   bgMap: Record<string, Background>;
   onReorder: (next: Slide[]) => void;
   onContextMenu: (idx: number, x: number, y: number) => void;
+  tagGroups?: TagGroup[];
 }
 
 interface RowProps {
@@ -39,7 +41,21 @@ interface RowProps {
   theme: Theme;
   bgMap: Record<string, Background>;
   onContextMenu: (idx: number, x: number, y: number) => void;
+  tagGroup?: TagGroup;
 }
+
+const badgeBase: React.CSSProperties = {
+  fontFamily: "ui-monospace, monospace",
+  fontSize: 9,
+  fontWeight: 700,
+  borderRadius: 3,
+  padding: "1px 4px",
+  whiteSpace: "nowrap",
+  lineHeight: 1.4,
+  background: "rgba(255,255,255,0.06)",
+  border: `1px solid ${C.border}`,
+  color: C.dim,
+};
 
 function SortableRow({
   slide,
@@ -50,11 +66,13 @@ function SortableRow({
   theme,
   bgMap,
   onContextMenu,
+  tagGroup,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: slide.id });
 
   const selected = slide.id === selId;
+  const isChorus = slide.type === "chorus";
 
   return (
     <div
@@ -119,16 +137,49 @@ function SortableRow({
         />
         <div
           style={{
-            fontFamily: UI,
-            fontSize: 11,
-            color: selected ? C.goldSoft : C.sub,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 4,
             marginTop: 5,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
           }}
         >
-          {slide.label}
+          <div
+            style={{
+              fontFamily: UI,
+              fontSize: 11,
+              color: selected ? C.goldSoft : C.sub,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              minWidth: 0,
+            }}
+          >
+            {slide.label}
+          </div>
+          {tagGroup && (
+            <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+              <span
+                title={`Press Ctrl then hold and type ${tagGroup.shortcutNum}, release Ctrl to jump here`}
+                style={badgeBase}
+              >
+                ^{tagGroup.shortcutNum}
+              </span>
+              {isChorus && (
+                <span
+                  title="Press Ctrl+C to jump to first Chorus slide"
+                  style={{
+                    ...badgeBase,
+                    color: C.gold,
+                    borderColor: "rgba(216,162,74,0.4)",
+                    background: "rgba(216,162,74,0.08)",
+                  }}
+                >
+                  ^C
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -144,6 +195,7 @@ export function SortableSlideList({
   bgMap,
   onReorder,
   onContextMenu,
+  tagGroups,
 }: SortableSlideListProps) {
   // Small activation distance so a plain click still selects the slide.
   const sensors = useSensors(
@@ -162,19 +214,23 @@ export function SortableSlideList({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-        {slides.map((s, i) => (
-          <SortableRow
-            key={s.id}
-            slide={s}
-            index={i}
-            selId={selId}
-            setSelId={setSelId}
-            song={song}
-            theme={theme}
-            bgMap={bgMap}
-            onContextMenu={onContextMenu}
-          />
-        ))}
+        {slides.map((s, i) => {
+          const tagGroup = tagGroups?.find((g) => g.firstIndex === i);
+          return (
+            <SortableRow
+              key={s.id}
+              slide={s}
+              index={i}
+              selId={selId}
+              setSelId={setSelId}
+              song={song}
+              theme={theme}
+              bgMap={bgMap}
+              onContextMenu={onContextMenu}
+              tagGroup={tagGroup}
+            />
+          );
+        })}
       </SortableContext>
     </DndContext>
   );

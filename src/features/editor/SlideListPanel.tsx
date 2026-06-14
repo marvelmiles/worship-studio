@@ -3,6 +3,7 @@ import type { Background, Slide, Song, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { IconBtn } from "../../components/ui/Button";
 import { SortableSlideList } from "./SortableSlideList";
+import type { TagGroup } from "../../lib/tagGroups";
 
 interface SlideListPanelProps {
   slides: Slide[];
@@ -14,6 +15,7 @@ interface SlideListPanelProps {
   onReorder: (next: Slide[]) => void;
   onContextMenu: (index: number, x: number, y: number) => void;
   onAdd: () => void;
+  tagGroups?: TagGroup[];
 }
 
 export function SlideListPanel({
@@ -26,6 +28,7 @@ export function SlideListPanel({
   onReorder,
   onContextMenu,
   onAdd,
+  tagGroups,
 }: SlideListPanelProps) {
   return (
     <div style={{ padding: 14 }}>
@@ -60,6 +63,7 @@ export function SlideListPanel({
         bgMap={bgMap}
         onReorder={onReorder}
         onContextMenu={onContextMenu}
+        tagGroups={tagGroups}
       />
     </div>
   );
