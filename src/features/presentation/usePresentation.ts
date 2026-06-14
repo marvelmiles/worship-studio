@@ -167,8 +167,12 @@ export function usePresentation() {
         ctrlNumBuffer.current = "";
         if (!buf) return;
         const num = parseInt(buf, 10);
-        const group = tagGroups.find((g) => g.shortcutNum === num);
-        if (group) goTo(group.firstIndex);
+        if (song?.shortcutMode === "all-slides") {
+          goTo(num - 1);
+        } else {
+          const group = tagGroups.find((g) => g.shortcutNum === num);
+          if (group) goTo(group.firstIndex);
+        }
       }
     };
 
@@ -191,6 +195,7 @@ export function usePresentation() {
     resetZoom,
     slides.length,
     tagGroups,
+    song,
   ]);
 
   useEffect(() => {

@@ -144,6 +144,25 @@ export function SongSettingsModal({
         }
       />
 
+      <SectionTitle>Keyboard Shortcuts</SectionTitle>
+      <Field label="Shortcut mode">
+        <Select
+          value={song.shortcutMode || "first-slide-per-tag"}
+          options={[
+            { value: "first-slide-per-tag", label: "Tag first slide only (default)" },
+            { value: "all-slides", label: "Every slide" },
+          ]}
+          onChange={(e) =>
+            onPatchSong({ shortcutMode: e.target.value as Song["shortcutMode"] })
+          }
+        />
+      </Field>
+      <p style={{ fontFamily: UI, fontSize: 12, color: C.dim, margin: "-4px 0 0" }}>
+        {song.shortcutMode === "all-slides"
+          ? "Ctrl+number shortcuts are assigned to every slide in order (Ctrl+1 → slide 1, Ctrl+2 → slide 2…)."
+          : "Ctrl+number shortcuts jump to the first slide of each section tag only."}
+      </p>
+
       <SectionTitle>Playback</SectionTitle>
       <div style={{ marginBottom: 12 }}>
         <Toggle

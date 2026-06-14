@@ -30,6 +30,7 @@ import { SettingsModal } from "./features/settings/SettingsModal";
 import { ThemesModal } from "./features/themes/ThemesModal";
 import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
+import { UpdateModal } from "./features/updates/UpdateModal";
 
 const NAV: [string, string, LucideIcon][] = [
   ["/", "Dashboard", LayoutDashboard],
@@ -241,6 +242,7 @@ export default function App() {
       <AboutModal />
       <UploadLabelModal />
       <GuideModal />
+      <UpdateModal />
       <ResetOverlay />
       <StorageGate />
       <Toaster />

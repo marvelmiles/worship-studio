@@ -106,8 +106,9 @@ export function useEditorSong(song: Song) {
   };
 
   const regenerateFromLyrics = (lyrics: string, maxLines: number) => {
-    patchSong({ lyrics, slides: parseLyrics(lyrics, maxLines) });
-    setSelectedId(null);
+    const next = parseLyrics(lyrics, maxLines);
+    patchSong({ lyrics, slides: next });
+    setSelectedId(next[0]?.id ?? null);
   };
 
   return {

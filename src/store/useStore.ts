@@ -157,9 +157,22 @@ function mergeById<T extends { id: string }>(existing: T[], incoming: T[], impor
   return [...map.values()];
 }
 
+/** Puts built-in themes first, ordered by their position in THEMES, then custom themes. */
+function sortBuiltInFirst(themes: Theme[]): Theme[] {
+  const order = THEMES.map((t) => t.id);
+  return [...themes].sort((a, b) => {
+    const ai = order.indexOf(a.id);
+    const bi = order.indexOf(b.id);
+    if (ai !== -1 && bi !== -1) return ai - bi;
+    if (ai !== -1) return -1;
+    if (bi !== -1) return 1;
+    return 0;
+  });
+}
+
 function ensureBuiltInThemes(themes: Theme[]): Theme[] {
   const present = new Set(themes.map((t) => t.id));
-  return [...themes, ...THEMES.filter((t) => !present.has(t.id))];
+  return sortBuiltInFirst([...themes, ...THEMES.filter((t) => !present.has(t.id))]);
 }
 
 function normalizeImportedSong(entry: { id?: string; lyrics?: string; maxLines?: number; slides?: unknown[] }): Song {
@@ -279,7 +292,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
     set({
       songs: songList,
-      themes: themeList,
+      themes: sortBuiltInFirst(ensureBuiltInThemes(themeList)),
       backgrounds: [...BACKGROUNDS, ...customBackgrounds(backgrounds)],
       audio: [...DEFAULT_AUDIO, ...customAudio(audio)],
       prefs,

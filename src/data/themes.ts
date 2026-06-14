@@ -1,7 +1,7 @@
 import type { Theme } from "../types";
 
 export const THEMES: Theme[] = [
-  { id: "classic", name: "Classic Worship", builtIn: true, fontFamily: "Cormorant Garamond", fontWeight: 600, color: "#fbf7ee", align: "center", lineHeight: 1.22, letterSpacing: 0.2, fontSize: 5.6, uppercase: false, textShadow: "0 2px 22px rgba(0,0,0,0.55)", backgroundId: "bg-dawn", animation: "fade" },
+  { id: "classic", name: "Classic Worship", builtIn: true, fontFamily: "Cormorant Garamond", fontWeight: 600, color: "#fbf7ee", align: "center", lineHeight: 1.22, letterSpacing: 0.2, fontSize: 6, uppercase: false, textShadow: "0 2px 22px rgba(0,0,0,0.55)", backgroundId: "bg-dawn", animation: "fade" },
   { id: "modern", name: "Modern Worship", builtIn: true, fontFamily: "Outfit", fontWeight: 700, color: "#ffffff", align: "center", lineHeight: 1.18, letterSpacing: -0.5, fontSize: 5.2, uppercase: false, textShadow: "0 2px 30px rgba(0,0,0,0.45)", backgroundId: "bg-mountain", animation: "slide-up" },
   { id: "hymnbook", name: "Hymn Book", builtIn: true, fontFamily: "Playfair Display", fontWeight: 600, color: "#2a2118", align: "center", lineHeight: 1.3, letterSpacing: 0, fontSize: 5.0, uppercase: false, textShadow: "none", backgroundId: "bg-parchment", animation: "fade" },
   { id: "dark", name: "Dark Worship", builtIn: true, fontFamily: "Sora", fontWeight: 600, color: "#f5f5f7", align: "center", lineHeight: 1.25, letterSpacing: 0, fontSize: 5.3, uppercase: false, textShadow: "0 1px 18px rgba(0,0,0,0.7)", backgroundId: "bg-deep", animation: "dissolve" },

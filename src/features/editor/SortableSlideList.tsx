@@ -41,21 +41,71 @@ interface RowProps {
   theme: Theme;
   bgMap: Record<string, Background>;
   onContextMenu: (idx: number, x: number, y: number) => void;
-  tagGroup?: TagGroup;
+  shortcutNum?: number;
 }
 
-const badgeBase: React.CSSProperties = {
+const kbdKey: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
   fontFamily: "ui-monospace, monospace",
-  fontSize: 9,
-  fontWeight: 700,
+  fontSize: 8,
+  fontWeight: 800,
   borderRadius: 3,
   padding: "1px 4px",
-  whiteSpace: "nowrap",
+  background: "rgba(255,255,255,0.15)",
+  border: "1px solid rgba(255,255,255,0.3)",
+  borderBottom: "2px solid rgba(255,255,255,0.3)",
+  color: "#ffffff",
   lineHeight: 1.4,
-  background: "rgba(255,255,255,0.06)",
-  border: `1px solid ${C.border}`,
-  color: C.dim,
+  letterSpacing: 0.2,
 };
+
+const badgeWrap: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 2,
+  whiteSpace: "nowrap",
+};
+
+function ShortcutBadge({
+  label,
+  title,
+  highlight,
+}: {
+  label: string;
+  title: string;
+  highlight?: boolean;
+}) {
+  return (
+    <span title={title} style={badgeWrap}>
+      <span
+        style={{
+          ...kbdKey,
+          ...(highlight
+            ? {
+                background: "rgba(216,162,74,0.2)",
+                border: "1px solid rgba(216,162,74,0.5)",
+                borderBottom: "2px solid rgba(216,162,74,0.5)",
+                color: C.gold,
+              }
+            : {}),
+        }}
+      >
+        Ctrl
+      </span>
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 800,
+          color: highlight ? C.gold : "rgba(255,255,255,0.7)",
+          fontFamily: "ui-monospace, monospace",
+        }}
+      >
+        +{label}
+      </span>
+    </span>
+  );
+}
 
 function SortableRow({
   slide,
@@ -66,13 +116,14 @@ function SortableRow({
   theme,
   bgMap,
   onContextMenu,
-  tagGroup,
+  shortcutNum,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: slide.id });
 
   const selected = slide.id === selId;
   const isChorus = slide.type === "chorus";
+  const allSlidesMode = song.shortcutMode === "all-slides";
 
   return (
     <div
@@ -157,26 +208,22 @@ function SortableRow({
           >
             {slide.label}
           </div>
-          {tagGroup && (
-            <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
-              <span
-                title={`Press Ctrl then hold and type ${tagGroup.shortcutNum}, release Ctrl to jump here`}
-                style={badgeBase}
-              >
-                ^{tagGroup.shortcutNum}
-              </span>
+          {shortcutNum !== undefined && (
+            <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+              <ShortcutBadge
+                label={String(shortcutNum)}
+                title={
+                  allSlidesMode
+                    ? `Press Ctrl then type ${shortcutNum}, release Ctrl to jump here`
+                    : `Press Ctrl then hold and type ${shortcutNum}, release Ctrl to jump here`
+                }
+              />
               {isChorus && (
-                <span
+                <ShortcutBadge
+                  label="C"
                   title="Press Ctrl+C to jump to first Chorus slide"
-                  style={{
-                    ...badgeBase,
-                    color: C.gold,
-                    borderColor: "rgba(216,162,74,0.4)",
-                    background: "rgba(216,162,74,0.08)",
-                  }}
-                >
-                  ^C
-                </span>
+                  highlight
+                />
               )}
             </div>
           )}
@@ -215,7 +262,10 @@ export function SortableSlideList({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         {slides.map((s, i) => {
-          const tagGroup = tagGroups?.find((g) => g.firstIndex === i);
+          const allSlidesMode = song.shortcutMode === "all-slides";
+          const shortcutNum = allSlidesMode
+            ? i + 1
+            : tagGroups?.find((g) => g.firstIndex === i)?.shortcutNum;
           return (
             <SortableRow
               key={s.id}
@@ -227,7 +277,7 @@ export function SortableSlideList({
               theme={theme}
               bgMap={bgMap}
               onContextMenu={onContextMenu}
-              tagGroup={tagGroup}
+              shortcutNum={shortcutNum}
             />
           );
         })}

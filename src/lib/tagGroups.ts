@@ -7,9 +7,21 @@ export interface TagGroup {
   shortcutNum: number;
 }
 
-/** Strips the " · N/M" chunk suffix that the parser appends to long sections. */
+/**
+ * Strips suffixes added by the parser (" · N/M") and the editor split
+ * operation (" (b)", " (c)", …) so that split/chunked slides of the same
+ * section share one tag group.
+ *
+ * Order matters: strip editor-split suffixes first so that a slide like
+ * "Verse 1 · 1/2 (b)" reduces to "Verse 1" (not "Verse 1 · 1/2").
+ * The `+` handles chained splits such as "Verse 1 (b) (b)".
+ */
 function baseLabel(label: string): string {
-  return label.replace(/\s·\s\d+\/\d+$/, "");
+  // Strip all editor split suffixes: " (b)", " (c)", …, " (z)"
+  let base = label.replace(/(\s\([b-z]\))+$/, "");
+  // Strip parser chunk suffix: " · N/M"
+  base = base.replace(/\s·\s\d+\/\d+$/, "");
+  return base;
 }
 
 /**

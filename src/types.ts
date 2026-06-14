@@ -62,6 +62,7 @@ export interface Song {
   animation?: AnimationKind;
   autoPlay?: boolean;
   slideDurationSeconds?: number;
+  shortcutMode?: "all-slides" | "first-slide-per-tag";
   style?: SongStyle;
   createdAt: string;
   updatedAt: string;
