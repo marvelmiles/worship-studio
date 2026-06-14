@@ -5,7 +5,7 @@ import { C, DISPLAY, UI, glass } from "../../theme/tokens";
 // Set SHOW_UPDATE to true before pushing to show the modal on load.
 // Change UPDATE_KEY whenever you want returning users to see the modal again.
 export const SHOW_UPDATE = true;
-const UPDATE_KEY = "ws-update-2026-06-14-r3";
+const UPDATE_KEY = "ws-update-2026-06-14-r4";
 // ──────────────────────────────────────────────────────────────────────────
 
 const CHANGES: { title: string; body: string }[] = [
@@ -28,6 +28,18 @@ const CHANGES: { title: string; body: string }[] = [
   {
     title: "Regenerate Slides Selects the First Slide",
     body: "After clicking Regenerate Slides from the lyrics editor, the first slide of the newly generated set is now automatically selected so you can immediately start reviewing or editing it.",
+  },
+  {
+    title: "New Slide Inserts After Current Slide",
+    body: "When you add a new slide in the editor, it now inserts immediately after the currently selected slide instead of appending to the end of the list. This makes it much faster to build out a song without having to drag the new slide into position.",
+  },
+  {
+    title: "Slide Background Shown in Presentation Mode",
+    body: "The presentation stage now renders each slide's own background (image, solid colour, or gradient) directly on the stage so the background fills the entire screen — not just the slide canvas area. The previous solid-black backdrop is gone.",
+  },
+  {
+    title: "PWA Auto-Updates When You Return to the App",
+    body: "The installed PWA now checks for a new version every time you bring the app back into the foreground (e.g. after switching away and returning). Updates apply automatically in the background — no manual refresh needed. It also polls for updates once per hour while the tab stays open.",
   },
   {
     title: "Update Notifications",
