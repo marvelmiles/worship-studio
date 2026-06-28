@@ -160,7 +160,7 @@ export function SongSettingsModal({
       <p style={{ fontFamily: UI, fontSize: 12, color: C.dim, margin: "-4px 0 0" }}>
         {song.shortcutMode === "all-slides"
           ? "Ctrl+number shortcuts are assigned to every slide in order (Ctrl+1 → slide 1, Ctrl+2 → slide 2…)."
-          : "Ctrl+number shortcuts jump to the first slide of each section tag only."}
+          : "Ctrl+number shortcuts jump to verses only (Ctrl+1 → Verse 1, Ctrl+2 → Verse 2…). Other sections use fixed shortcuts: Ctrl+C Chorus, Ctrl+B Bridge, Ctrl+I Intro, Ctrl+O Outro, Ctrl+P Pre-Chorus, Ctrl+R Refrain, Ctrl+T Tag."}
       </p>
 
       <SectionTitle>Playback</SectionTitle>

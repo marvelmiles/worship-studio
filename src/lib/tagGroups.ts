@@ -4,8 +4,27 @@ export interface TagGroup {
   type: string;
   label: string;
   firstIndex: number;
-  shortcutNum: number;
+  /** Only set for verse groups — Ctrl+number jumps are verse-only. */
+  shortcutNum?: number;
 }
+
+/** Fixed Ctrl+letter shortcuts for non-verse section types — these jump to
+ * the first slide of that type instead of being part of the verse numbering. */
+export const FIXED_TAG_SHORTCUTS: { letter: string; type: string; label: string }[] = [
+  { letter: "c", type: "chorus", label: "Chorus" },
+  { letter: "b", type: "bridge", label: "Bridge" },
+  { letter: "o", type: "outro", label: "Outro" },
+  { letter: "t", type: "tag", label: "Tag" },
+  { letter: "p", type: "pre-chorus", label: "Pre-Chorus" },
+  { letter: "i", type: "intro", label: "Intro" },
+  { letter: "r", type: "refrain", label: "Refrain" },
+];
+
+export const FIXED_SHORTCUT_BY_LETTER: Record<string, { type: string; label: string }> =
+  Object.fromEntries(FIXED_TAG_SHORTCUTS.map((f) => [f.letter, { type: f.type, label: f.label }]));
+
+export const FIXED_SHORTCUT_BY_TYPE: Record<string, { letter: string; label: string }> =
+  Object.fromEntries(FIXED_TAG_SHORTCUTS.map((f) => [f.type, { letter: f.letter, label: f.label }]));
 
 /**
  * Strips suffixes added by the parser (" · N/M") and the editor split
@@ -29,7 +48,11 @@ function baseLabel(label: string): string {
  * ordered by first appearance. Slides with the same base label (e.g. every
  * repeated [Chorus]) share a single entry pointing to the first occurrence.
  * Slides with different labels but the same type (e.g. Verse 1 vs Verse 2)
- * each get their own entry and shortcut number.
+ * each get their own entry.
+ *
+ * Only verse groups receive a `shortcutNum` (Ctrl+number jumps are verse-only).
+ * Other recognised types (chorus, bridge, outro, tag, pre-chorus, intro,
+ * refrain) use the fixed Ctrl+letter shortcuts in `FIXED_TAG_SHORTCUTS` instead.
  */
 export function computeTagGroups(slides: Slide[]): TagGroup[] {
   const seen = new Set<string>();
@@ -39,11 +62,12 @@ export function computeTagGroups(slides: Slide[]): TagGroup[] {
     const key = baseLabel(slides[i].label);
     if (!seen.has(key)) {
       seen.add(key);
+      const type = slides[i].type;
       groups.push({
-        type: slides[i].type,
+        type,
         label: key,
         firstIndex: i,
-        shortcutNum: num++,
+        shortcutNum: type === "verse" ? num++ : undefined,
       });
     }
   }

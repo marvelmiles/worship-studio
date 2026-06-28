@@ -10,7 +10,7 @@ import {
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
-import { computeTagGroups } from "../../lib/tagGroups";
+import { computeTagGroups, FIXED_SHORTCUT_BY_LETTER } from "../../lib/tagGroups";
 
 const VIEW_ORDER: PresentationView[] = ["normal", "cover", "fill"];
 const ZOOM_MIN = 0.5;
@@ -118,17 +118,19 @@ export function usePresentation() {
       const key = e.key;
 
       // Tag navigation: Ctrl+digits accumulate into a buffer, flushed on Ctrl keyup.
+      // Numbers are verse-only — other section types use fixed Ctrl+letter shortcuts.
       if (e.ctrlKey && /^[0-9]$/.test(key)) {
         e.preventDefault();
         ctrlNumBuffer.current += key;
         return;
       }
-      // Ctrl+C: jump directly to the first Chorus slide.
-      if (e.ctrlKey && key.toLowerCase() === "c") {
+      // Fixed Ctrl+letter shortcuts: jump directly to the first slide of that section type.
+      const fixed = e.ctrlKey ? FIXED_SHORTCUT_BY_LETTER[key.toLowerCase()] : undefined;
+      if (fixed) {
         e.preventDefault();
         ctrlNumBuffer.current = "";
-        const chorusGroup = tagGroups.find((g) => g.type === "chorus");
-        if (chorusGroup) goTo(chorusGroup.firstIndex);
+        const group = tagGroups.find((g) => g.type === fixed.type);
+        if (group) goTo(group.firstIndex);
         return;
       }
 

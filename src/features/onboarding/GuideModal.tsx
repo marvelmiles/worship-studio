@@ -24,7 +24,7 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: FileText,
     title: "Lyrics become slides — then shape them",
-    desc: "Paste lyrics (optionally tagged [verse], [chorus], [bridge]) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide — all from the slide inspector or by right-clicking a slide.",
+    desc: "Paste lyrics (optionally tagged [verse], [chorus], [bridge] — [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide — all from the slide inspector or by right-clicking a slide.",
   },
   {
     icon: MonitorUp,

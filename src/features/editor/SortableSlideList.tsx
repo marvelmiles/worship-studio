@@ -18,7 +18,7 @@ import type { Background, Slide, Song, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { resolveBackground, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
-import type { TagGroup } from "../../lib/tagGroups";
+import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
 
 interface SortableSlideListProps {
   slides: Slide[];
@@ -42,6 +42,7 @@ interface RowProps {
   bgMap: Record<string, Background>;
   onContextMenu: (idx: number, x: number, y: number) => void;
   shortcutNum?: number;
+  fixedShortcut?: { letter: string; label: string };
 }
 
 const kbdKey: React.CSSProperties = {
@@ -117,12 +118,12 @@ function SortableRow({
   bgMap,
   onContextMenu,
   shortcutNum,
+  fixedShortcut,
 }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: slide.id });
 
   const selected = slide.id === selId;
-  const isChorus = slide.type === "chorus";
   const allSlidesMode = song.shortcutMode === "all-slides";
 
   return (
@@ -208,20 +209,22 @@ function SortableRow({
           >
             {slide.label}
           </div>
-          {shortcutNum !== undefined && (
+          {(shortcutNum !== undefined || fixedShortcut) && (
             <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-              <ShortcutBadge
-                label={String(shortcutNum)}
-                title={
-                  allSlidesMode
-                    ? `Press Ctrl then type ${shortcutNum}, release Ctrl to jump here`
-                    : `Press Ctrl then hold and type ${shortcutNum}, release Ctrl to jump here`
-                }
-              />
-              {isChorus && (
+              {shortcutNum !== undefined && (
                 <ShortcutBadge
-                  label="C"
-                  title="Press Ctrl+C to jump to first Chorus slide"
+                  label={String(shortcutNum)}
+                  title={
+                    allSlidesMode
+                      ? `Press Ctrl then type ${shortcutNum}, release Ctrl to jump here`
+                      : `Press Ctrl then hold and type ${shortcutNum}, release Ctrl to jump here`
+                  }
+                />
+              )}
+              {fixedShortcut && (
+                <ShortcutBadge
+                  label={fixedShortcut.letter.toUpperCase()}
+                  title={`Press Ctrl+${fixedShortcut.letter.toUpperCase()} to jump to first ${fixedShortcut.label} slide`}
                   highlight
                 />
               )}
@@ -263,9 +266,9 @@ export function SortableSlideList({
       <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         {slides.map((s, i) => {
           const allSlidesMode = song.shortcutMode === "all-slides";
-          const shortcutNum = allSlidesMode
-            ? i + 1
-            : tagGroups?.find((g) => g.firstIndex === i)?.shortcutNum;
+          const group = tagGroups?.find((g) => g.firstIndex === i);
+          const shortcutNum = allSlidesMode ? i + 1 : group?.shortcutNum;
+          const fixedShortcut = group ? FIXED_SHORTCUT_BY_TYPE[group.type] : undefined;
           return (
             <SortableRow
               key={s.id}
@@ -278,6 +281,7 @@ export function SortableSlideList({
               bgMap={bgMap}
               onContextMenu={onContextMenu}
               shortcutNum={shortcutNum}
+              fixedShortcut={fixedShortcut}
             />
           );
         })}

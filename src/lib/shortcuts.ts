@@ -21,15 +21,39 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: "Tag Navigation",
-    note: "Numbers are assigned in the order each section type first appears in the slide list. Reordering slides changes the numbers dynamically.",
+    note: "Numbers are verse-only and follow the order verses appear in the slide list. Every other section type uses a fixed Ctrl+letter shortcut.",
     shortcuts: [
       {
         keys: ["Ctrl", "hold", "1 – 9…", "then release Ctrl"],
-        description: "Jump to first slide of tag group N (dynamic)",
+        description: "Jump to Verse N",
       },
       {
         keys: ["Ctrl", "+", "C"],
-        description: "Jump to first Chorus slide (fixed shortcut)",
+        description: "Jump to first Chorus slide",
+      },
+      {
+        keys: ["Ctrl", "+", "B"],
+        description: "Jump to first Bridge slide",
+      },
+      {
+        keys: ["Ctrl", "+", "I"],
+        description: "Jump to first Intro slide",
+      },
+      {
+        keys: ["Ctrl", "+", "O"],
+        description: "Jump to first Outro slide",
+      },
+      {
+        keys: ["Ctrl", "+", "P"],
+        description: "Jump to first Pre-Chorus slide",
+      },
+      {
+        keys: ["Ctrl", "+", "R"],
+        description: "Jump to first Refrain slide",
+      },
+      {
+        keys: ["Ctrl", "+", "T"],
+        description: "Jump to first Tag slide",
       },
     ],
   },

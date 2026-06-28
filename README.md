@@ -37,11 +37,15 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 ## Features
 
-- **Lyrics → slides engine.** Recognises `[verse] [chorus] [bridge] [intro]
-[outro] [tag] [refrain] [pre-chorus]` (and custom) tags. Repeated sections
-  auto‑number (Verse 1, Verse 2). With no tags, blank‑line‑separated stanzas
-  become numbered verses. Long sections split across slides at a configurable
-  max‑lines.
+- **Lyrics → slides engine.** Recognises `[verse] [solo] [chorus] [bridge]
+[intro] [outro] [tag] [refrain] [pre-chorus]` (and custom) tags — `[solo]` is
+  treated as a verse. Repeated sections auto‑number (Verse 1, Verse 2). A tag
+  can also carry an explicit number (e.g. `[Verse 3]`) — explicit numbers are
+  reserved first and unnumbered repeats fill in whatever's left, then sections
+  are reordered into ascending numeric order regardless of how they were typed
+  (other section types keep their own position). With no tags, blank‑line‑
+  separated stanzas become numbered verses. Long sections split across slides
+  at a configurable max‑lines.
 - **Song library.** Create / edit / search (title, artist, lyrics, collection),
   organise by collection, soft‑delete to Trash with restore or permanent
   delete.
@@ -69,18 +73,26 @@ Then open the URL Vite prints (default http://localhost:5173).
 | Home                       | First slide    |
 | End                        | Last slide     |
 
-**Tag navigation** _(dynamic — numbers reflect the order sections appear in the slide list)_
+**Tag navigation** _(numbers are verse‑only; every other section type has a fixed letter shortcut)_
 
-Hold `Ctrl`, type one or more digits, then release `Ctrl` to jump to the first slide of the matching tag group. If you reorder slides, the numbers update automatically.
+Hold `Ctrl`, type one or more digits, then release `Ctrl` to jump to that verse. Numbers reflect only the order verses appear in the slide list — `[solo]` sections count as verses too. Other section types (Chorus, Bridge, Intro, Outro, Tag, Refrain, Pre‑Chorus) are never numbered; jump to each with its own fixed `Ctrl` + letter shortcut instead.
 
-| Keys                       | Action                                              |
-| -------------------------- | --------------------------------------------------- |
-| `Ctrl` hold + `1`, `2`…  then release | Jump to first slide of tag group N       |
-| `Ctrl` + `C`               | Jump to first **Chorus** slide (fixed shortcut)     |
+| Keys                                   | Action                                |
+| --------------------------------------- | -------------------------------------- |
+| `Ctrl` hold + `1`, `2`…  then release   | Jump to **Verse** N                    |
+| `Ctrl` + `C`                            | Jump to first **Chorus** slide         |
+| `Ctrl` + `B`                            | Jump to first **Bridge** slide         |
+| `Ctrl` + `I`                            | Jump to first **Intro** slide          |
+| `Ctrl` + `O`                            | Jump to first **Outro** slide          |
+| `Ctrl` + `P`                            | Jump to first **Pre‑Chorus** slide     |
+| `Ctrl` + `R`                            | Jump to first **Refrain** slide        |
+| `Ctrl` + `T`                            | Jump to first **Tag** slide            |
 
-Examples: if your song opens with Verse → Chorus → Bridge, `Ctrl+1` jumps to Verse, `Ctrl+2` to Chorus, `Ctrl+3` to Bridge. For a two-digit group like 12, hold `Ctrl`, type `1` then `2`, then release `Ctrl`.
+Example: if your song has Verse 1 → Chorus → Verse 2 → Bridge, `Ctrl+1` jumps to Verse 1, `Ctrl+2` to Verse 2, `Ctrl+C` to the Chorus, and `Ctrl+B` to the Bridge. For a two-digit verse like 12, hold `Ctrl`, type `1` then `2`, then release `Ctrl`.
 
-In the editor slide list, each section's first slide shows a small `^N` badge (and `^C` in gold for the Chorus), so you can see which number to use before you start presenting.
+In the editor slide list, each verse's first slide shows a small `^N` badge; every other recognised section shows its fixed letter badge (e.g. `^C` for Chorus, `^B` for Bridge) in gold, so you can see which shortcut to use before you start presenting.
+
+> Some browsers reserve `Ctrl+T`/`Ctrl+O`/etc. for their own tab/window shortcuts when the app is open in a regular browser tab. Install WorshipStudio as a PWA (see below) to get full use of every shortcut.
 
 **Playback**
 

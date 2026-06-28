@@ -18,7 +18,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do I turn lyrics into slides?",
-    a: "Paste your lyrics into a song and WorshipStudio builds the slides automatically. You can tag sections with [verse], [chorus], [bridge], [intro], [outro], [tag], [refrain] or [pre-chorus] for clean labels and auto-numbering, or just separate sections with blank lines. Long sections are split for you, and you can set the maximum lines per slide.",
+    a: "Paste your lyrics into a song and WorshipStudio builds the slides automatically. You can tag sections with [verse] (or [solo], which is treated the same as a verse), [chorus], [bridge], [intro], [outro], [tag], [refrain] or [pre-chorus] for clean labels and auto-numbering, or just separate sections with blank lines. You can also give a tag its own number, like [Verse 3] — it'll keep that number and the verses will be sorted into order automatically even if you typed them out of sequence. Long sections are split for you, and you can set the maximum lines per slide.",
   },
   {
     q: "Can I split, merge, duplicate, or reorder slides?",
@@ -46,7 +46,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do I control the presentation?",
-    a: "Use the on-screen controls or keyboard shortcuts (see the keyboard icon in the header): arrows or space to move, P to pause, F for fullscreen, V to cycle screen fit (Normal / Cover / Fill), + / - / 0 to zoom, and I to toggle the presenter bar. Pausing freezes everything on the current slide. When zoomed in, you can drag the slide to reposition it.",
+    a: "Use the on-screen controls or keyboard shortcuts (see the keyboard icon in the header): arrows or space to move, P to pause, F for fullscreen, V to cycle screen fit (Normal / Cover / Fill), + / - / 0 to zoom, and I to toggle the presenter bar. You can also jump straight to a section: hold Ctrl and type a number to jump to that verse (Ctrl+1 is Verse 1, Ctrl+2 is Verse 2…), or use a fixed shortcut for every other section type — Ctrl+C for Chorus, Ctrl+B for Bridge, Ctrl+I for Intro, Ctrl+O for Outro, Ctrl+P for Pre-Chorus, Ctrl+R for Refrain, and Ctrl+T for Tag. Pausing freezes everything on the current slide. When zoomed in, you can drag the slide to reposition it.",
   },
   {
     q: "Can I install WorshipStudio and use it offline?",
