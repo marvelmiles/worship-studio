@@ -42,6 +42,8 @@ export interface Slide {
   label: string;
   lines: string[];
   overrides: SlideOverrides;
+  /** Per-line style overrides, keyed by line index. Layered on top of `overrides`. */
+  lineOverrides?: Record<number, TextStyle>;
   notes: string;
 }
 

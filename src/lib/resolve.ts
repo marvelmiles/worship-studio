@@ -52,6 +52,18 @@ export function resolveStyle(
   return style;
 }
 
+/** Same as `resolveStyle`, with a single line's own override layered on top. */
+export function resolveLineStyle(
+  slide: Slide | undefined,
+  lineIndex: number,
+  song: Song | undefined,
+  theme: Theme
+): ResolvedStyle {
+  const style = resolveStyle(slide, song, theme);
+  applyTextStyle(style, slide?.lineOverrides?.[lineIndex] as Record<string, unknown> | undefined);
+  return style;
+}
+
 export function resolveBackgroundId(
   slide: Slide | undefined,
   song: Song | undefined,

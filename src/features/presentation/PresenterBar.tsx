@@ -11,6 +11,7 @@ interface PresenterBarProps {
   cur: Slide;
   next?: Slide;
   nextStyle?: ResolvedStyle;
+  nextLineStyles?: ResolvedStyle[];
   nextBackground?: Background;
   idx: number;
   total: number;
@@ -36,6 +37,7 @@ export function PresenterBar({
   cur,
   next,
   nextStyle,
+  nextLineStyles,
   nextBackground,
   idx,
   total,
@@ -95,7 +97,7 @@ export function PresenterBar({
           <div style={{ ...labelStyle, marginBottom: 5 }}>Up Next</div>
           {next && nextStyle && nextBackground ? (
             <div style={{ width: 220, boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
-              <SlideCanvas slide={next} style={nextStyle} bg={nextBackground} radius={7} />
+              <SlideCanvas slide={next} style={nextStyle} lineStyles={nextLineStyles} bg={nextBackground} radius={7} />
             </div>
           ) : (
             <div

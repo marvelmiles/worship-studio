@@ -38,6 +38,26 @@ export function useEditorSong(song: Song) {
     updateSlide(id, { overrides });
   };
 
+  const updateLineOverride = (id: string, lineIndex: number, key: string, value: unknown) => {
+    const slide = slides.find((item) => item.id === id);
+    if (!slide) return;
+    const lineOverrides = { ...(slide.lineOverrides || {}) } as Record<number, Record<string, unknown>>;
+    const line = { ...(lineOverrides[lineIndex] || {}) };
+    if (value === "" || value == null) delete line[key];
+    else line[key] = value;
+    if (Object.keys(line).length) lineOverrides[lineIndex] = line;
+    else delete lineOverrides[lineIndex];
+    updateSlide(id, { lineOverrides });
+  };
+
+  const clearLineOverrides = (id: string, lineIndex: number) => {
+    const slide = slides.find((item) => item.id === id);
+    if (!slide?.lineOverrides) return;
+    const lineOverrides = { ...slide.lineOverrides };
+    delete lineOverrides[lineIndex];
+    updateSlide(id, { lineOverrides });
+  };
+
   const updateSongStyle = (key: keyof TextStyle, value: unknown) => {
     const style = { ...(song.style || {}) } as Record<string, unknown>;
     if (value === "" || value == null) delete style[key];
@@ -81,12 +101,24 @@ export function useEditorSong(song: Song) {
     const slide = slides[index];
     if (!slide.lines || slide.lines.length < 2) return;
     const mid = Math.ceil(slide.lines.length / 2);
-    const first: Slide = { ...slide, lines: slide.lines.slice(0, mid) };
+    const firstOverrides: Record<number, TextStyle> = {};
+    const secondOverrides: Record<number, TextStyle> = {};
+    Object.entries(slide.lineOverrides || {}).forEach(([k, v]) => {
+      const i = Number(k);
+      if (i < mid) firstOverrides[i] = v;
+      else secondOverrides[i - mid] = v;
+    });
+    const first: Slide = {
+      ...slide,
+      lines: slide.lines.slice(0, mid),
+      lineOverrides: Object.keys(firstOverrides).length ? firstOverrides : undefined,
+    };
     const second: Slide = {
       ...slide,
       id: uid(),
       lines: slide.lines.slice(mid),
       label: `${slide.label} (b)`,
+      lineOverrides: Object.keys(secondOverrides).length ? secondOverrides : undefined,
     };
     const next = [...slides];
     next.splice(index, 1, first, second);
@@ -95,9 +127,17 @@ export function useEditorSong(song: Song) {
 
   const mergeSlideDown = (index: number) => {
     if (index >= slides.length - 1) return;
+    const a = slides[index];
+    const b = slides[index + 1];
+    const offset = a.lines.length;
+    const lineOverrides: Record<number, TextStyle> = { ...(a.lineOverrides || {}) };
+    Object.entries(b.lineOverrides || {}).forEach(([i, v]) => {
+      lineOverrides[Number(i) + offset] = v;
+    });
     const merged: Slide = {
-      ...slides[index],
-      lines: [...slides[index].lines, ...slides[index + 1].lines],
+      ...a,
+      lines: [...a.lines, ...b.lines],
+      lineOverrides: Object.keys(lineOverrides).length ? lineOverrides : undefined,
     };
     const next = [...slides];
     next.splice(index, 2, merged);
@@ -121,6 +161,8 @@ export function useEditorSong(song: Song) {
     setSlides,
     updateSlide,
     updateSlideOverride,
+    updateLineOverride,
+    clearLineOverrides,
     updateSongStyle,
     moveSlide,
     duplicateSlide,

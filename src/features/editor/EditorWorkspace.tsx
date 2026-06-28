@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -17,7 +17,7 @@ import { C, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { resolveBackground, resolveStyle } from "../../lib/resolve";
+import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
 import { Btn, IconBtn } from "../../components/ui/Button";
 import { ContextMenu } from "../../components/ui/ContextMenu";
@@ -65,9 +65,17 @@ export function EditorWorkspace({ song }: { song: Song }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menu, setMenu] = useState<ContextState | null>(null);
   const [tab, setTab] = useState<MobileTab>("edit");
+  const [selectedLine, setSelectedLine] = useState<number | null>(null);
 
   const slide = editor.selectedSlide;
   const present = () => startPresent(song.id, Math.max(0, editor.selectedIndex));
+
+  // A line selection only makes sense for the current slide's current line count.
+  useEffect(() => {
+    if (selectedLine !== null && (!slide || selectedLine >= slide.lines.length)) {
+      setSelectedLine(null);
+    }
+  }, [slide, selectedLine]);
 
   const menuItems: MenuItem[] = menu
     ? [
@@ -88,6 +96,7 @@ export function EditorWorkspace({ song }: { song: Song }) {
       selectedId={editor.selectedId}
       setSelectedId={(id) => {
         editor.setSelectedId(id);
+        setSelectedLine(null);
         if (stacked) setTab("edit");
       }}
       song={song}
@@ -104,9 +113,19 @@ export function EditorWorkspace({ song }: { song: Song }) {
     <PreviewPanel
       slide={slide}
       style={resolveStyle(slide, song, theme)}
+      lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, song, theme))}
       background={resolveBackground(slide, song, theme, bgMap)}
-      onChangeLines={(lines) => editor.updateSlide(slide.id, { lines })}
+      onChangeLines={(lines) => {
+        const lineOverrides = slide.lineOverrides
+          ? Object.fromEntries(
+              Object.entries(slide.lineOverrides).filter(([i]) => Number(i) < lines.length)
+            )
+          : undefined;
+        editor.updateSlide(slide.id, { lines, lineOverrides });
+      }}
       onChangeLabel={(label) => editor.updateSlide(slide.id, { label })}
+      selectedLine={selectedLine}
+      onSelectLine={setSelectedLine}
     />
   ) : (
     <EmptyState onEdit={() => setLyricsOpen(true)} />
@@ -120,6 +139,8 @@ export function EditorWorkspace({ song }: { song: Song }) {
       backgrounds={backgrounds}
       audio={audio}
       onAddColor={addCustomBackground}
+      selectedLine={selectedLine}
+      onSelectLine={setSelectedLine}
     />
   ) : null;
 

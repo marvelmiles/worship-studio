@@ -6,12 +6,24 @@ import { inputStyle } from "../../components/ui/Field";
 interface PreviewPanelProps {
   slide: Slide;
   style: ResolvedStyle;
+  lineStyles?: ResolvedStyle[];
   background: Background;
   onChangeLines: (lines: string[]) => void;
   onChangeLabel: (label: string) => void;
+  selectedLine: number | null;
+  onSelectLine: (index: number | null) => void;
 }
 
-export function PreviewPanel({ slide, style, background, onChangeLines, onChangeLabel }: PreviewPanelProps) {
+export function PreviewPanel({
+  slide,
+  style,
+  lineStyles,
+  background,
+  onChangeLines,
+  onChangeLabel,
+  selectedLine,
+  onSelectLine,
+}: PreviewPanelProps) {
   return (
     <div
       style={{
@@ -30,7 +42,16 @@ export function PreviewPanel({ slide, style, background, onChangeLines, onChange
           borderRadius: 14,
         }}
       >
-        <SlideCanvas slide={slide} bg={background} style={style} showLabel scrim={slide.overrides?.scrim} />
+        <SlideCanvas
+          slide={slide}
+          bg={background}
+          style={style}
+          lineStyles={lineStyles}
+          showLabel
+          scrim={slide.overrides?.scrim}
+          selectedLine={selectedLine}
+          onLineClick={onSelectLine}
+        />
       </div>
       <div style={{ maxWidth: 820, margin: "18px auto 0", width: "100%" }}>
         <span
@@ -45,6 +66,9 @@ export function PreviewPanel({ slide, style, background, onChangeLines, onChange
         >
           Slide Text
         </span>
+        <p style={{ fontFamily: UI, fontSize: 11.5, color: C.dim, margin: "4px 0 8px", lineHeight: 1.5 }}>
+          Click a line above to format it on its own — font, size, color, alignment.
+        </p>
         <textarea
           value={(slide.lines || []).join("\n")}
           onChange={(e) => onChangeLines(e.target.value.split("\n"))}

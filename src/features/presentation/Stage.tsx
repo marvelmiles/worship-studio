@@ -9,6 +9,7 @@ interface StageProps {
   idx: number;
   slide: Slide;
   style: ResolvedStyle;
+  lineStyles?: ResolvedStyle[];
   background: Background;
   animation: AnimationKind;
   view: PresentationView;
@@ -41,6 +42,7 @@ export function Stage({
   idx,
   slide,
   style,
+  lineStyles,
   background,
   animation,
   view,
@@ -106,7 +108,16 @@ export function Stage({
               transformOrigin: "center",
             }}
           >
-            <SlideCanvas slide={slide} style={style} bg={background} scrim={slide.overrides?.scrim} radius={0} fill noBackground />
+            <SlideCanvas
+              slide={slide}
+              style={style}
+              lineStyles={lineStyles}
+              bg={background}
+              scrim={slide.overrides?.scrim}
+              radius={0}
+              fill
+              noBackground
+            />
           </div>
         </motion.div>
       </AnimatePresence>

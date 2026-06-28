@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
 import { UI } from "../theme/tokens";
 
@@ -10,6 +11,12 @@ interface SlideCanvasProps {
   radius?: number;
   fill?: boolean;
   noBackground?: boolean;
+  /** Per-line resolved style, same length/order as `slide.lines`. Falls back to `style` per line when absent. */
+  lineStyles?: ResolvedStyle[];
+  /** Index of the line currently being formatted. Enables click-to-select when provided. */
+  selectedLine?: number | null;
+  /** Called with a line index on click (toggling off if already selected), or `null` when clicking elsewhere on the slide. */
+  onLineClick?: (index: number | null) => void;
 }
 
 /**
@@ -27,7 +34,12 @@ export function SlideCanvas({
   radius = 14,
   fill,
   noBackground,
+  lineStyles,
+  selectedLine,
+  onLineClick,
 }: SlideCanvasProps) {
+  const [hoverLine, setHoverLine] = useState<number | null>(null);
+  const interactive = Boolean(onLineClick);
   const bgStyle = noBackground
     ? {}
     : bg?.type === "image"
@@ -64,38 +76,63 @@ export function SlideCanvas({
         />
       )}
       <div
+        onClick={interactive ? () => onLineClick!(null) : undefined}
         style={{
           position: "absolute",
           inset: 0,
           display: "flex",
           alignItems: "center",
-          justifyContent:
-            style.align === "left"
-              ? "flex-start"
-              : style.align === "right"
-              ? "flex-end"
-              : "center",
           padding: "7cqw 9cqw",
-          textAlign: style.align || "center",
         }}
       >
-        <div
-          style={{
-            color: style.color,
-            fontFamily: `'${style.fontFamily}', serif`,
-            fontWeight: style.fontWeight,
-            lineHeight: style.lineHeight,
-            letterSpacing: `${style.letterSpacing || 0}cqw`,
-            textShadow: style.textShadow,
-            textTransform: style.uppercase ? "uppercase" : "none",
-            maxWidth: "100%",
-          }}
-        >
-          {lines.map((ln, i) => (
-            <div key={i} style={{ fontSize: `${style.fontSize}cqw` }}>
-              {ln || "\u00A0"}
-            </div>
-          ))}
+        <div style={{ width: "100%" }}>
+          {lines.map((ln, i) => {
+            const lineStyle = lineStyles?.[i] ?? style;
+            const selected = selectedLine === i;
+            const hovered = interactive && hoverLine === i && !selected;
+            return (
+              <div
+                key={i}
+                onClick={
+                  interactive
+                    ? (e) => {
+                        e.stopPropagation();
+                        onLineClick!(selected ? null : i);
+                      }
+                    : undefined
+                }
+                onMouseEnter={interactive ? () => setHoverLine(i) : undefined}
+                onMouseLeave={interactive ? () => setHoverLine(null) : undefined}
+                style={{
+                  textAlign: lineStyle.align || "center",
+                  color: lineStyle.color,
+                  fontFamily: `'${lineStyle.fontFamily}', serif`,
+                  fontWeight: lineStyle.fontWeight,
+                  fontSize: `${lineStyle.fontSize}cqw`,
+                  lineHeight: lineStyle.lineHeight,
+                  letterSpacing: `${lineStyle.letterSpacing || 0}cqw`,
+                  textShadow: lineStyle.textShadow,
+                  textTransform: lineStyle.uppercase ? "uppercase" : "none",
+                  cursor: interactive ? "pointer" : undefined,
+                  borderRadius: 6,
+                  padding: interactive ? "0.3cqw 0.6cqw" : undefined,
+                  margin: interactive ? "-0.3cqw -0.6cqw" : undefined,
+                  outline: selected
+                    ? "0.25cqw solid #d8a24a"
+                    : hovered
+                    ? "0.25cqw dashed rgba(216,162,74,0.55)"
+                    : interactive
+                    ? "0.25cqw dashed transparent"
+                    : undefined,
+                  outlineOffset: 2,
+                  background: selected ? "rgba(216,162,74,0.14)" : undefined,
+                  transition: interactive ? "outline-color .15s ease, background .15s ease" : undefined,
+                }}
+              >
+                {ln || "\u00A0"}
+              </div>
+            );
+          })}
         </div>
       </div>
       {showLabel && slide.label && (

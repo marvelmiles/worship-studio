@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
-import { resolveBackground, resolveStyle } from "../../lib/resolve";
+import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
@@ -68,8 +68,10 @@ export function Presentation() {
 
   if (!p.song || !p.cur || !p.style || !p.background || !p.theme) return null;
 
-  const nextStyle = p.next ? resolveStyle(p.next, p.song, p.theme) : undefined;
-  const nextBackground = p.next ? resolveBackground(p.next, p.song, p.theme, p.bgMap) : undefined;
+  const { next, song, theme, bgMap } = p;
+  const nextStyle = next ? resolveStyle(next, song, theme) : undefined;
+  const nextLineStyles = next ? next.lines.map((_, i) => resolveLineStyle(next, i, song, theme)) : undefined;
+  const nextBackground = next ? resolveBackground(next, song, theme, bgMap) : undefined;
 
   const controlsVisible = !p.prefs.autoHideControls || chromeActive;
   const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
@@ -100,6 +102,7 @@ export function Presentation() {
         idx={p.idx}
         slide={p.cur}
         style={p.style}
+        lineStyles={p.lineStyles}
         background={p.background}
         animation={p.animation}
         view={p.view}
@@ -137,6 +140,7 @@ export function Presentation() {
           cur={p.cur}
           next={p.next}
           nextStyle={nextStyle}
+          nextLineStyles={nextLineStyles}
           nextBackground={nextBackground}
           idx={p.idx}
           total={p.slides.length}

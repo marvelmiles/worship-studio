@@ -16,7 +16,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import type { Background, Slide, Song, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
-import { resolveBackground, resolveStyle } from "../../lib/resolve";
+import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
 
@@ -184,6 +184,7 @@ function SortableRow({
           slide={slide}
           bg={resolveBackground(slide, song, theme, bgMap)}
           style={resolveStyle(slide, song, theme)}
+          lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, song, theme))}
           showLabel={false}
           radius={7}
         />

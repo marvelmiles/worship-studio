@@ -1,7 +1,7 @@
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Trash2, X } from "lucide-react";
 import type { AudioItem, Background, Song, Theme } from "../../types";
-import { C } from "../../theme/tokens";
-import { resolveBackgroundId, resolveStyle } from "../../lib/resolve";
+import { C, UI } from "../../theme/tokens";
+import { resolveBackgroundId, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { Btn } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
@@ -17,6 +17,8 @@ interface InspectorPanelProps {
   backgrounds: Background[];
   audio: AudioItem[];
   onAddColor: (value: string, name?: string) => string;
+  selectedLine: number | null;
+  onSelectLine: (index: number | null) => void;
 }
 
 export function InspectorPanel({
@@ -26,19 +28,87 @@ export function InspectorPanel({
   backgrounds,
   audio,
   onAddColor,
+  selectedLine,
+  onSelectLine,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
-  const style = resolveStyle(slide, song, theme);
+  const lineMode = selectedLine !== null && selectedLine < (slide.lines?.length ?? 0);
+  const style = lineMode
+    ? resolveLineStyle(slide, selectedLine, song, theme)
+    : resolveStyle(slide, song, theme);
   const effectiveBackgroundId = resolveBackgroundId(slide, song, theme);
   const effectiveBackground = backgrounds.find((bg) => bg.id === effectiveBackgroundId);
+  const hasLineOverrides = lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
 
+  // Text style (font/size/color/align/etc.) targets the selected line when in
+  // line mode; background/audio/animation/scrim are always slide-level.
+  const setTextOverride = (key: string, value: unknown) =>
+    lineMode
+      ? editor.updateLineOverride(slide.id, selectedLine, key, value)
+      : editor.updateSlideOverride(slide.id, key, value);
   const setOverride = (key: string, value: unknown) =>
     editor.updateSlideOverride(slide.id, key, value);
 
   return (
     <div style={{ padding: 18 }}>
-      <SectionTitle>Text</SectionTitle>
-      <StyleControls style={style} onChange={(key, value) => setOverride(key, value)} />
+      <SectionTitle>{lineMode ? `Line ${selectedLine + 1} Text` : "Text"}</SectionTitle>
+      {lineMode && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 10,
+            padding: "7px 9px",
+            borderRadius: 9,
+            background: "rgba(216,162,74,0.1)",
+            border: "1px solid rgba(216,162,74,0.3)",
+          }}
+        >
+          <span style={{ fontFamily: UI, fontSize: 12, color: C.goldSoft }}>
+            Formatting this line only
+          </span>
+          <div style={{ display: "flex", gap: 6 }}>
+            {hasLineOverrides && (
+              <button
+                onClick={() => editor.clearLineOverrides(slide.id, selectedLine)}
+                title="Reset this line to the slide's style"
+                style={{
+                  fontFamily: UI,
+                  fontSize: 11.5,
+                  color: C.sub,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: 0,
+                }}
+              >
+                Reset
+              </button>
+            )}
+            <button
+              onClick={() => onSelectLine(null)}
+              title="Done — back to slide style"
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 20,
+                height: 20,
+                borderRadius: 6,
+                color: C.sub,
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+      <StyleControls style={style} onChange={(key, value) => setTextOverride(key, value)} />
 
       <SectionTitle>Background</SectionTitle>
       <BackgroundPicker

@@ -4,7 +4,7 @@ import { Music, Pencil, Play, Plus, RotateCcw, Search, Trash2 } from "lucide-rea
 import type { Background } from "../../types";
 import { C, CATEGORIES, DISPLAY, glass, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
-import { resolveStyle } from "../../lib/resolve";
+import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { swatchBackground } from "../../components/controls/BackgroundPicker";
 import { Btn, IconBtn } from "../../components/ui/Button";
@@ -141,7 +141,13 @@ export function Library() {
                 style={{ cursor: trashView ? "default" : "pointer", position: "relative" }}
               >
                 {first ? (
-                  <SlideCanvas slide={first} bg={bg} radius={0} style={resolveStyle(first, s, theme)} />
+                  <SlideCanvas
+                    slide={first}
+                    bg={bg}
+                    radius={0}
+                    style={resolveStyle(first, s, theme)}
+                    lineStyles={first.lines.map((_, i) => resolveLineStyle(first, i, s, theme))}
+                  />
                 ) : (
                   <div style={{ aspectRatio: "16/9", background: swatchBackground(bg) }} />
                 )}

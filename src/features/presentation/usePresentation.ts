@@ -7,6 +7,7 @@ import {
   resolveAudioId,
   resolveAutoPlay,
   resolveBackground,
+  resolveLineStyle,
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
@@ -60,6 +61,8 @@ export function usePresentation() {
   const cur = slides[idx];
   const next = slides[idx + 1];
   const style = theme ? resolveStyle(cur, song, theme) : undefined;
+  const lineStyles =
+    theme && cur ? cur.lines.map((_, i) => resolveLineStyle(cur, i, song, theme)) : undefined;
   const background = theme ? resolveBackground(cur, song, theme, bgMap) : undefined;
   const animation = theme ? resolveAnimation(cur, song, theme, prefs.transition) : prefs.transition;
   const audioId = resolveAudioId(cur, song, theme);
@@ -239,6 +242,7 @@ export function usePresentation() {
     cur,
     next,
     style,
+    lineStyles,
     background,
     animation,
     audioItem,
