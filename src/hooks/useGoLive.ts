@@ -72,14 +72,26 @@ export function useGoLive() {
 
   useEffect(() => endLive, [endLive]);
 
-  const toggleLiveFullscreen = useCallback(() => {
+  /**
+   * Exiting fullscreen never needs a user gesture, so that direction always
+   * works. Entering fullscreen on another window's document does need one —
+   * the popup only has it right after window.open() delegates it, so a
+   * later remote request here can be rejected by the browser. Callers should
+   * fall back to the fullscreen button rendered inside the popup itself
+   * (a real click there always works) when this resolves to false.
+   */
+  const toggleLiveFullscreen = useCallback(async (): Promise<boolean> => {
     const win = winRef.current;
-    if (!win || win.closed) return;
+    if (!win || win.closed) return false;
     try {
-      if (win.document.fullscreenElement) void win.document.exitFullscreen();
-      else void win.document.documentElement.requestFullscreen();
+      if (win.document.fullscreenElement) {
+        await win.document.exitFullscreen();
+      } else {
+        await win.document.documentElement.requestFullscreen();
+      }
+      return true;
     } catch {
-      /* the popup may not have transient activation of its own; ignore */
+      return false;
     }
   }, []);
 

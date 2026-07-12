@@ -18,8 +18,14 @@ function resolveStageBg(bg: Background): CSSProperties {
 export function Presentation() {
   const pushToast = useStore((s) => s.pushToast);
   const { isExtended, isLive: live, isLiveFullscreen, goLive, endLive, toggleLiveFullscreen } = useGoLive();
+  const handleToggleLiveFullscreen = () => {
+    void toggleLiveFullscreen().then((ok) => {
+      if (!ok) pushToast("Couldn't enter fullscreen remotely — click the fullscreen icon inside the projected window.");
+    });
+  };
   const fullscreenOverride = useMemo(
-    () => (live ? { isFullscreen: isLiveFullscreen, toggle: toggleLiveFullscreen } : undefined),
+    () => (live ? { isFullscreen: isLiveFullscreen, toggle: handleToggleLiveFullscreen } : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [live, isLiveFullscreen, toggleLiveFullscreen]
   );
   const p = usePresentation(fullscreenOverride);
