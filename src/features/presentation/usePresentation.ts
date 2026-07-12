@@ -18,7 +18,17 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
 
-export function usePresentation() {
+interface FullscreenOverride {
+  isFullscreen: boolean;
+  toggle: () => void;
+}
+
+/**
+ * `fullscreenOverride`, when given, redirects the fullscreen control (button
+ * and the F shortcut) to some other target — used to fullscreen the Go Live
+ * popup on the external display instead of this window once live.
+ */
+export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const presentation = useStore((s) => s.presentation);
   const songs = useStore((s) => s.songs);
   const themes = useStore((s) => s.themes);
@@ -56,7 +66,9 @@ export function usePresentation() {
 
   const rootRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(rootRef);
+  const localFullscreen = useFullscreen(rootRef);
+  const isFullscreen = fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
+  const toggleFullscreen = fullscreenOverride?.toggle ?? localFullscreen.toggle;
 
   const cur = slides[idx];
   const next = slides[idx + 1];

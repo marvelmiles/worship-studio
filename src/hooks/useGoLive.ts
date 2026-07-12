@@ -39,6 +39,7 @@ export function useGoLive() {
   });
   const winRef = useRef<Window | null>(null);
   const [isLive, setIsLive] = useState(false);
+  const [isLiveFullscreen, setIsLiveFullscreen] = useState(false);
   const closeWatcher = useRef<number>();
 
   useEffect(() => {
@@ -47,7 +48,6 @@ export function useGoLive() {
       addEventListener?: (type: string, cb: () => void) => void;
       removeEventListener?: (type: string, cb: () => void) => void;
     };
-    console.log(screen, " screen ");
     const onChange = () => setIsExtended(Boolean(screen.isExtended));
     screen.addEventListener?.("change", onChange);
     return () => screen.removeEventListener?.("change", onChange);
@@ -67,9 +67,21 @@ export function useGoLive() {
     }
     winRef.current = null;
     setIsLive(false);
+    setIsLiveFullscreen(false);
   }, []);
 
   useEffect(() => endLive, [endLive]);
+
+  const toggleLiveFullscreen = useCallback(() => {
+    const win = winRef.current;
+    if (!win || win.closed) return;
+    try {
+      if (win.document.fullscreenElement) void win.document.exitFullscreen();
+      else void win.document.documentElement.requestFullscreen();
+    } catch {
+      /* the popup may not have transient activation of its own; ignore */
+    }
+  }, []);
 
   const goLive = useCallback(async (): Promise<GoLiveResult> => {
     if (winRef.current && !winRef.current.closed) {
@@ -94,7 +106,6 @@ export function useGoLive() {
           details.screens.find(
             (s) => s.isInternal === false && s !== details.currentScreen,
           ) || details.screens.find((s) => s !== details.currentScreen);
-        console.log(details, "detail");
         if (external) {
           left = external.left;
           top = external.top;
@@ -128,28 +139,32 @@ export function useGoLive() {
     winRef.current = win;
     setIsLive(true);
 
-    if (left !== undefined) {
-      win.addEventListener("load", () => {
-        try {
+    win.addEventListener("load", () => {
+      try {
+        if (left !== undefined) {
           win.moveTo(left!, top!);
           win.resizeTo(width!, height!);
-          void (
-            win.document.documentElement as unknown as {
-              requestFullscreen?: () => Promise<void>;
-            }
-          )
-            .requestFullscreen?.()
-            .catch(() => {});
-        } catch {
-          /* cross-origin or already positioned; ignore */
         }
-      });
-    }
+        win.document.addEventListener("fullscreenchange", () => {
+          setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
+        });
+        setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
+        // Only auto-enters fullscreen when we could place the popup on its
+        // own screen — this call relies on activation delegated from the
+        // window.open() that just created it, which is spent after this.
+        if (left !== undefined) {
+          void win.document.documentElement.requestFullscreen?.().catch(() => {});
+        }
+      } catch {
+        /* cross-origin or already positioned; ignore */
+      }
+    });
 
     closeWatcher.current = window.setInterval(() => {
       if (winRef.current?.closed) {
         winRef.current = null;
         setIsLive(false);
+        setIsLiveFullscreen(false);
         stopWatchingClose();
       }
     }, 800);
@@ -157,5 +172,5 @@ export function useGoLive() {
     return { ok: reason === undefined, reason };
   }, [endLive]);
 
-  return { isExtended, isLive, goLive, endLive, liveWindow: winRef };
+  return { isExtended, isLive, isLiveFullscreen, goLive, endLive, toggleLiveFullscreen, liveWindow: winRef };
 }

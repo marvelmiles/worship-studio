@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
@@ -16,9 +16,13 @@ function resolveStageBg(bg: Background): CSSProperties {
 }
 
 export function Presentation() {
-  const p = usePresentation();
   const pushToast = useStore((s) => s.pushToast);
-  const { isExtended, isLive: live, goLive, endLive } = useGoLive();
+  const { isExtended, isLive: live, isLiveFullscreen, goLive, endLive, toggleLiveFullscreen } = useGoLive();
+  const fullscreenOverride = useMemo(
+    () => (live ? { isFullscreen: isLiveFullscreen, toggle: toggleLiveFullscreen } : undefined),
+    [live, isLiveFullscreen, toggleLiveFullscreen]
+  );
+  const p = usePresentation(fullscreenOverride);
 
   const [chromeActive, setChromeActive] = useState(true);
   const hideTimer = useRef<number>();
@@ -92,6 +96,13 @@ export function Presentation() {
   const controlsVisible = !p.prefs.autoHideControls || chromeActive;
   const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
 
+  // Once live, zoom/pan/view only shape what's broadcast to the external
+  // popup — this window's own stage stays put so it can keep being used as
+  // a console instead of mirroring the projected adjustments.
+  const localZoom = live ? 1 : p.zoom;
+  const localPan = live ? { x: 0, y: 0 } : p.pan;
+  const localView = live ? "normal" : p.view;
+
   const handleGoLive = async () => {
     if (live) {
       endLive();
@@ -134,9 +145,9 @@ export function Presentation() {
         lineStyles={p.lineStyles}
         background={p.background}
         animation={p.animation}
-        view={p.view}
-        zoom={p.zoom}
-        pan={p.pan}
+        view={localView}
+        zoom={localZoom}
+        pan={localPan}
         onPanBy={p.panBy}
         durationMs={p.prefs.transitionDuration}
         easing={p.prefs.easing}

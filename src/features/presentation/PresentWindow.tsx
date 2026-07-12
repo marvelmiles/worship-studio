@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { resolveAnimation, resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
@@ -17,6 +18,9 @@ export function PresentWindow() {
   const prefs = useStore((s) => s.prefs);
 
   const [state, setState] = useState<PresentState | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hintVisible, setHintVisible] = useState(true);
+  const hideTimer = useRef<number>();
 
   useEffect(() => {
     const channel = openPresentChannel((msg) => {
@@ -31,6 +35,32 @@ export function PresentWindow() {
     document.body.style.background = "#000";
     document.body.style.margin = "0";
   }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  useEffect(() => {
+    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
+    return () => window.clearTimeout(hideTimer.current);
+  }, []);
+
+  const wake = () => {
+    setHintVisible(true);
+    window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
+  };
+
+  const toggleFullscreen = () => {
+    try {
+      if (document.fullscreenElement) void document.exitFullscreen?.();
+      else void document.documentElement.requestFullscreen?.();
+    } catch {
+      /* fullscreen can be blocked by the browser; ignore */
+    }
+  };
 
   const song = useMemo(() => songs.find((s) => s.id === state?.songId), [songs, state?.songId]);
   const theme = useMemo(
@@ -49,12 +79,44 @@ export function PresentWindow() {
   const background = theme ? resolveBackground(cur, song, theme, bgMap) : undefined;
   const animation = theme ? resolveAnimation(cur, song, theme, prefs.transition) : prefs.transition;
 
+  const fullscreenButton = (
+    <button
+      onClick={toggleFullscreen}
+      title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+      style={{
+        position: "fixed",
+        top: 14,
+        right: 14,
+        zIndex: 10,
+        width: 38,
+        height: 38,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: 10,
+        cursor: "pointer",
+        background: "rgba(10,9,14,0.55)",
+        backdropFilter: "blur(10px)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        color: "#fff",
+        opacity: hintVisible ? 1 : 0,
+        pointerEvents: hintVisible ? "auto" : "none",
+        transition: "opacity 0.3s ease",
+      }}
+    >
+      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+    </button>
+  );
+
   if (!state || !song || !cur || !style || !background || !theme) {
-    return <div style={{ position: "fixed", inset: 0, background: "#000" }} />;
+    return (
+      <div onPointerMove={wake} style={{ position: "fixed", inset: 0, background: "#000" }}>
+        {fullscreenButton}
+      </div>
+    );
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#000" }}>
+    <div onPointerMove={wake} style={{ position: "fixed", inset: 0, background: "#000" }}>
       <Stage
         idx={state.idx}
         slide={cur}
@@ -69,6 +131,7 @@ export function PresentWindow() {
         durationMs={prefs.transitionDuration}
         easing={prefs.easing}
       />
+      {fullscreenButton}
     </div>
   );
 }
