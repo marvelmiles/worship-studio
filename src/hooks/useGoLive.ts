@@ -40,6 +40,8 @@ export function useGoLive() {
   const winRef = useRef<Window | null>(null);
   const [isLive, setIsLive] = useState(false);
   const [isLiveFullscreen, setIsLiveFullscreen] = useState(false);
+  const [isRevealed, setIsRevealed] = useState(false);
+  const externalBoundsRef = useRef<{ left: number; top: number; width: number; height: number } | null>(null);
   const closeWatcher = useRef<number>();
 
   useEffect(() => {
@@ -68,9 +70,48 @@ export function useGoLive() {
     winRef.current = null;
     setIsLive(false);
     setIsLiveFullscreen(false);
+    setIsRevealed(false);
+    externalBoundsRef.current = null;
   }, []);
 
   useEffect(() => endLive, [endLive]);
+
+  /**
+   * Pulls the live popup onto the operator's own screen so it can actually
+   * be seen and clicked into — the taskbar thumbnail alone isn't enough
+   * when the window normally lives on a screen the operator isn't looking
+   * at.
+   */
+  const revealLiveWindow = useCallback(() => {
+    const win = winRef.current;
+    if (!win || win.closed) return;
+    try {
+      if (win.document.fullscreenElement) void win.document.exitFullscreen();
+      win.moveTo(Math.max(0, window.screenX + 60), Math.max(0, window.screenY + 60));
+      win.resizeTo(720, 405);
+      win.focus();
+      setIsRevealed(true);
+    } catch {
+      /* cross-origin or window gone; ignore */
+    }
+  }, []);
+
+  /** Sends the popup back to cover the external screen and re-enters fullscreen. */
+  const sendLiveWindowToDisplay = useCallback(() => {
+    const win = winRef.current;
+    const bounds = externalBoundsRef.current;
+    if (!win || win.closed) return;
+    try {
+      if (bounds) {
+        win.moveTo(bounds.left, bounds.top);
+        win.resizeTo(bounds.width, bounds.height);
+        void win.document.documentElement.requestFullscreen?.().catch(() => {});
+      }
+      setIsRevealed(false);
+    } catch {
+      /* cross-origin or window gone; ignore */
+    }
+  }, []);
 
   /**
    * Exiting fullscreen never needs a user gesture, so that direction always
@@ -123,6 +164,7 @@ export function useGoLive() {
           top = external.top;
           width = external.width;
           height = external.height;
+          externalBoundsRef.current = { left, top, width, height };
           reason = undefined;
         } else {
           reason = "no-external";
@@ -161,9 +203,13 @@ export function useGoLive() {
           setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
         });
         setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
-        // Only auto-enters fullscreen when we could place the popup on its
-        // own screen — this call relies on activation delegated from the
+        // Auto-enters fullscreen when we could place the popup on its own
+        // screen — this call relies on activation delegated from the
         // window.open() that just created it, which is spent after this.
+        // Note: on Windows, Chrome treats a script-fullscreened window as
+        // "exclusive fullscreen," which can make the OS taskbar/Alt-Tab
+        // less reliable at switching focus to it — use the "bring here"
+        // control (revealLiveWindow) if you need to interact with it.
         if (left !== undefined) {
           void win.document.documentElement.requestFullscreen?.().catch(() => {});
         }
@@ -177,6 +223,8 @@ export function useGoLive() {
         winRef.current = null;
         setIsLive(false);
         setIsLiveFullscreen(false);
+        setIsRevealed(false);
+        externalBoundsRef.current = null;
         stopWatchingClose();
       }
     }, 800);
@@ -184,5 +232,16 @@ export function useGoLive() {
     return { ok: reason === undefined, reason };
   }, [endLive]);
 
-  return { isExtended, isLive, isLiveFullscreen, goLive, endLive, toggleLiveFullscreen, liveWindow: winRef };
+  return {
+    isExtended,
+    isLive,
+    isLiveFullscreen,
+    isRevealed,
+    goLive,
+    endLive,
+    toggleLiveFullscreen,
+    revealLiveWindow,
+    sendLiveWindowToDisplay,
+    liveWindow: winRef,
+  };
 }

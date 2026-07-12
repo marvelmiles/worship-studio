@@ -8,6 +8,7 @@ import {
   Monitor,
   MonitorUp,
   Pause,
+  PictureInPicture2,
   Play,
   RectangleHorizontal,
   RotateCcw,
@@ -36,8 +37,10 @@ interface PresentationControlsProps {
   visible: boolean;
   isExternal: boolean;
   isLive: boolean;
+  isRevealed: boolean;
   onHoverChange: (hovering: boolean) => void;
   onGoLive: () => void;
+  onToggleReveal: () => void;
   onTogglePause: () => void;
   onSetView: (view: PresentationView) => void;
   onZoomIn: () => void;
@@ -57,8 +60,10 @@ export function PresentationControls({
   visible,
   isExternal,
   isLive,
+  isRevealed,
   onHoverChange,
   onGoLive,
+  onToggleReveal,
   onTogglePause,
   onSetView,
   onZoomIn,
@@ -112,6 +117,14 @@ export function PresentationControls({
         active={isLive}
         onClick={onGoLive}
       />
+      {isLive && (
+        <PCtl
+          icon={PictureInPicture2}
+          title={isRevealed ? "Send projected window back to the display" : "Bring projected window to this screen"}
+          active={isRevealed}
+          onClick={onToggleReveal}
+        />
+      )}
       <PCtl icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
 
       <div ref={viewRef} style={{ position: "relative" }}>

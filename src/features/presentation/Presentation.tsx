@@ -17,7 +17,17 @@ function resolveStageBg(bg: Background): CSSProperties {
 
 export function Presentation() {
   const pushToast = useStore((s) => s.pushToast);
-  const { isExtended, isLive: live, isLiveFullscreen, goLive, endLive, toggleLiveFullscreen } = useGoLive();
+  const {
+    isExtended,
+    isLive: live,
+    isLiveFullscreen,
+    isRevealed,
+    goLive,
+    endLive,
+    toggleLiveFullscreen,
+    revealLiveWindow,
+    sendLiveWindowToDisplay,
+  } = useGoLive();
   const handleToggleLiveFullscreen = () => {
     void toggleLiveFullscreen().then((ok) => {
       if (!ok) pushToast("Couldn't enter fullscreen remotely — click the fullscreen icon inside the projected window.");
@@ -134,6 +144,11 @@ export function Presentation() {
     p.exit();
   };
 
+  const handleToggleReveal = () => {
+    if (isRevealed) sendLiveWindowToDisplay();
+    else revealLiveWindow();
+  };
+
   return (
     <div
       ref={p.rootRef}
@@ -168,8 +183,10 @@ export function Presentation() {
         visible={controlsVisible}
         isExternal={isExtended}
         isLive={live}
+        isRevealed={isRevealed}
         onHoverChange={onHoverChange}
         onGoLive={handleGoLive}
+        onToggleReveal={handleToggleReveal}
         onTogglePause={p.togglePause}
         onSetView={p.setViewMode}
         onZoomIn={p.zoomIn}
