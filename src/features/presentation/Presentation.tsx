@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
+import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
@@ -17,13 +18,14 @@ function resolveStageBg(bg: Background): CSSProperties {
 export function Presentation() {
   const p = usePresentation();
   const pushToast = useStore((s) => s.pushToast);
-  const { isExtended, goLive } = useGoLive(p.rootRef);
+  const { isExtended, isLive: live, goLive, endLive } = useGoLive();
 
   const [chromeActive, setChromeActive] = useState(true);
-  const [live, setLive] = useState(false);
   const hideTimer = useRef<number>();
   const hovering = useRef(false);
   const announced = useRef(false);
+  const stateRef = useRef<PresentState | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
   const scheduleHide = () => {
     window.clearTimeout(hideTimer.current);
@@ -58,13 +60,27 @@ export function Presentation() {
     }
   }, [isExtended, pushToast]);
 
+  const songId = p.song?.id;
   useEffect(() => {
-    const onChange = () => {
-      if (!document.fullscreenElement) setLive(false);
+    if (!songId) return;
+    stateRef.current = { songId, idx: p.idx, paused: p.paused, zoom: p.zoom, pan: p.pan, view: p.view };
+    channelRef.current?.postMessage({ type: "state", state: stateRef.current });
+  }, [songId, p.idx, p.paused, p.zoom, p.pan.x, p.pan.y, p.view]);
+
+  useEffect(() => {
+    if (!live) return;
+    const channel = openPresentChannel((msg) => {
+      if (msg.type === "request-state" && stateRef.current) {
+        channel.postMessage({ type: "state", state: stateRef.current });
+      }
+    });
+    channelRef.current = channel;
+    if (stateRef.current) channel.postMessage({ type: "state", state: stateRef.current });
+    return () => {
+      channel.close();
+      channelRef.current = null;
     };
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
+  }, [live]);
 
   if (!p.song || !p.cur || !p.style || !p.background || !p.theme) return null;
 
@@ -77,15 +93,28 @@ export function Presentation() {
   const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
 
   const handleGoLive = async () => {
+    if (live) {
+      endLive();
+      pushToast("Ended the live projection.");
+      return;
+    }
     const result = await goLive();
     if (result.ok) {
-      setLive(true);
       pushToast("Live on the external display.");
     } else if (result.reason === "no-external") {
-      pushToast("No external display found — projecting on this screen.");
+      pushToast("No external display found — opened a presentation window, drag it to your projector.");
     } else if (result.reason === "unsupported") {
-      pushToast("Live projection isn't supported here — using fullscreen instead.");
+      pushToast("Multi-screen placement isn't supported here — opened a presentation window, drag it to your projector.");
+    } else if (result.reason === "blocked") {
+      pushToast("Popup blocked — allow popups for this site to go live.");
+    } else if (result.reason === "error") {
+      pushToast("Couldn't detect displays — opened a presentation window, drag it to your projector.");
     }
+  };
+
+  const handleExit = () => {
+    endLive();
+    p.exit();
   };
 
   return (
@@ -131,7 +160,7 @@ export function Presentation() {
         onResetZoom={p.resetZoom}
         onToggleInfo={p.toggleInfo}
         onToggleFullscreen={p.toggleFullscreen}
-        onExit={p.exit}
+        onExit={handleExit}
       />
 
       {p.showInfo && (

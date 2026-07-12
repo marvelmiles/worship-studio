@@ -1,25 +1,45 @@
-import { useCallback, useEffect, useState } from "react";
-import type { RefObject } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { PRESENT_WINDOW_NAME } from "../lib/presentChannel";
 
 interface GoLiveResult {
   ok: boolean;
-  reason?: "no-external" | "unsupported" | "error";
+  reason?: "no-external" | "unsupported" | "blocked" | "error";
+}
+
+interface ScreenDetailed {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  isPrimary?: boolean;
+  isInternal?: boolean;
+}
+
+interface ScreenDetails {
+  screens: ScreenDetailed[];
+  currentScreen: ScreenDetailed;
 }
 
 /**
- * Detects a second (external/HDMI) display via the Window Management API and
- * projects the presentation onto it in fullscreen. `isExtended` reflects
- * whether the desktop currently spans more than one screen. Browser security
- * requires the projection itself to be triggered by a user gesture.
+ * Opens the presentation as a separate, positioned browser window on the
+ * external/HDMI display (via the Window Management API) so the operator can
+ * keep working in the main window while the audience only sees the popup.
+ * Falls back to an unpositioned popup window when multi-screen placement
+ * isn't supported, and the caller is expected to size/move it manually.
  */
-export function useGoLive(rootRef: RefObject<HTMLElement>) {
+export function useGoLive() {
   const [isExtended, setIsExtended] = useState<boolean>(() => {
     try {
-      return Boolean((window.screen as unknown as { isExtended?: boolean }).isExtended);
+      return Boolean(
+        (window.screen as unknown as { isExtended?: boolean }).isExtended,
+      );
     } catch {
       return false;
     }
   });
+  const winRef = useRef<Window | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const closeWatcher = useRef<number>();
 
   useEffect(() => {
     const screen = window.screen as unknown as {
@@ -27,45 +47,115 @@ export function useGoLive(rootRef: RefObject<HTMLElement>) {
       addEventListener?: (type: string, cb: () => void) => void;
       removeEventListener?: (type: string, cb: () => void) => void;
     };
+    console.log(screen, " screen ");
     const onChange = () => setIsExtended(Boolean(screen.isExtended));
     screen.addEventListener?.("change", onChange);
     return () => screen.removeEventListener?.("change", onChange);
   }, []);
 
-  const goLive = useCallback(async (): Promise<GoLiveResult> => {
-    const el = rootRef.current as (HTMLElement & { requestFullscreen: (o?: unknown) => Promise<void> }) | null;
-    if (!el) return { ok: false, reason: "error" };
+  const stopWatchingClose = () => {
+    window.clearInterval(closeWatcher.current);
+    closeWatcher.current = undefined;
+  };
 
-    const getScreenDetails = (window as unknown as { getScreenDetails?: () => Promise<unknown> })
-      .getScreenDetails;
+  const endLive = useCallback(() => {
+    stopWatchingClose();
+    try {
+      winRef.current?.close();
+    } catch {
+      /* window may already be gone */
+    }
+    winRef.current = null;
+    setIsLive(false);
+  }, []);
+
+  useEffect(() => endLive, [endLive]);
+
+  const goLive = useCallback(async (): Promise<GoLiveResult> => {
+    if (winRef.current && !winRef.current.closed) {
+      endLive();
+      return { ok: true };
+    }
+
+    const getScreenDetails = (
+      window as unknown as { getScreenDetails?: () => Promise<ScreenDetails> }
+    ).getScreenDetails;
+
+    let left: number | undefined;
+    let top: number | undefined;
+    let width: number | undefined;
+    let height: number | undefined;
+    let reason: GoLiveResult["reason"] = "unsupported";
 
     try {
       if (typeof getScreenDetails === "function") {
-        const details = (await getScreenDetails()) as {
-          screens: { isInternal?: boolean }[];
-          currentScreen: unknown;
-        };
+        const details = await getScreenDetails();
         const external =
-          details.screens.find((s) => s.isInternal === false && s !== details.currentScreen) ||
-          details.screens.find((s) => s !== details.currentScreen);
+          details.screens.find(
+            (s) => s.isInternal === false && s !== details.currentScreen,
+          ) || details.screens.find((s) => s !== details.currentScreen);
+        console.log(details, "detail");
         if (external) {
-          await el.requestFullscreen({ screen: external });
-          return { ok: true };
+          left = external.left;
+          top = external.top;
+          width = external.width;
+          height = external.height;
+          reason = undefined;
+        } else {
+          reason = "no-external";
         }
-        await el.requestFullscreen();
-        return { ok: false, reason: "no-external" };
       }
-      await el.requestFullscreen();
-      return { ok: false, reason: "unsupported" };
     } catch {
-      try {
-        await el.requestFullscreen();
-      } catch {
-        /* ignore */
-      }
-      return { ok: false, reason: "error" };
+      reason = "error";
     }
-  }, [rootRef]);
 
-  return { isExtended, goLive };
+    const features = [
+      `left=${left ?? window.screen.width}`,
+      `top=${top ?? 0}`,
+      `width=${width ?? 1280}`,
+      `height=${height ?? 720}`,
+      "toolbar=no",
+      "location=no",
+      "menubar=no",
+      "status=no",
+      "scrollbars=no",
+      "resizable=yes",
+    ].join(",");
+
+    const win = window.open("/present", PRESENT_WINDOW_NAME, features);
+    if (!win) return { ok: false, reason: "blocked" };
+
+    winRef.current = win;
+    setIsLive(true);
+
+    if (left !== undefined) {
+      win.addEventListener("load", () => {
+        try {
+          win.moveTo(left!, top!);
+          win.resizeTo(width!, height!);
+          void (
+            win.document.documentElement as unknown as {
+              requestFullscreen?: () => Promise<void>;
+            }
+          )
+            .requestFullscreen?.()
+            .catch(() => {});
+        } catch {
+          /* cross-origin or already positioned; ignore */
+        }
+      });
+    }
+
+    closeWatcher.current = window.setInterval(() => {
+      if (winRef.current?.closed) {
+        winRef.current = null;
+        setIsLive(false);
+        stopWatchingClose();
+      }
+    }, 800);
+
+    return { ok: reason === undefined, reason };
+  }, [endLive]);
+
+  return { isExtended, isLive, goLive, endLive, liveWindow: winRef };
 }

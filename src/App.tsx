@@ -25,6 +25,7 @@ import { Dashboard } from "./features/dashboard/Dashboard";
 import { Library } from "./features/library/Library";
 import { Editor } from "./features/editor/Editor";
 import { Presentation } from "./features/presentation/Presentation";
+import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
 import { SettingsModal } from "./features/settings/SettingsModal";
 import { ThemesModal } from "./features/themes/ThemesModal";
@@ -49,6 +50,8 @@ export default function App() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  if (location.pathname === "/present") return <PresentWindow />;
 
   return (
     <div
