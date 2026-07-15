@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PresentationView } from "../../types";
+import type { PresentationView, ScripturePassage } from "../../types";
+import { slideIndexForVerse } from "../bible/lib/scriptureSlides";
 import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -243,7 +244,12 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
         ctrlNumBuffer.current = "";
         if (!buf) return;
         const num = parseInt(buf, 10);
-        if (doc?.shortcutMode === "all-slides") {
+        if (doc && "verses" in doc) {
+          // Scripture decks: the number is the verse number (Ctrl+1, Ctrl+100…).
+          const passage = doc as ScripturePassage;
+          const index = slideIndexForVerse(passage.verses, passage.versesPerSlide, num);
+          if (index >= 0) goTo(index);
+        } else if (doc?.shortcutMode === "all-slides") {
           goTo(num - 1);
         } else {
           const group = tagGroups.find((g) => g.shortcutNum === num);

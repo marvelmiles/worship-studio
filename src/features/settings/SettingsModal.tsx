@@ -38,6 +38,7 @@ export function SettingsModal() {
   const close = useStore((s) => s.closeOverlay);
   const prefs = useStore((s) => s.prefs);
   const savePrefs = useStore((s) => s.savePrefs);
+  const themes = useStore((s) => s.themes);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const pushToast = useStore((s) => s.pushToast);
@@ -117,6 +118,25 @@ export function SettingsModal() {
           onChange={(checked) => update({ autoHidePresenterBar: checked })}
         />
       </div>
+
+      <SectionTitle>Default Themes</SectionTitle>
+      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+        Applied to newly created songs and to Bible passages presented or saved from the reader.
+      </p>
+      <Field label="Songs">
+        <Select
+          value={prefs.defaultSongThemeId}
+          options={themes.map((t) => ({ value: t.id, label: t.name }))}
+          onChange={(e) => update({ defaultSongThemeId: e.target.value })}
+        />
+      </Field>
+      <Field label="Bible">
+        <Select
+          value={prefs.defaultScriptureThemeId}
+          options={themes.map((t) => ({ value: t.id, label: t.name }))}
+          onChange={(e) => update({ defaultScriptureThemeId: e.target.value })}
+        />
+      </Field>
 
       <SectionTitle>Transitions</SectionTitle>
       <AnimationPicker

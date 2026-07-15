@@ -14,7 +14,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do I present a Bible verse?",
-    a: "Open the Bible tab, pick a translation (KJV, NKJV, NIV, ESV or NLT), then navigate to a book and chapter — or type a reference like John 3:16-18 in the jump box. Click a verse to select it, shift-click to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse). Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
+    a: "Open the Bible tab and pick a book, then a chapter, then a verse — the reader opens scrolled to it (the breadcrumb at the top takes you back to books, chapters or verses at any point). You can switch translations (KJV, NKJV, NIV, ESV or NLT) from the dropdown, or type a reference like John 3:16-18 in the reader's jump box. Click a verse to select it, Ctrl-click (or Shift+↑/↓) to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse) — or hit Edit to fine-tune the slides first. Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
   },
   {
     q: "Does the Bible work offline?",

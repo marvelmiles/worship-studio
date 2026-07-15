@@ -15,6 +15,8 @@ export const DEFAULT_PREFS: Prefs = {
   autoHideControls: true,
   autoHidePresenterBar: true,
   bibleVersion: DEFAULT_BIBLE_VERSION,
+  defaultSongThemeId: "classic",
+  defaultScriptureThemeId: "scripture",
   onboarded: false,
 };
 

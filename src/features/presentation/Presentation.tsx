@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
+import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
 import { usePresentation } from "./usePresentation";
@@ -9,7 +10,7 @@ import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
 import { VideoControlsBar } from "./VideoControlsBar";
-import type { Background } from "../../types";
+import type { Background, ScripturePassage } from "../../types";
 
 function resolveRootBg(bg: Background | null, blobUrl: string | null): CSSProperties {
   if (!bg) return { background: "#000" };
@@ -98,6 +99,8 @@ export function Presentation() {
     }
   }, [isExtended, pushToast]);
 
+  const speech = useSpeech();
+
   const deck = p.deck;
   const deckKind = deck?.kind;
   const deckId = deck?.id;
@@ -136,6 +139,37 @@ export function Presentation() {
   const backdropBlobUrl = useBlobUrl(p.frame?.backdrop?.blobId);
   const audioSrc = useAssetUrl(p.audioItem);
 
+  const canRead = deckKind === "scripture" && speech.supported;
+  const handleToggleRead = () => {
+    if (!deck || deckKind !== "scripture") return;
+    if (speech.speaking) {
+      speech.stop();
+      return;
+    }
+    // Read from the current slide to the end, advancing the stage as each
+    // slide's text begins. Verse-number prefixes and the trailing reference
+    // line aren't spoken.
+    const startIdx = p.idx;
+    const showRef = Boolean(p.doc && "showReference" in p.doc && (p.doc as ScripturePassage).showReference);
+    const chunks = p.slides.slice(startIdx).map((s) => {
+      if (s.kind !== "text") return "";
+      const lines = showRef && s.slide.lines.length > 1 ? s.slide.lines.slice(0, -1) : s.slide.lines;
+      return lines.map((line) => line.replace(/^\d+\.\s*/, "")).join("\n");
+    });
+    speech.speak(chunks, (i) => p.goTo(startIdx + i));
+  };
+  const readToggleRef = useRef(handleToggleRead);
+  readToggleRef.current = handleToggleRead;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "r" || e.key === "R") readToggleRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   if (!deck || !p.cur || !p.frame) return null;
 
   const controlsVisible = !p.prefs.autoHideControls || chromeActive;
@@ -169,6 +203,7 @@ export function Presentation() {
   };
 
   const handleExit = () => {
+    speech.stop();
     endLive();
     p.exit();
   };
@@ -219,6 +254,9 @@ export function Presentation() {
         isExternal={isExtended}
         isLive={live}
         isRevealed={isRevealed}
+        canRead={canRead}
+        reading={speech.speaking}
+        onToggleRead={handleToggleRead}
         onHoverChange={onHoverChange}
         onGoLive={handleGoLive}
         onToggleReveal={handleToggleReveal}

@@ -39,7 +39,7 @@ export const createSongsSlice: SliceCreator<SongsSlice> = (set, get) => ({
       title: "Untitled Song",
       artist: "",
       category: "Worship",
-      defaultThemeId: "classic",
+      defaultThemeId: get().prefs.defaultSongThemeId || "classic",
       defaultBackgroundId: "",
       defaultAudioId: null,
       lyrics,

@@ -13,6 +13,8 @@ import {
   RectangleHorizontal,
   RotateCcw,
   Scan,
+  Square,
+  Volume2,
   X,
   ZoomIn,
   ZoomOut,
@@ -38,6 +40,10 @@ interface PresentationControlsProps {
   isExternal: boolean;
   isLive: boolean;
   isRevealed: boolean;
+  /** Shown only when the deck supports read-aloud (scripture). */
+  canRead?: boolean;
+  reading?: boolean;
+  onToggleRead?: () => void;
   onHoverChange: (hovering: boolean) => void;
   onGoLive: () => void;
   onToggleReveal: () => void;
@@ -61,6 +67,9 @@ export function PresentationControls({
   isExternal,
   isLive,
   isRevealed,
+  canRead,
+  reading,
+  onToggleRead,
   onHoverChange,
   onGoLive,
   onToggleReveal,
@@ -126,6 +135,14 @@ export function PresentationControls({
         />
       )}
       <PCtl icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
+      {canRead && (
+        <PCtl
+          icon={reading ? Square : Volume2}
+          title={reading ? "Stop reading (R)" : "Read passage aloud (R)"}
+          active={reading}
+          onClick={onToggleRead}
+        />
+      )}
 
       <div ref={viewRef} style={{ position: "relative" }}>
         <PCtl icon={Scan} title="Screen fit (V)" active={menuOpen} onClick={() => setMenuOpen((o) => !o)} />

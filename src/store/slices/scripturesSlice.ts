@@ -31,9 +31,15 @@ export interface ScripturesSlice {
   restoreScripture: (id: string) => void;
   deleteScripture: (id: string) => void;
   presentScriptureSelection: (selection: ScriptureSelection) => void;
+  stageScriptureSelection: (selection: ScriptureSelection) => ScripturePassage | null;
 }
 
-function buildPassage(options: SavePassageOptions, id: string, quick: boolean): ScripturePassage {
+function buildPassage(
+  options: SavePassageOptions,
+  id: string,
+  quick: boolean,
+  themeId: string = SCRIPTURE_THEME_ID
+): ScripturePassage {
   const versesPerSlide = options.versesPerSlide ?? 1;
   const showVerseNumbers = options.showVerseNumbers ?? true;
   const showReference = options.showReference ?? true;
@@ -55,7 +61,7 @@ function buildPassage(options: SavePassageOptions, id: string, quick: boolean): 
       showVerseNumbers,
       showReference,
     }),
-    defaultThemeId: SCRIPTURE_THEME_ID,
+    defaultThemeId: themeId,
     defaultBackgroundId: "",
     defaultAudioId: null,
     style: {},
@@ -84,7 +90,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
 
   saveScripturePassage: (options) => {
     if (blockWrite(get)) return null;
-    const passage = buildPassage(options, uid(), false);
+    const passage = buildPassage(options, uid(), false, scriptureThemeId(get));
     get().upsertScripture(passage);
     return passage;
   },
@@ -121,8 +127,19 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
 
   presentScriptureSelection: (selection) => {
     if (blockWrite(get)) return;
-    const passage = buildPassage(selection, QUICK_PASSAGE_ID, true);
+    const passage = buildPassage(selection, QUICK_PASSAGE_ID, true, scriptureThemeId(get));
     get().upsertScripture(passage);
     get().startPresent("scripture", passage.id, 0);
   },
+
+  stageScriptureSelection: (selection) => {
+    if (blockWrite(get)) return null;
+    const passage = buildPassage(selection, QUICK_PASSAGE_ID, true, scriptureThemeId(get));
+    get().upsertScripture(passage);
+    return passage;
+  },
 });
+
+function scriptureThemeId(get: () => { prefs: { defaultScriptureThemeId: string } }): string {
+  return get().prefs.defaultScriptureThemeId || SCRIPTURE_THEME_ID;
+}

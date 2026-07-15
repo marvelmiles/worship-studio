@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import {
   BookOpen,
   Film,
@@ -36,6 +36,12 @@ import { ThemesModal } from "./features/themes/ThemesModal";
 import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
+
+/** Old song-editor URLs (bookmarks, history) land on the new /songs/:songId route. */
+function LegacyEditorRedirect() {
+  const { songId } = useParams();
+  return <Navigate to={`/songs/${songId}`} replace />;
+}
 
 const NAV: [string, string, LucideIcon][] = [
   ["/", "Dashboard", LayoutDashboard],
@@ -147,7 +153,8 @@ export default function App() {
           }}
         >
           {NAV.map(([path, label, Ico]) => {
-            const active = location.pathname === path;
+            const active =
+              path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
             return (
               <Link
                 key={path}
@@ -217,11 +224,11 @@ export default function App() {
           flex: 1,
           minHeight: 0,
           overflowX: "hidden",
-          overflowY: ["/editor", "/scripture", "/bible"].some((p) =>
-            location.pathname.startsWith(p)
-          )
-            ? "hidden"
-            : "auto",
+          overflowY:
+            ["/editor", "/scripture", "/bible"].some((p) => location.pathname.startsWith(p)) ||
+            /^\/songs\/./.test(location.pathname)
+              ? "hidden"
+              : "auto",
         }}
       >
         {loading ? (
@@ -240,12 +247,13 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/songs" element={<Library />} />
+            <Route path="/songs/:songId" element={<Editor />} />
             <Route path="/library" element={<Navigate to="/songs" replace />} />
             <Route path="/bible" element={<BiblePage />} />
             <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
             <Route path="/images" element={<ImagesPage />} />
             <Route path="/videos" element={<VideosPage />} />
-            <Route path="/editor/:songId" element={<Editor />} />
+            <Route path="/editor/:songId" element={<LegacyEditorRedirect />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}

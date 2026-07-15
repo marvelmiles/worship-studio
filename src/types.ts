@@ -220,6 +220,8 @@ export interface Prefs {
   autoHideControls: boolean;
   autoHidePresenterBar: boolean;
   bibleVersion: BibleVersionId;
+  defaultSongThemeId: string;
+  defaultScriptureThemeId: string;
   onboarded: boolean;
 }
 

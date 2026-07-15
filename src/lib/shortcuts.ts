@@ -21,7 +21,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: "Tag Navigation",
-    note: "Numbers are verse-only and follow the order verses appear in the slide list. Every other section type uses a fixed Ctrl+letter shortcut.",
+    note: "Numbers are verse-only and follow the order verses appear in the slide list. When presenting scripture, the number is the Bible verse number (Ctrl+1, Ctrl+100…). Every other section type uses a fixed Ctrl+letter shortcut.",
     shortcuts: [
       {
         keys: ["Ctrl", "hold", "1 – 9…", "then release Ctrl"],
@@ -61,7 +61,23 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Playback",
     shortcuts: [
       { keys: ["P"], description: "Pause / resume" },
+      { keys: ["R"], description: "Read passage aloud / stop (scripture)" },
       { keys: ["Esc"], description: "Exit presentation" },
+    ],
+  },
+  {
+    title: "Bible Page & Scripture Editor",
+    note: "Available while reading on the Bible page, or editing a saved passage.",
+    shortcuts: [
+      { keys: ["Click"], description: "Select a verse" },
+      { keys: ["Ctrl", "+", "Click"], description: "Extend the selection to a verse" },
+      { keys: ["Shift", "+", "↑ / ↓"], description: "Grow / shrink the selection from its active end" },
+      { keys: ["Ctrl", "+", "A"], description: "Select / deselect the whole chapter" },
+      { keys: ["Double-click"], description: "Present a single verse instantly" },
+      {
+        keys: ["Ctrl", "hold", "verse number", "then release Ctrl"],
+        description: "In the scripture editor: present starting at that verse",
+      },
     ],
   },
   {

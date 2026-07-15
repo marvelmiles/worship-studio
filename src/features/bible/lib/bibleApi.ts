@@ -58,6 +58,58 @@ const stripMarkup = (html: string): string => {
   return lines.join("\n");
 };
 
+export interface BibleSearchResult {
+  bookId: number;
+  chapter: number;
+  verse: number;
+  text: string;
+}
+
+interface ApiSearchResponse {
+  results: { book: number; chapter: number; verse: number; text: string }[];
+  total: number;
+}
+
+export const SEARCH_PAGE_SIZE = 40;
+
+/** Full-text verse search via the bolls.life paginated find endpoint. */
+export async function searchBibleVerses(
+  version: BibleVersionId,
+  query: string,
+  page: number,
+  signal?: AbortSignal
+): Promise<{ results: BibleSearchResult[]; total: number }> {
+  let data: ApiSearchResponse;
+  try {
+    const params = new URLSearchParams({
+      search: query,
+      limit: String(SEARCH_PAGE_SIZE),
+      page: String(page),
+    });
+    const res = await fetch(`${API_BASE}/v2/find/${version}?${params}`, { signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = (await res.json()) as ApiSearchResponse;
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") throw err;
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    throw new BibleFetchError(
+      offline
+        ? "You're offline — verse search needs a connection."
+        : "Search failed. Check your connection and try again.",
+      offline
+    );
+  }
+  return {
+    results: (data.results || []).map((row) => ({
+      bookId: row.book,
+      chapter: row.chapter,
+      verse: row.verse,
+      text: stripMarkup(row.text).replace(/\n+/g, " "),
+    })),
+    total: data.total || 0,
+  };
+}
+
 export class BibleFetchError extends Error {
   offline: boolean;
 

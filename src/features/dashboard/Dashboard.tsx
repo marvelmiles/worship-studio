@@ -133,7 +133,7 @@ export function Dashboard() {
 
   const onNew = () => {
     const created = createSong();
-    if (created) navigate(`/editor/${created.id}`);
+    if (created) navigate(`/songs/${created.id}`);
   };
 
   const savedPassages = scriptures.filter((s) => !s.quick && !s.deleted).length;
@@ -469,7 +469,7 @@ export function Dashboard() {
           {recent.map((s) => (
             <div
               key={s.id}
-              onClick={() => navigate(`/editor/${s.id}`)}
+              onClick={() => navigate(`/songs/${s.id}`)}
               style={{
                 display: "flex",
                 alignItems: "center",

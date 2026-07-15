@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, Settings2 } from "lucide-react";
 import { C, DISPLAY, UI } from "../../theme/tokens";
@@ -7,6 +7,7 @@ import { Btn, IconBtn } from "../../components/ui/Button";
 import { useDeckEditor } from "../editor/useDeckEditor";
 import { DeckWorkspace } from "../editor/DeckWorkspace";
 import { PassageSettingsModal } from "./PassageSettingsModal";
+import { slideIndexForVerse } from "./lib/scriptureSlides";
 
 export function ScriptureEditor() {
   const { passageId } = useParams();
@@ -40,6 +41,35 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
   const passage = lastRef.current;
   const editor = useDeckEditor(passage!, upsertScripture);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const startPresent = useStore((s) => s.startPresent);
+  // Ctrl+<verse number> presents starting at the slide holding that verse.
+  // Digits accumulate while Ctrl is held and flush on Ctrl keyup (Ctrl+1,
+  // Ctrl+100…), matching the in-presentation shortcut behaviour.
+  const ctrlNumBuffer = useRef("");
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && /^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        ctrlNumBuffer.current += e.key;
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key !== "Control") return;
+      const buf = ctrlNumBuffer.current;
+      ctrlNumBuffer.current = "";
+      const target = lastRef.current;
+      // While a presentation is already live its own shortcut handling wins.
+      if (!buf || !target || useStore.getState().presentation) return;
+      const index = slideIndexForVerse(target.verses, target.versesPerSlide, parseInt(buf, 10));
+      if (index >= 0 && target.slides?.[index]) startPresent("scripture", target.id, index);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [startPresent]);
   if (!passage) return null;
 
   return (

@@ -13,6 +13,20 @@ export interface ScriptureSlideOptions {
 
 const REFERENCE_LINE_STYLE: TextStyle = { fontSize: 2.6, uppercase: false };
 
+/**
+ * Index of the slide that contains a verse number, mirroring the chunking
+ * used by buildScriptureSlides. Returns -1 when the verse isn't in the passage.
+ */
+export function slideIndexForVerse(
+  verses: BibleVerse[],
+  versesPerSlide: number,
+  verse: number
+): number {
+  const perSlide = Math.max(1, versesPerSlide);
+  const pos = verses.findIndex((v) => v.v === verse);
+  return pos < 0 ? -1 : Math.floor(pos / perSlide);
+}
+
 export function buildScriptureSlides(options: ScriptureSlideOptions): Slide[] {
   const { version, range, verses, versesPerSlide, showVerseNumbers, showReference } = options;
   const perSlide = Math.max(1, versesPerSlide);

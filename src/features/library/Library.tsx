@@ -33,7 +33,7 @@ export function Library() {
 
   const onNew = () => {
     const created = createSong();
-    if (created) navigate(`/editor/${created.id}`);
+    if (created) navigate(`/songs/${created.id}`);
   };
 
   const list = useMemo(() => {
@@ -96,7 +96,7 @@ export function Library() {
           return (
             <div key={s.id} className="ws-glass ws-card">
               <div
-                onClick={() => !trashView && navigate(`/editor/${s.id}`)}
+                onClick={() => !trashView && navigate(`/songs/${s.id}`)}
                 style={{ cursor: trashView ? "default" : "pointer", position: "relative" }}
               >
                 {first ? (
@@ -151,7 +151,7 @@ export function Library() {
                         <Play size={13} />
                         Present
                       </Btn>
-                      <Btn size="sm" variant="ghost" onClick={() => navigate(`/editor/${s.id}`)}>
+                      <Btn size="sm" variant="ghost" onClick={() => navigate(`/songs/${s.id}`)}>
                         <Pencil size={13} />
                         Edit
                       </Btn>

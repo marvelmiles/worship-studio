@@ -1,10 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BookmarkPlus, ChevronLeft, ChevronRight, Play, RotateCcw, X } from "lucide-react";
-import type { BibleVersionId, PassageRange } from "../../types";
+import { useNavigate } from "react-router-dom";
+import {
+  ArrowRight,
+  BookmarkPlus,
+  ChevronLeft,
+  ChevronRight,
+  ListChecks,
+  Pencil,
+  Play,
+  RotateCcw,
+  Square,
+  Volume2,
+  X,
+} from "lucide-react";
+import type { BibleVerse, BibleVersionId, PassageRange } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
 import { C, DISPLAY, UI, glass } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import type { ScriptureSelection } from "../../store/useStore";
+import { useSpeech } from "../../hooks/useSpeech";
 import { Btn, IconBtn } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/Field";
 import { useBibleChapter } from "./useBibleChapter";
@@ -15,31 +29,53 @@ interface BibleReaderProps {
   version: BibleVersionId;
   bookId: number;
   chapter: number;
+  /** Verse to pre-select and auto-scroll to when the reader opens. */
+  focusVerse?: number | null;
   onNavigate: (bookId: number, chapter: number) => void;
 }
 
+/** Contiguous verse range; `anchor` is where it started, `focus` is the active end. */
 interface VerseSelection {
-  start: number;
-  end: number;
+  anchor: number;
+  focus: number;
 }
 
-export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReaderProps) {
+export function BibleReader({ version, bookId, chapter, focusVerse, onNavigate }: BibleReaderProps) {
+  const navigate = useNavigate();
   const pushToast = useStore((s) => s.pushToast);
   const presentScriptureSelection = useStore((s) => s.presentScriptureSelection);
+  const stageScriptureSelection = useStore((s) => s.stageScriptureSelection);
   const saveScripturePassage = useStore((s) => s.saveScripturePassage);
 
   const { verses, loading, error, retry } = useBibleChapter(version, bookId, chapter);
   const [selection, setSelection] = useState<VerseSelection | null>(null);
   const [refInput, setRefInput] = useState("");
   const [pendingSave, setPendingSave] = useState<ScriptureSelection | null>(null);
+  const [readingVerse, setReadingVerse] = useState<number | null>(null);
+  const speech = useSpeech();
   const verseRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const pendingScrollVerse = useRef<number | null>(null);
 
   const book = bookById(bookId);
+  const selStart = selection ? Math.min(selection.anchor, selection.focus) : null;
+  const selEnd = selection ? Math.max(selection.anchor, selection.focus) : null;
 
   useEffect(() => {
     setSelection(null);
-  }, [version, bookId, chapter]);
+    speech.stop();
+  }, [version, bookId, chapter, speech.stop]);
+
+  // Runs after the reset above (definition order), so a focus verse handed in
+  // by the page survives the chapter-change reset and lands pre-selected.
+  useEffect(() => {
+    if (focusVerse == null) return;
+    setSelection({ anchor: focusVerse, focus: focusVerse });
+    pendingScrollVerse.current = focusVerse;
+  }, [focusVerse, version, bookId, chapter]);
+
+  useEffect(() => {
+    if (!speech.speaking) setReadingVerse(null);
+  }, [speech.speaking]);
 
   useEffect(() => {
     const target = pendingScrollVerse.current;
@@ -49,29 +85,66 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
   }, [loading, verses]);
 
   const selectedVerses = useMemo(() => {
-    if (!selection) return [];
-    return verses.filter((v) => v.v >= selection.start && v.v <= selection.end);
-  }, [verses, selection]);
+    if (selStart === null || selEnd === null) return [];
+    return verses.filter((v) => v.v >= selStart && v.v <= selEnd);
+  }, [verses, selStart, selEnd]);
+
+  const allSelected =
+    verses.length > 0 &&
+    selStart !== null &&
+    selStart <= verses[0].v &&
+    (selEnd as number) >= verses[verses.length - 1].v;
+
+  const toggleSelectAll = () => {
+    if (!verses.length) return;
+    setSelection(
+      allSelected ? null : { anchor: verses[0].v, focus: verses[verses.length - 1].v }
+    );
+  };
+
+  // Shift+ArrowUp/Down grows or shrinks the selection from its active end;
+  // Ctrl+A selects the whole chapter (or clears it when already selected).
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && (e.key === "a" || e.key === "A")) {
+        e.preventDefault();
+        toggleSelectAll();
+        return;
+      }
+      if (!e.shiftKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+      if (!selection || !verses.length) return;
+      const pos = verses.findIndex((v) => v.v === selection.focus);
+      if (pos < 0) return;
+      const nextPos = Math.max(0, Math.min(verses.length - 1, pos + (e.key === "ArrowDown" ? 1 : -1)));
+      const nextVerse = verses[nextPos].v;
+      e.preventDefault();
+      if (nextVerse === selection.focus) return;
+      setSelection({ ...selection, focus: nextVerse });
+      verseRefs.current[nextVerse]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selection, verses]);
 
   const buildSelection = (): ScriptureSelection | null => {
-    if (!selection || !book || !selectedVerses.length) return null;
+    if (selStart === null || selEnd === null || !book || !selectedVerses.length) return null;
     const range: PassageRange = {
       bookId,
       bookName: book.name,
       chapter,
-      verseStart: selection.start,
-      verseEnd: selection.end,
+      verseStart: selStart,
+      verseEnd: selEnd,
     };
     return { version, range, verses: selectedVerses };
   };
 
-  const handleVerseClick = (verse: number, shiftKey: boolean) => {
+  const handleVerseClick = (verse: number, extend: boolean) => {
     setSelection((prev) => {
-      if (prev && shiftKey) {
-        return { start: Math.min(prev.start, verse), end: Math.max(prev.end, verse) };
-      }
-      if (prev && prev.start === verse && prev.end === verse) return null;
-      return { start: verse, end: verse };
+      if (prev && extend) return { ...prev, focus: verse };
+      if (prev && prev.anchor === verse && prev.focus === verse) return null;
+      return { anchor: verse, focus: verse };
     });
   };
 
@@ -83,7 +156,7 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
     }
     onNavigate(parsed.book.id, parsed.chapter);
     if (parsed.verseStart !== undefined) {
-      setSelection({ start: parsed.verseStart, end: parsed.verseEnd ?? parsed.verseStart });
+      setSelection({ anchor: parsed.verseStart, focus: parsed.verseEnd ?? parsed.verseStart });
       pendingScrollVerse.current = parsed.verseStart;
     }
     setRefInput("");
@@ -117,6 +190,26 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
     presentScriptureSelection(sel);
   };
 
+  const editSelection = () => {
+    const sel = buildSelection();
+    if (!sel) return;
+    const passage = stageScriptureSelection(sel);
+    if (passage) navigate(`/scripture/${passage.id}`);
+  };
+
+  const readAloud = (list: BibleVerse[]) => {
+    if (!list.length) return;
+    speech.speak(
+      list.map((v) => v.t),
+      (i) => {
+        const verse = list[i]?.v;
+        if (verse === undefined) return;
+        setReadingVerse(verse);
+        verseRefs.current[verse]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    );
+  };
+
   const saveSelection = (versesPerSlide: number, showVerseNumbers: boolean, showReference: boolean) => {
     if (!pendingSave) return;
     const passage = saveScripturePassage({ ...pendingSave, versesPerSlide, showVerseNumbers, showReference });
@@ -143,6 +236,20 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
         </Btn>
         <span style={{ flex: 1 }} />
         <div className="ws-row" style={{ gap: 6 }}>
+          <IconBtn
+            icon={ListChecks}
+            title={allSelected ? "Deselect all verses (Ctrl+A)" : "Select all verses (Ctrl+A)"}
+            active={allSelected}
+            onClick={toggleSelectAll}
+          />
+          {speech.supported && (
+            <IconBtn
+              icon={speech.speaking ? Square : Volume2}
+              title={speech.speaking ? "Stop reading" : "Read chapter aloud"}
+              active={speech.speaking}
+              onClick={() => (speech.speaking ? speech.stop() : readAloud(verses))}
+            />
+          )}
           <IconBtn icon={ChevronLeft} title="Previous chapter" onClick={() => goChapter(-1)} />
           <span
             style={{
@@ -178,14 +285,15 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
         {!loading &&
           !error &&
           verses.map((verse) => {
-            const selected = selection && verse.v >= selection.start && verse.v <= selection.end;
+            const selected = selStart !== null && verse.v >= selStart && verse.v <= (selEnd as number);
+            const reading = readingVerse === verse.v;
             return (
               <div
                 key={verse.v}
                 ref={(el) => (verseRefs.current[verse.v] = el)}
-                onClick={(e) => handleVerseClick(verse.v, e.shiftKey)}
+                onClick={(e) => handleVerseClick(verse.v, e.ctrlKey || e.metaKey || e.shiftKey)}
                 onDoubleClick={() => presentSelection(verse.v)}
-                title="Click to select · Shift-click to extend · Double-click to present this verse"
+                title="Click to select · Ctrl-click to extend · Shift+↑/↓ to grow · Double-click to present this verse"
                 style={{
                   display: "flex",
                   gap: 12,
@@ -193,8 +301,18 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
                   borderRadius: 10,
                   cursor: "pointer",
                   marginBottom: 2,
-                  background: selected ? "rgba(216,162,74,0.13)" : "transparent",
-                  border: `1px solid ${selected ? "rgba(216,162,74,0.35)" : "transparent"}`,
+                  background: selected
+                    ? "rgba(216,162,74,0.13)"
+                    : reading
+                      ? "rgba(80,116,168,0.14)"
+                      : "transparent",
+                  border: `1px solid ${
+                    selected
+                      ? "rgba(216,162,74,0.35)"
+                      : reading
+                        ? "rgba(120,160,220,0.4)"
+                        : "transparent"
+                  }`,
                   userSelect: "none",
                 }}
               >
@@ -218,7 +336,7 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
                     fontSize: 15,
                     lineHeight: 1.65,
                     whiteSpace: "pre-line",
-                    color: selected ? C.text : C.sub,
+                    color: selected || reading ? C.text : C.sub,
                   }}
                 >
                   {verse.t}
@@ -245,7 +363,13 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
           }}
         >
           <span style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, color: C.goldSoft }}>
-            {formatRange({ bookId, bookName: book.name, chapter, verseStart: selection.start, verseEnd: selection.end })}
+            {formatRange({
+              bookId,
+              bookName: book.name,
+              chapter,
+              verseStart: selStart as number,
+              verseEnd: selEnd as number,
+            })}
           </span>
           <span style={{ fontFamily: UI, fontSize: 12, color: C.dim }}>
             {selectedVerses.length} verse{selectedVerses.length === 1 ? "" : "s"}
@@ -255,6 +379,20 @@ export function BibleReader({ version, bookId, chapter, onNavigate }: BibleReade
             <Play size={13} />
             Present
           </Btn>
+          <Btn size="sm" variant="ghost" onClick={editSelection} title="Edit these verses as slides before presenting">
+            <Pencil size={13} />
+            Edit
+          </Btn>
+          {speech.supported && (
+            <Btn
+              size="sm"
+              variant="ghost"
+              onClick={() => (speech.speaking ? speech.stop() : readAloud(selectedVerses))}
+            >
+              {speech.speaking ? <Square size={13} /> : <Volume2 size={13} />}
+              {speech.speaking ? "Stop" : "Read"}
+            </Btn>
+          )}
           <Btn size="sm" variant="ghost" onClick={() => setPendingSave(buildSelection())}>
             <BookmarkPlus size={13} />
             Save passage
