@@ -1,16 +1,18 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { CSSProperties } from "react";
-import type { AnimationKind, Background, EasingKind, PresentationView, ResolvedStyle, Slide } from "../../types";
+import type { CSSProperties, Ref } from "react";
+import type { AnimationKind, Background, EasingKind, PresentationView } from "../../types";
+import type { MediaPlayback } from "../../lib/presentChannel";
 import { ANIMATION_VARIANTS, buildTransition } from "../../lib/animation";
+import { useBlobUrl } from "../../lib/blobUrls";
 import { SlideCanvas } from "../../components/SlideCanvas";
+import { ImageSurface } from "../../components/media/ImageSurface";
+import { VideoSurface, type VideoSurfaceHandle } from "../../components/media/VideoSurface";
+import type { StageContent } from "./stageContent";
 
 interface StageProps {
   idx: number;
-  slide: Slide;
-  style: ResolvedStyle;
-  lineStyles?: ResolvedStyle[];
-  background: Background;
+  content: StageContent;
   animation: AnimationKind;
   view: PresentationView;
   zoom: number;
@@ -18,6 +20,11 @@ interface StageProps {
   onPanBy: (dx: number, dy: number) => void;
   durationMs: number;
   easing: EasingKind;
+  playback?: MediaPlayback;
+  forceMutedVideo?: boolean;
+  videoRef?: Ref<VideoSurfaceHandle>;
+  onVideoTime?: (time: number, duration: number) => void;
+  onVideoEnded?: () => void;
 }
 
 function viewSize(view: PresentationView): CSSProperties {
@@ -26,24 +33,24 @@ function viewSize(view: PresentationView): CSSProperties {
   return { width: "min(100vw,177.78vh)", height: "min(100vh,56.25vw)" };
 }
 
-function resolveBgStyle(background: Background): CSSProperties {
-  if (background?.type === "image") {
+function resolveBgStyle(background: Background | null, blobUrl: string | null): CSSProperties {
+  if (!background) return { background: "#000" };
+  if (background.type === "image") {
+    const url = background.blobId ? blobUrl : background.dataUrl;
     return {
-      backgroundImage: `url(${background.dataUrl})`,
+      backgroundImage: url ? `url(${url})` : undefined,
+      backgroundColor: "#000",
       backgroundSize: "cover",
       backgroundPosition: "center",
     };
   }
-  if (background?.type === "solid") return { background: background.color };
-  return { background: background?.css || "#000" };
+  if (background.type === "solid") return { background: background.color };
+  return { background: background.css || "#000" };
 }
 
 export function Stage({
   idx,
-  slide,
-  style,
-  lineStyles,
-  background,
+  content,
   animation,
   view,
   zoom,
@@ -51,6 +58,11 @@ export function Stage({
   onPanBy,
   durationMs,
   easing,
+  playback,
+  forceMutedVideo,
+  videoRef,
+  onVideoTime,
+  onVideoEnded,
 }: StageProps) {
   const variant = ANIMATION_VARIANTS[animation] || ANIMATION_VARIANTS.fade;
   const transition = buildTransition(durationMs, easing);
@@ -58,6 +70,9 @@ export function Stage({
   const dragging = useRef(false);
   const last = useRef({ x: 0, y: 0 });
   const [grabbing, setGrabbing] = useState(false);
+
+  const backdrop = content.kind === "text" ? content.background : null;
+  const backdropBlobUrl = useBlobUrl(backdrop?.blobId);
 
   return (
     <div
@@ -83,7 +98,7 @@ export function Stage({
       style={{
         position: "fixed",
         inset: 0,
-        ...resolveBgStyle(background),
+        ...resolveBgStyle(backdrop, backdropBlobUrl),
         overflow: "hidden",
         display: "grid",
         placeItems: "center",
@@ -99,25 +114,46 @@ export function Stage({
           animate={variant.animate}
           exit={{ opacity: 0 }}
           transition={transition}
-          style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            pointerEvents: "none",
+          }}
         >
           <div
             style={{
               ...viewSize(view),
+              position: "relative",
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: "center",
             }}
           >
-            <SlideCanvas
-              slide={slide}
-              style={style}
-              lineStyles={lineStyles}
-              bg={background}
-              scrim={slide.overrides?.scrim}
-              radius={0}
-              fill
-              noBackground
-            />
+            {content.kind === "text" && (
+              <SlideCanvas
+                slide={content.slide}
+                style={content.style}
+                lineStyles={content.lineStyles}
+                bg={content.background}
+                scrim={content.slide.overrides?.scrim}
+                radius={0}
+                fill
+                noBackground
+              />
+            )}
+            {content.kind === "image" && <ImageSurface item={content.item} />}
+            {content.kind === "video" && (
+              <VideoSurface
+                ref={videoRef}
+                item={content.item}
+                playback={playback}
+                forceMuted={forceMutedVideo}
+                onTimeUpdate={onVideoTime}
+                onEnded={onVideoEnded}
+                style={{ pointerEvents: "auto" }}
+              />
+            )}
           </div>
         </motion.div>
       </AnimatePresence>

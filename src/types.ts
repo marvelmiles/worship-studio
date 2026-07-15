@@ -16,7 +16,10 @@ export type PresentationView = "normal" | "cover" | "fill";
 
 export type BgType = "gradient" | "solid" | "image";
 
-/** Text appearance shared by themes, songs and slides. */
+/** Every kind of content that can be projected live. */
+export type ContentKind = "song" | "scripture" | "image" | "video";
+
+/** Text appearance shared by themes, deck documents and slides. */
 export interface TextStyle {
   fontFamily?: string;
   fontSize?: number;
@@ -47,28 +50,115 @@ export interface Slide {
   notes: string;
 }
 
-/** Song-level appearance overrides (no slide-only keys). */
-export type SongStyle = TextStyle;
+export type ShortcutMode = "all-slides" | "first-slide-per-tag";
 
-export interface Song {
+/**
+ * Common shape of every document that presents a deck of text slides
+ * (songs, scripture passages, and any future slide-based module).
+ */
+export interface SlideDeckDoc {
   id: string;
   title: string;
-  artist?: string;
-  category?: string;
-  lyrics: string;
   slides: Slide[];
-  maxLines?: number;
   defaultThemeId: string;
   defaultBackgroundId?: string;
   defaultAudioId?: string | null;
   animation?: AnimationKind;
   autoPlay?: boolean;
   slideDurationSeconds?: number;
-  shortcutMode?: "all-slides" | "first-slide-per-tag";
-  style?: SongStyle;
+  shortcutMode?: ShortcutMode;
+  style?: TextStyle;
   createdAt: string;
   updatedAt: string;
   deleted?: boolean;
+  builtIn?: boolean;
+}
+
+/** Deck-level appearance overrides (no slide-only keys). */
+export type SongStyle = TextStyle;
+
+export interface Song extends SlideDeckDoc {
+  artist?: string;
+  category?: string;
+  lyrics: string;
+  maxLines?: number;
+}
+
+export type BibleVersionId = "KJV" | "NKJV" | "NIV" | "ESV" | "NLT";
+
+export interface PassageRange {
+  bookId: number;
+  bookName: string;
+  chapter: number;
+  verseStart: number;
+  verseEnd: number;
+}
+
+export interface BibleVerse {
+  v: number;
+  t: string;
+}
+
+export interface ScripturePassage extends SlideDeckDoc {
+  version: BibleVersionId;
+  range: PassageRange;
+  verses: BibleVerse[];
+  versesPerSlide: number;
+  showVerseNumbers: boolean;
+  showReference: boolean;
+  /** Ephemeral "present now" passage — hidden from the saved library. */
+  quick?: boolean;
+}
+
+export type MediaKind = "image" | "video";
+
+export type MediaFit = "contain" | "cover" | "fill";
+
+export interface MediaAdjustments {
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  grayscale: number;
+  sepia: number;
+  blur: number;
+}
+
+export interface ImageSettings extends MediaAdjustments {
+  rotate: 0 | 90 | 180 | 270;
+  flipH: boolean;
+  flipV: boolean;
+  fit: MediaFit;
+  scrim: boolean;
+}
+
+export interface VideoSettings extends MediaAdjustments {
+  trimStart: number;
+  trimEnd: number | null;
+  volume: number;
+  muted: boolean;
+  loop: boolean;
+  playbackRate: number;
+  fit: MediaFit;
+}
+
+/**
+ * Metadata only — the binary payload lives in the "files" store under this
+ * item's id (thumbnail under `${id}:thumb`) and is fetched on demand.
+ */
+export interface MediaItem {
+  id: string;
+  kind: MediaKind;
+  name: string;
+  mimeType?: string;
+  size: number;
+  duration?: number;
+  width?: number;
+  height?: number;
+  hasThumb?: boolean;
+  image?: ImageSettings;
+  video?: VideoSettings;
+  createdAt: string;
+  updatedAt: string;
   builtIn?: boolean;
 }
 
@@ -99,7 +189,11 @@ export interface Background {
   type: BgType;
   css?: string;
   color?: string;
+  /** Inline data for bundled/legacy image backgrounds only; uploads use `blobId`. */
   dataUrl?: string;
+  /** Points into the "files" store; resolved to an object URL on demand. */
+  blobId?: string;
+  size?: number;
   light?: boolean;
   builtIn?: boolean;
 }
@@ -107,7 +201,10 @@ export interface Background {
 export interface AudioItem {
   id: string;
   name: string;
-  dataUrl: string;
+  /** Inline data for the bundled default pads only; uploads use `blobId`. */
+  dataUrl?: string;
+  blobId?: string;
+  size?: number;
   builtIn?: boolean;
 }
 
@@ -122,6 +219,7 @@ export interface Prefs {
   presentationView: PresentationView;
   autoHideControls: boolean;
   autoHidePresenterBar: boolean;
+  bibleVersion: BibleVersionId;
   onboarded: boolean;
 }
 
@@ -136,6 +234,12 @@ export interface ResolvedStyle {
   fontSize: number;
   uppercase: boolean;
   textShadow: string;
+}
+
+export interface PresentTarget {
+  kind: ContentKind;
+  id: string;
+  startIndex: number;
 }
 
 export type ImportMode = "override" | "merge-imported" | "merge-existing";

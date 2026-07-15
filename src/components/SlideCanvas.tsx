@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
 import { UI } from "../theme/tokens";
+import { useThumbUrl } from "../lib/blobUrls";
 
 interface SlideCanvasProps {
   slide: Slide;
@@ -40,11 +41,14 @@ export function SlideCanvas({
 }: SlideCanvasProps) {
   const [hoverLine, setHoverLine] = useState<number | null>(null);
   const interactive = Boolean(onLineClick);
+  const bgBlobUrl = useThumbUrl(noBackground ? null : bg?.blobId);
+  const bgImageUrl = bg?.blobId ? bgBlobUrl : bg?.dataUrl;
   const bgStyle = noBackground
     ? {}
     : bg?.type === "image"
     ? {
-        backgroundImage: `url(${bg.dataUrl})`,
+        backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
+        backgroundColor: "#0a090d",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }

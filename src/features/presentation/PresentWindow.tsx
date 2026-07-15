@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { resolveAnimation, resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import { useBgMap } from "../../hooks/useBgMap";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
+import { useDeck } from "./useDeck";
+import { buildStageFrame } from "./stageContent";
 import { Stage } from "./Stage";
-import type { Background } from "../../types";
 
 /**
  * Renders in the popup window opened by Go Live. Mirrors whatever the
@@ -12,15 +13,14 @@ import type { Background } from "../../types";
  * presenter bar, just the stage that gets projected to the audience.
  */
 export function PresentWindow() {
-  const songs = useStore((s) => s.songs);
-  const themes = useStore((s) => s.themes);
-  const backgrounds = useStore((s) => s.backgrounds);
   const prefs = useStore((s) => s.prefs);
+  const load = useStore((s) => s.load);
 
   const [state, setState] = useState<PresentState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
+  const lastReloadKey = useRef<string>("");
 
   useEffect(() => {
     const channel = openPresentChannel((msg) => {
@@ -74,22 +74,28 @@ export function PresentWindow() {
     }
   };
 
-  const song = useMemo(() => songs.find((s) => s.id === state?.songId), [songs, state?.songId]);
-  const theme = useMemo(
-    () => themes.find((t) => t.id === song?.defaultThemeId) || themes[0],
-    [themes, song?.defaultThemeId]
-  );
-  const bgMap = useMemo(() => {
-    const map: Record<string, Background> = {};
-    for (const bg of backgrounds) map[bg.id] = bg;
-    return map;
-  }, [backgrounds]);
+  const deck = useDeck(state?.kind, state?.id);
+  const bgMap = useBgMap();
 
-  const cur = song?.slides?.[state?.idx ?? 0];
-  const style = theme ? resolveStyle(cur, song, theme) : undefined;
-  const lineStyles = theme && cur ? cur.lines.map((_, i) => resolveLineStyle(cur, i, song, theme)) : undefined;
-  const background = theme ? resolveBackground(cur, song, theme, bgMap) : undefined;
-  const animation = theme ? resolveAnimation(cur, song, theme, prefs.transition) : prefs.transition;
+  // This window loads its store once on open; content created or edited after
+  // that would be missing here, so reload from storage when the operator's
+  // broadcast references something newer than our copy. The key resets after a
+  // moment so a reload that raced the operator's write gets retried.
+  useEffect(() => {
+    if (!state) return;
+    const stale = !deck || (state.rev && deck.rev !== state.rev);
+    if (!stale) return;
+    const key = `${state.kind}:${state.id}:${state.rev || ""}`;
+    if (lastReloadKey.current === key) return;
+    lastReloadKey.current = key;
+    void load();
+    const timer = window.setTimeout(() => {
+      if (lastReloadKey.current === key) lastReloadKey.current = "";
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [state, deck, load]);
+
+  const frame = deck && state ? buildStageFrame(deck, deck.slides[state.idx], bgMap, prefs.transition) : null;
 
   const fullscreenButton = (
     <button
@@ -119,7 +125,7 @@ export function PresentWindow() {
     </button>
   );
 
-  if (!state || !song || !cur || !style || !background || !theme) {
+  if (!state || !frame) {
     return (
       <div onPointerMove={wake} onPointerDown={claimFocus} style={{ position: "fixed", inset: 0, background: "#000" }}>
         {fullscreenButton}
@@ -135,17 +141,15 @@ export function PresentWindow() {
     >
       <Stage
         idx={state.idx}
-        slide={cur}
-        style={style}
-        lineStyles={lineStyles}
-        background={background}
-        animation={animation}
+        content={frame.content}
+        animation={frame.animation}
         view={state.view}
         zoom={state.zoom}
         pan={state.pan}
         onPanBy={() => {}}
         durationMs={prefs.transitionDuration}
         easing={prefs.easing}
+        playback={state.media}
       />
       {fullscreenButton}
     </div>

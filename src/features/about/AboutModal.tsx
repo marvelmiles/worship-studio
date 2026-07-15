@@ -10,7 +10,19 @@ const CONTACT_EMAIL = "marvellousabidemi2@gmail.com";
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I present to a projector or TV over HDMI?",
-    a: "Connect your computer to the screen with HDMI and set the display to extend (not mirror) your desktop. Open a song, click Present, then click the Go Live button (the monitor icon) in the on-screen controls. The first time, your browser asks permission to manage windows — allow it. WorshipStudio then projects the slides fullscreen on the external display while you keep the controls and presenter notes on your own screen. If your browser doesn't support multi-screen placement, Go Live simply goes fullscreen on the current screen, which you can drag onto the projector. When projection is active the Go Live button stays highlighted.",
+    a: "Connect your computer to the screen with HDMI and set the display to extend (not mirror) your desktop. Open a song, Bible passage, image or video, click Present, then click the Go Live button (the monitor icon) in the on-screen controls. The first time, your browser asks permission to manage windows — allow it. WorshipStudio then projects fullscreen on the external display while you keep the controls and presenter notes on your own screen. If your browser doesn't support multi-screen placement, Go Live simply goes fullscreen on the current screen, which you can drag onto the projector. When projection is active the Go Live button stays highlighted.",
+  },
+  {
+    q: "How do I present a Bible verse?",
+    a: "Open the Bible tab, pick a translation (KJV, NKJV, NIV, ESV or NLT), then navigate to a book and chapter — or type a reference like John 3:16-18 in the jump box. Click a verse to select it, shift-click to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse). Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
+  },
+  {
+    q: "Does the Bible work offline?",
+    a: "Verse text is fetched online the first time you read a chapter and then cached on your device, so every chapter you've opened keeps working offline — including passages you've saved. If you're offline and open a chapter you haven't read before, WorshipStudio tells you and lets you retry once you're connected.",
+  },
+  {
+    q: "Can I edit images and videos?",
+    a: "Yes — both editors are non-destructive, so your original file is never altered. Images: brightness, contrast, saturation, grayscale, sepia, blur, rotate, flip, screen fit and a legibility overlay. Videos: trim start/end, volume, mute, loop, playback speed, screen fit and the same color adjustments. While a video is live you get play/pause, seeking, restart and volume controls on your console — and any image can be added to your background library with one click.",
   },
   {
     q: "Are my edits saved automatically?",

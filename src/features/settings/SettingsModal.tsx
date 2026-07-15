@@ -58,11 +58,12 @@ export function SettingsModal() {
     if (busy) return;
     setBusy("export");
     setProgress(0);
-    await exportData((f) => setProgress(Math.round(f * 100)));
+    const result = await exportData((f) => setProgress(Math.round(f * 100)));
     setProgress(100);
     await delay(450);
     setBusy(null);
-    pushToast("Data exported successfully.");
+    if (result.ok) pushToast("Backup exported successfully.");
+    else if (!result.cancelled) pushToast("Export failed — please try again.", "error");
   };
 
   const chooseMode = (mode: ImportMode) => {
@@ -161,8 +162,9 @@ export function SettingsModal() {
 
       <SectionTitle>Data</SectionTitle>
       <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
-        Export everything — songs, themes, custom backgrounds, audio and settings — to a single JSON
-        file, then bring it back here on any device.
+        Export everything — songs, scripture passages, images, videos, themes, custom backgrounds,
+        audio and settings — to a single backup file (.zip), then bring it back here on any device.
+        Older JSON backups can still be imported.
       </p>
       {busy && (
         <div style={{ marginBottom: 14 }}>
@@ -181,7 +183,7 @@ export function SettingsModal() {
         <input
           ref={inputRef}
           type="file"
-          accept="application/json,.json"
+          accept=".zip,.json,application/zip,application/json"
           hidden
           onChange={async (e) => {
             const file = e.target.files?.[0];

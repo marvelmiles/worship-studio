@@ -1,7 +1,5 @@
 import { useState } from "react";
-import type { Slide, Song, TextStyle } from "../../types";
-import { useStore } from "../../store/useStore";
-import { parseLyrics } from "../../lib/parser";
+import type { Slide, SlideDeckDoc, TextStyle } from "../../types";
 import { now, uid } from "../../lib/id";
 
 const blankSlide = (): Slide => ({
@@ -13,18 +11,20 @@ const blankSlide = (): Slide => ({
   notes: "",
 });
 
-export function useEditorSong(song: Song) {
-  const upsertSong = useStore((state) => state.upsertSong);
-  const [selectedId, setSelectedId] = useState<string | null>(song.slides?.[0]?.id ?? null);
+/**
+ * Slide-deck editing operations shared by every deck-based editor (songs,
+ * scripture passages…). `save` persists the patched document.
+ */
+export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => void) {
+  const [selectedId, setSelectedId] = useState<string | null>(doc.slides?.[0]?.id ?? null);
 
-  const slides = song.slides ?? [];
+  const slides = doc.slides ?? [];
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = slides[selectedIndex] ?? slides[0];
 
-  const patchSong = (changes: Partial<Song>) =>
-    upsertSong({ ...song, ...changes, updatedAt: now() });
+  const patchDoc = (changes: Partial<T>) => save({ ...doc, ...changes, updatedAt: now() });
 
-  const setSlides = (next: Slide[]) => patchSong({ slides: next });
+  const setSlides = (next: Slide[]) => patchDoc({ slides: next } as Partial<T>);
 
   const updateSlide = (id: string, changes: Partial<Slide>) =>
     setSlides(slides.map((slide) => (slide.id === id ? { ...slide, ...changes } : slide)));
@@ -58,11 +58,11 @@ export function useEditorSong(song: Song) {
     updateSlide(id, { lineOverrides });
   };
 
-  const updateSongStyle = (key: keyof TextStyle, value: unknown) => {
-    const style = { ...(song.style || {}) } as Record<string, unknown>;
+  const updateDocStyle = (key: keyof TextStyle, value: unknown) => {
+    const style = { ...(doc.style || {}) } as Record<string, unknown>;
     if (value === "" || value == null) delete style[key];
     else style[key] = value;
-    patchSong({ style });
+    patchDoc({ style } as unknown as Partial<T>);
   };
 
   const moveSlide = (index: number, direction: number) => {
@@ -145,9 +145,8 @@ export function useEditorSong(song: Song) {
     setSelectedId(merged.id);
   };
 
-  const regenerateFromLyrics = (lyrics: string, maxLines: number) => {
-    const next = parseLyrics(lyrics, maxLines);
-    patchSong({ lyrics, slides: next });
+  const replaceSlides = (next: Slide[]) => {
+    setSlides(next);
     setSelectedId(next[0]?.id ?? null);
   };
 
@@ -157,19 +156,21 @@ export function useEditorSong(song: Song) {
     setSelectedId,
     selectedIndex,
     selectedSlide,
-    patchSong,
+    patchDoc,
     setSlides,
+    replaceSlides,
     updateSlide,
     updateSlideOverride,
     updateLineOverride,
     clearLineOverrides,
-    updateSongStyle,
+    updateDocStyle,
     moveSlide,
     duplicateSlide,
     removeSlide,
     insertSlideAt,
     splitSlide,
     mergeSlideDown,
-    regenerateFromLyrics,
   };
 }
+
+export type DeckEditor = ReturnType<typeof useDeckEditor>;

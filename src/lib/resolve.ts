@@ -3,7 +3,7 @@ import type {
   Background,
   ResolvedStyle,
   Slide,
-  Song,
+  SlideDeckDoc,
   Theme,
 } from "../types";
 import { BACKGROUNDS } from "../data/backgrounds";
@@ -30,10 +30,10 @@ function applyTextStyle(target: ResolvedStyle, source: Record<string, unknown> |
   }
 }
 
-/** Merge theme defaults, then song-level style, then per-slide overrides. */
+/** Merge theme defaults, then doc-level style, then per-slide overrides. */
 export function resolveStyle(
   slide: Slide | undefined,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme: Theme
 ): ResolvedStyle {
   const style: ResolvedStyle = {
@@ -47,7 +47,7 @@ export function resolveStyle(
     uppercase: theme.uppercase,
     textShadow: theme.textShadow,
   };
-  applyTextStyle(style, song?.style as Record<string, unknown> | undefined);
+  applyTextStyle(style, doc?.style as Record<string, unknown> | undefined);
   applyTextStyle(style, slide?.overrides as Record<string, unknown> | undefined);
   return style;
 }
@@ -56,53 +56,53 @@ export function resolveStyle(
 export function resolveLineStyle(
   slide: Slide | undefined,
   lineIndex: number,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme: Theme
 ): ResolvedStyle {
-  const style = resolveStyle(slide, song, theme);
+  const style = resolveStyle(slide, doc, theme);
   applyTextStyle(style, slide?.lineOverrides?.[lineIndex] as Record<string, unknown> | undefined);
   return style;
 }
 
 export function resolveBackgroundId(
   slide: Slide | undefined,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme: Theme
 ): string {
-  return slide?.overrides?.backgroundId || song?.defaultBackgroundId || theme.backgroundId;
+  return slide?.overrides?.backgroundId || doc?.defaultBackgroundId || theme.backgroundId;
 }
 
 export function resolveBackground(
   slide: Slide | undefined,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme: Theme,
   bgMap: Record<string, Background>
 ): Background {
-  const id = resolveBackgroundId(slide, song, theme);
+  const id = resolveBackgroundId(slide, doc, theme);
   return bgMap[id] || bgMap[theme.backgroundId] || BACKGROUNDS[0];
 }
 
 export function resolveAnimation(
   slide: Slide | undefined,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme: Theme,
   fallback: AnimationKind
 ): AnimationKind {
-  return slide?.overrides?.animation || song?.animation || theme.animation || fallback;
+  return slide?.overrides?.animation || doc?.animation || theme.animation || fallback;
 }
 
 export function resolveAudioId(
   slide: Slide | undefined,
-  song: Song | undefined,
+  doc: SlideDeckDoc | undefined,
   theme?: Theme
 ): string | null {
-  return slide?.overrides?.audioId || song?.defaultAudioId || theme?.defaultAudioId || null;
+  return slide?.overrides?.audioId || doc?.defaultAudioId || theme?.defaultAudioId || null;
 }
 
-export function resolveAutoPlay(song: Song | undefined, theme?: Theme): boolean {
-  return song?.autoPlay ?? theme?.autoPlay ?? false;
+export function resolveAutoPlay(doc: SlideDeckDoc | undefined, theme?: Theme): boolean {
+  return doc?.autoPlay ?? theme?.autoPlay ?? false;
 }
 
-export function resolveSlideDuration(song: Song | undefined, theme?: Theme): number {
-  return song?.slideDurationSeconds ?? theme?.slideDurationSeconds ?? 15;
+export function resolveSlideDuration(doc: SlideDeckDoc | undefined, theme?: Theme): number {
+  return doc?.slideDurationSeconds ?? theme?.slideDurationSeconds ?? 15;
 }

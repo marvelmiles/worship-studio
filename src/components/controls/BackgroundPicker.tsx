@@ -6,6 +6,7 @@ import { useStore } from "../../store/useStore";
 import { Field, Select } from "../ui/Field";
 import { Btn } from "../ui/Button";
 import { CustomColorPicker } from "./CustomColorPicker";
+import { BgSwatch } from "./BgSwatch";
 
 interface BackgroundPickerProps {
   backgrounds: Background[];
@@ -15,12 +16,6 @@ interface BackgroundPickerProps {
   highlightId?: string;
   onUploaded?: (id: string) => void;
   onAddColor?: (value: string, name?: string) => void;
-}
-
-export function swatchBackground(bg: Background): string {
-  if (bg.type === "solid") return bg.color || "#111";
-  if (bg.type === "image") return `center/cover url(${bg.dataUrl})`;
-  return bg.css || "#111";
 }
 
 export function BackgroundPicker({
@@ -57,10 +52,14 @@ export function BackgroundPicker({
               aspectRatio: "16/9",
               borderRadius: 7,
               cursor: "pointer",
-              background: swatchBackground(bg),
+              padding: 0,
+              overflow: "hidden",
+              background: "transparent",
               border: `1.5px solid ${activeId === bg.id ? C.gold : C.border}`,
             }}
-          />
+          >
+            <BgSwatch bg={bg} style={{ width: "100%", height: "100%" }} />
+          </button>
         ))}
       </div>
 

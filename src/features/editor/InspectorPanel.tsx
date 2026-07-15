@@ -1,5 +1,5 @@
 import { Copy, Trash2, X } from "lucide-react";
-import type { AudioItem, Background, Song, Theme } from "../../types";
+import type { AudioItem, Background, SlideDeckDoc, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { resolveBackgroundId, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { Btn } from "../../components/ui/Button";
@@ -8,11 +8,11 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
-import type { useEditorSong } from "./useEditorSong";
+import type { DeckEditor } from "./useDeckEditor";
 
 interface InspectorPanelProps {
-  editor: ReturnType<typeof useEditorSong>;
-  song: Song;
+  editor: DeckEditor;
+  doc: SlideDeckDoc;
   theme: Theme;
   backgrounds: Background[];
   audio: AudioItem[];
@@ -23,7 +23,7 @@ interface InspectorPanelProps {
 
 export function InspectorPanel({
   editor,
-  song,
+  doc,
   theme,
   backgrounds,
   audio,
@@ -34,9 +34,9 @@ export function InspectorPanel({
   const { selectedSlide: slide, selectedIndex } = editor;
   const lineMode = selectedLine !== null && selectedLine < (slide.lines?.length ?? 0);
   const style = lineMode
-    ? resolveLineStyle(slide, selectedLine, song, theme)
-    : resolveStyle(slide, song, theme);
-  const effectiveBackgroundId = resolveBackgroundId(slide, song, theme);
+    ? resolveLineStyle(slide, selectedLine, doc, theme)
+    : resolveStyle(slide, doc, theme);
+  const effectiveBackgroundId = resolveBackgroundId(slide, doc, theme);
   const effectiveBackground = backgrounds.find((bg) => bg.id === effectiveBackgroundId);
   const hasLineOverrides = lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
 
@@ -115,7 +115,7 @@ export function InspectorPanel({
         backgrounds={backgrounds}
         value={slide.overrides?.backgroundId || ""}
         highlightId={effectiveBackgroundId}
-        inheritLabel="Use song / theme"
+        inheritLabel="Use document / theme"
         onSelect={(id) => setOverride("backgroundId", id)}
         onUploaded={(id) => setOverride("backgroundId", id)}
         onAddColor={(value, name) => setOverride("backgroundId", onAddColor(value, name))}
@@ -134,7 +134,7 @@ export function InspectorPanel({
       <AudioPicker
         audio={audio}
         value={slide.overrides?.audioId || ""}
-        inheritLabel="Use song / theme audio"
+        inheritLabel="Use document / theme audio"
         onSelect={(id) => setOverride("audioId", id)}
         onUploaded={(id) => setOverride("audioId", id)}
       />
@@ -142,7 +142,7 @@ export function InspectorPanel({
       <SectionTitle>Animation</SectionTitle>
       <AnimationPicker
         value={slide.overrides?.animation || ""}
-        inheritLabel="Use song / theme"
+        inheritLabel="Use document / theme"
         onSelect={(value) => setOverride("animation", value)}
       />
 

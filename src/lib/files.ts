@@ -10,15 +10,11 @@ export const downloadJSON = (data: unknown, name: string): void => {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
-export function readFile(
-  file: File,
-  as: "dataURL" | "text" = "dataURL"
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    if (as === "text") r.readAsText(file);
-    else r.readAsDataURL(file);
-  });
+/**
+ * Text reads only. Binary files are never read into JS memory — store the
+ * File/Blob itself (see lib/fileStore) and display it via object URLs.
+ */
+export function readFile(file: File, as: "text" = "text"): Promise<string> {
+  void as;
+  return file.text();
 }

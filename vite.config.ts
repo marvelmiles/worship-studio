@@ -23,7 +23,7 @@ export default defineConfig({
         name: "WorshipStudio — Worship Presentation Studio",
         short_name: "WorshipStudio",
         description:
-          "Create lyric slides and run live worship presentations — installable and fully offline.",
+          "Present songs, Bible passages, images and videos live — installable and offline-ready.",
         theme_color: "#0b0a0e",
         background_color: "#0b0a0e",
         display: "standalone",

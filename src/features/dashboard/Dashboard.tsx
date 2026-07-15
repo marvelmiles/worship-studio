@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  BookOpen,
   Clock,
+  Film,
   HardDrive,
   Image as ImageIcon,
   Layers,
-  Library as LibraryIcon,
   Music,
   Palette,
   Plus,
@@ -19,13 +20,13 @@ import { useStore } from "../../store/useStore";
 import { fmtDate } from "../../lib/id";
 import { fmtBytes } from "../../lib/storageStats";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { swatchBackground } from "../../components/controls/BackgroundPicker";
+import { BgSwatch } from "../../components/controls/BgSwatch";
 
 interface UsedItem {
   id: string;
   name: string;
   count: number;
-  swatch?: string;
+  bg?: Background;
 }
 
 type MostTab = "background" | "theme" | "sound";
@@ -63,6 +64,8 @@ export function Dashboard() {
   useDocumentTitle("Dashboard · WorshipStudio");
   const navigate = useNavigate();
   const songs = useStore((s) => s.songs);
+  const scriptures = useStore((s) => s.scriptures);
+  const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
   const themes = useStore((s) => s.themes);
   const audio = useStore((s) => s.audio);
@@ -114,17 +117,12 @@ export function Dashboard() {
           id,
           count,
           name: t?.name || "Unknown",
-          swatch: t ? swatchBackground(bgMap[t.backgroundId]) : undefined,
+          bg: t ? bgMap[t.backgroundId] : undefined,
         };
       }),
       background: rank(bgUse).map(([id, count]) => {
         const bg = bgMap[id];
-        return {
-          id,
-          count,
-          name: bg?.name || "Unknown",
-          swatch: bg ? swatchBackground(bg) : undefined,
-        };
+        return { id, count, name: bg?.name || "Unknown", bg };
       }),
       sound: rank(soundUse).map(([id, count]) => {
         const a = audio.find((x) => x.id === id);
@@ -138,10 +136,16 @@ export function Dashboard() {
     if (created) navigate(`/editor/${created.id}`);
   };
 
+  const savedPassages = scriptures.filter((s) => !s.quick && !s.deleted).length;
+  const imageCount = media.filter((m) => m.kind === "image").length;
+  const videoCount = media.filter((m) => m.kind === "video").length;
+
   const stats: { label: string; value: number; icon: LucideIcon }[] = [
     { label: "Songs", value: active.length, icon: Music },
     { label: "Slides", value: totalSlides, icon: Layers },
-    { label: "Backgrounds", value: backgrounds.length, icon: ImageIcon },
+    { label: "Passages", value: savedPassages, icon: BookOpen },
+    { label: "Images", value: imageCount, icon: ImageIcon },
+    { label: "Videos", value: videoCount, icon: Film },
     { label: "Themes", value: themes.length, icon: Palette },
     { label: "Sounds", value: audio.length, icon: Volume2 },
   ];
@@ -152,11 +156,10 @@ export function Dashboard() {
     primary?: boolean;
   }[] = [
     { label: "New Song", icon: Plus, fn: onNew, primary: true },
-    {
-      label: "Open Library",
-      icon: LibraryIcon,
-      fn: () => navigate("/library"),
-    },
+    { label: "Open Bible", icon: BookOpen, fn: () => navigate("/bible") },
+    { label: "Song Library", icon: Music, fn: () => navigate("/songs") },
+    { label: "Images", icon: ImageIcon, fn: () => navigate("/images") },
+    { label: "Videos", icon: Film, fn: () => navigate("/videos") },
     { label: "Manage Themes", icon: Palette, fn: () => openOverlay("themes") },
     { label: "Upload Assets", icon: Upload, fn: () => openOverlay("assets") },
   ];
@@ -608,21 +611,35 @@ export function Dashboard() {
                     padding: "8px 0",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 46,
-                      height: 27,
-                      borderRadius: 6,
-                      flexShrink: 0,
-                      display: "grid",
-                      placeItems: "center",
-                      background: item.swatch || "rgba(216,162,74,0.14)",
-                      border: `1px solid ${C.border}`,
-                      color: C.goldSoft,
-                    }}
-                  >
-                    {!item.swatch && <Volume2 size={14} />}
-                  </div>
+                  {item.bg ? (
+                    <BgSwatch
+                      bg={item.bg}
+                      style={{
+                        width: 46,
+                        height: 27,
+                        borderRadius: 6,
+                        flexShrink: 0,
+                        overflow: "hidden",
+                        border: `1px solid ${C.border}`,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 46,
+                        height: 27,
+                        borderRadius: 6,
+                        flexShrink: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        background: "rgba(216,162,74,0.14)",
+                        border: `1px solid ${C.border}`,
+                        color: C.goldSoft,
+                      }}
+                    >
+                      <Volume2 size={14} />
+                    </div>
+                  )}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{

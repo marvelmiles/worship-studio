@@ -1,18 +1,19 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Background, ResolvedStyle, Slide, Song } from "../../types";
 import { C, DISPLAY, UI } from "../../theme/tokens";
 import { fmtClock } from "../../lib/id";
 import { useViewport } from "../../hooks/useViewport";
 import { PCtl } from "../../components/ui/Button";
 import { SlideCanvas } from "../../components/SlideCanvas";
+import { ImageSurface } from "../../components/media/ImageSurface";
+import { VideoThumb } from "../../components/media/VideoThumb";
+import type { StageFrame } from "./stageContent";
 
 interface PresenterBarProps {
-  song: Song;
-  cur: Slide;
-  next?: Slide;
-  nextStyle?: ResolvedStyle;
-  nextLineStyles?: ResolvedStyle[];
-  nextBackground?: Background;
+  title: string;
+  currentLabel: string;
+  notes?: string;
+  nextFrame: StageFrame | null;
+  endLabel: string;
   idx: number;
   total: number;
   elapsed: number;
@@ -32,13 +33,63 @@ const labelStyle = {
   color: C.gold,
 };
 
+function NextPreview({ frame, endLabel }: { frame: StageFrame | null; endLabel: string }) {
+  if (!frame) {
+    return (
+      <div
+        style={{
+          width: 220,
+          aspectRatio: "16/9",
+          borderRadius: 7,
+          display: "grid",
+          placeItems: "center",
+          background: "rgba(255,255,255,0.05)",
+          color: C.dim,
+          fontFamily: UI,
+          fontSize: 13,
+        }}
+      >
+        {endLabel}
+      </div>
+    );
+  }
+  const { content } = frame;
+  return (
+    <div style={{ width: 220, boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
+      {content.kind === "text" ? (
+        <SlideCanvas
+          slide={content.slide}
+          style={content.style}
+          lineStyles={content.lineStyles}
+          bg={content.background}
+          radius={7}
+        />
+      ) : (
+        <div
+          style={{
+            position: "relative",
+            aspectRatio: "16/9",
+            borderRadius: 7,
+            overflow: "hidden",
+          }}
+        >
+          {content.kind === "image" ? (
+            <ImageSurface item={content.item} variant="thumb" />
+          ) : (
+            <VideoThumb item={content.item} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PresenterBar({
-  song,
-  cur,
-  next,
-  nextStyle,
-  nextLineStyles,
-  nextBackground,
+  title,
+  currentLabel,
+  notes,
+  nextFrame,
+  endLabel,
   idx,
   total,
   elapsed,
@@ -76,52 +127,41 @@ export function PresenterBar({
       }}
     >
       <div style={{ minWidth: 0 }}>
-        <div style={labelStyle}>{song.title} · {cur.label}</div>
+        <div style={labelStyle}>
+          {title} · {currentLabel}
+        </div>
         <div
           style={{
             fontFamily: UI,
             fontSize: 13.5,
-            color: cur.notes ? "#fff" : C.dim,
+            color: notes ? "#fff" : C.dim,
             marginTop: 4,
             lineHeight: 1.45,
             maxHeight: 44,
             overflow: "hidden",
           }}
         >
-          {cur.notes || "No presenter notes for this slide."}
+          {notes || "No presenter notes for this slide."}
         </div>
       </div>
 
       {showNext && (
         <div>
           <div style={{ ...labelStyle, marginBottom: 5 }}>Up Next</div>
-          {next && nextStyle && nextBackground ? (
-            <div style={{ width: 220, boxShadow: "0 6px 18px rgba(0,0,0,0.5)" }}>
-              <SlideCanvas slide={next} style={nextStyle} lineStyles={nextLineStyles} bg={nextBackground} radius={7} />
-            </div>
-          ) : (
-            <div
-              style={{
-                width: 220,
-                aspectRatio: "16/9",
-                borderRadius: 7,
-                display: "grid",
-                placeItems: "center",
-                background: "rgba(255,255,255,0.05)",
-                color: C.dim,
-                fontFamily: UI,
-                fontSize: 13,
-              }}
-            >
-              End of song
-            </div>
-          )}
+          <NextPreview frame={nextFrame} endLabel={endLabel} />
         </div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: DISPLAY, fontSize: 22, color: "#fff", fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              fontFamily: DISPLAY,
+              fontSize: 22,
+              color: "#fff",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             {fmtClock(elapsed)}
           </div>
           <div style={{ fontFamily: UI, fontSize: 12, color: C.sub, fontVariantNumeric: "tabular-nums" }}>

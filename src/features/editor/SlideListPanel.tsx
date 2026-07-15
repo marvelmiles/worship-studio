@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import type { Background, Slide, Song, Theme } from "../../types";
+import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { IconBtn } from "../../components/ui/Button";
 import { SortableSlideList } from "./SortableSlideList";
@@ -9,7 +9,7 @@ interface SlideListPanelProps {
   slides: Slide[];
   selectedId: string | null;
   setSelectedId: (id: string) => void;
-  song: Song;
+  doc: SlideDeckDoc;
   theme: Theme;
   bgMap: Record<string, Background>;
   onReorder: (next: Slide[]) => void;
@@ -22,7 +22,7 @@ export function SlideListPanel({
   slides,
   selectedId,
   setSelectedId,
-  song,
+  doc,
   theme,
   bgMap,
   onReorder,
@@ -58,7 +58,7 @@ export function SlideListPanel({
         slides={slides}
         selId={selectedId}
         setSelId={setSelectedId}
-        song={song}
+        doc={doc}
         theme={theme}
         bgMap={bgMap}
         onReorder={onReorder}

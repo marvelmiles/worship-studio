@@ -1,14 +1,52 @@
 import { useRef, useState } from "react";
 import { Image as ImageIcon, Music, Palette, Trash2, Upload, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { AudioItem } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
+import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { Btn, IconBtn } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
-import { swatchBackground } from "../../components/controls/BackgroundPicker";
+import { BgSwatch } from "../../components/controls/BgSwatch";
 import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
 
 type Tab = "backgrounds" | "audio";
+
+function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void }) {
+  const url = useAssetUrl(item);
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "11px 0",
+        borderBottom: `1px solid ${C.border}`,
+        flexWrap: "wrap",
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 9,
+          background: "rgba(216,162,74,0.14)",
+          color: C.goldSoft,
+          display: "grid",
+          placeItems: "center",
+        }}
+      >
+        <Music size={17} />
+      </div>
+      <div style={{ flex: 1, minWidth: 120, fontFamily: UI, fontSize: 14, color: C.text }}>
+        {item.name}
+        {item.builtIn && <span style={{ fontSize: 11, color: C.dim, marginLeft: 8 }}>· default</span>}
+      </div>
+      {url && <audio src={url} controls loop preload="none" style={{ height: 32 }} />}
+      {!item.builtIn && <IconBtn icon={Trash2} danger title="Remove" onClick={onRemove} />}
+    </div>
+  );
+}
 
 export function AssetsModal() {
   const overlay = useStore((s) => s.overlay);
@@ -102,11 +140,12 @@ export function AssetsModal() {
           >
             {backgrounds.map((bg) => (
               <div key={bg.id} style={{ position: "relative" }}>
-                <div
+                <BgSwatch
+                  bg={bg}
                   style={{
                     aspectRatio: "16/9",
                     borderRadius: 9,
-                    background: swatchBackground(bg),
+                    overflow: "hidden",
                     border: `1px solid ${C.border}`,
                   }}
                 />
@@ -160,41 +199,7 @@ export function AssetsModal() {
           />
           <div style={{ marginTop: 16 }}>
             {audio.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "11px 0",
-                  borderBottom: `1px solid ${C.border}`,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 9,
-                    background: "rgba(216,162,74,0.14)",
-                    color: C.goldSoft,
-                    display: "grid",
-                    placeItems: "center",
-                  }}
-                >
-                  <Music size={17} />
-                </div>
-                <div style={{ flex: 1, minWidth: 120, fontFamily: UI, fontSize: 14, color: C.text }}>
-                  {item.name}
-                  {item.builtIn && (
-                    <span style={{ fontSize: 11, color: C.dim, marginLeft: 8 }}>· default</span>
-                  )}
-                </div>
-                <audio src={item.dataUrl} controls loop style={{ height: 32 }} />
-                {!item.builtIn && (
-                  <IconBtn icon={Trash2} danger title="Remove" onClick={() => removeAudio(item.id)} />
-                )}
-              </div>
+              <AudioRow key={item.id} item={item} onRemove={() => removeAudio(item.id)} />
             ))}
           </div>
         </>

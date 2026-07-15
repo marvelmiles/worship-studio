@@ -42,6 +42,149 @@ code {
 
 /* Presentation chrome visibility is controlled inline (auto-hide on mouse leave). */
 
+/* Shared layout & surface utilities. Colors mirror src/theme/tokens.ts. */
+.ws-page {
+  padding: clamp(18px, 4vw, 28px) clamp(14px, 4vw, 36px);
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.ws-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.ws-glass {
+  background: rgba(24, 22, 31, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(228, 210, 180, 0.12);
+  border-radius: 16px;
+}
+
+.ws-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease;
+}
+
+.ws-card:hover {
+  border-color: rgba(228, 210, 180, 0.24);
+}
+
+.ws-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.ws-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ws-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(228, 210, 180, 0.12);
+  background: transparent;
+  color: #a8a194;
+  white-space: nowrap;
+}
+
+.ws-pill-active {
+  border-color: rgba(216, 162, 74, 0.4);
+  background: rgba(216, 162, 74, 0.16);
+  color: #ecc784;
+}
+
+.ws-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-section-label {
+  font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #6e685e;
+}
+
+.ws-thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #0a090d;
+  overflow: hidden;
+}
+
+.ws-thumb-badge {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px;
+  padding: 3px 9px;
+  font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-size: 11.5px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.ws-card-body {
+  padding: 13px 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-card-title {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: #f3efe6;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ws-card-sub {
+  font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-size: 12.5px;
+  color: #a8a194;
+  margin-top: 3px;
+  margin-bottom: 12px;
+}
+
+.ws-card-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 /* Used by the modal/overlay entrance. */
 @keyframes wfFade {
   from {

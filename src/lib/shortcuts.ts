@@ -65,6 +65,16 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Video",
+    note: "Available while a video is on the stage.",
+    shortcuts: [
+      { keys: ["Space"], description: "Play / pause the video" },
+      { keys: ["→"], description: "Seek forward 5s" },
+      { keys: ["←"], description: "Seek back 5s" },
+      { keys: ["M"], description: "Mute / unmute" },
+    ],
+  },
+  {
     title: "View",
     shortcuts: [
       { keys: ["F"], description: "Toggle fullscreen" },

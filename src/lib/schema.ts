@@ -62,6 +62,8 @@ const backgroundSchema = z
     css: z.string().optional(),
     color: z.string().optional(),
     dataUrl: z.string().optional(),
+    blobId: z.string().optional(),
+    size: z.number().optional(),
     light: z.boolean().optional(),
     builtIn: z.boolean().optional(),
   })
@@ -71,8 +73,59 @@ const audioSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    dataUrl: z.string(),
+    dataUrl: z.string().optional(),
+    blobId: z.string().optional(),
+    size: z.number().optional(),
     builtIn: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const scriptureSchema = z
+  .object({
+    id: z.string().optional(),
+    title: z.string(),
+    version: z.string(),
+    range: z.object({
+      bookId: z.number(),
+      bookName: z.string(),
+      chapter: z.number(),
+      verseStart: z.number(),
+      verseEnd: z.number(),
+    }),
+    verses: z.array(z.object({ v: z.number(), t: z.string() })),
+    versesPerSlide: z.number().optional(),
+    showVerseNumbers: z.boolean().optional(),
+    showReference: z.boolean().optional(),
+    slides: z.array(slideSchema).optional(),
+    defaultThemeId: z.string().optional().default("scripture"),
+    defaultBackgroundId: z.string().optional(),
+    defaultAudioId: z.string().nullable().optional(),
+    animation: z.string().optional(),
+    style: z.record(z.unknown()).optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+    deleted: z.boolean().optional(),
+    quick: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const mediaSchema = z
+  .object({
+    id: z.string().optional(),
+    kind: z.enum(["image", "video"]),
+    name: z.string(),
+    /** Present only in legacy (v3) exports; newer backups ship blobs in the zip. */
+    dataUrl: z.string().optional(),
+    mimeType: z.string().optional(),
+    size: z.number().optional(),
+    duration: z.number().optional(),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    hasThumb: z.boolean().optional(),
+    image: z.record(z.unknown()).optional(),
+    video: z.record(z.unknown()).optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
   })
   .passthrough();
 
@@ -80,6 +133,8 @@ export const dataFileSchema = z.object({
   version: z.number().optional(),
   exportedAt: z.string().optional(),
   songs: z.array(songSchema).optional(),
+  scriptures: z.array(scriptureSchema).optional(),
+  media: z.array(mediaSchema).optional(),
   themes: z.array(themeSchema).optional(),
   backgrounds: z.array(backgroundSchema).optional(),
   audio: z.array(audioSchema).optional(),

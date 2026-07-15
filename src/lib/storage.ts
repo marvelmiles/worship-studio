@@ -4,7 +4,16 @@
 // in-memory storage when neither works. Import/export and all CRUD behave
 // identically regardless of the active backend.
 
-export type StoreName = "songs" | "backgrounds" | "themes" | "audio" | "prefs";
+export type StoreName =
+  | "songs"
+  | "scriptures"
+  | "media"
+  | "backgrounds"
+  | "themes"
+  | "audio"
+  | "prefs"
+  | "bible"
+  | "files";
 export type Backend = "indexeddb" | "session" | "memory";
 
 interface HasId {
@@ -12,8 +21,22 @@ interface HasId {
 }
 
 const DB_NAME = "worshipflow";
-const DB_VERSION = 1;
-const STORES: StoreName[] = ["songs", "backgrounds", "themes", "audio", "prefs"];
+const DB_VERSION = 3;
+const STORES: StoreName[] = [
+  "songs",
+  "scriptures",
+  "media",
+  "backgrounds",
+  "themes",
+  "audio",
+  "prefs",
+  "bible",
+  "files",
+];
+
+// Binary payloads (Blobs) can't survive JSON serialization, so under the
+// sessionStorage fallback the "files" store lives in memory only.
+const SESSION_SKIP: ReadonlySet<StoreName> = new Set(["files"]);
 const SESSION_PREFIX = "ws:";
 const MB = 1024 * 1024;
 
@@ -26,10 +49,14 @@ export const storageState: { backend: Backend | null; memFallback: boolean } = {
 // the session/memory backends and a write-through cache for IndexedDB.
 const mem: Record<StoreName, Map<string, unknown>> = {
   songs: new Map(),
+  scriptures: new Map(),
+  media: new Map(),
   backgrounds: new Map(),
   themes: new Map(),
   audio: new Map(),
   prefs: new Map(),
+  bible: new Map(),
+  files: new Map(),
 };
 
 let idb: IDBDatabase | null = null;
@@ -69,6 +96,7 @@ function sessionAvailable(): boolean {
 
 function loadSessionIntoMem() {
   for (const store of STORES) {
+    if (SESSION_SKIP.has(store)) continue;
     try {
       const raw = sessionStorage.getItem(SESSION_PREFIX + store);
       if (!raw) continue;
@@ -82,6 +110,7 @@ function loadSessionIntoMem() {
 }
 
 function persistSession(store: StoreName) {
+  if (SESSION_SKIP.has(store)) return;
   try {
     sessionStorage.setItem(SESSION_PREFIX + store, JSON.stringify(Array.from(mem[store].values())));
   } catch {
@@ -133,27 +162,59 @@ export async function sAll<T extends HasId>(store: StoreName): Promise<T[]> {
   return Array.from(mem[store].values()) as T[];
 }
 
-export async function sPut<T extends HasId>(store: StoreName, val: T): Promise<void> {
-  mem[store].set(val.id, val);
+export async function sGet<T extends HasId>(store: StoreName, id: string): Promise<T | undefined> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
       try {
-        const tx = idb!.transaction(store, "readwrite");
-        tx.objectStore(store).put(val);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => resolve();
+        const tx = idb!.transaction(store, "readonly");
+        const r = tx.objectStore(store).get(id);
+        r.onsuccess = () => resolve((r.result as T) || undefined);
+        r.onerror = () => resolve(undefined);
       } catch {
-        resolve();
+        resolve(undefined);
       }
     });
   }
+  return mem[store].get(id) as T | undefined;
+}
+
+export async function sPut<T extends HasId>(store: StoreName, val: T): Promise<void> {
+  try {
+    await sPutStrict(store, val);
+  } catch {
+    /* best-effort writes swallow failures; use sPutStrict when they matter */
+  }
+}
+
+/**
+ * Like `sPut` but rejects on failure (notably QuotaExceededError) so upload
+ * pipelines can surface the problem instead of silently losing data. Under
+ * IndexedDB the value is NOT kept in the in-memory map — critical for Blobs,
+ * which would otherwise pin the whole file in RAM for the session.
+ */
+export async function sPutStrict<T extends HasId>(store: StoreName, val: T): Promise<void> {
+  const backend = await init();
+  if (backend === "indexeddb" && idb) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = idb!.transaction(store, "readwrite");
+        tx.objectStore(store).put(val);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error || new Error("IndexedDB write failed"));
+        tx.onabort = () => reject(tx.error || new Error("IndexedDB transaction aborted"));
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+  mem[store].set(val.id, val);
   if (backend === "session") persistSession(store);
 }
 
 export async function sDel(store: StoreName, id: string): Promise<void> {
-  mem[store].delete(id);
   const backend = await init();
+  mem[store].delete(id);
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
       try {

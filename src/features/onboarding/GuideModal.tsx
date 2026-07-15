@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  BookOpen,
   FileText,
+  Film,
   HelpCircle,
   Image as ImageIcon,
   Keyboard,
@@ -27,9 +29,19 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
     desc: "Paste lyrics (optionally tagged [verse], [chorus], [bridge] — [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide — all from the slide inspector or by right-clicking a slide.",
   },
   {
+    icon: BookOpen,
+    title: "Project scripture in seconds",
+    desc: "Open the Bible tab, pick a version (KJV, NKJV, NIV, ESV or NLT), click verses to select them, and hit Present — or save the passage as styled slides you can edit like any song. Chapters you've read stay available offline.",
+  },
+  {
+    icon: Film,
+    title: "Images and videos too",
+    desc: "Upload images and videos from their tabs, polish them with the built-in editors (filters, rotate, trim, volume…), and project them the same way. Presenting an image lets you flip through your whole image library like a slideshow.",
+  },
+  {
     icon: MonitorUp,
     title: "Present over HDMI",
-    desc: "Connect a projector or TV, click Present, then Go Live to project fullscreen on that screen while you keep the controls and notes on yours.",
+    desc: "Connect a projector or TV, click Present, then Go Live to project fullscreen on that screen while you keep the controls and notes on yours. Songs, scripture, images and videos all go live the same way.",
   },
   {
     icon: Palette,
@@ -116,8 +128,8 @@ export function GuideModal() {
           if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setReachedEnd(true);
         }} style={{ padding: 24, overflowY: "auto", flex: 1 }}>
           <p style={{ fontFamily: UI, fontSize: 14, color: C.sub, lineHeight: 1.7, marginTop: 0 }}>
-            WorshipStudio is a light, distraction-free way to present hymns and worship content
-            reliably. Here are a few things worth knowing before you start.
+            WorshipStudio is a light, distraction-free studio for presenting songs, scripture,
+            images and videos reliably. Here are a few things worth knowing before you start.
           </p>
 
           {TIPS.map((tip) => (

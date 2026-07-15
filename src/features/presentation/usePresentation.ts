@@ -1,22 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Background, PresentationView } from "../../types";
+import type { PresentationView } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
-import {
-  resolveAnimation,
-  resolveAudioId,
-  resolveAutoPlay,
-  resolveBackground,
-  resolveLineStyle,
-  resolveSlideDuration,
-  resolveStyle,
-} from "../../lib/resolve";
+import { useBgMap } from "../../hooks/useBgMap";
+import { DEFAULT_MEDIA_PLAYBACK, type MediaPlayback } from "../../lib/presentChannel";
+import { videoSettingsOf } from "../../lib/media";
+import { resolveAudioId, resolveAutoPlay, resolveSlideDuration } from "../../lib/resolve";
 import { computeTagGroups, FIXED_SHORTCUT_BY_LETTER } from "../../lib/tagGroups";
+import { useDeck } from "./useDeck";
+import { buildStageFrame } from "./stageContent";
+import type { VideoSurfaceHandle } from "../../components/media/VideoSurface";
 
 const VIEW_ORDER: PresentationView[] = ["normal", "cover", "fill"];
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
+const VIDEO_SEEK_STEP = 5;
 
 interface FullscreenOverride {
   isFullscreen: boolean;
@@ -30,27 +29,13 @@ interface FullscreenOverride {
  */
 export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const presentation = useStore((s) => s.presentation);
-  const songs = useStore((s) => s.songs);
-  const themes = useStore((s) => s.themes);
-  const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
   const prefs = useStore((s) => s.prefs);
   const stopPresent = useStore((s) => s.stopPresent);
 
-  const song = useMemo(
-    () => songs.find((s) => s.id === presentation?.songId),
-    [songs, presentation?.songId]
-  );
-  const slides = song?.slides ?? [];
-  const theme = useMemo(
-    () => themes.find((t) => t.id === song?.defaultThemeId) || themes[0],
-    [themes, song?.defaultThemeId]
-  );
-  const bgMap = useMemo(() => {
-    const map: Record<string, Background> = {};
-    for (const bg of backgrounds) map[bg.id] = bg;
-    return map;
-  }, [backgrounds]);
+  const deck = useDeck(presentation?.kind, presentation?.id);
+  const slides = useMemo(() => deck?.slides ?? [], [deck]);
+  const bgMap = useBgMap();
 
   const [idx, setIdx] = useState(presentation?.startIndex ?? 0);
   const [paused, setPaused] = useState(false);
@@ -59,8 +44,16 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const [view, setView] = useState<PresentationView>(prefs.presentationView);
   const [showInfo, setShowInfo] = useState(prefs.showPresenterBar);
   const [elapsed, setElapsed] = useState(0);
+  const [mediaPlayback, setMediaPlayback] = useState<MediaPlayback>(DEFAULT_MEDIA_PLAYBACK);
+  const [videoTime, setVideoTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
 
-  const tagGroups = useMemo(() => computeTagGroups(slides), [slides]);
+  const videoRef = useRef<VideoSurfaceHandle>(null);
+  const textSlides = useMemo(
+    () => slides.flatMap((s) => (s.kind === "text" ? [s.slide] : [])),
+    [slides]
+  );
+  const tagGroups = useMemo(() => computeTagGroups(textSlides), [textSlides]);
   // Accumulates digit keys pressed while Ctrl is held; flushed on Ctrl keyup.
   const ctrlNumBuffer = useRef<string>("");
 
@@ -72,15 +65,20 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
 
   const cur = slides[idx];
   const next = slides[idx + 1];
-  const style = theme ? resolveStyle(cur, song, theme) : undefined;
-  const lineStyles =
-    theme && cur ? cur.lines.map((_, i) => resolveLineStyle(cur, i, song, theme)) : undefined;
-  const background = theme ? resolveBackground(cur, song, theme, bgMap) : undefined;
-  const animation = theme ? resolveAnimation(cur, song, theme, prefs.transition) : prefs.transition;
-  const audioId = resolveAudioId(cur, song, theme);
+  const frame = deck ? buildStageFrame(deck, cur, bgMap, prefs.transition) : null;
+  const nextFrame = deck && next ? buildStageFrame(deck, next, bgMap, prefs.transition) : null;
+
+  const doc = deck?.doc;
+  const theme = deck?.theme;
+  const curTextSlide = cur?.kind === "text" ? cur.slide : undefined;
+  const isVideoSlide = cur?.kind === "video";
+  const curVideoItem = cur?.kind === "video" ? cur.item : undefined;
+  const videoSettings = curVideoItem ? videoSettingsOf(curVideoItem) : undefined;
+
+  const audioId = doc ? resolveAudioId(curTextSlide, doc, theme) : null;
   const audioItem = audio.find((a) => a.id === audioId);
-  const autoPlay = resolveAutoPlay(song, theme);
-  const slideDuration = resolveSlideDuration(song, theme);
+  const autoPlay = doc ? resolveAutoPlay(doc, theme) : false;
+  const slideDuration = resolveSlideDuration(doc, theme);
 
   const go = useCallback(
     (delta: number) => {
@@ -121,25 +119,75 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
       y: Math.max(-limit, Math.min(limit, p.y + dy)),
     }));
   }, []);
-  const setViewMode = useCallback((next: PresentationView) => setView(next), []);
+  const setViewMode = useCallback((nextView: PresentationView) => setView(nextView), []);
   const cycleView = useCallback(
     () => setView((v) => VIEW_ORDER[(VIEW_ORDER.indexOf(v) + 1) % VIEW_ORDER.length]),
     []
   );
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
+  const toggleVideoPlaying = useCallback(
+    () => setMediaPlayback((p) => ({ ...p, playing: !p.playing })),
+    []
+  );
+  const toggleVideoMuted = useCallback(
+    () => setMediaPlayback((p) => ({ ...p, muted: !p.muted })),
+    []
+  );
+  const setVideoVolume = useCallback(
+    (volume: number) => setMediaPlayback((p) => ({ ...p, volume, muted: false })),
+    []
+  );
+  const seekVideoTo = useCallback((time: number) => {
+    setMediaPlayback((p) => ({ ...p, seekTime: time, seekToken: p.seekToken + 1 }));
+    setVideoTime(time);
+  }, []);
+  const seekVideoBy = useCallback(
+    (delta: number) => {
+      const start = videoSettings?.trimStart ?? 0;
+      const end = videoSettings?.trimEnd ?? (videoDuration || Infinity);
+      const current = videoRef.current?.getCurrentTime() ?? videoTime;
+      seekVideoTo(Math.max(start, Math.min(end, current + delta)));
+    },
+    [seekVideoTo, videoSettings, videoDuration, videoTime]
+  );
+  const restartVideo = useCallback(() => {
+    seekVideoTo(videoSettings?.trimStart ?? 0);
+    setMediaPlayback((p) => ({ ...p, playing: true }));
+  }, [seekVideoTo, videoSettings]);
+
+  const onVideoTime = useCallback((time: number, duration: number) => {
+    setVideoTime(time);
+    if (duration) setVideoDuration(duration);
+  }, []);
+  const onVideoEnded = useCallback(
+    () => setMediaPlayback((p) => ({ ...p, playing: false })),
+    []
+  );
+
+  // A fresh video slide always starts playing from its trim point.
+  const curVideoId = curVideoItem?.id;
+  useEffect(() => {
+    if (!curVideoId) return;
+    setVideoTime(0);
+    setVideoDuration(0);
+    setMediaPlayback((p) => ({
+      ...DEFAULT_MEDIA_PLAYBACK,
+      seekToken: p.seekToken + 1,
+      seekTime: 0,
+    }));
+  }, [curVideoId]);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const key = e.key;
 
       // Tag navigation: Ctrl+digits accumulate into a buffer, flushed on Ctrl keyup.
-      // Numbers are verse-only — other section types use fixed Ctrl+letter shortcuts.
       if (e.ctrlKey && /^[0-9]$/.test(key)) {
         e.preventDefault();
         ctrlNumBuffer.current += key;
         return;
       }
-      // Fixed Ctrl+letter shortcuts: jump directly to the first slide of that section type.
       const fixed = e.ctrlKey ? FIXED_SHORTCUT_BY_LETTER[key.toLowerCase()] : undefined;
       if (fixed) {
         e.preventDefault();
@@ -149,7 +197,18 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
         return;
       }
 
-      if (["ArrowRight", " ", "PageDown", "l"].includes(key)) {
+      if (isVideoSlide && key === " ") {
+        e.preventDefault();
+        toggleVideoPlaying();
+      } else if (isVideoSlide && key === "ArrowRight") {
+        e.preventDefault();
+        seekVideoBy(VIDEO_SEEK_STEP);
+      } else if (isVideoSlide && key === "ArrowLeft") {
+        e.preventDefault();
+        seekVideoBy(-VIDEO_SEEK_STEP);
+      } else if (isVideoSlide && (key === "m" || key === "M")) {
+        toggleVideoMuted();
+      } else if (["ArrowRight", " ", "PageDown", "l"].includes(key)) {
         e.preventDefault();
         go(1);
       } else if (["ArrowLeft", "PageUp", "h"].includes(key)) {
@@ -184,7 +243,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
         ctrlNumBuffer.current = "";
         if (!buf) return;
         const num = parseInt(buf, 10);
-        if (song?.shortcutMode === "all-slides") {
+        if (doc?.shortcutMode === "all-slides") {
           goTo(num - 1);
         } else {
           const group = tagGroups.find((g) => g.shortcutNum === num);
@@ -212,7 +271,11 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     resetZoom,
     slides.length,
     tagGroups,
-    song,
+    doc,
+    isVideoSlide,
+    toggleVideoPlaying,
+    toggleVideoMuted,
+    seekVideoBy,
   ]);
 
   useEffect(() => {
@@ -245,18 +308,18 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   return {
     rootRef,
     audioRef,
-    song,
+    videoRef,
+    deck,
+    doc,
+    theme,
     slides,
     tagGroups,
-    theme,
     bgMap,
     idx,
     cur,
     next,
-    style,
-    lineStyles,
-    background,
-    animation,
+    frame,
+    nextFrame,
     audioItem,
     paused,
     zoom,
@@ -266,6 +329,11 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     elapsed,
     isFullscreen,
     prefs,
+    isVideoSlide,
+    videoSettings,
+    mediaPlayback,
+    videoTime,
+    videoDuration,
     go,
     goTo,
     exit,
@@ -278,5 +346,13 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     setViewMode,
     toggleInfo,
     toggleFullscreen,
+    toggleVideoPlaying,
+    toggleVideoMuted,
+    setVideoVolume,
+    seekVideoTo,
+    seekVideoBy,
+    restartVideo,
+    onVideoTime,
+    onVideoEnded,
   };
 }

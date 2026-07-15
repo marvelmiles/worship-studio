@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { Music } from "lucide-react";
-import { useStore } from "../../store/useStore";
+import { Film, Music } from "lucide-react";
+import { useStore, type UploadKind } from "../../store/useStore";
 import { C, UI } from "../../theme/tokens";
 import { Modal } from "./Modal";
 import { Btn } from "./Button";
 import { TextInput } from "./Field";
 
 const stripExt = (name: string) => name.replace(/\.[^.]+$/, "");
+
+const KIND_NOUNS: Record<UploadKind, { one: string; many: string }> = {
+  background: { one: "background", many: "backgrounds" },
+  audio: { one: "sound", many: "sounds" },
+  image: { one: "image", many: "images" },
+  video: { one: "video", many: "videos" },
+};
+
+const visualKinds: UploadKind[] = ["background", "image"];
 
 export function UploadLabelModal() {
   const pending = useStore((s) => s.pendingUpload);
@@ -23,23 +32,18 @@ export function UploadLabelModal() {
     }
   }, [pending]);
 
+  const showPreviews = Boolean(pending && visualKinds.includes(pending.kind));
   const previews = useMemo(
-    () => (pending && pending.kind === "background" ? pending.files.map((f) => URL.createObjectURL(f)) : []),
+    () => (pending && visualKinds.includes(pending.kind) ? pending.files.map((f) => URL.createObjectURL(f)) : []),
     [pending]
   );
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
   if (!pending) return null;
 
-  const isBackground = pending.kind === "background";
+  const noun = KIND_NOUNS[pending.kind];
   const count = pending.files.length;
-  const title = isBackground
-    ? count > 1
-      ? "Name your backgrounds"
-      : "Name your background"
-    : count > 1
-    ? "Name your sounds"
-    : "Name your sound";
+  const title = `Name your ${count > 1 ? noun.many : noun.one}`;
 
   const setLabel = (index: number, value: string) =>
     setLabels((prev) => prev.map((l, i) => (i === index ? value : l)));
@@ -73,7 +77,7 @@ export function UploadLabelModal() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {pending.files.map((file, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {isBackground ? (
+            {showPreviews ? (
               <div
                 style={{
                   width: 64,
@@ -97,7 +101,7 @@ export function UploadLabelModal() {
                   color: C.goldSoft,
                 }}
               >
-                <Music size={17} />
+                {pending.kind === "video" ? <Film size={17} /> : <Music size={17} />}
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>

@@ -16,9 +16,9 @@ export function Editor() {
         <div style={{ textAlign: "center" }}>
           <h2 style={{ fontFamily: DISPLAY, color: C.text }}>Song not found</h2>
           <p style={{ fontFamily: UI, color: C.sub }}>It may have been deleted.</p>
-          <Btn variant="primary" onClick={() => navigate("/library")}>
+          <Btn variant="primary" onClick={() => navigate("/songs")}>
             <ArrowLeft size={15} />
-            Back to library
+            Back to songs
           </Btn>
         </div>
       </div>

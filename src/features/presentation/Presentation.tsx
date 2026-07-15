@@ -1,19 +1,37 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
+import { useAssetUrl } from "../../hooks/useAssetUrl";
+import { useBlobUrl } from "../../lib/blobUrls";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
-import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
+import { VideoControlsBar } from "./VideoControlsBar";
 import type { Background } from "../../types";
 
-function resolveStageBg(bg: Background): CSSProperties {
-  if (bg?.type === "image") return { backgroundImage: `url(${bg.dataUrl})`, backgroundSize: "cover", backgroundPosition: "center" };
-  if (bg?.type === "solid") return { background: bg.color };
-  return { background: bg?.css || "#000" };
+function resolveRootBg(bg: Background | null, blobUrl: string | null): CSSProperties {
+  if (!bg) return { background: "#000" };
+  if (bg.type === "image") {
+    const url = bg.blobId ? blobUrl : bg.dataUrl;
+    return {
+      backgroundImage: url ? `url(${url})` : undefined,
+      backgroundColor: "#000",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+  }
+  if (bg.type === "solid") return { background: bg.color };
+  return { background: bg.css || "#000" };
 }
+
+const END_LABELS: Record<string, string> = {
+  song: "End of song",
+  scripture: "End of passage",
+  image: "End of images",
+  video: "End of video",
+};
 
 export function Presentation() {
   const pushToast = useStore((s) => s.pushToast);
@@ -80,12 +98,25 @@ export function Presentation() {
     }
   }, [isExtended, pushToast]);
 
-  const songId = p.song?.id;
+  const deck = p.deck;
+  const deckKind = deck?.kind;
+  const deckId = deck?.id;
+  const deckRev = deck?.rev;
   useEffect(() => {
-    if (!songId) return;
-    stateRef.current = { songId, idx: p.idx, paused: p.paused, zoom: p.zoom, pan: p.pan, view: p.view };
+    if (!deckKind || !deckId) return;
+    stateRef.current = {
+      kind: deckKind,
+      id: deckId,
+      rev: deckRev,
+      idx: p.idx,
+      paused: p.paused,
+      zoom: p.zoom,
+      pan: p.pan,
+      view: p.view,
+      media: p.isVideoSlide ? p.mediaPlayback : undefined,
+    };
     channelRef.current?.postMessage({ type: "state", state: stateRef.current });
-  }, [songId, p.idx, p.paused, p.zoom, p.pan.x, p.pan.y, p.view]);
+  }, [deckKind, deckId, deckRev, p.idx, p.paused, p.zoom, p.pan.x, p.pan.y, p.pan, p.view, p.isVideoSlide, p.mediaPlayback]);
 
   useEffect(() => {
     if (!live) return;
@@ -102,12 +133,10 @@ export function Presentation() {
     };
   }, [live]);
 
-  if (!p.song || !p.cur || !p.style || !p.background || !p.theme) return null;
+  const backdropBlobUrl = useBlobUrl(p.frame?.backdrop?.blobId);
+  const audioSrc = useAssetUrl(p.audioItem);
 
-  const { next, song, theme, bgMap } = p;
-  const nextStyle = next ? resolveStyle(next, song, theme) : undefined;
-  const nextLineStyles = next ? next.lines.map((_, i) => resolveLineStyle(next, i, song, theme)) : undefined;
-  const nextBackground = next ? resolveBackground(next, song, theme, bgMap) : undefined;
+  if (!deck || !p.cur || !p.frame) return null;
 
   const controlsVisible = !p.prefs.autoHideControls || chromeActive;
   const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
@@ -149,6 +178,10 @@ export function Presentation() {
     else revealLiveWindow();
   };
 
+  const currentLabel =
+    p.cur.kind === "text" ? p.cur.slide.label : p.cur.item.name;
+  const notes = p.cur.kind === "text" ? p.cur.slide.notes : "";
+
   return (
     <div
       ref={p.rootRef}
@@ -157,21 +190,23 @@ export function Presentation() {
         window.clearTimeout(hideTimer.current);
         if (!hovering.current) setChromeActive(false);
       }}
-      style={{ position: "fixed", inset: 0, zIndex: 150, ...resolveStageBg(p.background) }}
+      style={{ position: "fixed", inset: 0, zIndex: 150, ...resolveRootBg(p.frame.backdrop, backdropBlobUrl) }}
     >
       <Stage
         idx={p.idx}
-        slide={p.cur}
-        style={p.style}
-        lineStyles={p.lineStyles}
-        background={p.background}
-        animation={p.animation}
+        content={p.frame.content}
+        animation={p.frame.animation}
         view={localView}
         zoom={localZoom}
         pan={localPan}
         onPanBy={p.panBy}
         durationMs={p.prefs.transitionDuration}
         easing={p.prefs.easing}
+        playback={p.mediaPlayback}
+        forceMutedVideo={live}
+        videoRef={p.videoRef}
+        onVideoTime={p.onVideoTime}
+        onVideoEnded={p.onVideoEnded}
       />
 
       <PresentationControls
@@ -197,14 +232,29 @@ export function Presentation() {
         onExit={handleExit}
       />
 
+      {p.isVideoSlide && (
+        <VideoControlsBar
+          playback={p.mediaPlayback}
+          settings={p.videoSettings}
+          time={p.videoTime}
+          duration={p.videoDuration}
+          visible={controlsVisible}
+          onHoverChange={onHoverChange}
+          onTogglePlaying={p.toggleVideoPlaying}
+          onToggleMuted={p.toggleVideoMuted}
+          onVolume={p.setVideoVolume}
+          onSeek={p.seekVideoTo}
+          onRestart={p.restartVideo}
+        />
+      )}
+
       {p.showInfo && (
         <PresenterBar
-          song={p.song}
-          cur={p.cur}
-          next={p.next}
-          nextStyle={nextStyle}
-          nextLineStyles={nextLineStyles}
-          nextBackground={nextBackground}
+          title={deck.title}
+          currentLabel={currentLabel}
+          notes={notes}
+          nextFrame={p.nextFrame}
+          endLabel={END_LABELS[deck.kind] || "End"}
           idx={p.idx}
           total={p.slides.length}
           elapsed={p.elapsed}
@@ -216,7 +266,7 @@ export function Presentation() {
         />
       )}
 
-      {p.audioItem && <audio ref={p.audioRef} src={p.audioItem.dataUrl} loop={p.prefs.loopAudio} />}
+      {p.audioItem && audioSrc && <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />}
     </div>
   );
 }

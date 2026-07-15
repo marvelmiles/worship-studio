@@ -1,11 +1,12 @@
 import { useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
+  BookOpen,
+  Film,
   HelpCircle,
   Image as ImageIcon,
   Keyboard,
   LayoutDashboard,
-  Library as LibraryIcon,
   Music,
   Palette,
   Settings,
@@ -24,6 +25,9 @@ import { GuideModal } from "./features/onboarding/GuideModal";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { Library } from "./features/library/Library";
 import { Editor } from "./features/editor/Editor";
+import { BiblePage } from "./features/bible/BiblePage";
+import { ScriptureEditor } from "./features/bible/ScriptureEditor";
+import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
 import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
@@ -35,7 +39,10 @@ import { UpdateModal } from "./features/updates/UpdateModal";
 
 const NAV: [string, string, LucideIcon][] = [
   ["/", "Dashboard", LayoutDashboard],
-  ["/library", "Library", LibraryIcon],
+  ["/songs", "Songs", Music],
+  ["/bible", "Bible", BookOpen],
+  ["/images", "Images", ImageIcon],
+  ["/videos", "Videos", Film],
 ];
 
 export default function App() {
@@ -210,7 +217,9 @@ export default function App() {
           flex: 1,
           minHeight: 0,
           overflowX: "hidden",
-          overflowY: location.pathname.startsWith("/editor")
+          overflowY: ["/editor", "/scripture", "/bible"].some((p) =>
+            location.pathname.startsWith(p)
+          )
             ? "hidden"
             : "auto",
         }}
@@ -230,14 +239,19 @@ export default function App() {
         ) : (
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/library" element={<Library />} />
+            <Route path="/songs" element={<Library />} />
+            <Route path="/library" element={<Navigate to="/songs" replace />} />
+            <Route path="/bible" element={<BiblePage />} />
+            <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
+            <Route path="/images" element={<ImagesPage />} />
+            <Route path="/videos" element={<VideosPage />} />
             <Route path="/editor/:songId" element={<Editor />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
       </main>
 
-      {presentation && <Presentation />}
+      {presentation && <Presentation key={`${presentation.kind}:${presentation.id}`} />}
       <AssetsModal />
       <SettingsModal />
       <ThemesModal />

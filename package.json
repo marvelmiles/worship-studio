@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Church worship presentation studio — lyric-to-slide engine, theming, and live presentation.",
+  "description": "Church worship presentation studio — songs, Bible (KJV/NKJV/NIV/ESV/NLT), images and videos with theming and live projection.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -21,6 +21,7 @@
     "@fontsource/outfit": "^5.2.8",
     "@fontsource/playfair-display": "^5.2.8",
     "@fontsource/sora": "^5.2.8",
+    "fflate": "^0.8.3",
     "framer-motion": "^11.11.17",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",

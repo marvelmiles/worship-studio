@@ -14,7 +14,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
-import type { Background, Slide, Song, Theme } from "../../types";
+import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
 import { C, UI } from "../../theme/tokens";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
@@ -24,7 +24,7 @@ interface SortableSlideListProps {
   slides: Slide[];
   selId: string | null;
   setSelId: (id: string) => void;
-  song: Song;
+  doc: SlideDeckDoc;
   theme: Theme;
   bgMap: Record<string, Background>;
   onReorder: (next: Slide[]) => void;
@@ -37,7 +37,7 @@ interface RowProps {
   index: number;
   selId: string | null;
   setSelId: (id: string) => void;
-  song: Song;
+  doc: SlideDeckDoc;
   theme: Theme;
   bgMap: Record<string, Background>;
   onContextMenu: (idx: number, x: number, y: number) => void;
@@ -113,7 +113,7 @@ function SortableRow({
   index,
   selId,
   setSelId,
-  song,
+  doc,
   theme,
   bgMap,
   onContextMenu,
@@ -124,7 +124,7 @@ function SortableRow({
     useSortable({ id: slide.id });
 
   const selected = slide.id === selId;
-  const allSlidesMode = song.shortcutMode === "all-slides";
+  const allSlidesMode = doc.shortcutMode === "all-slides";
 
   return (
     <div
@@ -182,9 +182,9 @@ function SortableRow({
       <div style={{ flex: 1, minWidth: 0 }}>
         <SlideCanvas
           slide={slide}
-          bg={resolveBackground(slide, song, theme, bgMap)}
-          style={resolveStyle(slide, song, theme)}
-          lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, song, theme))}
+          bg={resolveBackground(slide, doc, theme, bgMap)}
+          style={resolveStyle(slide, doc, theme)}
+          lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, doc, theme))}
           showLabel={false}
           radius={7}
         />
@@ -241,7 +241,7 @@ export function SortableSlideList({
   slides,
   selId,
   setSelId,
-  song,
+  doc,
   theme,
   bgMap,
   onReorder,
@@ -266,7 +266,7 @@ export function SortableSlideList({
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         {slides.map((s, i) => {
-          const allSlidesMode = song.shortcutMode === "all-slides";
+          const allSlidesMode = doc.shortcutMode === "all-slides";
           const group = tagGroups?.find((g) => g.firstIndex === i);
           const shortcutNum = allSlidesMode ? i + 1 : group?.shortcutNum;
           const fixedShortcut = group ? FIXED_SHORTCUT_BY_TYPE[group.type] : undefined;
@@ -277,7 +277,7 @@ export function SortableSlideList({
               index={i}
               selId={selId}
               setSelId={setSelId}
-              song={song}
+              doc={doc}
               theme={theme}
               bgMap={bgMap}
               onContextMenu={onContextMenu}
