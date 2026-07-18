@@ -265,121 +265,124 @@ export function Dashboard() {
         ))}
       </div>
 
-      {storage && (
-        <div style={{ ...glass, padding: "16px 20px", marginBottom: 26 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
+      {storage &&
+        (storage.level !== "ok" || storage.backend !== "indexeddb") && (
+          <div style={{ ...glass, padding: "16px 20px", marginBottom: 26 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 11,
-                minWidth: 0,
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
               <div
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 11,
-                  display: "grid",
-                  placeItems: "center",
-                  background:
-                    storage.level === "critical"
-                      ? "rgba(224,100,79,0.14)"
-                      : storage.level === "warn"
-                        ? "rgba(216,162,74,0.14)"
-                        : "rgba(63,191,127,0.14)",
-                  color:
-                    storage.level === "critical"
-                      ? C.danger
-                      : storage.level === "warn"
-                        ? "#e0a64f"
-                        : "#46c98a",
-                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 11,
+                  minWidth: 0,
                 }}
               >
-                <HardDrive size={19} />
-              </div>
-              <div style={{ minWidth: 0 }}>
                 <div
                   style={{
-                    fontFamily: UI,
+                    width: 38,
+                    height: 38,
+                    borderRadius: 11,
+                    display: "grid",
+                    placeItems: "center",
+                    background:
+                      storage.level === "critical"
+                        ? "rgba(224,100,79,0.14)"
+                        : storage.level === "warn"
+                          ? "rgba(216,162,74,0.14)"
+                          : "rgba(63,191,127,0.14)",
+                    color:
+                      storage.level === "critical"
+                        ? C.danger
+                        : storage.level === "warn"
+                          ? "#e0a64f"
+                          : "#46c98a",
+                    flexShrink: 0,
+                  }}
+                >
+                  <HardDrive size={19} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontFamily: UI,
+                      fontWeight: 600,
+                      fontSize: 14,
+                      color: C.text,
+                    }}
+                  >
+                    Storage used
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: UI,
+                      fontSize: 12,
+                      color: C.sub,
+                      marginTop: 2,
+                    }}
+                  >
+                    {storage.blocked
+                      ? "Storage full — delete songs, audio or backgrounds to continue"
+                      : storage.level === "critical"
+                        ? "Critical — free up space soon"
+                        : storage.level === "warn"
+                          ? "Storage is filling up"
+                          : "Plenty of space available"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ textAlign: "right", fontFamily: UI }}>
+                <div
+                  style={{
+                    fontFamily: DISPLAY,
+                    fontSize: 22,
                     fontWeight: 600,
-                    fontSize: 14,
-                    color: C.text,
+                    color: storage.level === "critical" ? C.danger : C.text,
+                    lineHeight: 1,
                   }}
                 >
-                  Storage used
+                  {Math.min(100, Math.round(storage.pct * 100))}%
                 </div>
-                <div
-                  style={{
-                    fontFamily: UI,
-                    fontSize: 12,
-                    color: C.sub,
-                    marginTop: 2,
-                  }}
-                >
-                  {storage.blocked
-                    ? "Storage full — delete songs, audio or backgrounds to continue"
-                    : storage.level === "critical"
-                      ? "Critical — free up space soon"
-                      : storage.level === "warn"
-                        ? "Storage is filling up"
-                        : "Plenty of space available"}
+                <div style={{ fontSize: 11.5, color: C.dim, marginTop: 4 }}>
+                  {fmtBytes(storage.userUsed)} used — ~
+                  {fmtBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
+                  free
                 </div>
               </div>
             </div>
-            <div style={{ textAlign: "right", fontFamily: UI }}>
-              <div
-                style={{
-                  fontFamily: DISPLAY,
-                  fontSize: 22,
-                  fontWeight: 600,
-                  color: storage.level === "critical" ? C.danger : C.text,
-                  lineHeight: 1,
-                }}
-              >
-                {Math.min(100, Math.round(storage.pct * 100))}%
-              </div>
-              <div style={{ fontSize: 11.5, color: C.dim, marginTop: 4 }}>
-                {fmtBytes(storage.userUsed)} used of available space
-              </div>
-            </div>
-          </div>
-          <div
-            style={{
-              height: 9,
-              borderRadius: 99,
-              background: "rgba(255,255,255,0.07)",
-              overflow: "hidden",
-              marginTop: 13,
-            }}
-          >
             <div
               style={{
-                height: "100%",
-                width: `${Math.max(2, Math.min(100, storage.pct * 100))}%`,
+                height: 9,
                 borderRadius: 99,
-                background:
-                  storage.level === "critical"
-                    ? `linear-gradient(90deg, #e0644f, #f08a78)`
-                    : storage.level === "warn"
-                      ? `linear-gradient(90deg, ${C.gold}, ${C.goldSoft})`
-                      : `linear-gradient(90deg, #2f9e6a, #46c98a)`,
-                transition: "width 0.4s ease",
+                background: "rgba(255,255,255,0.07)",
+                overflow: "hidden",
+                marginTop: 13,
               }}
-            />
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${Math.max(2, Math.min(100, storage.pct * 100))}%`,
+                  borderRadius: 99,
+                  background:
+                    storage.level === "critical"
+                      ? `linear-gradient(90deg, #e0644f, #f08a78)`
+                      : storage.level === "warn"
+                        ? `linear-gradient(90deg, ${C.gold}, ${C.goldSoft})`
+                        : `linear-gradient(90deg, #2f9e6a, #46c98a)`,
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <div
         style={{
