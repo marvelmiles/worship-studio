@@ -350,7 +350,7 @@ export function Dashboard() {
                 {Math.min(100, Math.round(storage.pct * 100))}%
               </div>
               <div style={{ fontSize: 11.5, color: C.dim, marginTop: 4 }}>
-                {fmtBytes(storage.userUsed)} of {fmtBytes(storage.userMax)}
+                {fmtBytes(storage.userUsed)} used of available space
               </div>
             </div>
           </div>

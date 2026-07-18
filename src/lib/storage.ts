@@ -126,6 +126,13 @@ function init(): Promise<Backend> {
       idb = db;
       storageState.backend = "indexeddb";
       storageState.memFallback = false;
+      // Ask the browser to exempt this origin from best-effort eviction so a
+      // large media library isn't silently wiped under disk pressure.
+      try {
+        void navigator.storage?.persist?.();
+      } catch {
+        /* optional — denial or absence changes nothing */
+      }
       return "indexeddb";
     }
     if (sessionAvailable()) {
@@ -297,6 +304,9 @@ export async function estimateQuota(): Promise<QuotaEstimate> {
     try {
       if (navigator.storage && typeof navigator.storage.estimate === "function") {
         const e = await navigator.storage.estimate();
+        // Note: this quota is dynamic — browsers may grow it as the origin
+        // stores more data. The meter shows usage as a percentage of it, so
+        // levels reflect how close we are to the CURRENT grant, not a fixed max.
         if (e.quota) return { quota: e.quota, usage: e.usage || 0, fromEstimate: true };
       }
     } catch {
