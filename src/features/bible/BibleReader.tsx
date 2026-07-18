@@ -17,13 +17,16 @@ import type { BibleVerse, BibleVersionId, PassageRange } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
 import { C, DISPLAY, UI, glass } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
-import type { ScriptureSelection } from "../../store/useStore";
+import type { SavePassageOptions, ScriptureSelection } from "../../store/useStore";
+import type { ScripturePassage } from "../../types";
 import { useSpeech } from "../../hooks/useSpeech";
 import { Btn, IconBtn } from "../../components/ui/Button";
 import { TextInput } from "../../components/ui/Field";
 import { useBibleChapter } from "./useBibleChapter";
-import { parseReference, formatRange } from "./lib/reference";
+import { parseReference, formatRange, formatReference } from "./lib/reference";
+import { findSavedDuplicates, hasSameContent, nextCopyTitle } from "./lib/passageDuplicates";
 import { SavePassageModal } from "./SavePassageModal";
+import { DuplicatePassageModal } from "./DuplicatePassageModal";
 
 interface BibleReaderProps {
   version: BibleVersionId;
@@ -61,6 +64,8 @@ export function BibleReader({
   );
   const stageScriptureSelection = useStore((s) => s.stageScriptureSelection);
   const saveScripturePassage = useStore((s) => s.saveScripturePassage);
+  const overwriteScripturePassage = useStore((s) => s.overwriteScripturePassage);
+  const scriptures = useStore((s) => s.scriptures);
 
   const { verses, loading, error, retry } = useBibleChapter(
     version,
@@ -72,6 +77,11 @@ export function BibleReader({
   const [pendingSave, setPendingSave] = useState<ScriptureSelection | null>(
     null,
   );
+  /** Set when a save collides with an existing passage whose content differs. */
+  const [duplicatePrompt, setDuplicatePrompt] = useState<{
+    options: SavePassageOptions;
+    existing: ScripturePassage;
+  } | null>(null);
   const [readingVerse, setReadingVerse] = useState<number | null>(null);
   const speech = useSpeech();
   const verseRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -302,13 +312,54 @@ export function BibleReader({
     showReference: boolean,
   ) => {
     if (!pendingSave) return;
-    const passage = saveScripturePassage({
+    const options: SavePassageOptions = {
       ...pendingSave,
       versesPerSlide,
       showVerseNumbers,
       showReference,
-    });
+    };
     setPendingSave(null);
+
+    const duplicates = findSavedDuplicates(scriptures, options);
+    if (duplicates.length > 0) {
+      // Exactly this passage is already saved — nothing to do.
+      if (duplicates.some((passage) => hasSameContent(passage, options))) {
+        pushToast(
+          `${formatReference(options.range, options.version)} is already in your passages.`,
+        );
+        return;
+      }
+      // Same scripture, different content — let the user decide what to do.
+      const mostRecent = duplicates.reduce((a, b) =>
+        a.updatedAt > b.updatedAt ? a : b,
+      );
+      setDuplicatePrompt({ options, existing: mostRecent });
+      return;
+    }
+
+    const passage = saveScripturePassage(options);
+    if (passage) pushToast(`Saved ${passage.title} to your passages.`);
+  };
+
+  const overwriteDuplicate = () => {
+    if (!duplicatePrompt) return;
+    const updated = overwriteScripturePassage(
+      duplicatePrompt.existing.id,
+      duplicatePrompt.options,
+    );
+    setDuplicatePrompt(null);
+    if (updated) pushToast(`Updated ${updated.title} with the new content.`);
+  };
+
+  const saveDuplicateCopy = () => {
+    if (!duplicatePrompt) return;
+    const { options } = duplicatePrompt;
+    const title = nextCopyTitle(
+      formatReference(options.range, options.version),
+      scriptures,
+    );
+    const passage = saveScripturePassage({ ...options, title });
+    setDuplicatePrompt(null);
     if (passage) pushToast(`Saved ${passage.title} to your passages.`);
   };
 
@@ -576,6 +627,13 @@ export function BibleReader({
         selection={pendingSave}
         onClose={() => setPendingSave(null)}
         onSave={saveSelection}
+      />
+
+      <DuplicatePassageModal
+        existingTitle={duplicatePrompt?.existing.title ?? null}
+        onOverwrite={overwriteDuplicate}
+        onSaveCopy={saveDuplicateCopy}
+        onClose={() => setDuplicatePrompt(null)}
       />
     </div>
   );

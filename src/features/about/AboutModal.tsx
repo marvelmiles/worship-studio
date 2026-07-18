@@ -17,6 +17,10 @@ const FAQS: { q: string; a: string }[] = [
     a: "Open the Bible tab and pick a book, then a chapter, then a verse — the reader opens scrolled to it (the breadcrumb at the top takes you back to books, chapters or verses at any point). You can switch between the King James Version and the American Standard Version from the dropdown, or type a reference like John 3:16-18 in the reader's jump box. Click a verse to select it, Ctrl-click (or Shift+↑/↓) to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse) — or hit Edit to fine-tune the slides first. Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
   },
   {
+    q: "How do I type a Bible reference — can I abbreviate book names?",
+    a: "Yes. Anywhere you type a reference — like the reader's Go to reference box — the book part accepts the full name or any common abbreviation: John 3:16, Jn 3:16, Gen 1:1, Ps 23, 1 Cor 13:4-7 all work. Every book has several recognized short forms (Jn, Jhn or Joh for John; Mt or Matt for Matthew; Ps, Psa or Psalm for Psalms; 1Co or 1Cor for 1 Corinthians, and so on), and beyond those, just the start of a book's name is enough — Gene finds Genesis, Eccl finds Ecclesiastes. Capitalization, dots and spacing don't matter, so 1 cor. 13:4 is fine. Then add :verse for a specific verse (John 3:16), a dash for a range (John 3:16-18), or stop at the chapter (John 3) to open it at its first verse — a book name alone opens chapter 1. The same abbreviations work when filtering books in the Bible tab's search box.",
+  },
+  {
     q: "Does the Bible work offline?",
     a: "Yes — completely. The full text of both translations (KJV and ASV) ships inside the app itself, so reading, verse search and saved passages all work with no internet connection at all. Nothing is ever fetched from an online Bible service. See the Scripture Data & Licensing section below for where the text comes from.",
   },

@@ -41,7 +41,7 @@ export function buildScriptureSlides(options: ScriptureSlideOptions): Slide[] {
     };
     const lines = chunk.flatMap((verse) => {
       const verseLines = verse.t.split("\n");
-      if (showVerseNumbers && chunk.length > 1) {
+      if (showVerseNumbers) {
         return verseLines.map((line, i) => (i === 0 ? `${verse.v}. ${line}` : line));
       }
       return verseLines;

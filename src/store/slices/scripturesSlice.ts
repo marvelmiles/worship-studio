@@ -19,6 +19,8 @@ export interface SavePassageOptions extends ScriptureSelection {
   versesPerSlide?: number;
   showVerseNumbers?: boolean;
   showReference?: boolean;
+  /** Explicit title, e.g. a numbered copy like "Matthew 1:1-4 (KJV) (1)". */
+  title?: string;
 }
 
 export interface ScripturesSlice {
@@ -26,6 +28,7 @@ export interface ScripturesSlice {
 
   upsertScripture: (passage: ScripturePassage) => void;
   saveScripturePassage: (options: SavePassageOptions) => ScripturePassage | null;
+  overwriteScripturePassage: (id: string, options: SavePassageOptions) => ScripturePassage | null;
   rebuildScriptureSlides: (id: string, changes?: Partial<ScripturePassage>) => void;
   trashScripture: (id: string) => void;
   restoreScripture: (id: string) => void;
@@ -45,7 +48,7 @@ function buildPassage(
   const showReference = options.showReference ?? true;
   return {
     id,
-    title: formatReference(options.range, options.version),
+    title: options.title ?? formatReference(options.range, options.version),
     version: options.version,
     range: options.range,
     verses: options.verses,
@@ -95,6 +98,36 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
     return passage;
   },
 
+  overwriteScripturePassage: (id, options) => {
+    if (blockWrite(get)) return null;
+    const current = get().scriptures.find((s) => s.id === id);
+    if (!current) return null;
+    const versesPerSlide = options.versesPerSlide ?? 1;
+    const showVerseNumbers = options.showVerseNumbers ?? true;
+    const showReference = options.showReference ?? true;
+    const next: ScripturePassage = {
+      ...current,
+      // The existing title is kept on purpose — it may carry a copy number.
+      version: options.version,
+      range: options.range,
+      verses: options.verses,
+      versesPerSlide,
+      showVerseNumbers,
+      showReference,
+      slides: buildScriptureSlides({
+        version: options.version,
+        range: options.range,
+        verses: options.verses,
+        versesPerSlide,
+        showVerseNumbers,
+        showReference,
+      }),
+      updatedAt: now(),
+    };
+    get().upsertScripture(next);
+    return next;
+  },
+
   rebuildScriptureSlides: (id, changes = {}) => {
     const current = get().scriptures.find((s) => s.id === id);
     if (!current) return;
@@ -127,14 +160,26 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
 
   presentScriptureSelection: (selection) => {
     if (blockWrite(get)) return;
-    const passage = buildPassage(selection, QUICK_PASSAGE_ID, true, scriptureThemeId(get));
+    // Quick presents default to no verse-number prefixes — the reference line
+    // already identifies the verse on screen.
+    const passage = buildPassage(
+      { ...selection, showVerseNumbers: false },
+      QUICK_PASSAGE_ID,
+      true,
+      scriptureThemeId(get)
+    );
     get().upsertScripture(passage);
     get().startPresent("scripture", passage.id, 0);
   },
 
   stageScriptureSelection: (selection) => {
     if (blockWrite(get)) return null;
-    const passage = buildPassage(selection, QUICK_PASSAGE_ID, true, scriptureThemeId(get));
+    const passage = buildPassage(
+      { ...selection, showVerseNumbers: false },
+      QUICK_PASSAGE_ID,
+      true,
+      scriptureThemeId(get)
+    );
     get().upsertScripture(passage);
     return passage;
   },

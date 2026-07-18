@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BookmarkPlus } from "lucide-react";
 import type { ScriptureSelection } from "../../store/useStore";
 import { C, UI } from "../../theme/tokens";
@@ -17,6 +17,15 @@ export function SavePassageModal({ selection, onClose, onSave }: SavePassageModa
   const [versesPerSlide, setVersesPerSlide] = useState(1);
   const [showVerseNumbers, setShowVerseNumbers] = useState(true);
   const [showReference, setShowReference] = useState(true);
+
+  // The modal stays mounted between saves, so start every new save from the
+  // defaults rather than whatever the previous save used.
+  useEffect(() => {
+    if (!selection) return;
+    setVersesPerSlide(1);
+    setShowVerseNumbers(true);
+    setShowReference(true);
+  }, [selection]);
 
   if (!selection) return null;
   const slideCount = Math.ceil(selection.verses.length / Math.max(1, versesPerSlide));
