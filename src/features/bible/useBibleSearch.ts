@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BibleVersionId } from "../../types";
-import { searchBibleVerses, type BibleSearchResult } from "./lib/bibleApi";
+import { searchBibleVerses, type BibleSearchResult } from "./lib/offlineBible";
 
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 450;

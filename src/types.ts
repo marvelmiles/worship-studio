@@ -84,7 +84,7 @@ export interface Song extends SlideDeckDoc {
   maxLines?: number;
 }
 
-export type BibleVersionId = "KJV" | "NKJV" | "NIV" | "ESV" | "NLT";
+export type BibleVersionId = "KJV" | "ASV";
 
 export interface PassageRange {
   bookId: number;

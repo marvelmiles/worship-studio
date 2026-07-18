@@ -3,12 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Church worship presentation studio — songs, Bible (KJV/NKJV/NIV/ESV/NLT), images and videos with theming and live projection.",
+  "description": "Church worship presentation studio — songs, offline Bible (public-domain KJV/ASV), images and videos with theming and live projection.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:bible-layout": "node scripts/generate-bible-layout.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -23,6 +24,7 @@
     "@fontsource/sora": "^5.2.8",
     "fflate": "^0.8.3",
     "framer-motion": "^11.11.17",
+    "holy-bible": "^1.3.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

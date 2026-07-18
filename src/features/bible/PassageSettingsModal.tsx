@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { BibleVersionId, ScripturePassage } from "../../types";
-import { BIBLE_BOOKS, BIBLE_VERSIONS, bookById } from "../../data/bibleBooks";
+import { BIBLE_BOOKS, BIBLE_VERSIONS, DEFAULT_BIBLE_VERSION, bookById, isBibleVersion } from "../../data/bibleBooks";
 import { C, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Modal } from "../../components/ui/Modal";
@@ -12,7 +12,7 @@ import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
 import { resolveStyle } from "../../lib/resolve";
-import { getChapterVerses } from "./lib/bibleApi";
+import { getChapterVerses } from "./lib/offlineBible";
 import type { DeckEditor } from "../editor/useDeckEditor";
 
 interface PassageSettingsModalProps {
@@ -36,7 +36,11 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
   const rebuildScriptureSlides = useStore((s) => s.rebuildScriptureSlides);
   const pushToast = useStore((s) => s.pushToast);
 
-  const [version, setVersion] = useState<BibleVersionId>(passage.version);
+  // Passages saved by older releases may carry a translation that is no
+  // longer available (copyrighted versions were removed when scripture went
+  // fully offline) — rebuilding those falls back to the default.
+  const safeVersion = (value: BibleVersionId) => (isBibleVersion(value) ? value : DEFAULT_BIBLE_VERSION);
+  const [version, setVersion] = useState<BibleVersionId>(safeVersion(passage.version));
   const [bookId, setBookId] = useState(passage.range.bookId);
   const [chapter, setChapter] = useState(passage.range.chapter);
   const [verseStart, setVerseStart] = useState(passage.range.verseStart);
@@ -48,7 +52,7 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
 
   useEffect(() => {
     if (!open) return;
-    setVersion(passage.version);
+    setVersion(safeVersion(passage.version));
     setBookId(passage.range.bookId);
     setChapter(passage.range.chapter);
     setVerseStart(passage.range.verseStart);

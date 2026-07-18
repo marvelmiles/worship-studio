@@ -42,6 +42,9 @@ export default defineConfig({
         // Everything (fonts included) is bundled locally and precached, so the
         // app is fully usable offline with no external requests.
         globPatterns: ["**/*.{js,css,html,svg,png,woff,woff2}"],
+        // The bundled KJV/ASV scripture chunks are ~4.2 MB each and must be
+        // precached so the whole Bible works offline from the first install.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,

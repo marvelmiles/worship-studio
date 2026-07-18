@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { BibleVerse, BibleVersionId } from "../../types";
-import { getChapterVerses } from "./lib/bibleApi";
+import { getChapterVerses } from "./lib/offlineBible";
 
 interface ChapterState {
   verses: BibleVerse[];

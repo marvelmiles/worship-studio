@@ -32,6 +32,12 @@ interface BibleReaderProps {
   /** Verse to pre-select and auto-scroll to when the reader opens. */
   focusVerse?: number | null;
   onNavigate: (bookId: number, chapter: number) => void;
+  /**
+   * Reports the verse the user is currently on — the first verse of their
+   * selection (null when they clear it), or the verse being spoken while
+   * reading aloud — so the page can remember where they stopped.
+   */
+  onCurrentVerseChange?: (verse: number | null) => void;
 }
 
 /** Contiguous verse range; `anchor` is where it started, `focus` is the active end. */
@@ -46,6 +52,7 @@ export function BibleReader({
   chapter,
   focusVerse,
   onNavigate,
+  onCurrentVerseChange,
 }: BibleReaderProps) {
   const navigate = useNavigate();
   const pushToast = useStore((s) => s.pushToast);
@@ -69,6 +76,8 @@ export function BibleReader({
   const speech = useSpeech();
   const verseRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const pendingScrollVerse = useRef<number | null>(null);
+  /** Selection a reference jump wants applied once its chapter opens. */
+  const pendingJumpSelection = useRef<VerseSelection | null>(null);
 
   const book = bookById(bookId);
   const selStart = selection
@@ -76,8 +85,11 @@ export function BibleReader({
     : null;
   const selEnd = selection ? Math.max(selection.anchor, selection.focus) : null;
 
+  // Changing chapter normally clears the selection — unless a reference jump
+  // brought one along for the newly opened chapter.
   useEffect(() => {
-    setSelection(null);
+    setSelection(pendingJumpSelection.current);
+    pendingJumpSelection.current = null;
     speech.stop();
   }, [version, bookId, chapter, speech.stop]);
 
@@ -92,6 +104,19 @@ export function BibleReader({
   useEffect(() => {
     if (!speech.speaking) setReadingVerse(null);
   }, [speech.speaking]);
+
+  // Tell the page which verse the user is on (or that they cleared the
+  // selection) so "Continue" can come back to the exact spot later.
+  useEffect(() => {
+    onCurrentVerseChange?.(selStart);
+  }, [selStart, onCurrentVerseChange]);
+
+  // While reading aloud, the spoken verse is the user's place. Null (speech
+  // ended or was stopped) is deliberately not reported — the last spoken
+  // verse stays remembered as where the reading stopped.
+  useEffect(() => {
+    if (readingVerse !== null) onCurrentVerseChange?.(readingVerse);
+  }, [readingVerse, onCurrentVerseChange]);
 
   useEffect(() => {
     const target = pendingScrollVerse.current;
@@ -191,13 +216,25 @@ export function BibleReader({
       );
       return;
     }
-    onNavigate(parsed.book.id, parsed.chapter);
-    if (parsed.verseStart !== undefined) {
-      setSelection({
-        anchor: parsed.verseStart,
-        focus: parsed.verseEnd ?? parsed.verseStart,
+    // "John 3:16-18" selects that verse range; a chapter-only reference like
+    // "John 3" lands selected on the chapter's first verse.
+    const firstVerse = parsed.verseStart ?? 1;
+    const lastVerse = parsed.verseEnd ?? firstVerse;
+    const jumpSelection: VerseSelection = { anchor: firstVerse, focus: lastVerse };
+
+    const stayingInChapter = parsed.book.id === bookId && parsed.chapter === chapter;
+    if (stayingInChapter) {
+      // Chapter is already rendered — select and scroll right away.
+      setSelection(jumpSelection);
+      verseRefs.current[firstVerse]?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
       });
-      pendingScrollVerse.current = parsed.verseStart;
+    } else {
+      // Selection and scroll are applied once the new chapter has rendered.
+      pendingJumpSelection.current = jumpSelection;
+      pendingScrollVerse.current = firstVerse;
+      onNavigate(parsed.book.id, parsed.chapter);
     }
     setRefInput("");
   };

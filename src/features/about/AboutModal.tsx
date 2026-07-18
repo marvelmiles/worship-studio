@@ -14,11 +14,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How do I present a Bible verse?",
-    a: "Open the Bible tab and pick a book, then a chapter, then a verse — the reader opens scrolled to it (the breadcrumb at the top takes you back to books, chapters or verses at any point). You can switch translations (KJV, NKJV, NIV, ESV or NLT) from the dropdown, or type a reference like John 3:16-18 in the reader's jump box. Click a verse to select it, Ctrl-click (or Shift+↑/↓) to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse) — or hit Edit to fine-tune the slides first. Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
+    a: "Open the Bible tab and pick a book, then a chapter, then a verse — the reader opens scrolled to it (the breadcrumb at the top takes you back to books, chapters or verses at any point). You can switch between the King James Version and the American Standard Version from the dropdown, or type a reference like John 3:16-18 in the reader's jump box. Click a verse to select it, Ctrl-click (or Shift+↑/↓) to extend the selection, then hit Present to project it immediately (double-clicking a verse does the same for just that verse) — or hit Edit to fine-tune the slides first. Save Passage keeps the selection as styled slides you can restyle, re-chunk and present later from the Saved tab.",
   },
   {
     q: "Does the Bible work offline?",
-    a: "Verse text is fetched online the first time you read a chapter and then cached on your device, so every chapter you've opened keeps working offline — including passages you've saved. If you're offline and open a chapter you haven't read before, WorshipStudio tells you and lets you retry once you're connected.",
+    a: "Yes — completely. The full text of both translations (KJV and ASV) ships inside the app itself, so reading, verse search and saved passages all work with no internet connection at all. Nothing is ever fetched from an online Bible service. See the Scripture Data & Licensing section below for where the text comes from.",
   },
   {
     q: "Can I edit images and videos?",
@@ -181,6 +181,52 @@ export function AboutModal() {
           );
         })}
       </div>
+
+      <SectionTitle>Scripture Data &amp; Licensing</SectionTitle>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13.5,
+          color: C.sub,
+          lineHeight: 1.7,
+          marginTop: 0,
+        }}
+      >
+        WorshipStudio includes two Bible translations, both in the{" "}
+        <strong style={{ color: C.text }}>public domain</strong>: the{" "}
+        <strong style={{ color: C.text }}>King James Version (KJV)</strong> and
+        the{" "}
+        <strong style={{ color: C.text }}>
+          American Standard Version (ASV, 1901)
+        </strong>
+        . Public-domain texts belong to everyone and may be read, projected,
+        copied and shared freely, so using them here creates no copyright
+        obligations for you or your church. (The KJV is public domain throughout
+        the world except in the United Kingdom, where printing rights are held
+        under Crown letters patent.)
+      </p>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13.5,
+          color: C.sub,
+          lineHeight: 1.7,
+          marginTop: 0,
+        }}
+      >
+        The Bible verses included in the app are sourced from the open-source{" "}
+        <a
+          href="https://www.npmjs.com/package/holy-bible"
+          target="_blank"
+          rel="noreferrer"
+          style={{ color: C.goldSoft, fontWeight: 600 }}
+        >
+          holy-bible
+        </a>{" "}
+        library, which is licensed under the MIT License. Modern translations
+        such as the NIV, ESV, NLT and NKJV are copyrighted and cannot be
+        redistributed. This is why WorshipStudio does not include them.
+      </p>
 
       <SectionTitle>Contact</SectionTitle>
       <p

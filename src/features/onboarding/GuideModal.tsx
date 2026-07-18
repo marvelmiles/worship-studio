@@ -31,7 +31,7 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: BookOpen,
     title: "Project scripture in seconds",
-    desc: "Open the Bible tab, pick a version (KJV, NKJV, NIV, ESV or NLT), click verses to select them, and hit Present — or save the passage as styled slides you can edit like any song. Chapters you've read stay available offline.",
+    desc: "Open the Bible tab, pick a version (KJV or ASV), click verses to select them, and hit Present — or save the passage as styled slides you can edit like any song. The full text is built in, so the whole Bible works offline.",
   },
   {
     icon: Film,

@@ -9,6 +9,7 @@ import type {
   Theme,
 } from "../../types";
 import { BACKGROUNDS } from "../../data/backgrounds";
+import { DEFAULT_BIBLE_VERSION, isBibleVersion } from "../../data/bibleBooks";
 import { THEMES } from "../../data/themes";
 import { DEFAULT_AUDIO } from "../../data/sounds";
 import { seedSongs } from "../../data/seed";
@@ -161,6 +162,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     }
 
     const prefs = prefsRows[0] ? { ...DEFAULT_PREFS, ...prefsRows[0] } : DEFAULT_PREFS;
+    // Older releases offered copyrighted translations fetched over the
+    // network; scripture is now bundled (public domain only), so stored
+    // versions that no longer exist fall back to the default.
+    if (!isBibleVersion(prefs.bibleVersion)) prefs.bibleVersion = DEFAULT_BIBLE_VERSION;
+    // The per-chapter download cache is obsolete now that the text ships
+    // with the app — clear leftovers from older releases.
+    void sClear("bible");
 
     set({
       songs: songList,
@@ -273,6 +281,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       let prefs = state.prefs;
       if (data.prefs && (override || mode === "merge-imported")) {
         prefs = { ...DEFAULT_PREFS, ...(data.prefs as Partial<Prefs>), id: "app", onboarded: true };
+        if (!isBibleVersion(prefs.bibleVersion)) prefs.bibleVersion = DEFAULT_BIBLE_VERSION;
       }
 
       // Binary ingestion happens only for incoming records that actually won
