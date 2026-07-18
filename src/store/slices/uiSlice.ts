@@ -7,11 +7,13 @@ export type OverlayName = "assets" | "settings" | "themes" | "shortcuts" | "abou
 
 export interface UiSlice {
   overlay: OverlayName | null;
+  /** Optional target inside the overlay — e.g. a theme id or an assets tab. */
+  overlayContext: string | null;
   toasts: Toast[];
   alerts: AppAlert[];
   showGuide: boolean;
 
-  openOverlay: (name: OverlayName) => void;
+  openOverlay: (name: OverlayName, context?: string) => void;
   closeOverlay: () => void;
   pushToast: (message: string, kind?: Toast["kind"]) => void;
   dismissToast: (id: string) => void;
@@ -24,12 +26,13 @@ export interface UiSlice {
 
 export const createUiSlice: SliceCreator<UiSlice> = (set, get) => ({
   overlay: null,
+  overlayContext: null,
   toasts: [],
   alerts: [],
   showGuide: false,
 
-  openOverlay: (name) => set({ overlay: name }),
-  closeOverlay: () => set({ overlay: null }),
+  openOverlay: (name, context) => set({ overlay: name, overlayContext: context ?? null }),
+  closeOverlay: () => set({ overlay: null, overlayContext: null }),
 
   pushToast: (message, kind = "success") =>
     set((state) => ({ toasts: [...state.toasts, { id: uid(), message, kind }] })),

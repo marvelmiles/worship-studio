@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { Background, Slide, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
@@ -31,6 +31,7 @@ const SAMPLE: Slide = {
 
 export function ThemesModal() {
   const overlay = useStore((s) => s.overlay);
+  const overlayContext = useStore((s) => s.overlayContext);
   const close = useStore((s) => s.closeOverlay);
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -46,6 +47,19 @@ export function ThemesModal() {
     themes[0]?.id ?? null,
   );
   const selected = themes.find((t) => t.id === selectedId) || themes[0];
+
+  // Deep-links (e.g. dashboard activities) open the modal on a specific theme,
+  // with the theme list scrolled so its card is visible.
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (overlay !== "themes" || !overlayContext) return;
+    setSelectedId(overlayContext);
+    requestAnimationFrame(() => {
+      listRef.current
+        ?.querySelector(`[data-theme-id="${overlayContext}"]`)
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  }, [overlay, overlayContext]);
 
   const bgMap = useMemo(() => {
     const map: Record<string, Background> = {};
@@ -90,6 +104,7 @@ export function ThemesModal() {
             New Theme
           </Btn>
           <div
+            ref={listRef}
             style={{
               marginTop: 10,
               display: stacked ? "grid" : "flex",
@@ -226,6 +241,7 @@ function ThemeCard({
   return (
     <button
       onClick={onSelect}
+      data-theme-id={theme.id}
       style={{
         display: "block",
         width: "100%",

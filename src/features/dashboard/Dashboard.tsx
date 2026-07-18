@@ -12,6 +12,7 @@ import {
   Plus,
   Upload,
   Volume2,
+  Wallpaper,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Background } from "../../types";
@@ -21,6 +22,8 @@ import { fmtDate } from "../../lib/id";
 import { fmtBytes } from "../../lib/storageStats";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { BgSwatch } from "../../components/controls/BgSwatch";
+import { bookById } from "../../data/bibleBooks";
+import { loadReadingHistory } from "../bible/lib/readingHistory";
 
 interface UsedItem {
   id: string;
@@ -30,6 +33,35 @@ interface UsedItem {
 }
 
 type MostTab = "background" | "theme" | "sound";
+
+/** One row in the Recent Activities feed, gathered from every module. */
+interface Activity {
+  key: string;
+  title: string;
+  detail: string;
+  at: string;
+  icon: LucideIcon;
+  open: () => void;
+}
+
+/** True when a doc was created and never meaningfully edited afterwards. */
+function isCreation(createdAt?: string, updatedAt?: string): boolean {
+  if (!createdAt) return false;
+  if (!updatedAt) return true;
+  return +new Date(updatedAt) - +new Date(createdAt) < 5000;
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000) return "just now";
+  const m = Math.floor(diff / 60_000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return fmtDate(iso);
+}
 
 function greeting(): { heading: string; tag: string } {
   const h = new Date().getHours();
@@ -83,9 +115,6 @@ export function Dashboard() {
 
   const active = useMemo(() => songs.filter((s) => !s.deleted), [songs]);
   const totalSlides = active.reduce((n, s) => n + (s.slides?.length || 0), 0);
-  const recent = [...active]
-    .sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1))
-    .slice(0, 5);
   const byCat = CATEGORIES.map((c) => ({
     name: c,
     n: active.filter((s) => s.category === c).length,
@@ -130,6 +159,106 @@ export function Dashboard() {
       }),
     };
   }, [active, themes, audio, bgMap]);
+
+  const activities = useMemo<Activity[]>(() => {
+    const list: Activity[] = [];
+
+    for (const s of active) {
+      list.push({
+        key: `song:${s.id}`,
+        title: s.title,
+        detail: `Song · ${isCreation(s.createdAt, s.updatedAt) ? "created" : "edited"}`,
+        at: s.updatedAt,
+        icon: Music,
+        open: () => navigate(`/songs/${s.id}`),
+      });
+    }
+
+    for (const p of scriptures) {
+      if (p.quick || p.deleted) continue;
+      list.push({
+        key: `passage:${p.id}`,
+        title: p.title,
+        detail: `Bible passage · ${isCreation(p.createdAt, p.updatedAt) ? "saved" : "edited"}`,
+        at: p.updatedAt,
+        icon: BookOpen,
+        open: () => navigate(`/scripture/${p.id}`),
+      });
+    }
+
+    for (const r of loadReadingHistory()) {
+      const book = bookById(r.bookId);
+      if (!book) continue;
+      list.push({
+        key: `bible-read:${r.bookId}:${r.chapter}:${r.verse ?? 0}`,
+        title: `${book.name} ${r.chapter}${r.verse ? `:${r.verse}` : ""}`,
+        detail: "Bible · read",
+        at: r.at,
+        icon: BookOpen,
+        open: () =>
+          navigate("/bible", {
+            state: {
+              read: { bookId: r.bookId, chapter: r.chapter, verse: r.verse },
+            },
+          }),
+      });
+    }
+
+    for (const m of media) {
+      if (m.builtIn) continue;
+      const label = m.kind === "image" ? "Image" : "Video";
+      list.push({
+        key: `media:${m.id}`,
+        title: m.name,
+        detail: `${label} · ${isCreation(m.createdAt, m.updatedAt) ? "added" : "edited"}`,
+        at: m.updatedAt || m.createdAt,
+        icon: m.kind === "image" ? ImageIcon : Film,
+        open: () =>
+          navigate(m.kind === "image" ? "/images" : "/videos", {
+            state: { openId: m.id },
+          }),
+      });
+    }
+
+    for (const a of audio) {
+      if (!a.createdAt) continue;
+      list.push({
+        key: `audio:${a.id}`,
+        title: a.name,
+        detail: "Audio · added",
+        at: a.createdAt,
+        icon: Volume2,
+        open: () => openOverlay("assets", "audio"),
+      });
+    }
+
+    for (const b of backgrounds) {
+      if (b.builtIn || !b.createdAt) continue;
+      list.push({
+        key: `background:${b.id}`,
+        title: b.name,
+        detail: "Background · added",
+        at: b.createdAt,
+        icon: Wallpaper,
+        open: () => openOverlay("assets", "backgrounds"),
+      });
+    }
+
+    for (const t of themes) {
+      const at = t.updatedAt || t.createdAt;
+      if (!at) continue;
+      list.push({
+        key: `theme:${t.id}`,
+        title: t.name,
+        detail: `Theme · ${isCreation(t.createdAt, t.updatedAt) ? "created" : "edited"}`,
+        at,
+        icon: Palette,
+        open: () => openOverlay("themes", t.id),
+      });
+    }
+
+    return list.sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 15);
+  }, [active, scriptures, media, audio, themes, backgrounds, navigate, openOverlay]);
 
   const onNew = () => {
     const created = createSong();
@@ -462,46 +591,73 @@ export function Dashboard() {
               gap: 8,
             }}
           >
-            <Clock size={16} color={C.gold} /> Recent Songs
+            <Clock size={16} color={C.gold} /> Recent Activities
           </h3>
-          {recent.length === 0 && (
+          {activities.length === 0 && (
             <p style={{ color: C.dim, fontFamily: UI, fontSize: 14 }}>
-              No songs yet — create your first one.
+              No activity yet — create a song, read the Bible or upload media
+              to see it here.
             </p>
           )}
-          {recent.map((s) => (
-            <div
-              key={s.id}
-              onClick={() => navigate(`/songs/${s.id}`)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "11px 0",
-                borderBottom: `1px solid ${C.border}`,
-                cursor: "pointer",
-              }}
-            >
-              <div>
+          <div style={{ maxHeight: 520, overflowY: "auto" }}>
+            {activities.map((a) => (
+              <div
+                key={a.key}
+                onClick={a.open}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "11px 0",
+                  borderBottom: `1px solid ${C.border}`,
+                  cursor: "pointer",
+                }}
+              >
                 <div
                   style={{
-                    fontFamily: UI,
-                    fontWeight: 600,
-                    fontSize: 14.5,
-                    color: C.text,
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    display: "grid",
+                    placeItems: "center",
+                    background: "rgba(216,162,74,0.12)",
+                    color: C.goldSoft,
+                    flexShrink: 0,
                   }}
                 >
-                  {s.title}
+                  <a.icon size={16} />
                 </div>
-                <div style={{ fontFamily: UI, fontSize: 12.5, color: C.sub }}>
-                  {s.artist || "Unknown"} · {s.slides?.length || 0} slides
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontFamily: UI,
+                      fontWeight: 600,
+                      fontSize: 14.5,
+                      color: C.text,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.title}
+                  </div>
+                  <div style={{ fontFamily: UI, fontSize: 12.5, color: C.sub }}>
+                    {a.detail}
+                  </div>
                 </div>
+                <span
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 12,
+                    color: C.dim,
+                    flexShrink: 0,
+                  }}
+                >
+                  {timeAgo(a.at)}
+                </span>
               </div>
-              <span style={{ fontFamily: UI, fontSize: 12, color: C.dim }}>
-                {fmtDate(s.updatedAt)}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div style={{ display: "grid", gap: 16 }}>
@@ -514,7 +670,7 @@ export function Dashboard() {
                 color: C.text,
               }}
             >
-              By Collection
+              Songs by Category
             </h3>
             {byCat.length === 0 && (
               <p style={{ color: C.dim, fontFamily: UI, fontSize: 14 }}>—</p>
@@ -563,7 +719,7 @@ export function Dashboard() {
                 color: C.text,
               }}
             >
-              Most Used
+              Most Used Artifacts
             </h3>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
               {mostTabs.map((t) => {

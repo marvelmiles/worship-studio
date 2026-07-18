@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useLocation } from "react-router-dom";
 import { ArrowLeft, BookOpen, Bookmark, ChevronRight, Trash2 } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_VERSIONS, bookById } from "../../data/bibleBooks";
@@ -16,6 +17,7 @@ import { ChaptersStep } from "./ChaptersStep";
 import { VersesStep } from "./VersesStep";
 import { loadReadingPosition, saveReadingPosition } from "./lib/readingPosition";
 import type { ReadingPosition } from "./lib/readingPosition";
+import { recordReading } from "./lib/readingHistory";
 
 type BibleTab = "read" | "saved";
 
@@ -48,6 +50,33 @@ export function BiblePage() {
   useEffect(() => {
     saveReadingPosition(readingPosition);
   }, [readingPosition]);
+
+  // Every position actually seen in the reader lands in the reading history,
+  // which the dashboard lists as individual activities.
+  useEffect(() => {
+    if (step !== "read") return;
+    recordReading(readingPosition);
+  }, [step, readingPosition]);
+
+  // Deep-links (e.g. dashboard activities) jump straight into the reader at a
+  // given position — focusing its verse, or verse 1 for a whole-chapter read.
+  const location = useLocation();
+  const readTarget = (
+    location.state as {
+      read?: { bookId: number; chapter: number; verse: number | null };
+    } | null
+  )?.read;
+  useEffect(() => {
+    if (!readTarget) return;
+    setReadingPosition({
+      bookId: readTarget.bookId,
+      chapter: readTarget.chapter,
+      verse: readTarget.verse ?? null,
+    });
+    setFocusVerse(readTarget.verse ?? 1);
+    setStep("read");
+    window.history.replaceState({}, "");
+  }, [readTarget]);
 
   const book = bookById(readingPosition.bookId);
   const savedCount = scriptures.filter((s) => !s.quick && !s.deleted).length;

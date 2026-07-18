@@ -1,5 +1,5 @@
 import type { AudioItem, Background } from "../../types";
-import { uid } from "../../lib/id";
+import { now, uid } from "../../lib/id";
 import {
   deleteFileBlob,
   deleteFileWithThumb,
@@ -45,6 +45,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
         blobId: id,
         size: file.size,
         builtIn: false,
+        createdAt: now(),
       };
       await sPutStrict("backgrounds", background);
       set((state) => ({ backgrounds: [...state.backgrounds, background] }));
@@ -66,6 +67,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       name: name?.trim() || (isGradient ? "Custom gradient" : css),
       category: "Custom",
       builtIn: false,
+      createdAt: now(),
       ...(isGradient ? { type: "gradient" as const, css } : { type: "solid" as const, color: css }),
     };
     set((state) => ({ backgrounds: [...state.backgrounds, background] }));
@@ -103,6 +105,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
         blobId: id,
         size: file.size,
         builtIn: false,
+        createdAt: now(),
       };
       await sPutStrict("audio", item);
       set((state) => ({ audio: [...state.audio, item] }));

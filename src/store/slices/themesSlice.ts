@@ -1,5 +1,5 @@
 import type { Theme } from "../../types";
-import { uid } from "../../lib/id";
+import { now, uid } from "../../lib/id";
 import { sDel, sPut } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
@@ -17,14 +17,15 @@ export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
 
   upsertTheme: (theme) => {
     if (blockWrite(get)) return;
+    const stamped: Theme = { ...theme, updatedAt: now() };
     set((state) => {
-      const exists = state.themes.some((t) => t.id === theme.id);
+      const exists = state.themes.some((t) => t.id === stamped.id);
       const themes = exists
-        ? state.themes.map((t) => (t.id === theme.id ? theme : t))
-        : [...state.themes, theme];
+        ? state.themes.map((t) => (t.id === stamped.id ? stamped : t))
+        : [...state.themes, stamped];
       return { themes };
     });
-    void sPut("themes", theme);
+    void sPut("themes", stamped);
     afterWrite(get);
   },
 
@@ -36,6 +37,7 @@ export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
       id: uid(),
       name: "New Theme",
       builtIn: false,
+      createdAt: now(),
     };
     get().upsertTheme(theme);
     return theme;

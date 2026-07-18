@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Music, Palette, Trash2, Upload, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AudioItem } from "../../types";
@@ -50,6 +50,7 @@ function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void })
 
 export function AssetsModal() {
   const overlay = useStore((s) => s.overlay);
+  const overlayContext = useStore((s) => s.overlayContext);
   const close = useStore((s) => s.closeOverlay);
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
@@ -62,6 +63,12 @@ export function AssetsModal() {
   const audioInput = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>("backgrounds");
   const [showColor, setShowColor] = useState(false);
+
+  // Deep-links (e.g. dashboard activities) open the modal on a specific tab.
+  useEffect(() => {
+    if (overlay === "assets" && (overlayContext === "backgrounds" || overlayContext === "audio"))
+      setTab(overlayContext);
+  }, [overlay, overlayContext]);
 
   const tabs: [Tab, string, LucideIcon][] = [
     ["backgrounds", "Backgrounds", ImageIcon],

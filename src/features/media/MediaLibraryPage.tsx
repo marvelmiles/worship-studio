@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Film, Image as ImageIcon, ImagePlus, Pencil, Play, Trash2, Upload, Wallpaper } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
@@ -66,6 +67,16 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<MediaItem | null>(null);
   const [deleting, setDeleting] = useState<MediaItem | null>(null);
+
+  // Deep-links (e.g. dashboard activities) land here with the item to open.
+  const location = useLocation();
+  const openId = (location.state as { openId?: string } | null)?.openId;
+  useEffect(() => {
+    if (!openId) return;
+    const item = media.find((m) => m.id === openId && m.kind === kind);
+    if (item) setEditing(item);
+    window.history.replaceState({}, "");
+  }, [openId, media, kind]);
 
   const list = useMemo(() => {
     let base = media.filter((m) => m.kind === kind);

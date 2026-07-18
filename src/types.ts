@@ -166,6 +166,9 @@ export interface Theme {
   id: string;
   name: string;
   builtIn?: boolean;
+  /** Missing on built-in/legacy themes that were never edited. */
+  createdAt?: string;
+  updatedAt?: string;
   fontFamily: string;
   fontWeight: number;
   color: string;
@@ -196,6 +199,8 @@ export interface Background {
   size?: number;
   light?: boolean;
   builtIn?: boolean;
+  /** Missing on bundled backgrounds and legacy uploads. */
+  createdAt?: string;
 }
 
 export interface AudioItem {
@@ -206,6 +211,8 @@ export interface AudioItem {
   blobId?: string;
   size?: number;
   builtIn?: boolean;
+  /** Missing on the bundled default pads. */
+  createdAt?: string;
 }
 
 export interface Prefs {

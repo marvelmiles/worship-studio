@@ -9,6 +9,8 @@ export interface ReadingPosition {
   chapter: number;
   /** Last verse selected in this chapter, or null when none was. */
   verse?: number | null;
+  /** When the reader was last here (ISO). Missing until the Bible page is first visited. */
+  at?: string;
 }
 
 const STORAGE_KEY = "ws:bible-position";
@@ -22,7 +24,8 @@ export function loadReadingPosition(): ReadingPosition {
       const position = JSON.parse(stored) as ReadingPosition;
       if (position.bookId >= 1 && position.bookId <= 66 && position.chapter >= 1) {
         const verse = typeof position.verse === "number" && position.verse >= 1 ? position.verse : null;
-        return { bookId: position.bookId, chapter: position.chapter, verse };
+        const at = typeof position.at === "string" ? position.at : undefined;
+        return { bookId: position.bookId, chapter: position.chapter, verse, at };
       }
     }
   } catch {
@@ -33,7 +36,8 @@ export function loadReadingPosition(): ReadingPosition {
 
 export function saveReadingPosition(position: ReadingPosition): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(position));
+    const stamped: ReadingPosition = { ...position, at: new Date().toISOString() };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stamped));
   } catch {
     /* non-fatal — the reader just won't remember its place */
   }

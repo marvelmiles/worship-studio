@@ -121,6 +121,7 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
       blobId: item.id,
       size: item.size,
       builtIn: false,
+      createdAt: now(),
     };
     set((state) => ({ backgrounds: [...state.backgrounds, background] }));
     void sPut("backgrounds", background);
