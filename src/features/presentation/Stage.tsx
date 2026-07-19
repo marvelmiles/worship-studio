@@ -33,6 +33,35 @@ function viewSize(view: PresentationView): CSSProperties {
   return { width: "min(100vw,177.78vh)", height: "min(100vh,56.25vw)" };
 }
 
+/**
+ * Slides are laid out on a 16:9 canvas, so on any screen that isn't exactly
+ * 16:9 (most TVs once the browser's own chrome is accounted for, projectors,
+ * ultrawides) the canvas is letterboxed. This layer paints the area around it
+ * edge to edge so the audience never sees bare black bars: the theme
+ * background for text slides, and a blurred, cover-scaled copy of the picture
+ * for image slides.
+ */
+function backdropLayerStyle(
+  background: Background | null,
+  blobUrl: string | null,
+  ambientUrl: string | null
+): CSSProperties {
+  if (background) return resolveBgStyle(background, blobUrl);
+  if (ambientUrl) {
+    return {
+      backgroundImage: `url(${ambientUrl})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundColor: "#000",
+      // Blurring samples pixels from outside the element, so the layer is
+      // scaled up slightly to keep the blur from feathering in at the edges.
+      filter: "blur(48px) brightness(0.55) saturate(1.1)",
+      transform: "scale(1.12)",
+    };
+  }
+  return { background: "#000" };
+}
+
 function resolveBgStyle(background: Background | null, blobUrl: string | null): CSSProperties {
   if (!background) return { background: "#000" };
   if (background.type === "image") {
@@ -73,6 +102,9 @@ export function Stage({
 
   const backdrop = content.kind === "text" ? content.background : null;
   const backdropBlobUrl = useBlobUrl(backdrop?.blobId);
+  // Image slides have no theme behind them, so the picture itself becomes the
+  // ambient backdrop rather than leaving the surrounding area black.
+  const ambientUrl = useBlobUrl(content.kind === "image" ? content.item.id : null);
 
   return (
     <div
@@ -98,7 +130,7 @@ export function Stage({
       style={{
         position: "fixed",
         inset: 0,
-        ...resolveBgStyle(backdrop, backdropBlobUrl),
+        background: "#000",
         overflow: "hidden",
         display: "grid",
         placeItems: "center",
@@ -107,6 +139,16 @@ export function Stage({
         userSelect: "none",
       }}
     >
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          ...backdropLayerStyle(backdrop, backdropBlobUrl, ambientUrl),
+        }}
+      />
+
       <AnimatePresence initial={false}>
         <motion.div
           key={slideIndex}
@@ -142,7 +184,11 @@ export function Stage({
                 noBackground
               />
             )}
-            {content.kind === "image" && <ImageSurface item={content.item} />}
+            {content.kind === "image" && (
+              // Transparent so a "contain"-fitted picture shows the ambient
+              // backdrop in its own letterbox area instead of black.
+              <ImageSurface item={content.item} style={{ background: "transparent" }} />
+            )}
             {content.kind === "video" && (
               <VideoSurface
                 ref={videoRef}
