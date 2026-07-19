@@ -63,6 +63,7 @@ function buildPassage(
       versesPerSlide,
       showVerseNumbers,
       showReference,
+      splitLongVerses: quick,
     }),
     defaultThemeId: themeId,
     defaultBackgroundId: "",
@@ -121,6 +122,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
         versesPerSlide,
         showVerseNumbers,
         showReference,
+        splitLongVerses: Boolean(current.quick),
       }),
       updatedAt: now(),
     };
@@ -139,6 +141,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
       versesPerSlide: next.versesPerSlide,
       showVerseNumbers: next.showVerseNumbers,
       showReference: next.showReference,
+      splitLongVerses: Boolean(next.quick),
     });
     next.title = formatReference(next.range, next.version);
     get().upsertScripture(next);

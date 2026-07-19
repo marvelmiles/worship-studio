@@ -247,7 +247,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
         if (doc && "verses" in doc) {
           // Scripture decks: the number is the verse number (Ctrl+1, Ctrl+100…).
           const passage = doc as ScripturePassage;
-          const index = slideIndexForVerse(passage.verses, passage.versesPerSlide, num);
+          const index = slideIndexForVerse(passage, num);
           if (index >= 0) goTo(index);
         } else if (doc?.shortcutMode === "all-slides") {
           goTo(num - 1);

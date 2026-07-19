@@ -60,7 +60,7 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
       const target = lastRef.current;
       // While a presentation is already live its own shortcut handling wins.
       if (!buf || !target || useStore.getState().presentation) return;
-      const index = slideIndexForVerse(target.verses, target.versesPerSlide, parseInt(buf, 10));
+      const index = slideIndexForVerse(target, parseInt(buf, 10));
       if (index >= 0 && target.slides?.[index]) startPresent("scripture", target.id, index);
     };
     window.addEventListener("keydown", onKeyDown);
