@@ -72,6 +72,8 @@ export interface SlideDeckDoc {
   updatedAt: string;
   deleted?: boolean;
   builtIn?: boolean;
+  /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
+  keepOnReset?: boolean;
 }
 
 /** Deck-level appearance overrides (no slide-only keys). */
@@ -166,6 +168,8 @@ export interface Theme {
   id: string;
   name: string;
   builtIn?: boolean;
+  /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
+  keepOnReset?: boolean;
   /** Missing on built-in/legacy themes that were never edited. */
   createdAt?: string;
   updatedAt?: string;

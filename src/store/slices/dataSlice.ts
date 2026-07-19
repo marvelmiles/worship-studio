@@ -22,6 +22,7 @@ import type { StoreName } from "../../lib/storage";
 import { putFileBlob, thumbId } from "../../lib/fileStore";
 import { probeImageFile } from "../../lib/media";
 import { migrateLegacyBinaries } from "../../lib/migrateBinaries";
+import { survivingAfterReset } from "../../lib/keepOnReset";
 import { exportBackup, importBackupFiles, isZipFile, readBackupPayload } from "../../lib/backup";
 import {
   BLOCK_MSG,
@@ -389,7 +390,22 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
   resetApp: async () => {
     set({ resetting: true, overlay: null, pendingUpload: null, presentation: null });
     const startedAt = Date.now();
+    let keptTotal = 0;
     try {
+      // Worked out before the stores are cleared: songs and custom themes the
+      // user registered as "keep on reset" carry their own settings over, with
+      // references to anything the reset wipes pointed back at the defaults.
+      const survivors = survivingAfterReset({
+        songs: get().songs,
+        themes: get().themes,
+        seedSongs: seedSongs(),
+        builtInThemes: THEMES,
+        builtInBackgrounds: BACKGROUNDS,
+        builtInAudio: DEFAULT_AUDIO,
+        defaultThemeId: DEFAULT_PREFS.defaultSongThemeId,
+      });
+      keptTotal = survivors.keptSongs.length + survivors.keptThemes.length;
+
       await Promise.all([
         clearStore("songs"),
         clearStore("scriptures"),
@@ -401,15 +417,14 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         clearStore("bible"),
         clearStore("files"),
       ]);
-      const songs = seedSongs();
-      for (const song of songs) await saveRecord("songs", song);
-      for (const theme of THEMES) await saveRecord("themes", theme);
+      for (const song of survivors.songs) await saveRecord("songs", song);
+      for (const theme of survivors.themes) await saveRecord("themes", theme);
       await saveRecord("prefs", DEFAULT_PREFS);
       set({
-        songs,
+        songs: survivors.songs,
         scriptures: [],
         media: [],
-        themes: THEMES,
+        themes: survivors.themes,
         backgrounds: BACKGROUNDS,
         audio: DEFAULT_AUDIO,
         prefs: DEFAULT_PREFS,
@@ -421,7 +436,11 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       get().clearAlert("storage-warn");
       await get().refreshStorage();
       set({ resetting: false });
-      get().pushToast("Reset complete. WorshipStudio is back to defaults.");
+      get().pushToast(
+        keptTotal
+          ? `Reset complete. ${keptTotal} kept item${keptTotal === 1 ? "" : "s"} survived.`
+          : "Reset complete. WorshipStudio is back to defaults."
+      );
     }
   },
 });

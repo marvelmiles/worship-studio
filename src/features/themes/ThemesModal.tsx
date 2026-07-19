@@ -14,6 +14,10 @@ import {
   Toggle,
   SectionTitle,
 } from "../../components/ui/Field";
+import {
+  KeepOnResetBadge,
+  KeepOnResetToggle,
+} from "../../components/ui/KeepOnResetToggle";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
@@ -56,6 +60,18 @@ export function ThemesModal() {
     setDraft(themes.find((t) => t.id === selectedId) ?? themes[0] ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, overlay]);
+
+  // "Keep on reset" registers the stored theme rather than editing its design,
+  // so mirror it into the draft. Without this, toggling it reads as an unsaved
+  // edit and saving the draft would silently unregister the theme.
+  const savedKeepOnReset = savedTheme?.keepOnReset;
+  useEffect(() => {
+    setDraft((current) =>
+      current && current.keepOnReset !== savedKeepOnReset
+        ? { ...current, keepOnReset: savedKeepOnReset }
+        : current,
+    );
+  }, [savedKeepOnReset]);
 
   const hasUnsavedChanges = Boolean(
     draft && savedTheme && JSON.stringify(draft) !== JSON.stringify(savedTheme),
@@ -270,15 +286,21 @@ export function ThemesModal() {
                 deleted.
               </p>
             ) : (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={removeSelected}
-                style={{ marginTop: 10 }}
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  marginTop: 10,
+                }}
               >
-                <Trash2 size={13} />
-                Delete theme
-              </Button>
+                <KeepOnResetToggle kind="theme" item={savedTheme ?? draft} variant="button" />
+                <Button variant="danger" size="sm" onClick={removeSelected}>
+                  <Trash2 size={13} />
+                  Delete theme
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -333,6 +355,11 @@ function ThemeCard({
         {theme.name}
         {theme.builtIn && (
           <span style={{ color: colors.dim, fontWeight: 500 }}> · default</span>
+        )}
+        {theme.keepOnReset && !theme.builtIn && (
+          <span style={{ marginLeft: 6, verticalAlign: "middle" }}>
+            <KeepOnResetBadge item={theme} />
+          </span>
         )}
       </div>
     </button>

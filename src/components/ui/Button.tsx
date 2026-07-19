@@ -98,6 +98,7 @@ interface IconButtonProps {
   title: string;
   active?: boolean;
   danger?: boolean;
+  disabled?: boolean;
 }
 
 export function IconButton({
@@ -106,6 +107,7 @@ export function IconButton({
   title,
   active,
   danger,
+  disabled,
 }: IconButtonProps) {
   const { colors } = useUITheme();
   const restBackground = active ? fade(colors.accent, 0.16) : "transparent";
@@ -114,6 +116,7 @@ export function IconButton({
       title={title}
       aria-label={title}
       onClick={onClick}
+      disabled={disabled}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -121,17 +124,19 @@ export function IconButton({
         width: 34,
         height: 34,
         borderRadius: 9,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.45 : 1,
         transition: "all .15s",
         background: restBackground,
         color: danger ? colors.danger : active ? colors.accentSoft : colors.sub,
         border: `1px solid ${active ? fade(colors.accent, 0.3) : "transparent"}`,
       }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = active
+      onMouseEnter={(e) => {
+        if (disabled) return;
+        e.currentTarget.style.background = active
           ? fade(colors.accent, 0.22)
-          : colors.raise)
-      }
+          : colors.raise;
+      }}
       onMouseLeave={(e) => (e.currentTarget.style.background = restBackground)}
     >
       <Icon size={16.5} />

@@ -12,6 +12,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { KeepOnResetBadge, KeepOnResetToggle } from "../../components/ui/KeepOnResetToggle";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function Library() {
@@ -135,6 +136,7 @@ export function Library() {
               <div className="ws-card-body">
                 <div className="ws-card-title">
                   {s.title}
+                  <KeepOnResetBadge item={s} />
                   {s.builtIn && (
                     <span
                       style={{
@@ -176,7 +178,8 @@ export function Library() {
                         Edit
                       </Button>
                       {!s.builtIn && (
-                        <div style={{ marginLeft: "auto" }}>
+                        <div style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+                          <KeepOnResetToggle kind="song" item={s} />
                           <IconButton icon={Trash2} title="Move to trash" danger onClick={() => trashSong(s.id)} />
                         </div>
                       )}

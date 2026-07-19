@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Combine,
@@ -17,6 +17,7 @@ import type {
 } from "../../types";
 import { useStore } from "../../store/useStore";
 import { formatBytes } from "../../lib/storageStats";
+import { MAX_KEPT_ITEMS, keptSongs, keptThemes } from "../../lib/keepOnReset";
 import { fade, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import {
@@ -80,6 +81,7 @@ export function SettingsModal() {
   const prefs = useStore((s) => s.prefs);
   const savePrefs = useStore((s) => s.savePrefs);
   const themes = useStore((s) => s.themes);
+  const songs = useStore((s) => s.songs);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const pushToast = useStore((s) => s.pushToast);
@@ -102,6 +104,15 @@ export function SettingsModal() {
 
   const update = (changes: Partial<Prefs>) =>
     savePrefs({ ...prefs, ...changes });
+
+  /** Titles of the songs and themes registered to survive a reset. */
+  const keptItems = useMemo(
+    () => [
+      ...keptSongs(songs).map((s) => s.title),
+      ...keptThemes(themes).map((t) => t.name),
+    ],
+    [songs, themes],
+  );
 
   const runExport = async () => {
     if (busy) return;
@@ -459,7 +470,10 @@ export function SettingsModal() {
           }}
         >
           Restore WorshipStudio to its original state, exactly like the first
-          time you opened it.
+          time you opened it.{" "}
+          {keptItems.length > 0
+            ? `${keptItems.length} of ${MAX_KEPT_ITEMS} "keep on reset" slots are in use, and those items will survive.`
+            : `Songs and custom themes you mark "Keep on reset" (up to ${MAX_KEPT_ITEMS}) survive this.`}
         </p>
         <Button
           variant="danger"
@@ -527,6 +541,15 @@ export function SettingsModal() {
               , and restores the built-in defaults. You'll be treated as a
               first-time user again. This can't be undone, so export a backup
               first if you want to keep anything.
+              {keptItems.length > 0 && (
+                <>
+                  {" "}
+                  The {keptItems.length} item
+                  {keptItems.length === 1 ? "" : "s"} you marked{" "}
+                  <strong>Keep on reset</strong> will survive:{" "}
+                  {keptItems.join(", ")}.
+                </>
+              )}
             </div>
           </div>
           <p
