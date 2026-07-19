@@ -12,7 +12,7 @@ import { useBibleSearch } from "./useBibleSearch";
 import { useBibleChapter } from "./useBibleChapter";
 import { PresentButton } from "./PresentButton";
 import { tileStyle } from "./tileStyle";
-import { parseReference, type ParsedReference } from "./lib/reference";
+import { parseReference, referenceSpan, type ParsedReference, type VerseSpan } from "./lib/reference";
 import { buildScriptureSelection } from "./lib/scriptureSelection";
 import type { ReadingPosition } from "./lib/readingPosition";
 
@@ -36,7 +36,7 @@ export function BooksStep({
   continueLabel: string | null;
   onOpenBook: (bookId: number) => void;
   onContinueReading: () => void;
-  onOpenSearchResult: (bookId: number, chapter: number, verse: number) => void;
+  onOpenSearchResult: (bookId: number, chapter: number, span: VerseSpan) => void;
 }) {
   const [query, setQuery] = useState("");
 
@@ -85,11 +85,13 @@ export function BooksStep({
           <PassageJump
             reference={reference}
             version={version}
+            // The whole reference travels through, so "Jn 2" opens the reader
+            // with all of chapter 2 selected and "Jn 2:3-10" with verses 3-10.
             onOpen={() =>
               onOpenSearchResult(
                 reference.book.id,
                 reference.chapter,
-                reference.verseStart ?? 1
+                referenceSpan(reference)
               )
             }
           />
@@ -171,7 +173,12 @@ export function BooksStep({
                 return (
                   <ResultRow
                     key={`${result.bookId}:${result.chapter}:${result.verse}`}
-                    onOpen={() => onOpenSearchResult(result.bookId, result.chapter, result.verse)}
+                    onOpen={() =>
+                      onOpenSearchResult(result.bookId, result.chapter, {
+                        start: result.verse,
+                        end: result.verse,
+                      })
+                    }
                     title={`Open ${resultBook.name} ${result.chapter}:${result.verse}`}
                     heading={`${resultBook.name} ${result.chapter}:${result.verse}`}
                     // The search result carries the verse text, so presenting it
@@ -331,16 +338,17 @@ function PassageJump({
         presentTitle={`Present ${referenceLabel(reference)}`}
         presentDisabled={loading || Boolean(error) || !preview.length}
         // "Job 2:3-5" presents those verses; "Job 2" presents the whole chapter.
-        selection={() =>
-          buildScriptureSelection({
+        selection={() => {
+          const span = referenceSpan(reference);
+          return buildScriptureSelection({
             version,
             bookId: book.id,
             chapter,
-            verseStart: verseStart ?? 1,
-            verseEnd: verseStart ? (verseEnd ?? verseStart) : Number.MAX_SAFE_INTEGER,
+            verseStart: span.start,
+            verseEnd: span.end,
             verses,
-          })
-        }
+          });
+        }}
       >
         {loading && <Spinner size={16} />}
         {error && <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.danger }}>{error}</span>}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Pencil, Play, RotateCcw, Trash2 } from "lucide-react";
+import { BookOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
@@ -8,6 +8,7 @@ import { SlideCanvas } from "../../components/SlideCanvas";
 import { Button, IconButton } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { PresentMenu } from "../../components/ui/PresentMenu";
 
 export function SavedPassages({ trashView }: { trashView: boolean }) {
   const navigate = useNavigate();
@@ -95,10 +96,11 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
                       </>
                     ) : (
                       <>
-                        <Button size="sm" variant="primary" onClick={() => startPresent("scripture", passage.id)}>
-                          <Play size={13} />
-                          Present
-                        </Button>
+                        <PresentMenu
+                          onPresent={({ pip }) =>
+                            startPresent("scripture", passage.id, 0, pip ? "pip" : "stage")
+                          }
+                        />
                         <Button size="sm" variant="ghost" onClick={() => navigate(`/scripture/${passage.id}`)}>
                           <Pencil size={13} />
                           Edit

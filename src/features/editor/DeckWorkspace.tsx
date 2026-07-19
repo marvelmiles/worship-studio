@@ -19,6 +19,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
 import { Button, IconButton } from "../../components/ui/Button";
+import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
 import type { DeckEditor } from "./useDeckEditor";
@@ -78,7 +79,8 @@ export function DeckWorkspace({
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
 
   const slide = editor.selectedSlide;
-  const present = () => startPresent(kind, doc.id, Math.max(0, editor.selectedIndex));
+  const present = ({ pip }: { pip: boolean }) =>
+    startPresent(kind, doc.id, Math.max(0, editor.selectedIndex), pip ? "pip" : "stage");
 
   // A line selection only makes sense for the current slide's current line count.
   useEffect(() => {
@@ -203,7 +205,7 @@ interface TopBarProps {
   backTitle: string;
   onBack: () => void;
   onTitle: (title: string) => void;
-  onPresent: () => void;
+  onPresent: (options: { pip: boolean }) => void;
   actions: ReactNode;
 }
 
@@ -236,14 +238,16 @@ function TopBar({ title, compact, backTitle, onBack, onTitle, onPresent, actions
         }}
       />
       {actions}
-      {compact ? (
-        <IconButton icon={Play} title="Present" onClick={onPresent} active />
-      ) : (
-        <Button variant="primary" size="sm" onClick={onPresent}>
-          <Play size={14} />
-          Present
-        </Button>
-      )}
+      <PresentMenu onPresent={onPresent} title="Present">
+        {compact ? (
+          <IconButton icon={Play} title="Present" active />
+        ) : (
+          <Button variant="primary" size="sm">
+            <Play size={14} />
+            Present
+          </Button>
+        )}
+      </PresentMenu>
     </div>
   );
 }

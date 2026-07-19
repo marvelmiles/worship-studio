@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Film, Image as ImageIcon, ImagePlus, Pencil, Play, Trash2, Upload, Wallpaper } from "lucide-react";
+import { Film, Image as ImageIcon, ImagePlus, Pencil, Trash2, Upload, Wallpaper } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
@@ -14,6 +14,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
 import { Button, IconButton } from "../../components/ui/Button";
+import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
 import { ImageEditorModal } from "./ImageEditorModal";
@@ -88,9 +89,10 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
     return base.sort(sortMediaByRecency);
   }, [media, kind, query]);
 
-  const present = (item: MediaItem) => {
-    if (kind === "image") startPresent("image", item.id, imageDeckIndex(media, item.id));
-    else startPresent("video", item.id);
+  const present = (item: MediaItem, pip = false) => {
+    const mode = pip ? "pip" : "stage";
+    if (kind === "image") startPresent("image", item.id, imageDeckIndex(media, item.id), mode);
+    else startPresent("video", item.id, 0, mode);
   };
 
   const asBackground = (item: MediaItem) => {
@@ -179,10 +181,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                   {itemSize(item)}
                 </div>
                 <div className="ws-card-actions">
-                  <Button size="sm" variant="primary" onClick={() => present(item)}>
-                    <Play size={13} />
-                    Present
-                  </Button>
+                  <PresentMenu onPresent={({ pip }) => present(item, pip)} />
                   <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
                     <Pencil size={13} />
                     Edit

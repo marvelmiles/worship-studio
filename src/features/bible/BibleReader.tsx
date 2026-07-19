@@ -25,7 +25,13 @@ import { useBibleChapter } from "./useBibleChapter";
 import { usePresentScripture } from "./usePresentScripture";
 import { PresentButton } from "./PresentButton";
 import { buildScriptureSelection } from "./lib/scriptureSelection";
-import { parseReference, formatRange, formatReference } from "./lib/reference";
+import {
+  parseReference,
+  referenceSpan,
+  formatRange,
+  formatReference,
+  type VerseSpan,
+} from "./lib/reference";
 import { findSavedDuplicates, hasSameContent, nextCopyTitle } from "./lib/passageDuplicates";
 import { SavePassageModal } from "./SavePassageModal";
 import { DuplicatePassageModal } from "./DuplicatePassageModal";
@@ -34,8 +40,12 @@ interface BibleReaderProps {
   version: BibleVersionId;
   bookId: number;
   chapter: number;
-  /** Verse to pre-select and auto-scroll to when the reader opens. */
-  focusVerse?: number | null;
+  /**
+   * Verses to pre-select and scroll to when the reader opens. Must be stable
+   * (held in state by the caller) — a fresh object each render would re-apply
+   * the selection and fight the user's own clicks.
+   */
+  focusRange?: VerseSpan | null;
   onNavigate: (bookId: number, chapter: number) => void;
   /**
    * Reports the verse the user is currently on, the first verse of their
@@ -55,7 +65,7 @@ export function BibleReader({
   version,
   bookId,
   chapter,
-  focusVerse,
+  focusRange,
   onNavigate,
   onCurrentVerseChange,
 }: BibleReaderProps) {
@@ -101,13 +111,13 @@ export function BibleReader({
     speech.stop();
   }, [version, bookId, chapter, speech.stop]);
 
-  // Runs after the reset above (definition order), so a focus verse handed in
+  // Runs after the reset above (definition order), so a focus range handed in
   // by the page survives the chapter-change reset and lands pre-selected.
   useEffect(() => {
-    if (focusVerse == null) return;
-    setSelection({ anchor: focusVerse, focus: focusVerse });
-    pendingScrollVerse.current = focusVerse;
-  }, [focusVerse, version, bookId, chapter]);
+    if (!focusRange) return;
+    setSelection({ anchor: focusRange.start, focus: focusRange.end });
+    pendingScrollVerse.current = focusRange.start;
+  }, [focusRange, version, bookId, chapter]);
 
   useEffect(() => {
     if (!speech.speaking) setReadingVerse(null);
@@ -223,11 +233,11 @@ export function BibleReader({
       );
       return;
     }
-    // "John 3:16-18" selects that verse range; a chapter-only reference like
-    // "John 3" lands selected on the chapter's first verse.
-    const firstVerse = parsed.verseStart ?? 1;
-    const lastVerse = parsed.verseEnd ?? firstVerse;
-    const jumpSelection: VerseSelection = { anchor: firstVerse, focus: lastVerse };
+    // "John 3:16-18" selects those verses, "John 3:16" just that one, and a
+    // chapter-only "John 3" selects the whole chapter.
+    const span = referenceSpan(parsed);
+    const firstVerse = span.start;
+    const jumpSelection: VerseSelection = { anchor: span.start, focus: span.end };
 
     const stayingInChapter = parsed.book.id === bookId && parsed.chapter === chapter;
     if (stayingInChapter) {

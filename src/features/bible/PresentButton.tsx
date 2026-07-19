@@ -1,13 +1,14 @@
 import { Play } from "lucide-react";
 import type { ScriptureSelection } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
+import { PresentMenu } from "../../components/ui/PresentMenu";
 import { usePresentScripture } from "./usePresentScripture";
 
 /**
  * "Present" for any scripture surface: the reader's selection bar, a reference
  * jump, a search result. Takes the selection lazily so callers that would have
- * to load or filter verses only pay for it on click, and swallows the click so
- * it can sit inside a row that navigates.
+ * to load or filter verses only pay for it on click, and stops the click from
+ * reaching a row that would otherwise navigate.
  */
 export function PresentButton({
   selection,
@@ -30,20 +31,23 @@ export function PresentButton({
   return (
     <span
       style={{ display: "inline-flex" }}
-      onClick={(e) => {
-        // Search results and the jump card are themselves clickable rows that
-        // open the reader; presenting must not also navigate.
-        e.stopPropagation();
-        // The click lands here rather than on the Button, so `disabled` has to
-        // be honoured here too.
-        if (disabled) return;
-        present(typeof selection === "function" ? selection() : selection);
-      }}
+      // Search results and the jump card are themselves clickable rows that
+      // open the reader; presenting must not also navigate.
+      onClick={(e) => e.stopPropagation()}
     >
-      <Button size={size} variant={variant} title={title} disabled={disabled}>
-        <Play size={size === "sm" ? 13 : 14} />
-        {label}
-      </Button>
+      <PresentMenu
+        disabled={disabled}
+        title={title}
+        onPresent={({ pip }) => {
+          if (disabled) return;
+          present(typeof selection === "function" ? selection() : selection, pip ? "pip" : "stage");
+        }}
+      >
+        <Button size={size} variant={variant} title={title} disabled={disabled}>
+          <Play size={size === "sm" ? 13 : 14} />
+          {label}
+        </Button>
+      </PresentMenu>
     </span>
   );
 }

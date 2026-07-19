@@ -4,6 +4,7 @@ import { deleteRecord, saveRecord } from "../../lib/storage";
 import { buildScriptureSlides } from "../../features/bible/lib/scriptureSlides";
 import { formatReference } from "../../features/bible/lib/reference";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
+import type { PresentationMode } from "./presentSlice";
 import type { SliceCreator } from "../storeTypes";
 
 export const QUICK_PASSAGE_ID = "scripture-quick-present";
@@ -33,7 +34,7 @@ export interface ScripturesSlice {
   trashScripture: (id: string) => void;
   restoreScripture: (id: string) => void;
   deleteScripture: (id: string) => void;
-  presentScriptureSelection: (selection: ScriptureSelection) => void;
+  presentScriptureSelection: (selection: ScriptureSelection, mode?: PresentationMode) => void;
   stageScriptureSelection: (selection: ScriptureSelection) => ScripturePassage | null;
 }
 
@@ -161,7 +162,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
     afterDelete(get);
   },
 
-  presentScriptureSelection: (selection) => {
+  presentScriptureSelection: (selection, mode = "stage") => {
     if (blockWrite(get)) return;
     // Quick presents default to no verse-number prefixes, the reference line
     // already identifies the verse on screen.
@@ -172,7 +173,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
       scriptureThemeId(get)
     );
     get().upsertScripture(passage);
-    get().startPresent("scripture", passage.id, 0);
+    get().startPresent("scripture", passage.id, 0, mode);
   },
 
   stageScriptureSelection: (selection) => {

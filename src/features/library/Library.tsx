@@ -13,6 +13,7 @@ import { PillTabs } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { KeepOnResetBadge, KeepOnResetToggle } from "../../components/ui/KeepOnResetToggle";
+import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
 export function Library() {
@@ -169,10 +170,11 @@ export function Library() {
                     </>
                   ) : (
                     <>
-                      <Button size="sm" variant="primary" onClick={() => startPresent("song", s.id)}>
-                        <Play size={13} />
-                        Present
-                      </Button>
+                      <PresentMenu
+                        onPresent={({ pip }) =>
+                          startPresent("song", s.id, 0, pip ? "pip" : "stage")
+                        }
+                      />
                       <Button size="sm" variant="ghost" onClick={() => navigate(`/songs/${s.id}`)}>
                         <Pencil size={13} />
                         Edit

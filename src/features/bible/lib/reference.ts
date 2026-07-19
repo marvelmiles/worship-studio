@@ -17,6 +17,29 @@ export interface ParsedReference {
 
 const normalize = (text: string) => text.toLowerCase().replace(/[\s.]+/g, "");
 
+/** How many verses a chapter holds, straight from the versification table. */
+export const chapterVerseCount = (bookId: number, chapter: number): number =>
+  CHAPTER_VERSE_COUNTS[bookId - 1]?.[chapter - 1] ?? 0;
+
+/** Inclusive verse span a reference covers; a chapter-only reference covers all of it. */
+export interface VerseSpan {
+  start: number;
+  end: number;
+}
+
+/**
+ * The verses a parsed reference actually refers to. "Jn 2:3-10" is verses
+ * 3-10, "Jn 2:1" is a single verse, and "Jn 2" is the whole chapter, so
+ * presenting or opening a chapter reference takes all of it rather than
+ * landing on verse 1 alone.
+ */
+export function referenceSpan(ref: ParsedReference): VerseSpan {
+  if (!ref.verseStart) {
+    return { start: 1, end: chapterVerseCount(ref.book.id, ref.chapter) || 1 };
+  }
+  return { start: ref.verseStart, end: ref.verseEnd ?? ref.verseStart };
+}
+
 /** Resolves "job", "jb", "1 cor", "songofsongs" and prefixes to one book. */
 export function findBook(name: string): BibleBook | null {
   const key = normalize(name);

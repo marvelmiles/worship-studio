@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
@@ -9,6 +9,7 @@ import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
+import { PresenterPip } from "./PresenterPip";
 import { VideoControlsBar } from "./VideoControlsBar";
 import type { Background, ScripturePassage } from "../../types";
 
@@ -36,17 +37,23 @@ const END_LABELS: Record<string, string> = {
 
 export function Presentation() {
   const pushToast = useStore((s) => s.pushToast);
+  const mode = useStore((s) => s.presentationMode);
+  const setPresentationMode = useStore((s) => s.setPresentationMode);
   const {
     isExtended,
     isLive: live,
     isLiveFullscreen,
-    isRevealed,
     goLive,
     endLive,
     toggleLiveFullscreen,
-    revealLiveWindow,
-    sendLiveWindowToDisplay,
   } = useGoLive();
+  const pipRef = useRef<HTMLDivElement>(null);
+  // In pip mode the presentation shares the page with the app, so it only
+  // claims the keyboard while the floating presenter holds focus.
+  const shortcutGate = useCallback(
+    () => mode === "stage" || Boolean(pipRef.current?.contains(document.activeElement)),
+    [mode]
+  );
   const handleToggleLiveFullscreen = () => {
     void toggleLiveFullscreen().then((ok) => {
       if (!ok) pushToast("Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.");
@@ -57,7 +64,7 @@ export function Presentation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [live, isLiveFullscreen, toggleLiveFullscreen]
   );
-  const p = usePresentation(fullscreenOverride);
+  const p = usePresentation(fullscreenOverride, shortcutGate);
 
   const [chromeActive, setChromeActive] = useState(true);
   const hideTimer = useRef<number>();
@@ -182,23 +189,22 @@ export function Presentation() {
   const localPan = live ? { x: 0, y: 0 } : p.pan;
   const localView = live ? "normal" : p.view;
 
-  const handleGoLive = async () => {
+  // Not async: window.open has to run inside the click that asked for it.
+  const handleGoLive = () => {
     if (live) {
       endLive();
       pushToast("Ended the live projection.");
       return;
     }
-    const result = await goLive();
+    const result = goLive();
     if (result.ok) {
-      pushToast("Live on the external display.");
-    } else if (result.reason === "no-external") {
-      pushToast("No external display found. A presentation window was opened, drag it to your projector.");
-    } else if (result.reason === "unsupported") {
-      pushToast("Multi-screen placement is not supported here. A presentation window was opened, drag it to your projector.");
+      pushToast(
+        isExtended
+          ? "Live on the external display."
+          : "Presentation window opened. Drag it to your projector, then press its fullscreen button."
+      );
     } else if (result.reason === "blocked") {
-      pushToast("Popup blocked. Allow popups for this site to go live.");
-    } else if (result.reason === "error") {
-      pushToast("Could not detect displays. A presentation window was opened, drag it to your projector.");
+      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
     }
   };
 
@@ -208,14 +214,49 @@ export function Presentation() {
     p.exit();
   };
 
-  const handleToggleReveal = () => {
-    if (isRevealed) sendLiveWindowToDisplay();
-    else revealLiveWindow();
+  /**
+   * Shrinks the presentation into the floating presenter so the operator can
+   * use the rest of the app. The projected window is untouched: the audience
+   * keeps seeing the stage while this window hands the screen back.
+   */
+  const handleShrinkToPip = () => {
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    setPresentationMode("pip");
   };
 
   const currentLabel =
     p.currentSlide.kind === "text" ? p.currentSlide.slide.label : p.currentSlide.item.name;
   const notes = p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
+
+  // The floating presenter replaces the fullscreen stage without unmounting
+  // this component, so the slide position, timer and audio all carry over.
+  if (mode === "pip") {
+    return (
+      <>
+        <PresenterPip
+          title={deck.title}
+          currentLabel={currentLabel}
+          frame={p.frame}
+          slideIndex={p.slideIndex}
+          total={p.slides.length}
+          paused={p.paused}
+          isLive={live}
+          rootRef={pipRef}
+          onPrev={() => p.go(-1)}
+          onNext={() => p.go(1)}
+          onTogglePause={p.togglePause}
+          onOpenStage={() => setPresentationMode("stage")}
+          onGoLive={handleGoLive}
+          onStopLive={() => {
+            endLive();
+            pushToast("Ended the live projection.");
+          }}
+          onExit={handleExit}
+        />
+        {p.audioItem && audioSrc && <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />}
+      </>
+    );
+  }
 
   return (
     <div
@@ -253,13 +294,12 @@ export function Presentation() {
         visible={controlsVisible}
         isExternal={isExtended}
         isLive={live}
-        isRevealed={isRevealed}
         canRead={canRead}
         reading={speech.speaking}
         onToggleRead={handleToggleRead}
         onHoverChange={onHoverChange}
         onGoLive={handleGoLive}
-        onToggleReveal={handleToggleReveal}
+        onShrinkToPip={handleShrinkToPip}
         onTogglePause={p.togglePause}
         onSetView={p.setViewMode}
         onZoomIn={p.zoomIn}

@@ -27,8 +27,16 @@ interface FullscreenOverride {
  * `fullscreenOverride`, when given, redirects the fullscreen control (button
  * and the F shortcut) to some other target, used to fullscreen the Go Live
  * popup on the external display instead of this window once live.
+ *
+ * `shortcutGate` decides whether a key press belongs to the presentation. The
+ * fullscreen stage owns the keyboard outright, but the floating presenter
+ * shares the page with the rest of the app, so it only claims keys while it
+ * holds focus. Returning false leaves the key to whatever the user is doing.
  */
-export function usePresentation(fullscreenOverride?: FullscreenOverride) {
+export function usePresentation(
+  fullscreenOverride?: FullscreenOverride,
+  shortcutGate?: () => boolean
+) {
   const presentation = useStore((s) => s.presentation);
   const audio = useStore((s) => s.audio);
   const prefs = useStore((s) => s.prefs);
@@ -179,8 +187,23 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     }));
   }, [curVideoId]);
 
+  // Read through a ref so changing the gate never re-binds the listeners.
+  const shortcutGateRef = useRef(shortcutGate);
+  shortcutGateRef.current = shortcutGate;
+
+  /** True when this key press is the presentation's to handle. */
+  const ownsKey = useCallback((e: KeyboardEvent): boolean => {
+    const el = e.target as HTMLElement | null;
+    // Never steal keys from a field the user is typing in.
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+      return false;
+    }
+    return shortcutGateRef.current?.() ?? true;
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (!ownsKey(e)) return;
       const key = e.key;
 
       // Tag navigation: Ctrl+digits accumulate into a buffer, flushed on Ctrl keyup.
@@ -239,6 +262,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
+      if (!ownsKey(e)) return;
       if (e.key === "Control") {
         const buf = ctrlNumBuffer.current;
         ctrlNumBuffer.current = "";
@@ -282,6 +306,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     toggleVideoPlaying,
     toggleVideoMuted,
     seekVideoBy,
+    ownsKey,
   ]);
 
   useEffect(() => {

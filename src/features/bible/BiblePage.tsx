@@ -18,6 +18,7 @@ import { VersesStep } from "./VersesStep";
 import { loadReadingPosition, saveReadingPosition } from "./lib/readingPosition";
 import type { ReadingPosition } from "./lib/readingPosition";
 import { recordReading } from "./lib/readingHistory";
+import type { VerseSpan } from "./lib/reference";
 
 type BibleTab = "read" | "saved";
 
@@ -44,8 +45,15 @@ export function BiblePage() {
   const [trashView, setTrashView] = useState(false);
   const [step, setStep] = useState<ReadStep>("books");
   const [readingPosition, setReadingPosition] = useState<ReadingPosition>(loadReadingPosition);
-  /** Verse the reader should scroll to and pre-select, when set. */
-  const [focusVerse, setFocusVerse] = useState<number | null>(null);
+  /**
+   * Verses the reader should scroll to and pre-select, when set. Held in state
+   * so its identity stays stable across renders (the reader re-applies the
+   * selection whenever this changes).
+   */
+  const [focusRange, setFocusRange] = useState<VerseSpan | null>(null);
+  /** Single-verse convenience over the range above. */
+  const setFocusVerse = (verse: number | null) =>
+    setFocusRange(verse == null ? null : { start: verse, end: verse });
 
   useEffect(() => {
     saveReadingPosition(readingPosition);
@@ -103,9 +111,14 @@ export function BiblePage() {
     setFocusVerse(null);
     setStep("read");
   };
-  const openSearchResult = (bookId: number, chapter: number, verse: number) => {
-    setReadingPosition({ bookId, chapter, verse });
-    setFocusVerse(verse);
+  /**
+   * Opens a search hit in the reader. A reference covering several verses
+   * ("Jn 2:3-10") or a whole chapter ("Jn 2") arrives with its full span, so
+   * the reader lands with all of it selected and ready to present or save.
+   */
+  const openSearchResult = (bookId: number, chapter: number, span: VerseSpan) => {
+    setReadingPosition({ bookId, chapter, verse: span.start });
+    setFocusRange(span);
     setStep("read");
   };
 
@@ -195,7 +208,13 @@ export function BiblePage() {
           {step === "read" && (
             <>
               {crumbSep}
-              <span style={crumbCurrent}>{focusVerse ? `Verse ${focusVerse}` : "Reading"}</span>
+              <span style={crumbCurrent}>
+                {!focusRange
+                  ? "Reading"
+                  : focusRange.start === focusRange.end
+                    ? `Verse ${focusRange.start}`
+                    : `Verses ${focusRange.start}-${focusRange.end}`}
+              </span>
             </>
           )}
         </div>
@@ -241,7 +260,7 @@ export function BiblePage() {
             version={prefs.bibleVersion}
             bookId={readingPosition.bookId}
             chapter={readingPosition.chapter}
-            focusVerse={focusVerse}
+            focusRange={focusRange}
             onNavigate={navigateReader}
             onCurrentVerseChange={rememberCurrentVerse}
           />

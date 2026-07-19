@@ -91,6 +91,18 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Floating Presenter",
+    note: "The floating presenter keeps the presentation running in a small draggable window so you can keep using the app. It only takes over the keyboard while it is focused, so click it before using presentation shortcuts, and click away to type normally again.",
+    shortcuts: [
+      { keys: ["Click the window"], description: "Arm the presentation shortcuts" },
+      { keys: ["Drag its title bar"], description: "Move it anywhere on the page" },
+      {
+        keys: ["Ctrl", "hold", "3", "then release Ctrl"],
+        description: "Jump to slide/verse 3 while it is focused",
+      },
+    ],
+  },
+  {
     title: "View",
     shortcuts: [
       { keys: ["F"], description: "Toggle fullscreen" },

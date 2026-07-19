@@ -40,14 +40,14 @@ interface PresentationControlsProps {
   visible: boolean;
   isExternal: boolean;
   isLive: boolean;
-  isRevealed: boolean;
   /** Shown only when the deck supports read-aloud (scripture). */
   canRead?: boolean;
   reading?: boolean;
   onToggleRead?: () => void;
   onHoverChange: (hovering: boolean) => void;
   onGoLive: () => void;
-  onToggleReveal: () => void;
+  /** Shrinks the presentation into the floating presenter. */
+  onShrinkToPip: () => void;
   onTogglePause: () => void;
   onSetView: (view: PresentationView) => void;
   onZoomIn: () => void;
@@ -67,13 +67,12 @@ export function PresentationControls({
   visible,
   isExternal,
   isLive,
-  isRevealed,
   canRead,
   reading,
   onToggleRead,
   onHoverChange,
   onGoLive,
-  onToggleReveal,
+  onShrinkToPip,
   onTogglePause,
   onSetView,
   onZoomIn,
@@ -129,14 +128,15 @@ export function PresentationControls({
         active={isLive}
         onClick={onGoLive}
       />
-      {isLive && (
-        <StageButton
-          icon={PictureInPicture2}
-          title={isRevealed ? "Send projected window back to the display" : "Bring projected window to this screen"}
-          active={isRevealed}
-          onClick={onToggleReveal}
-        />
-      )}
+      <StageButton
+        icon={PictureInPicture2}
+        title={
+          isLive
+            ? "Shrink to floating presenter and keep using the app (stays live)"
+            : "Shrink to floating presenter and keep using the app"
+        }
+        onClick={onShrinkToPip}
+      />
       <StageButton icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
       {canRead && (
         <StageButton
