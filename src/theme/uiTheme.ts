@@ -62,6 +62,17 @@ export interface UITheme {
     thumb: string;
     thumbRing: string;
   };
+  /** Live-stage (projection) chrome. The stage surface stays pure black no
+   *  matter the chrome theme so projected content is never tinted. */
+  stage: {
+    surface: string;
+    /** Translucent HUD chip/bar floating over projected content. */
+    overlay: string;
+    /** Higher-opacity HUD (bottom presenter bar, video controls). */
+    overlayStrong: string;
+    border: string;
+    text: string;
+  };
   /** Distinct hues for icon chips, category bars and charts, in
    *  presentation order. Use chartColor(i) to cycle safely. */
   charts: string[];
@@ -125,6 +136,13 @@ export const midnightTheme: UITheme = {
     toggleOff: "rgba(255,255,255,0.13)",
     thumb: "#ffffff",
     thumbRing: accentDeep,
+  },
+  stage: {
+    surface: "#000000",
+    overlay: "rgba(10,9,14,0.55)",
+    overlayStrong: "rgba(10,9,14,0.8)",
+    border: "rgba(255,255,255,0.1)",
+    text: "#ffffff",
   },
   charts: [
     "#a78bfa", // violet

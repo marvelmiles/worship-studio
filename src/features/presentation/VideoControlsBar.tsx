@@ -32,7 +32,7 @@ export function VideoControlsBar({
   onSeek,
   onRestart,
 }: VideoControlsBarProps) {
-  const { colors, controls, fonts } = useUITheme();
+  const { colors, controls, fonts, stage } = useUITheme();
   const UI = fonts.ui;
   const start = settings?.trimStart ?? 0;
   const end = settings?.trimEnd ?? (duration || 0);
@@ -60,9 +60,9 @@ export function VideoControlsBar({
         width: "min(680px, calc(100vw - 32px))",
         padding: "9px 12px",
         borderRadius: 14,
-        background: "rgba(10,9,14,0.72)",
+        background: stage.overlayStrong,
         backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        border: `1px solid ${stage.border}`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.3s ease",
@@ -78,7 +78,7 @@ export function VideoControlsBar({
         style={{
           fontFamily: UI,
           fontSize: 12,
-          color: "#fff",
+          color: stage.text,
           fontVariantNumeric: "tabular-nums",
           minWidth: 38,
           textAlign: "right",

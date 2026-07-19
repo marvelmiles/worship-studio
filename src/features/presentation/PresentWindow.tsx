@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
 import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
 import { useDeck } from "./useDeck";
@@ -13,6 +14,7 @@ import { Stage } from "./Stage";
  * presenter bar, just the stage that gets projected to the audience.
  */
 export function PresentWindow() {
+  const { stage } = useUITheme();
   const prefs = useStore((s) => s.prefs);
   const load = useStore((s) => s.load);
 
@@ -32,9 +34,9 @@ export function PresentWindow() {
 
   useEffect(() => {
     document.title = "WorshipStudio · Live";
-    document.body.style.background = "#000";
+    document.body.style.background = stage.surface;
     document.body.style.margin = "0";
-  }, []);
+  }, [stage.surface]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -112,10 +114,10 @@ export function PresentWindow() {
         placeItems: "center",
         borderRadius: 10,
         cursor: "pointer",
-        background: "rgba(10,9,14,0.55)",
+        background: stage.overlay,
         backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255,255,255,0.1)",
-        color: "#fff",
+        border: `1px solid ${stage.border}`,
+        color: stage.text,
         opacity: hintVisible ? 1 : 0,
         pointerEvents: hintVisible ? "auto" : "none",
         transition: "opacity 0.3s ease",
@@ -127,7 +129,7 @@ export function PresentWindow() {
 
   if (!state || !frame) {
     return (
-      <div onPointerMove={wake} onPointerDown={claimFocus} style={{ position: "fixed", inset: 0, background: "#000" }}>
+      <div onPointerMove={wake} onPointerDown={claimFocus} style={{ position: "fixed", inset: 0, background: stage.surface }}>
         {fullscreenButton}
       </div>
     );
@@ -137,7 +139,7 @@ export function PresentWindow() {
     <div
       onPointerMove={wake}
       onPointerDown={claimFocus}
-      style={{ position: "fixed", inset: 0, background: "#000" }}
+      style={{ position: "fixed", inset: 0, background: stage.surface }}
     >
       <Stage
         slideIndex={state.slideIndex}

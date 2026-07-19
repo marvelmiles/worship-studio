@@ -19,8 +19,6 @@ import type { Background } from "../../types";
 import { CATEGORIES, fade } from "../../theme/tokens";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
-import { useViewport } from "../../hooks/useViewport";
-import { TimeOfDayScene, type DayPeriod } from "./TimeOfDayScene";
 import { formatDate } from "../../lib/id";
 import { formatBytes } from "../../lib/storageStats";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -67,39 +65,59 @@ function timeAgo(iso: string): string {
   return formatDate(iso);
 }
 
-function greeting(): {
-  label: string;
-  heading: string;
-  tag: string;
-  period: DayPeriod;
-} {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12)
+/** Time-of-day greeting. Neutral and inspirational through the week (the
+ *  studio is used far beyond Sunday services); on Sundays the tone leans
+ *  church/Christian inspirational. */
+function greeting(): { label: string; heading: string; tag: string } {
+  const now = new Date();
+  const h = now.getHours();
+  const sunday = now.getDay() === 0;
+
+  if (h >= 22 || h < 5)
     return {
-      label: "Good morning! 👋",
+      label: sunday ? "Blessed Sunday night!" : "Hello, night owl!",
+      heading: "Burning the midnight oil",
+      tag: sunday
+        ? "He gives songs in the night. Rest is a gift too."
+        : "The quiet hours are perfect for getting things done.",
+    };
+
+  if (sunday) {
+    if (h < 12)
+      return {
+        label: "Happy Sunday!",
+        heading: "This is the day the Lord has made",
+        tag: "Rejoice, and let's make worship beautiful today.",
+      };
+    if (h < 17)
+      return {
+        label: "Happy Sunday!",
+        heading: "Grateful hearts, joyful songs",
+        tag: "May today's blessing carry through the whole week.",
+      };
+    return {
+      label: "Blessed Sunday evening!",
+      heading: "Well done, good and faithful",
+      tag: "Rest and be refreshed. What you gave today mattered.",
+    };
+  }
+
+  if (h < 12)
+    return {
+      label: "Good morning!",
       heading: "Rise and shine",
-      tag: "A fresh start. Let's prepare something beautiful.",
-      period: "morning",
+      tag: "A fresh start. Let's create something beautiful today.",
     };
-  if (h >= 12 && h < 17)
+  if (h < 17)
     return {
-      label: "Good afternoon! 👋",
+      label: "Good afternoon!",
       heading: "Keep the momentum going",
-      tag: "A great moment to polish your set and get ahead.",
-      period: "afternoon",
-    };
-  if (h >= 17 && h < 22)
-    return {
-      label: "Good evening! 👋",
-      heading: "Almost service time",
-      tag: "Let's get everything ready for a smooth service.",
-      period: "evening",
+      tag: "Steady steps today become something great tomorrow.",
     };
   return {
-    label: "Hello, night owl! 👋",
-    heading: "Burning the midnight oil",
-    tag: "The quiet hours are perfect for getting things done.",
-    period: "night",
+    label: "Good evening!",
+    heading: "Let your light shine",
+    tag: "Even a quiet evening can carry a joyful song.",
   };
 }
 
@@ -132,17 +150,23 @@ export function Dashboard() {
   }, [refreshStorage]);
 
   const [usageTab, setUsageTab] = useState<UsageTab>("background");
-  const { label, heading, tag, period } = useMemo(greeting, []);
-  const { width } = useViewport();
-  const showScene = width >= 640;
+  const { label, heading, tag } = useMemo(greeting, []);
 
   const activeSongs = useMemo(() => songs.filter((s) => !s.deleted), [songs]);
-  const totalSlides = activeSongs.reduce((n, s) => n + (s.slides?.length || 0), 0);
+  const totalSlides = activeSongs.reduce(
+    (n, s) => n + (s.slides?.length || 0),
+    0,
+  );
   const songsByCategory = CATEGORIES.map((c) => ({
     name: c,
     count: activeSongs.filter((s) => s.category === c).length,
-  })).filter((x) => x.count > 0);
-  const largestCategoryCount = Math.max(1, ...songsByCategory.map((x) => x.count));
+  }))
+    .filter((x) => x.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const largestCategoryCount = Math.max(
+    1,
+    ...songsByCategory.map((x) => x.count),
+  );
 
   const backgroundById = useMemo(() => {
     const map: Record<string, Background> = {};
@@ -281,7 +305,16 @@ export function Dashboard() {
     }
 
     return list.sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 15);
-  }, [activeSongs, scriptures, media, audio, themes, backgrounds, navigate, openOverlay]);
+  }, [
+    activeSongs,
+    scriptures,
+    media,
+    audio,
+    themes,
+    backgrounds,
+    navigate,
+    openOverlay,
+  ]);
 
   const onNew = () => {
     const created = createSong();
@@ -292,10 +325,25 @@ export function Dashboard() {
   const imageCount = media.filter((m) => m.kind === "image").length;
   const videoCount = media.filter((m) => m.kind === "video").length;
 
-  const stats: { label: string; value: number; icon: LucideIcon; color: string }[] = [
-    { label: "Songs", value: activeSongs.length, icon: Music, color: charts[0] },
+  const stats: {
+    label: string;
+    value: number;
+    icon: LucideIcon;
+    color: string;
+  }[] = [
+    {
+      label: "Songs",
+      value: activeSongs.length,
+      icon: Music,
+      color: charts[0],
+    },
     { label: "Slides", value: totalSlides, icon: Layers, color: charts[1] },
-    { label: "Passages", value: savedPassages, icon: BookOpen, color: charts[2] },
+    {
+      label: "Passages",
+      value: savedPassages,
+      icon: BookOpen,
+      color: charts[2],
+    },
     { label: "Images", value: imageCount, icon: ImageIcon, color: charts[3] },
     { label: "Videos", value: videoCount, icon: Film, color: charts[4] },
     { label: "Themes", value: themes.length, icon: Palette, color: charts[5] },
@@ -308,18 +356,60 @@ export function Dashboard() {
     onClick: () => void;
     primary?: boolean;
   }[] = [
-    { label: "New Song", sub: "Create a new song", icon: Plus, onClick: onNew, primary: true },
-    { label: "Open Bible", sub: "Browse Bible", icon: BookOpen, onClick: () => navigate("/bible") },
-    { label: "Song Library", sub: "View all songs", icon: Music, onClick: () => navigate("/songs") },
-    { label: "Images", sub: "Manage images", icon: ImageIcon, onClick: () => navigate("/images") },
-    { label: "Videos", sub: "Manage videos", icon: Film, onClick: () => navigate("/videos") },
-    { label: "Manage Themes", sub: "Customize themes", icon: Palette, onClick: () => openOverlay("themes") },
-    { label: "Upload Assets", sub: "Add your media", icon: Upload, onClick: () => openOverlay("assets") },
+    {
+      label: "New Song",
+      sub: "Create a new song",
+      icon: Plus,
+      onClick: onNew,
+      primary: true,
+    },
+    {
+      label: "Open Bible",
+      sub: "Browse Bible",
+      icon: BookOpen,
+      onClick: () => navigate("/bible"),
+    },
+    {
+      label: "Song Library",
+      sub: "View all songs",
+      icon: Music,
+      onClick: () => navigate("/songs"),
+    },
+    {
+      label: "Images",
+      sub: "Manage images",
+      icon: ImageIcon,
+      onClick: () => navigate("/images"),
+    },
+    {
+      label: "Videos",
+      sub: "Manage videos",
+      icon: Film,
+      onClick: () => navigate("/videos"),
+    },
+    {
+      label: "Manage Themes",
+      sub: "Customize themes",
+      icon: Palette,
+      onClick: () => openOverlay("themes"),
+    },
+    {
+      label: "Upload Assets",
+      sub: "Add your media",
+      icon: Upload,
+      onClick: () => openOverlay("assets"),
+    },
   ];
 
-  /** Category → bar color, matching the mockup's distinct hues per row. */
-  const categoryColor = (name: string) =>
-    charts[Math.max(0, CATEGORIES.indexOf(name)) % charts.length];
+  /** Shared accent scheme for ranking bars: the top-ranked row gets the
+   *  boldest fill and a glow, lower ranks fade progressively. */
+  const rankBar = (rank: number) => {
+    const strength = Math.max(0.35, 1 - rank * 0.16);
+    return {
+      background: `linear-gradient(90deg,${fade(colors.accent, strength)},${fade(colors.accentSoft, strength)})`,
+      boxShadow: rank === 0 ? `0 0 10px ${fade(colors.accent, 0.35)}` : "none",
+    };
+  };
 
   const usageTabs: { id: UsageTab; label: string }[] = [
     { id: "background", label: "Backgrounds" },
@@ -337,68 +427,41 @@ export function Dashboard() {
         margin: "0 auto",
       }}
     >
-      <div
-        style={{
-          position: "relative",
-          marginBottom: 26,
-          minHeight: showScene ? "clamp(120px,16vw,190px)" : undefined,
-        }}
-      >
-        {showScene && (
-          <div
-            aria-hidden
-            style={{
-              position: "absolute",
-              top: "clamp(-32px,-3vw,-18px)",
-              right: "clamp(-36px,-4vw,-14px)",
-              bottom: -14,
-              width: "min(58%,660px)",
-              pointerEvents: "none",
-              maskImage:
-                "radial-gradient(120% 120% at 100% 10%, black 50%, transparent 98%)",
-              WebkitMaskImage:
-                "radial-gradient(120% 120% at 100% 10%, black 50%, transparent 98%)",
-            }}
-          >
-            <TimeOfDayScene period={period} />
-          </div>
-        )}
-        <div style={{ position: "relative" }}>
-          <p
-            style={{
-              margin: 0,
-              color: colors.accent,
-              fontFamily: UI,
-              fontWeight: 600,
-              letterSpacing: 1.2,
-              fontSize: 13,
-            }}
-          >
-            {label}
-          </p>
-          <h1
-            style={{
-              margin: "6px 0 0",
-              fontFamily: DISPLAY,
-              fontSize: "clamp(28px,5.5vw,44px)",
-              fontWeight: 600,
-              color: colors.text,
-              letterSpacing: -0.5,
-            }}
-          >
-            {heading}
-          </h1>
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontFamily: UI,
-              fontSize: 14.5,
-              color: colors.sub,
-            }}
-          >
-            {tag}
-          </p>
-        </div>
+      <div style={{ marginBottom: 26 }}>
+        <p
+          style={{
+            margin: 0,
+            color: colors.accent,
+            fontFamily: UI,
+            fontWeight: 600,
+            letterSpacing: 1.2,
+            fontSize: 13,
+          }}
+        >
+          {label}
+        </p>
+        <h1
+          style={{
+            margin: "6px 0 0",
+            fontFamily: DISPLAY,
+            fontSize: "clamp(28px,5.5vw,44px)",
+            fontWeight: 600,
+            color: colors.text,
+            letterSpacing: -0.5,
+          }}
+        >
+          {heading}
+        </h1>
+        <p
+          style={{
+            margin: "10px 0 0",
+            fontFamily: UI,
+            fontSize: 14.5,
+            color: colors.sub,
+          }}
+        >
+          {tag}
+        </p>
       </div>
 
       <div
@@ -533,13 +596,18 @@ export function Dashboard() {
                     fontFamily: DISPLAY,
                     fontSize: 22,
                     fontWeight: 600,
-                    color: storage.level === "critical" ? colors.danger : colors.text,
+                    color:
+                      storage.level === "critical"
+                        ? colors.danger
+                        : colors.text,
                     lineHeight: 1,
                   }}
                 >
                   {Math.min(100, Math.round(storage.pct * 100))}%
                 </div>
-                <div style={{ fontSize: 11.5, color: colors.dim, marginTop: 4 }}>
+                <div
+                  style={{ fontSize: 11.5, color: colors.dim, marginTop: 4 }}
+                >
                   {formatBytes(storage.userUsed)} used, about{" "}
                   {formatBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
                   free
@@ -717,7 +785,13 @@ export function Dashboard() {
                   >
                     {a.title}
                   </div>
-                  <div style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub }}>
+                  <div
+                    style={{
+                      fontFamily: UI,
+                      fontSize: 12.5,
+                      color: colors.sub,
+                    }}
+                  >
                     {a.detail}
                   </div>
                 </div>
@@ -757,43 +831,39 @@ export function Dashboard() {
                 message="Give your songs a category and the breakdown appears here."
               />
             )}
-            {songsByCategory.map((c) => {
-              const barColor = categoryColor(c.name);
-              return (
-                <div key={c.name} style={{ marginBottom: 11 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontFamily: UI,
-                      fontSize: 13,
-                      color: colors.sub,
-                      marginBottom: 5,
-                    }}
-                  >
-                    <span>{c.name}</span>
-                    <span style={{ color: colors.text }}>{c.count}</span>
-                  </div>
-                  <div
-                    style={{
-                      height: 7,
-                      borderRadius: 99,
-                      background: controls.track,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${(c.count / largestCategoryCount) * 100}%`,
-                        borderRadius: 99,
-                        background: `linear-gradient(90deg,${fade(barColor, 0.75)},${barColor})`,
-                        boxShadow: `0 0 10px ${fade(barColor, 0.35)}`,
-                      }}
-                    />
-                  </div>
+            {songsByCategory.map((c, rank) => (
+              <div key={c.name} style={{ marginBottom: 11 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontFamily: UI,
+                    fontSize: 13,
+                    color: colors.sub,
+                    marginBottom: 5,
+                  }}
+                >
+                  <span>{c.name}</span>
+                  <span style={{ color: colors.text }}>{c.count}</span>
                 </div>
-              );
-            })}
+                <div
+                  style={{
+                    height: 7,
+                    borderRadius: 99,
+                    background: controls.track,
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${(c.count / largestCategoryCount) * 100}%`,
+                      borderRadius: 99,
+                      ...rankBar(rank),
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div style={{ ...glass, padding: 22 }}>
@@ -843,7 +913,7 @@ export function Dashboard() {
                 message="This fills in as you build songs with themes, backgrounds and sounds."
               />
             ) : (
-              mostUsedList.map((item) => (
+              mostUsedList.map((item, rank) => (
                 <div
                   key={item.id}
                   style={{
@@ -908,7 +978,7 @@ export function Dashboard() {
                           height: "100%",
                           width: `${(item.count / highestUseCount) * 100}%`,
                           borderRadius: 99,
-                          background: gradients.accentBar,
+                          ...rankBar(rank),
                         }}
                       />
                     </div>

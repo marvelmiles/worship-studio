@@ -44,7 +44,8 @@ export function Button({
     whiteSpace: "nowrap",
     opacity: disabled ? 0.5 : 1,
     border: "1px solid transparent",
-    padding: size === "sm" ? "6px 11px" : size === "lg" ? "12px 20px" : "9px 15px",
+    padding:
+      size === "sm" ? "6px 11px" : size === "lg" ? "12px 20px" : "9px 15px",
     fontSize: size === "sm" ? 12.5 : size === "lg" ? 15 : 13.5,
   };
   const variants: Record<ButtonVariant, CSSProperties> = {
@@ -54,8 +55,16 @@ export function Button({
       border: `1px solid ${fade(colors.accentSoft, 0.35)}`,
       boxShadow: `0 6px 20px ${fade(colors.accent, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.14)`,
     },
-    ghost: { background: colors.raise, color: colors.text, border: `1px solid ${colors.border}` },
-    subtle: { background: "transparent", color: colors.sub, border: "1px solid transparent" },
+    ghost: {
+      background: colors.raise,
+      color: colors.text,
+      border: `1px solid ${colors.border}`,
+    },
+    subtle: {
+      background: "transparent",
+      color: colors.sub,
+      border: "1px solid transparent",
+    },
     danger: {
       background: fade(colors.danger, 0.14),
       color: colors.danger,
@@ -74,7 +83,11 @@ export function Button({
       onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
       style={{ ...base, ...variants[variant], ...style }}
     >
-      {busy ? <Spinner size={size === "sm" ? 13 : 15} color={spinnerColor} /> : children}
+      {busy ? (
+        <Spinner size={size === "sm" ? 13 : 15} color={spinnerColor} />
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -87,7 +100,13 @@ interface IconButtonProps {
   danger?: boolean;
 }
 
-export function IconButton({ icon: Icon, onClick, title, active, danger }: IconButtonProps) {
+export function IconButton({
+  icon: Icon,
+  onClick,
+  title,
+  active,
+  danger,
+}: IconButtonProps) {
   const { colors } = useUITheme();
   const restBackground = active ? fade(colors.accent, 0.16) : "transparent";
   return (
@@ -109,7 +128,9 @@ export function IconButton({ icon: Icon, onClick, title, active, danger }: IconB
         border: `1px solid ${active ? fade(colors.accent, 0.3) : "transparent"}`,
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.background = active ? fade(colors.accent, 0.22) : colors.raise)
+        (e.currentTarget.style.background = active
+          ? fade(colors.accent, 0.22)
+          : colors.raise)
       }
       onMouseLeave={(e) => (e.currentTarget.style.background = restBackground)}
     >
@@ -127,8 +148,14 @@ interface StageButtonProps {
 }
 
 /** Control button used on the live presentation stage (light on dark). */
-export function StageButton({ icon: Icon, onClick, title, active, solid }: StageButtonProps) {
-  const { colors } = useUITheme();
+export function StageButton({
+  icon: Icon,
+  onClick,
+  title,
+  active,
+  solid,
+}: StageButtonProps) {
+  const { colors, stage } = useUITheme();
   return (
     <button
       title={title}
@@ -144,10 +171,10 @@ export function StageButton({ icon: Icon, onClick, title, active, solid }: Stage
         background: active
           ? fade(colors.accent, 0.3)
           : solid
-          ? "rgba(255,255,255,0.1)"
-          : "rgba(255,255,255,0.06)",
-        color: active ? colors.accentSoft : "#fff",
-        border: "1px solid rgba(255,255,255,0.12)",
+            ? "rgba(255,255,255,0.1)"
+            : "rgba(255,255,255,0.06)",
+        color: active ? colors.accentSoft : stage.text,
+        border: `1px solid ${stage.border}`,
       }}
     >
       <Icon size={18} />

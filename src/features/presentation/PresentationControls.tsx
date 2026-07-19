@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { PresentationView } from "../../types";
-import { fade, colors, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { StageButton } from "../../components/ui/Button";
 
 const VIEW_OPTIONS: { value: PresentationView; label: string; hint: string; icon: LucideIcon }[] = [
@@ -82,6 +83,8 @@ export function PresentationControls({
   onToggleFullscreen,
   onExit,
 }: PresentationControlsProps) {
+  const { colors, fonts, stage } = useUITheme();
+  const UI = fonts.ui;
   const [menuOpen, setMenuOpen] = useState(false);
   const viewRef = useRef<HTMLDivElement>(null);
 
@@ -112,9 +115,9 @@ export function PresentationControls({
         maxWidth: "calc(100vw - 32px)",
         padding: 7,
         borderRadius: 14,
-        background: "rgba(10,9,14,0.55)",
+        background: stage.overlay,
         backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        border: `1px solid ${stage.border}`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.3s ease",
@@ -155,7 +158,7 @@ export function PresentationControls({
               minWidth: 196,
               padding: 6,
               borderRadius: 12,
-              background: "rgba(22,19,36,0.9)", backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)",
+              background: fade(colors.panelSolid, 0.92), backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)",
               border: `1px solid ${colors.border}`,
               boxShadow: "0 18px 50px rgba(0,0,0,0.55)",
             }}
@@ -231,8 +234,8 @@ export function PresentationControls({
             borderRadius: 10,
             cursor: "pointer",
             background: "rgba(255,255,255,0.06)",
-            color: "#fff",
-            border: "1px solid rgba(255,255,255,0.12)",
+            color: stage.text,
+            border: `1px solid ${stage.border}`,
             fontFamily: UI,
             fontSize: 12.5,
             fontVariantNumeric: "tabular-nums",

@@ -1,12 +1,49 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WorshipStudio">
-  <!-- Chapel arch window holding organ pipes, with a flame of light above -->
-  <rect width="512" height="512" rx="116" fill="#101013"/>
-  <path d="M162 392 L162 262 A94 94 0 0 1 350 262 L350 392" fill="none" stroke="#7c3aed" stroke-width="22" stroke-linecap="round"/>
-  <path d="M140 392 H372" fill="none" stroke="#7c3aed" stroke-width="22" stroke-linecap="round"/>
-  <g fill="#a78bfa">
-    <rect x="183" y="296" width="34" height="96" rx="17"/>
-    <rect x="239" y="246" width="34" height="146" rx="17"/>
-    <rect x="295" y="296" width="34" height="96" rx="17"/>
+  <!-- Glowing beamed music note rising through a violet night sky.
+       scripts/generate-icons.mjs derives the PNG set from this file:
+       it strips rx + #ring and rescales #art for maskable/apple variants. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#241245"/>
+      <stop offset="55%" stop-color="#120b26"/>
+      <stop offset="100%" stop-color="#07060e"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="0.5" cy="0.34" r="0.62">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.5"/>
+      <stop offset="55%" stop-color="#8b5cf6" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="note" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f3efff"/>
+      <stop offset="100%" stop-color="#b79dfa"/>
+    </linearGradient>
+    <radialGradient id="noteGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="116" fill="url(#aura)"/>
+  <rect id="ring" x="7" y="7" width="498" height="498" rx="109" fill="none" stroke="#c4b5fd" stroke-opacity="0.22" stroke-width="6"/>
+
+  <g id="art">
+    <!-- Soft halo behind the note -->
+    <ellipse cx="262" cy="250" rx="200" ry="190" fill="url(#noteGlow)"/>
+
+    <!-- Beamed note -->
+    <g fill="url(#note)">
+      <path d="M191 150 L353 120 L353 166 L191 196 Z"/>
+      <rect x="191" y="152" width="21" height="208"/>
+      <rect x="332" y="122" width="21" height="214"/>
+      <ellipse cx="182" cy="362" rx="37" ry="28" transform="rotate(-18 182 362)"/>
+      <ellipse cx="323" cy="338" rx="37" ry="28" transform="rotate(-18 323 338)"/>
+    </g>
+
+    <!-- Sparkles -->
+    <path d="M404 96 L412 122 L438 130 L412 138 L404 164 L396 138 L370 130 L396 122 Z" fill="#e9e2ff" fill-opacity="0.9"/>
+    <circle cx="118" cy="128" r="7" fill="#c4b5fd" fill-opacity="0.75"/>
+    <circle cx="418" cy="238" r="5" fill="#c4b5fd" fill-opacity="0.55"/>
+    <circle cx="96" cy="330" r="5" fill="#a78bfa" fill-opacity="0.5"/>
   </g>
-  <circle cx="256" cy="212" r="15" fill="#c4b5fd"/>
 </svg>

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import type { CSSProperties } from "react";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { fmtClock } from "../../lib/id";
 import { useViewport } from "../../hooks/useViewport";
 import { StageButton } from "../../components/ui/Button";
@@ -24,16 +25,9 @@ interface PresenterBarProps {
   onNext: () => void;
 }
 
-const labelStyle = {
-  fontFamily: UI,
-  fontSize: 10.5,
-  fontWeight: 700,
-  letterSpacing: 0.6,
-  textTransform: "uppercase" as const,
-  color: colors.accent,
-};
-
 function NextPreview({ frame, endLabel }: { frame: StageFrame | null; endLabel: string }) {
+  const { colors, fonts } = useUITheme();
+  const UI = fonts.ui;
   if (!frame) {
     return (
       <div
@@ -99,6 +93,17 @@ export function PresenterBar({
   onPrev,
   onNext,
 }: PresenterBarProps) {
+  const { colors, fonts, stage } = useUITheme();
+  const UI = fonts.ui;
+  const DISPLAY = fonts.display;
+  const labelStyle: CSSProperties = {
+    fontFamily: UI,
+    fontSize: 10.5,
+    fontWeight: 700,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: colors.accent,
+  };
   const { width } = useViewport();
   const showNext = width >= 720;
 
@@ -118,9 +123,9 @@ export function PresenterBar({
         gap: 16,
         alignItems: "center",
         padding: "12px 18px",
-        background: "rgba(10,9,14,0.82)",
+        background: stage.overlayStrong,
         backdropFilter: "blur(12px)",
-        borderTop: "1px solid rgba(255,255,255,0.1)",
+        borderTop: `1px solid ${stage.border}`,
         opacity: visible ? 1 : 0,
         pointerEvents: visible ? "auto" : "none",
         transition: "opacity 0.3s ease",
@@ -134,7 +139,7 @@ export function PresenterBar({
           style={{
             fontFamily: UI,
             fontSize: 13.5,
-            color: notes ? "#fff" : colors.dim,
+            color: notes ? stage.text : colors.dim,
             marginTop: 4,
             lineHeight: 1.45,
             maxHeight: 44,
@@ -158,7 +163,7 @@ export function PresenterBar({
             style={{
               fontFamily: DISPLAY,
               fontSize: 22,
-              color: "#fff",
+              color: stage.text,
               fontVariantNumeric: "tabular-nums",
             }}
           >
