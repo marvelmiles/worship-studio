@@ -1,40 +1,67 @@
 import type { BibleVersionId, PassageRange } from "../../../types";
 import { BIBLE_BOOKS, type BibleBook } from "../../../data/bibleBooks";
+import { CHAPTER_VERSE_COUNTS } from "../../../data/bibleLayout";
 
 export interface ParsedReference {
   book: BibleBook;
   chapter: number;
   verseStart?: number;
   verseEnd?: number;
+  /**
+   * False when the query named only a book ("job"), in which case `chapter`
+   * falls back to 1. Callers that treat a bare book name differently from a
+   * real chapter reference check this.
+   */
+  hasChapter: boolean;
 }
 
 const normalize = (text: string) => text.toLowerCase().replace(/[\s.]+/g, "");
 
-/** Matches "John 3:16-18", "jn 3", "1 cor 13:4" and similar shorthand. */
+/** Resolves "job", "jb", "1 cor", "songofsongs" and prefixes to one book. */
+export function findBook(name: string): BibleBook | null {
+  const key = normalize(name);
+  if (!key) return null;
+  return (
+    BIBLE_BOOKS.find((b) => normalize(b.name) === key || b.aliases.includes(key)) ||
+    BIBLE_BOOKS.find(
+      (b) => normalize(b.name).startsWith(key) || b.aliases.some((a) => a.startsWith(key))
+    ) ||
+    null
+  );
+}
+
+/**
+ * Matches "John 3:16-18", "jn 3", "1 cor 13:4", "job 2.3" and similar
+ * shorthand. Chapter and verse numbers are validated against the real
+ * versification, so an out-of-range reference like "job 2:99" is rejected
+ * rather than pointing the reader at a verse that doesn't exist.
+ */
 export function parseReference(input: string): ParsedReference | null {
   const match = input
     .trim()
-    .match(/^(\d?\s*[a-zA-Z][a-zA-Z\s.]*?)\s*(\d+)?(?::(\d+)(?:\s*[-–]\s*(\d+))?)?$/);
+    .match(
+      /^(\d?\s*[a-zA-Z][a-zA-Z\s.]*?)\s*(?:(\d+)(?:\s*[:.]\s*(\d+)(?:\s*[-–—]\s*(\d+))?)?)?$/
+    );
   if (!match) return null;
 
   const [, rawBook, rawChapter, rawStart, rawEnd] = match;
-  const key = normalize(rawBook);
-  if (!key) return null;
-
-  const book =
-    BIBLE_BOOKS.find((b) => normalize(b.name) === key || b.aliases.includes(key)) ||
-    BIBLE_BOOKS.find((b) => normalize(b.name).startsWith(key));
+  const book = findBook(rawBook);
   if (!book) return null;
 
   const chapter = rawChapter ? parseInt(rawChapter, 10) : 1;
   if (chapter < 1 || chapter > book.chapters) return null;
 
+  const verseCount = CHAPTER_VERSE_COUNTS[book.id - 1][chapter - 1];
   const verseStart = rawStart ? parseInt(rawStart, 10) : undefined;
+  if (verseStart !== undefined && (verseStart < 1 || verseStart > verseCount)) return null;
+
   let verseEnd = rawEnd ? parseInt(rawEnd, 10) : verseStart;
-  if (verseStart !== undefined && verseEnd !== undefined && verseEnd < verseStart) {
-    verseEnd = verseStart;
+  if (verseStart !== undefined && verseEnd !== undefined) {
+    // A backwards or overlong range ("2:5-3", "2:3-999") collapses to what
+    // the chapter actually holds instead of failing the whole reference.
+    verseEnd = Math.min(Math.max(verseEnd, verseStart), verseCount);
   }
-  return { book, chapter, verseStart, verseEnd };
+  return { book, chapter, verseStart, verseEnd, hasChapter: Boolean(rawChapter) };
 }
 
 export function formatRange(range: PassageRange): string {

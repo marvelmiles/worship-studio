@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
   BookmarkPlus,
@@ -7,13 +6,12 @@ import {
   ChevronRight,
   ListChecks,
   Pencil,
-  Play,
   RotateCcw,
   Square,
   Volume2,
   X,
 } from "lucide-react";
-import type { BibleVerse, BibleVersionId, PassageRange } from "../../types";
+import type { BibleVerse, BibleVersionId } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
 import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
@@ -24,6 +22,9 @@ import { Button, IconButton } from "../../components/ui/Button";
 import { Spinner } from "../../components/ui/Spinner";
 import { TextInput } from "../../components/ui/Field";
 import { useBibleChapter } from "./useBibleChapter";
+import { usePresentScripture } from "./usePresentScripture";
+import { PresentButton } from "./PresentButton";
+import { buildScriptureSelection } from "./lib/scriptureSelection";
 import { parseReference, formatRange, formatReference } from "./lib/reference";
 import { findSavedDuplicates, hasSameContent, nextCopyTitle } from "./lib/passageDuplicates";
 import { SavePassageModal } from "./SavePassageModal";
@@ -58,12 +59,8 @@ export function BibleReader({
   onNavigate,
   onCurrentVerseChange,
 }: BibleReaderProps) {
-  const navigate = useNavigate();
   const pushToast = useStore((s) => s.pushToast);
-  const presentScriptureSelection = useStore(
-    (s) => s.presentScriptureSelection,
-  );
-  const stageScriptureSelection = useStore((s) => s.stageScriptureSelection);
+  const { present, edit } = usePresentScripture();
   const saveScripturePassage = useStore((s) => s.saveScripturePassage);
   const overwriteScripturePassage = useStore((s) => s.overwriteScripturePassage);
   const scriptures = useStore((s) => s.scriptures);
@@ -198,16 +195,15 @@ export function BibleReader({
   }, [selection, verses]);
 
   const buildSelection = (): ScriptureSelection | null => {
-    if (selStart === null || selEnd === null || !book || !selectedVerses.length)
-      return null;
-    const range: PassageRange = {
+    if (selStart === null || selEnd === null) return null;
+    return buildScriptureSelection({
+      version,
       bookId,
-      bookName: book.name,
       chapter,
       verseStart: selStart,
       verseEnd: selEnd,
-    };
-    return { version, range, verses: selectedVerses };
+      verses,
+    });
   };
 
   const handleVerseClick = (verse: number, extend: boolean) => {
@@ -265,31 +261,17 @@ export function BibleReader({
     onNavigate(nextBook, nextChapter);
   };
 
-  const presentSelection = (single?: number) => {
-    const sel =
-      single !== undefined && book
-        ? {
-            version,
-            range: {
-              bookId,
-              bookName: book.name,
-              chapter,
-              verseStart: single,
-              verseEnd: single,
-            },
-            verses: verses.filter((v) => v.v === single),
-          }
-        : buildSelection();
-    if (!sel || !sel.verses.length) return;
-    presentScriptureSelection(sel);
-  };
-
-  const editSelection = () => {
-    const sel = buildSelection();
-    if (!sel) return;
-    const passage = stageScriptureSelection(sel);
-    if (passage) navigate(`/scripture/${passage.id}`);
-  };
+  /** Double-clicking a verse presents just that verse, ignoring the selection. */
+  const presentVerse = (verse: number) =>
+    present(
+      buildScriptureSelection({
+        version,
+        bookId,
+        chapter,
+        verseStart: verse,
+        verses,
+      }),
+    );
 
   const readAloud = (list: BibleVerse[]) => {
     if (!list.length) return;
@@ -485,7 +467,7 @@ export function BibleReader({
                     e.ctrlKey || e.metaKey || e.shiftKey,
                   )
                 }
-                onDoubleClick={() => presentSelection(verse.v)}
+                onDoubleClick={() => presentVerse(verse.v)}
                 title="Click to select · Ctrl-click to extend · Shift+↑/↓ to grow · Double-click to present this verse"
                 style={{
                   display: "flex",
@@ -576,14 +558,14 @@ export function BibleReader({
             {selectedVerses.length === 1 ? "" : "s"}
           </span>
           <span style={{ flex: 1 }} />
-          <Button size="sm" variant="primary" onClick={() => presentSelection()}>
-            <Play size={13} />
-            Present
-          </Button>
+          <PresentButton
+            selection={buildSelection}
+            title="Present these verses"
+          />
           <Button
             size="sm"
             variant="ghost"
-            onClick={editSelection}
+            onClick={() => edit(buildSelection())}
             title="Edit these verses as slides before presenting"
           >
             <Pencil size={13} />

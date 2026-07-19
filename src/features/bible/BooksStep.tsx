@@ -1,19 +1,26 @@
-import { useMemo, useState } from "react";
-import { Play } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ArrowRight, Play } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
 import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
+import type { ScriptureSelection } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { Spinner } from "../../components/ui/Spinner";
 import { useBibleSearch } from "./useBibleSearch";
+import { useBibleChapter } from "./useBibleChapter";
+import { PresentButton } from "./PresentButton";
 import { tileStyle } from "./tileStyle";
+import { parseReference, type ParsedReference } from "./lib/reference";
+import { buildScriptureSelection } from "./lib/scriptureSelection";
 import type { ReadingPosition } from "./lib/readingPosition";
 
 /**
  * First step of the Bible read tab: the Old/New Testament book grid, a
  * "continue where you left off" shortcut, and a combined search box that
- * filters book names AND finds verses containing the typed words.
+ * reads references ("job 2", "job 2:3", "jb 2:3-5"), filters book names and
+ * aliases, AND finds verses containing the typed words.
  */
 export function BooksStep({
   position,
@@ -32,15 +39,26 @@ export function BooksStep({
   onOpenSearchResult: (bookId: number, chapter: number, verse: number) => void;
 }) {
   const [query, setQuery] = useState("");
-  const search = useBibleSearch(version, query);
+
+  /** Set when the query reads as a reference with a chapter, e.g. "job 2:3-5". */
+  const reference = useMemo(() => {
+    const parsed = parseReference(query);
+    return parsed?.hasChapter ? parsed : null;
+  }, [query]);
+
+  // A reference is an exact address, so the word search would only add noise
+  // ("job 2:3" appears in no verse); it stays off until the query is prose.
+  const search = useBibleSearch(version, reference ? "" : query);
 
   const matchingBooks = useMemo(() => {
+    // "job 2:3" keeps Job's tile on screen so the chapter grid is one tap away.
+    if (reference) return [reference.book];
     const term = query.trim().toLowerCase();
     if (!term) return BIBLE_BOOKS;
     return BIBLE_BOOKS.filter(
       (b) => b.name.toLowerCase().includes(term) || b.aliases.some((a) => a.startsWith(term))
     );
-  }, [query]);
+  }, [query, reference]);
 
   const testaments: { label: string; key: "old" | "new" }[] = [
     { label: "Old Testament", key: "old" },
@@ -53,7 +71,7 @@ export function BooksStep({
         <SearchInput
           value={query}
           onChange={setQuery}
-          placeholder="Search books or words, like Psalms or living water"
+          placeholder="Search a book, reference or words, like Psalms, Job 2:3-5 or living water"
         />
         {continueLabel && (
           <Button variant="ghost" onClick={onContinueReading} title="Pick up where you left off">
@@ -63,6 +81,19 @@ export function BooksStep({
         )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 12 }}>
+        {reference && (
+          <PassageJump
+            reference={reference}
+            version={version}
+            onOpen={() =>
+              onOpenSearchResult(
+                reference.book.id,
+                reference.chapter,
+                reference.verseStart ?? 1
+              )
+            }
+          />
+        )}
         {matchingBooks.length === 0 && !search.enabled && (
           <p style={{ fontFamily: UI, color: colors.dim, textAlign: "center", padding: 30 }}>
             No book matches "{query}".
@@ -138,35 +169,28 @@ export function BooksStep({
                 const resultBook = bookById(result.bookId);
                 if (!resultBook) return null;
                 return (
-                  <button
+                  <ResultRow
                     key={`${result.bookId}:${result.chapter}:${result.verse}`}
-                    onClick={() => onOpenSearchResult(result.bookId, result.chapter, result.verse)}
+                    onOpen={() => onOpenSearchResult(result.bookId, result.chapter, result.verse)}
                     title={`Open ${resultBook.name} ${result.chapter}:${result.verse}`}
-                    style={{
-                      textAlign: "left",
-                      padding: "10px 13px",
-                      borderRadius: 10,
-                      cursor: "pointer",
-                      border: `1px solid ${colors.border}`,
-                      background: colors.raise,
-                    }}
+                    heading={`${resultBook.name} ${result.chapter}:${result.verse}`}
+                    // The search result carries the verse text, so presenting it
+                    // needs nothing more loaded.
+                    selection={() =>
+                      buildScriptureSelection({
+                        version,
+                        bookId: result.bookId,
+                        chapter: result.chapter,
+                        verseStart: result.verse,
+                        verses: [{ v: result.verse, t: result.text }],
+                      })
+                    }
+                    presentTitle={`Present ${resultBook.name} ${result.chapter}:${result.verse}`}
                   >
-                    <span
-                      style={{
-                        display: "block",
-                        fontFamily: UI,
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: colors.accentSoft,
-                        marginBottom: 3,
-                      }}
-                    >
-                      {resultBook.name} {result.chapter}:{result.verse}
-                    </span>
                     <span style={{ fontFamily: UI, fontSize: 13.5, lineHeight: 1.55, color: colors.sub }}>
                       {highlightSearchWords(snippetAroundFirstMatch(result.text, search.term), search.term)}
                     </span>
-                  </button>
+                  </ResultRow>
                 );
               })}
             </div>
@@ -180,6 +204,152 @@ export function BooksStep({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/** "Job 2", "Job 2:3", "Job 2:3-5" — how the parsed reference reads back. */
+function referenceLabel({ book, chapter, verseStart, verseEnd }: ParsedReference): string {
+  if (!verseStart) return `${book.name} ${chapter}`;
+  const verses = !verseEnd || verseEnd === verseStart ? `${verseStart}` : `${verseStart}-${verseEnd}`;
+  return `${book.name} ${chapter}:${verses}`;
+}
+
+/**
+ * One clickable search hit: a reference heading, its text, and a Present
+ * button. The row opens the reader; Present throws the passage straight on
+ * screen without leaving the search, exactly as presenting a selection does in
+ * the reader itself.
+ */
+function ResultRow({
+  onOpen,
+  title,
+  heading,
+  meta,
+  selection,
+  presentTitle,
+  presentDisabled,
+  emphasis,
+  children,
+}: {
+  onOpen: () => void;
+  title: string;
+  heading: string;
+  meta?: ReactNode;
+  selection: () => ScriptureSelection | null;
+  presentTitle: string;
+  /** Set while the verses behind the selection aren't loaded yet. */
+  presentDisabled?: boolean;
+  /** The reference jump card, which leads the results. */
+  emphasis?: boolean;
+  children: ReactNode;
+}) {
+  const { colors, fonts } = useUITheme();
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      title={title}
+      style={{
+        textAlign: "left",
+        padding: emphasis ? "13px 15px" : "10px 13px",
+        borderRadius: emphasis ? 12 : 10,
+        cursor: "pointer",
+        border: `1px solid ${emphasis ? colors.accentSoft : colors.border}`,
+        background: colors.raise,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <span
+          style={{
+            fontFamily: emphasis ? fonts.display : fonts.ui,
+            fontSize: emphasis ? 15.5 : 12.5,
+            fontWeight: 700,
+            color: colors.accentSoft,
+          }}
+        >
+          {heading}
+        </span>
+        {meta}
+        <span style={{ flex: 1 }} />
+        <PresentButton selection={selection} title={presentTitle} disabled={presentDisabled} />
+        <ArrowRight size={15} color={colors.dim} style={{ flexShrink: 0 }} />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The "go straight there" card shown when the query is a reference. It renders
+ * only while a reference is parsed, so the plain book grid never pays for
+ * loading a translation.
+ */
+function PassageJump({
+  reference,
+  version,
+  onOpen,
+}: {
+  reference: ParsedReference;
+  version: BibleVersionId;
+  onOpen: () => void;
+}) {
+  const { colors, fonts } = useUITheme();
+  const { verses, loading, error } = useBibleChapter(version, reference.book.id, reference.chapter);
+
+  const { book, chapter, verseStart, verseEnd } = reference;
+  // Verse references preview exactly what was asked for; a chapter-only
+  // reference previews its opening verse but presents the whole chapter.
+  const preview = verseStart
+    ? verses.filter((v) => v.v >= verseStart && v.v <= (verseEnd ?? verseStart))
+    : verses.slice(0, 1);
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div className="ws-section-label" style={{ margin: "6px 0 10px" }}>
+        Go to passage
+      </div>
+      <ResultRow
+        onOpen={onOpen}
+        title={`Open ${referenceLabel(reference)}`}
+        heading={referenceLabel(reference)}
+        emphasis
+        meta={
+          <span style={{ fontFamily: fonts.ui, fontSize: 11.5, fontWeight: 600, color: colors.dim }}>
+            {version}
+            {!verseStart && verses.length ? ` · ${verses.length} verses` : ""}
+          </span>
+        }
+        presentTitle={`Present ${referenceLabel(reference)}`}
+        presentDisabled={loading || Boolean(error) || !preview.length}
+        // "Job 2:3-5" presents those verses; "Job 2" presents the whole chapter.
+        selection={() =>
+          buildScriptureSelection({
+            version,
+            bookId: book.id,
+            chapter,
+            verseStart: verseStart ?? 1,
+            verseEnd: verseStart ? (verseEnd ?? verseStart) : Number.MAX_SAFE_INTEGER,
+            verses,
+          })
+        }
+      >
+        {loading && <Spinner size={16} />}
+        {error && <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.danger }}>{error}</span>}
+        {!loading && !error && (
+          <span style={{ fontFamily: fonts.ui, fontSize: 13.5, lineHeight: 1.55, color: colors.sub }}>
+            {preview.map((v) => v.t).join(" ")}
+          </span>
+        )}
+      </ResultRow>
     </div>
   );
 }
