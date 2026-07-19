@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import type { Song } from "../../types";
-import { C, UI } from "../../theme/tokens";
-import { Btn } from "../../components/ui/Button";
+import { colors, UI } from "../../theme/tokens";
+import { Button } from "../../components/ui/Button";
 import { Field, inputStyle, Range } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
 
@@ -37,17 +37,17 @@ export function LyricsModal({ open, onClose, song, onRegenerate }: LyricsModalPr
       width={640}
       footer={
         <>
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="primary" onClick={regenerate}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={regenerate}>
             <Sparkles size={15} />
             Regenerate slides
-          </Btn>
+          </Button>
         </>
       }
     >
-      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
         Tags:{" "}
-        <code style={{ color: C.goldSoft }}>
+        <code style={{ color: colors.accentSoft }}>
           [verse] [chorus] [bridge] [intro] [outro] [tag] [refrain] [pre-chorus]
         </code>
         . Repeated sections auto-number (Verse 1, Verse 2). No tags → blank lines become numbered
@@ -70,7 +70,7 @@ export function LyricsModal({ open, onClose, song, onRegenerate }: LyricsModalPr
           <Range value={maxLines} min={2} max={10} onChange={(e) => setMaxLines(Number(e.target.value))} />
         </Field>
       </div>
-      <p style={{ fontFamily: UI, fontSize: 12, color: C.danger, opacity: 0.85, margin: 0 }}>
+      <p style={{ fontFamily: UI, fontSize: 12, color: colors.danger, opacity: 0.85, margin: 0 }}>
         Regenerating rebuilds slides from lyrics and resets per-slide overrides.
       </p>
     </Modal>

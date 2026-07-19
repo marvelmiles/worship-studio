@@ -4,7 +4,7 @@ import type { ImageSettings, MediaItem } from "../../types";
 import { useStore } from "../../store/useStore";
 import { DEFAULT_IMAGE_SETTINGS, imageSettingsOf } from "../../lib/media";
 import { Modal } from "../../components/ui/Modal";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { Field, Select, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { AdjustmentControls } from "./AdjustmentControls";
@@ -56,15 +56,15 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
       width={760}
       footer={
         <>
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="ghost" onClick={() => setSettings(DEFAULT_IMAGE_SETTINGS)}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={() => setSettings(DEFAULT_IMAGE_SETTINGS)}>
             <Undo2 size={14} />
             Reset all
-          </Btn>
-          <Btn variant="primary" onClick={save}>
+          </Button>
+          <Button variant="primary" onClick={save}>
             <Save size={15} />
             Save
-          </Btn>
+          </Button>
         </>
       }
     >
@@ -74,7 +74,7 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
           aspectRatio: "16/9",
           borderRadius: 12,
           overflow: "hidden",
-          border: "1px solid rgba(228,210,180,0.12)",
+          border: "1px solid rgba(255,255,255,0.1)",
         }}
       >
         <ImageSurface item={item} settings={settings} />
@@ -88,30 +88,30 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
 
       <SectionTitle>Transform</SectionTitle>
       <div className="ws-row-wrap" style={{ marginBottom: 12 }}>
-        <Btn size="sm" variant="ghost" onClick={() => rotateBy(-90)}>
+        <Button size="sm" variant="ghost" onClick={() => rotateBy(-90)}>
           <RotateCcw size={14} />
           Rotate left
-        </Btn>
-        <Btn size="sm" variant="ghost" onClick={() => rotateBy(90)}>
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => rotateBy(90)}>
           <RotateCw size={14} />
           Rotate right
-        </Btn>
-        <Btn
+        </Button>
+        <Button
           size="sm"
           variant={settings.flipH ? "primary" : "ghost"}
           onClick={() => patch({ flipH: !settings.flipH })}
         >
           <FlipHorizontal2 size={14} />
           Flip H
-        </Btn>
-        <Btn
+        </Button>
+        <Button
           size="sm"
           variant={settings.flipV ? "primary" : "ghost"}
           onClick={() => patch({ flipV: !settings.flipV })}
         >
           <FlipVertical2 size={14} />
           Flip V
-        </Btn>
+        </Button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "0 16px" }}>
         <Field label="Screen fit">

@@ -49,7 +49,7 @@ export function Presentation() {
   } = useGoLive();
   const handleToggleLiveFullscreen = () => {
     void toggleLiveFullscreen().then((ok) => {
-      if (!ok) pushToast("Couldn't enter fullscreen remotely — click the fullscreen icon inside the projected window.");
+      if (!ok) pushToast("Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.");
     });
   };
   const fullscreenOverride = useMemo(
@@ -95,7 +95,7 @@ export function Presentation() {
   useEffect(() => {
     if (isExtended && !announced.current) {
       announced.current = true;
-      pushToast("External display detected — tap Go Live to project.");
+      pushToast("External display detected. Tap Go Live to project.");
     }
   }, [isExtended, pushToast]);
 
@@ -111,7 +111,7 @@ export function Presentation() {
       kind: deckKind,
       id: deckId,
       rev: deckRev,
-      idx: p.idx,
+      slideIndex: p.slideIndex,
       paused: p.paused,
       zoom: p.zoom,
       pan: p.pan,
@@ -119,7 +119,7 @@ export function Presentation() {
       media: p.isVideoSlide ? p.mediaPlayback : undefined,
     };
     channelRef.current?.postMessage({ type: "state", state: stateRef.current });
-  }, [deckKind, deckId, deckRev, p.idx, p.paused, p.zoom, p.pan.x, p.pan.y, p.pan, p.view, p.isVideoSlide, p.mediaPlayback]);
+  }, [deckKind, deckId, deckRev, p.slideIndex, p.paused, p.zoom, p.pan.x, p.pan.y, p.pan, p.view, p.isVideoSlide, p.mediaPlayback]);
 
   useEffect(() => {
     if (!live) return;
@@ -149,14 +149,14 @@ export function Presentation() {
     // Read from the current slide to the end, advancing the stage as each
     // slide's text begins. Verse-number prefixes and the trailing reference
     // line aren't spoken.
-    const startIdx = p.idx;
+    const startSlideIndex = p.slideIndex;
     const showRef = Boolean(p.doc && "showReference" in p.doc && (p.doc as ScripturePassage).showReference);
-    const chunks = p.slides.slice(startIdx).map((s) => {
+    const chunks = p.slides.slice(startSlideIndex).map((s) => {
       if (s.kind !== "text") return "";
       const lines = showRef && s.slide.lines.length > 1 ? s.slide.lines.slice(0, -1) : s.slide.lines;
       return lines.map((line) => line.replace(/^\d+\.\s*/, "")).join("\n");
     });
-    speech.speak(chunks, (i) => p.goTo(startIdx + i));
+    speech.speak(chunks, (i) => p.goTo(startSlideIndex + i));
   };
   const readToggleRef = useRef(handleToggleRead);
   readToggleRef.current = handleToggleRead;
@@ -170,13 +170,13 @@ export function Presentation() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (!deck || !p.cur || !p.frame) return null;
+  if (!deck || !p.currentSlide || !p.frame) return null;
 
   const controlsVisible = !p.prefs.autoHideControls || chromeActive;
   const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
 
   // Once live, zoom/pan/view only shape what's broadcast to the external
-  // popup — this window's own stage stays put so it can keep being used as
+  // popup, this window's own stage stays put so it can keep being used as
   // a console instead of mirroring the projected adjustments.
   const localZoom = live ? 1 : p.zoom;
   const localPan = live ? { x: 0, y: 0 } : p.pan;
@@ -192,13 +192,13 @@ export function Presentation() {
     if (result.ok) {
       pushToast("Live on the external display.");
     } else if (result.reason === "no-external") {
-      pushToast("No external display found — opened a presentation window, drag it to your projector.");
+      pushToast("No external display found. A presentation window was opened, drag it to your projector.");
     } else if (result.reason === "unsupported") {
-      pushToast("Multi-screen placement isn't supported here — opened a presentation window, drag it to your projector.");
+      pushToast("Multi-screen placement is not supported here. A presentation window was opened, drag it to your projector.");
     } else if (result.reason === "blocked") {
-      pushToast("Popup blocked — allow popups for this site to go live.");
+      pushToast("Popup blocked. Allow popups for this site to go live.");
     } else if (result.reason === "error") {
-      pushToast("Couldn't detect displays — opened a presentation window, drag it to your projector.");
+      pushToast("Could not detect displays. A presentation window was opened, drag it to your projector.");
     }
   };
 
@@ -214,8 +214,8 @@ export function Presentation() {
   };
 
   const currentLabel =
-    p.cur.kind === "text" ? p.cur.slide.label : p.cur.item.name;
-  const notes = p.cur.kind === "text" ? p.cur.slide.notes : "";
+    p.currentSlide.kind === "text" ? p.currentSlide.slide.label : p.currentSlide.item.name;
+  const notes = p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
 
   return (
     <div
@@ -228,7 +228,7 @@ export function Presentation() {
       style={{ position: "fixed", inset: 0, zIndex: 150, ...resolveRootBg(p.frame.backdrop, backdropBlobUrl) }}
     >
       <Stage
-        idx={p.idx}
+        slideIndex={p.slideIndex}
         content={p.frame.content}
         animation={p.frame.animation}
         view={localView}
@@ -293,7 +293,7 @@ export function Presentation() {
           notes={notes}
           nextFrame={p.nextFrame}
           endLabel={END_LABELS[deck.kind] || "End"}
-          idx={p.idx}
+          slideIndex={p.slideIndex}
           total={p.slides.length}
           elapsed={p.elapsed}
           paused={p.paused}

@@ -5,7 +5,7 @@ import { useThumbUrl } from "../../lib/blobUrls";
 /** CSS background value for gradient/solid/legacy-inline backgrounds. */
 export function swatchBackground(bg: Background): string {
   if (bg.type === "solid") return bg.color || "#111";
-  if (bg.type === "image") return bg.dataUrl ? `center/cover url(${bg.dataUrl})` : "#0a090d";
+  if (bg.type === "image") return bg.dataUrl ? `center/cover url(${bg.dataUrl})` : "#0a0a0c";
   return bg.css || "#111";
 }
 
@@ -26,8 +26,8 @@ export function BgSwatch({ bg, style, children }: BgSwatchProps) {
     ? bg.blobId
       ? blobUrl
         ? `center/cover url(${blobUrl})`
-        : "#0a090d"
+        : "#0a0a0c"
       : swatchBackground(bg)
-    : "#0a090d";
+    : "#0a0a0c";
   return <div style={{ background, ...style }}>{children}</div>;
 }

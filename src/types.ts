@@ -106,7 +106,7 @@ export interface ScripturePassage extends SlideDeckDoc {
   versesPerSlide: number;
   showVerseNumbers: boolean;
   showReference: boolean;
-  /** Ephemeral "present now" passage — hidden from the saved library. */
+  /** Ephemeral "present now" passage, hidden from the saved library. */
   quick?: boolean;
 }
 
@@ -142,7 +142,7 @@ export interface VideoSettings extends MediaAdjustments {
 }
 
 /**
- * Metadata only — the binary payload lives in the "files" store under this
+ * Metadata only, the binary payload lives in the "files" store under this
  * item's id (thumbnail under `${id}:thumb`) and is fetched on demand.
  */
 export interface MediaItem {

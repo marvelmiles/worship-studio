@@ -5,7 +5,7 @@ import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 
@@ -41,14 +41,19 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
       )}
 
       {list.length === 0 ? (
-        <EmptyState
-          icon={BookOpen}
-          message={
-            trashView
-              ? "No passages in the trash."
-              : "No saved passages yet — select verses in the reader and save them."
-          }
-        />
+        trashView ? (
+          <EmptyState
+            icon={Trash2}
+            title="Trash is empty"
+            message="Passages you delete are kept here until you remove them for good."
+          />
+        ) : (
+          <EmptyState
+            icon={BookOpen}
+            title="No saved passages yet"
+            message="Select verses in the reader and save them as styled slides you can present any time."
+          />
+        )
       ) : (
         <div className="ws-card-grid">
           {list.map((passage) => {
@@ -79,27 +84,27 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
                   <div className="ws-card-actions">
                     {trashView ? (
                       <>
-                        <Btn size="sm" variant="ghost" onClick={() => restoreScripture(passage.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => restoreScripture(passage.id)}>
                           <RotateCcw size={13} />
                           Restore
-                        </Btn>
-                        <Btn size="sm" variant="danger" onClick={() => deleteScripture(passage.id)}>
+                        </Button>
+                        <Button size="sm" variant="danger" onClick={() => deleteScripture(passage.id)}>
                           <Trash2 size={13} />
                           Delete
-                        </Btn>
+                        </Button>
                       </>
                     ) : (
                       <>
-                        <Btn size="sm" variant="primary" onClick={() => startPresent("scripture", passage.id)}>
+                        <Button size="sm" variant="primary" onClick={() => startPresent("scripture", passage.id)}>
                           <Play size={13} />
                           Present
-                        </Btn>
-                        <Btn size="sm" variant="ghost" onClick={() => navigate(`/scripture/${passage.id}`)}>
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/scripture/${passage.id}`)}>
                           <Pencil size={13} />
                           Edit
-                        </Btn>
+                        </Button>
                         <div style={{ marginLeft: "auto" }}>
-                          <IconBtn
+                          <IconButton
                             icon={Trash2}
                             title="Move to trash"
                             danger

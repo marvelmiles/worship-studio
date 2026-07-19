@@ -16,8 +16,8 @@ import type {
   Prefs,
 } from "../../types";
 import { useStore } from "../../store/useStore";
-import { fmtBytes } from "../../lib/storageStats";
-import { C, DISPLAY, UI } from "../../theme/tokens";
+import { formatBytes } from "../../lib/storageStats";
+import { fade, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import {
   Field,
@@ -27,7 +27,7 @@ import {
   Toggle,
   SectionTitle,
 } from "../../components/ui/Field";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
 
@@ -113,7 +113,7 @@ export function SettingsModal() {
     setBusy(null);
     if (result.ok) pushToast("Backup exported successfully.");
     else if (!result.cancelled)
-      pushToast("Export failed — please try again.", "error");
+      pushToast("Export failed. Please try again.", "error");
   };
 
   const chooseMode = (mode: ImportMode) => {
@@ -182,7 +182,7 @@ export function SettingsModal() {
           style={{
             fontFamily: UI,
             fontSize: 13,
-            color: C.sub,
+            color: colors.sub,
             marginTop: 0,
             lineHeight: 1.6,
           }}
@@ -273,15 +273,15 @@ export function SettingsModal() {
                     fontFamily: DISPLAY,
                     fontSize: 20,
                     fontWeight: 600,
-                    color: storage.level === "critical" ? C.danger : C.text,
+                    color: storage.level === "critical" ? colors.danger : colors.text,
                     lineHeight: 1,
                   }}
                 >
                   {Math.min(100, Math.round(storage.pct * 100))}%
                 </div>
-                <div style={{ fontFamily: UI, fontSize: 12, color: C.sub }}>
-                  {fmtBytes(storage.userUsed)} used — ~
-                  {fmtBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
+                <div style={{ fontFamily: UI, fontSize: 12, color: colors.sub }}>
+                  {formatBytes(storage.userUsed)} used, about{" "}
+                  {formatBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
                   free
                 </div>
               </div>
@@ -301,10 +301,10 @@ export function SettingsModal() {
                     borderRadius: 99,
                     background:
                       storage.level === "critical"
-                        ? "linear-gradient(90deg, #e0644f, #f08a78)"
+                        ? "linear-gradient(90deg, #ef4444, #f87171)"
                         : storage.level === "warn"
-                          ? `linear-gradient(90deg, ${C.gold}, ${C.goldSoft})`
-                          : "linear-gradient(90deg, #2f9e6a, #46c98a)",
+                          ? `linear-gradient(90deg, ${colors.accent}, ${colors.accentSoft})`
+                          : "linear-gradient(90deg, #22c55e, #4ade80)",
                     transition: "width 0.4s ease",
                   }}
                 />
@@ -318,13 +318,13 @@ export function SettingsModal() {
           style={{
             fontFamily: UI,
             fontSize: 13,
-            color: C.sub,
+            color: colors.sub,
             marginTop: 0,
             lineHeight: 1.6,
           }}
         >
-          Export everything — songs, scripture passages, images, videos, themes,
-          custom backgrounds, audio and settings — to a single backup file
+          Export everything (songs, scripture passages, images, videos, themes,
+          custom backgrounds, audio and settings) to a single backup file
           (.zip), then bring it back here on any device. Older JSON backups can
           still be imported.
         </p>
@@ -332,23 +332,24 @@ export function SettingsModal() {
           <div style={{ marginBottom: 14 }}>
             <ProgressBar
               value={progress}
-              label={busy === "export" ? "Exporting…" : "Importing…"}
+              label={busy === "export" ? "Exporting" : "Importing"}
             />
           </div>
         )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Btn variant="primary" onClick={runExport} disabled={Boolean(busy)}>
+          <Button variant="primary" onClick={runExport} busy={busy === "export"} disabled={busy === "import"}>
             <Download size={15} />
             Export Data
-          </Btn>
-          <Btn
+          </Button>
+          <Button
             variant="ghost"
             onClick={() => setShowImport((v) => !v)}
-            disabled={Boolean(busy)}
+            busy={busy === "import"}
+            disabled={busy === "export"}
           >
             <Upload size={15} />
             Import Data
-          </Btn>
+          </Button>
           <input
             ref={inputRef}
             type="file"
@@ -383,14 +384,14 @@ export function SettingsModal() {
                   borderRadius: 12,
                   cursor: "pointer",
                   textAlign: "left",
-                  background: C.raise,
-                  border: `1px solid ${C.border}`,
+                  background: colors.raise,
+                  border: `1px solid ${colors.border}`,
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.borderColor = "rgba(216,162,74,0.4)")
+                  (e.currentTarget.style.borderColor = fade(colors.accent, 0.4))
                 }
                 onMouseLeave={(e) =>
-                  (e.currentTarget.style.borderColor = C.border)
+                  (e.currentTarget.style.borderColor = colors.border)
                 }
               >
                 <div
@@ -400,8 +401,8 @@ export function SettingsModal() {
                     borderRadius: 9,
                     display: "grid",
                     placeItems: "center",
-                    background: "rgba(216,162,74,0.14)",
-                    color: C.goldSoft,
+                    background: fade(colors.accent, 0.14),
+                    color: colors.accentSoft,
                   }}
                 >
                   <option.icon size={17} />
@@ -411,7 +412,7 @@ export function SettingsModal() {
                     fontFamily: UI,
                     fontWeight: 600,
                     fontSize: 13.5,
-                    color: C.text,
+                    color: colors.text,
                   }}
                 >
                   {option.title}
@@ -420,7 +421,7 @@ export function SettingsModal() {
                   style={{
                     fontFamily: UI,
                     fontSize: 12,
-                    color: C.sub,
+                    color: colors.sub,
                     lineHeight: 1.45,
                   }}
                 >
@@ -436,13 +437,13 @@ export function SettingsModal() {
             style={{
               fontFamily: UI,
               fontSize: 12,
-              color: C.danger,
+              color: colors.danger,
               opacity: 0.85,
               marginTop: 12,
               marginBottom: 0,
             }}
           >
-            Storage is running in memory only — data won't persist after a
+            Storage is running in memory only, so data won't survive a
             refresh in this browser.
           </p>
         )}
@@ -452,15 +453,15 @@ export function SettingsModal() {
           style={{
             fontFamily: UI,
             fontSize: 13,
-            color: C.sub,
+            color: colors.sub,
             marginTop: 0,
             lineHeight: 1.6,
           }}
         >
-          Restore WorshipStudio to its original state — exactly like the first
+          Restore WorshipStudio to its original state, exactly like the first
           time you opened it.
         </p>
-        <Btn
+        <Button
           variant="danger"
           onClick={() => {
             setPhrase("");
@@ -469,7 +470,7 @@ export function SettingsModal() {
         >
           <RotateCcw size={15} />
           Reset App to Defaults
-        </Btn>
+        </Button>
       </Modal>
 
       {confirmReset && (
@@ -480,8 +481,8 @@ export function SettingsModal() {
           width={480}
           footer={
             <>
-              <Btn onClick={() => setConfirmReset(false)}>Cancel</Btn>
-              <Btn
+              <Button onClick={() => setConfirmReset(false)}>Cancel</Button>
+              <Button
                 variant="danger"
                 disabled={phrase.trim() !== RESET_PHRASE}
                 onClick={async () => {
@@ -491,7 +492,7 @@ export function SettingsModal() {
                 }}
               >
                 Reset everything
-              </Btn>
+              </Button>
             </>
           }
         >
@@ -501,21 +502,21 @@ export function SettingsModal() {
               gap: 12,
               padding: 14,
               borderRadius: 11,
-              background: "rgba(224,100,79,0.1)",
-              border: `1px solid rgba(224,100,79,0.3)`,
+              background: "rgba(239,68,68,0.1)",
+              border: `1px solid rgba(239,68,68,0.3)`,
               marginBottom: 16,
             }}
           >
             <AlertTriangle
               size={20}
-              color={C.danger}
+              color={colors.danger}
               style={{ flexShrink: 0, marginTop: 1 }}
             />
             <div
               style={{
                 fontFamily: UI,
                 fontSize: 13.5,
-                color: C.text,
+                color: colors.text,
                 lineHeight: 1.6,
               }}
             >
@@ -524,7 +525,7 @@ export function SettingsModal() {
                 all your songs, custom themes, backgrounds, audio, and settings
               </strong>
               , and restores the built-in defaults. You'll be treated as a
-              first-time user again. This can't be undone — export a backup
+              first-time user again. This can't be undone, so export a backup
               first if you want to keep anything.
             </div>
           </div>
@@ -532,13 +533,13 @@ export function SettingsModal() {
             style={{
               fontFamily: UI,
               fontSize: 13.5,
-              color: C.sub,
+              color: colors.sub,
               margin: "0 0 8px",
               lineHeight: 1.6,
             }}
           >
             Type{" "}
-            <code style={{ textTransform: "none", color: C.text }}>
+            <code style={{ textTransform: "none", color: colors.text }}>
               {RESET_PHRASE}
             </code>{" "}
             below to confirm (case-sensitive).

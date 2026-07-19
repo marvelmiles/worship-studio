@@ -1,4 +1,4 @@
-import { estimateQuota, sPut, storageState, sWipeAll } from "../../lib/storage";
+import { estimateQuota, saveRecord, storageState, wipeAllStores } from "../../lib/storage";
 import { APP_RESERVE_IDB, bytesOf, computeStorageInfo } from "../../lib/storageStats";
 import type { StorageInfo } from "../../lib/storageStats";
 import { BACKGROUNDS } from "../../data/backgrounds";
@@ -48,11 +48,11 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
   },
 
   freeUpStorage: async () => {
-    await sWipeAll();
+    await wipeAllStores();
     const songs = seedSongs();
-    for (const song of songs) await sPut("songs", song);
-    for (const theme of THEMES) await sPut("themes", theme);
-    await sPut("prefs", get().prefs);
+    for (const song of songs) await saveRecord("songs", song);
+    for (const theme of THEMES) await saveRecord("themes", theme);
+    await saveRecord("prefs", get().prefs);
     set({
       songs,
       scriptures: [],

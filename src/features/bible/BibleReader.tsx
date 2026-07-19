@@ -15,12 +15,13 @@ import {
 } from "lucide-react";
 import type { BibleVerse, BibleVersionId, PassageRange } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
-import { C, DISPLAY, UI, glass } from "../../theme/tokens";
+import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import type { SavePassageOptions, ScriptureSelection } from "../../store/useStore";
 import type { ScripturePassage } from "../../types";
 import { useSpeech } from "../../hooks/useSpeech";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
+import { Spinner } from "../../components/ui/Spinner";
 import { TextInput } from "../../components/ui/Field";
 import { useBibleChapter } from "./useBibleChapter";
 import { parseReference, formatRange, formatReference } from "./lib/reference";
@@ -36,9 +37,9 @@ interface BibleReaderProps {
   focusVerse?: number | null;
   onNavigate: (bookId: number, chapter: number) => void;
   /**
-   * Reports the verse the user is currently on — the first verse of their
+   * Reports the verse the user is currently on, the first verse of their
    * selection (null when they clear it), or the verse being spoken while
-   * reading aloud — so the page can remember where they stopped.
+   * reading aloud, so the page can remember where they stopped.
    */
   onCurrentVerseChange?: (verse: number | null) => void;
 }
@@ -95,7 +96,7 @@ export function BibleReader({
     : null;
   const selEnd = selection ? Math.max(selection.anchor, selection.focus) : null;
 
-  // Changing chapter normally clears the selection — unless a reference jump
+  // Changing chapter normally clears the selection, unless a reference jump
   // brought one along for the newly opened chapter.
   useEffect(() => {
     setSelection(pendingJumpSelection.current);
@@ -122,7 +123,7 @@ export function BibleReader({
   }, [selStart, onCurrentVerseChange]);
 
   // While reading aloud, the spoken verse is the user's place. Null (speech
-  // ended or was stopped) is deliberately not reported — the last spoken
+  // ended or was stopped) is deliberately not reported, the last spoken
   // verse stays remembered as where the reading stopped.
   useEffect(() => {
     if (readingVerse !== null) onCurrentVerseChange?.(readingVerse);
@@ -221,7 +222,7 @@ export function BibleReader({
     const parsed = parseReference(refInput);
     if (!parsed) {
       pushToast(
-        "Couldn't read that reference — try something like John 3:16-18.",
+        "Couldn't read that reference. Try something like John 3:16-18.",
         "error",
       );
       return;
@@ -234,7 +235,7 @@ export function BibleReader({
 
     const stayingInChapter = parsed.book.id === bookId && parsed.chapter === chapter;
     if (stayingInChapter) {
-      // Chapter is already rendered — select and scroll right away.
+      // Chapter is already rendered, select and scroll right away.
       setSelection(jumpSelection);
       verseRefs.current[firstVerse]?.scrollIntoView({
         behavior: "smooth",
@@ -322,14 +323,14 @@ export function BibleReader({
 
     const duplicates = findSavedDuplicates(scriptures, options);
     if (duplicates.length > 0) {
-      // Exactly this passage is already saved — nothing to do.
+      // Exactly this passage is already saved, nothing to do.
       if (duplicates.some((passage) => hasSameContent(passage, options))) {
         pushToast(
           `${formatReference(options.range, options.version)} is already in your passages.`,
         );
         return;
       }
-      // Same scripture, different content — let the user decide what to do.
+      // Same scripture, different content, let the user decide what to do.
       const mostRecent = duplicates.reduce((a, b) =>
         a.updatedAt > b.updatedAt ? a : b,
       );
@@ -376,20 +377,20 @@ export function BibleReader({
         <div style={{ position: "relative", flex: 1, minWidth: 190 }}>
           <TextInput
             value={refInput}
-            placeholder="Go to reference — e.g. John 3:16-18"
+            placeholder="Go to reference, like John 3:16-18"
             onChange={(e) => setRefInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") jumpToReference();
             }}
           />
         </div>
-        <Btn variant="ghost" onClick={jumpToReference} title="Go to reference">
+        <Button variant="ghost" onClick={jumpToReference} title="Go to reference">
           <ArrowRight size={15} />
           Go
-        </Btn>
+        </Button>
         <span style={{ flex: 1 }} />
         <div className="ws-row" style={{ gap: 6 }}>
-          <IconBtn
+          <IconButton
             icon={ListChecks}
             title={
               allSelected
@@ -400,7 +401,7 @@ export function BibleReader({
             onClick={toggleSelectAll}
           />
           {speech.supported && (
-            <IconBtn
+            <IconButton
               icon={speech.speaking ? Square : Volume2}
               title={speech.speaking ? "Stop reading" : "Read chapter aloud"}
               active={speech.speaking}
@@ -409,7 +410,7 @@ export function BibleReader({
               }
             />
           )}
-          <IconBtn
+          <IconButton
             icon={ChevronLeft}
             title="Previous chapter"
             onClick={() => goChapter(-1)}
@@ -419,14 +420,14 @@ export function BibleReader({
               fontFamily: DISPLAY,
               fontSize: 17,
               fontWeight: 600,
-              color: C.text,
+              color: colors.text,
               minWidth: 130,
               textAlign: "center",
             }}
           >
             {book?.name} {chapter}
           </span>
-          <IconBtn
+          <IconButton
             icon={ChevronRight}
             title="Next chapter"
             onClick={() => goChapter(1)}
@@ -444,15 +445,8 @@ export function BibleReader({
         }}
       >
         {loading && (
-          <div
-            style={{
-              padding: 40,
-              textAlign: "center",
-              fontFamily: UI,
-              color: C.dim,
-            }}
-          >
-            Loading {book?.name} {chapter} ({version})…
+          <div style={{ padding: 40, display: "grid", placeItems: "center" }}>
+            <Spinner size={26} />
           </div>
         )}
         {!loading && error && (
@@ -460,17 +454,17 @@ export function BibleReader({
             <p
               style={{
                 fontFamily: UI,
-                color: C.sub,
+                color: colors.sub,
                 marginTop: 0,
                 lineHeight: 1.6,
               }}
             >
               {error}
             </p>
-            <Btn variant="primary" onClick={retry}>
+            <Button variant="primary" onClick={retry}>
               <RotateCcw size={14} />
               Try again
-            </Btn>
+            </Button>
           </div>
         )}
         {!loading &&
@@ -501,13 +495,13 @@ export function BibleReader({
                   cursor: "pointer",
                   marginBottom: 2,
                   background: selected
-                    ? "rgba(216,162,74,0.13)"
+                    ? fade(colors.accent, 0.13)
                     : reading
                       ? "rgba(80,116,168,0.14)"
                       : "transparent",
                   border: `1px solid ${
                     selected
-                      ? "rgba(216,162,74,0.35)"
+                      ? fade(colors.accent, 0.35)
                       : reading
                         ? "rgba(120,160,220,0.4)"
                         : "transparent"
@@ -520,7 +514,7 @@ export function BibleReader({
                     fontFamily: UI,
                     fontSize: 12,
                     fontWeight: 700,
-                    color: selected ? C.gold : C.dim,
+                    color: selected ? colors.accent : colors.dim,
                     minWidth: 22,
                     textAlign: "right",
                     paddingTop: 3,
@@ -535,7 +529,7 @@ export function BibleReader({
                     fontSize: 15,
                     lineHeight: 1.65,
                     whiteSpace: "pre-line",
-                    color: selected || reading ? C.text : C.sub,
+                    color: selected || reading ? colors.text : colors.sub,
                   }}
                 >
                   {verse.t}
@@ -556,8 +550,8 @@ export function BibleReader({
             flexWrap: "wrap",
             padding: "10px 14px",
             borderRadius: 14,
-            background: "rgba(20,18,26,0.96)",
-            border: `1px solid ${C.borderStrong}`,
+            background: "rgba(22,19,36,0.72)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+            border: `1px solid ${colors.borderStrong}`,
             boxShadow: "0 14px 40px rgba(0,0,0,0.5)",
           }}
         >
@@ -566,7 +560,7 @@ export function BibleReader({
               fontFamily: UI,
               fontSize: 13.5,
               fontWeight: 600,
-              color: C.goldSoft,
+              color: colors.accentSoft,
             }}
           >
             {formatRange({
@@ -577,16 +571,16 @@ export function BibleReader({
               verseEnd: selEnd as number,
             })}
           </span>
-          <span style={{ fontFamily: UI, fontSize: 12, color: C.dim }}>
+          <span style={{ fontFamily: UI, fontSize: 12, color: colors.dim }}>
             {selectedVerses.length} verse
             {selectedVerses.length === 1 ? "" : "s"}
           </span>
           <span style={{ flex: 1 }} />
-          <Btn size="sm" variant="primary" onClick={() => presentSelection()}>
+          <Button size="sm" variant="primary" onClick={() => presentSelection()}>
             <Play size={13} />
             Present
-          </Btn>
-          <Btn
+          </Button>
+          <Button
             size="sm"
             variant="ghost"
             onClick={editSelection}
@@ -594,9 +588,9 @@ export function BibleReader({
           >
             <Pencil size={13} />
             Edit
-          </Btn>
+          </Button>
           {speech.supported && (
-            <Btn
+            <Button
               size="sm"
               variant="ghost"
               onClick={() =>
@@ -605,17 +599,17 @@ export function BibleReader({
             >
               {speech.speaking ? <Square size={13} /> : <Volume2 size={13} />}
               {speech.speaking ? "Stop" : "Read"}
-            </Btn>
+            </Button>
           )}
-          <Btn
+          <Button
             size="sm"
             variant="ghost"
             onClick={() => setPendingSave(buildSelection())}
           >
             <BookmarkPlus size={13} />
             Save passage
-          </Btn>
-          <IconBtn
+          </Button>
+          <IconButton
             icon={X}
             title="Clear selection"
             onClick={() => setSelection(null)}

@@ -25,7 +25,7 @@ interface FullscreenOverride {
 
 /**
  * `fullscreenOverride`, when given, redirects the fullscreen control (button
- * and the F shortcut) to some other target — used to fullscreen the Go Live
+ * and the F shortcut) to some other target, used to fullscreen the Go Live
  * popup on the external display instead of this window once live.
  */
 export function usePresentation(fullscreenOverride?: FullscreenOverride) {
@@ -38,7 +38,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const slides = useMemo(() => deck?.slides ?? [], [deck]);
   const bgMap = useBgMap();
 
-  const [idx, setIdx] = useState(presentation?.startIndex ?? 0);
+  const [slideIndex, setSlideIndex] = useState(presentation?.startIndex ?? 0);
   const [paused, setPaused] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -64,19 +64,19 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const isFullscreen = fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
   const toggleFullscreen = fullscreenOverride?.toggle ?? localFullscreen.toggle;
 
-  const cur = slides[idx];
-  const next = slides[idx + 1];
-  const frame = deck ? buildStageFrame(deck, cur, bgMap, prefs.transition) : null;
+  const currentSlide = slides[slideIndex];
+  const next = slides[slideIndex + 1];
+  const frame = deck ? buildStageFrame(deck, currentSlide, bgMap, prefs.transition) : null;
   const nextFrame = deck && next ? buildStageFrame(deck, next, bgMap, prefs.transition) : null;
 
   const doc = deck?.doc;
   const theme = deck?.theme;
-  const curTextSlide = cur?.kind === "text" ? cur.slide : undefined;
-  const isVideoSlide = cur?.kind === "video";
-  const curVideoItem = cur?.kind === "video" ? cur.item : undefined;
-  const videoSettings = curVideoItem ? videoSettingsOf(curVideoItem) : undefined;
+  const currentTextSlide = currentSlide?.kind === "text" ? currentSlide.slide : undefined;
+  const isVideoSlide = currentSlide?.kind === "video";
+  const currentVideoItem = currentSlide?.kind === "video" ? currentSlide.item : undefined;
+  const videoSettings = currentVideoItem ? videoSettingsOf(currentVideoItem) : undefined;
 
-  const audioId = doc ? resolveAudioId(curTextSlide, doc, theme) : null;
+  const audioId = doc ? resolveAudioId(currentTextSlide, doc, theme) : null;
   const audioItem = audio.find((a) => a.id === audioId);
   const autoPlay = doc ? resolveAutoPlay(doc, theme) : false;
   const slideDuration = resolveSlideDuration(doc, theme);
@@ -84,7 +84,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const go = useCallback(
     (delta: number) => {
       setPaused((isPaused) => {
-        if (!isPaused) setIdx((i) => Math.max(0, Math.min(slides.length - 1, i + delta)));
+        if (!isPaused) setSlideIndex((i) => Math.max(0, Math.min(slides.length - 1, i + delta)));
         return isPaused;
       });
     },
@@ -94,7 +94,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   const goTo = useCallback(
     (target: number) => {
       setPaused((isPaused) => {
-        if (!isPaused) setIdx(Math.max(0, Math.min(slides.length - 1, target)));
+        if (!isPaused) setSlideIndex(Math.max(0, Math.min(slides.length - 1, target)));
         return isPaused;
       });
     },
@@ -167,7 +167,7 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   );
 
   // A fresh video slide always starts playing from its trim point.
-  const curVideoId = curVideoItem?.id;
+  const curVideoId = currentVideoItem?.id;
   useEffect(() => {
     if (!curVideoId) return;
     setVideoTime(0);
@@ -287,10 +287,10 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
   useEffect(() => {
     if (!autoPlay || paused || slides.length < 2) return;
     const timer = window.setInterval(() => {
-      setIdx((i) => (i >= slides.length - 1 ? i : i + 1));
+      setSlideIndex((i) => (i >= slides.length - 1 ? i : i + 1));
     }, slideDuration * 1000);
     return () => window.clearInterval(timer);
-  }, [autoPlay, slideDuration, paused, slides.length, idx]);
+  }, [autoPlay, slideDuration, paused, slides.length, slideIndex]);
 
   useEffect(() => {
     if (paused) return;
@@ -321,8 +321,8 @@ export function usePresentation(fullscreenOverride?: FullscreenOverride) {
     slides,
     tagGroups,
     bgMap,
-    idx,
-    cur,
+    slideIndex,
+    currentSlide,
     next,
     frame,
     nextFrame,

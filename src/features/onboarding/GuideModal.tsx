@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { C, DISPLAY, UI } from "../../theme/tokens";
-import { Btn } from "../../components/ui/Button";
+import { fade, colors, DISPLAY, UI } from "../../theme/tokens";
+import { Button } from "../../components/ui/Button";
 
 const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
@@ -25,13 +25,13 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   },
   {
     icon: FileText,
-    title: "Lyrics become slides — then shape them",
-    desc: "Paste lyrics (optionally tagged [verse], [chorus], [bridge] — [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide — all from the slide inspector or by right-clicking a slide.",
+    title: "Lyrics become slides, then shape them",
+    desc: "Paste lyrics (optionally tagged [verse], [chorus] or [bridge]; [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide, all from the slide inspector or by right-clicking a slide.",
   },
   {
     icon: BookOpen,
     title: "Project scripture in seconds",
-    desc: "Open the Bible tab, pick a version (KJV or ASV), click verses to select them, and hit Present — or save the passage as styled slides you can edit like any song. The full text is built in, so the whole Bible works offline.",
+    desc: "Open the Bible tab, pick a version (KJV or ASV), click verses to select them, and hit Present, or save the passage as styled slides you can edit like any song. The full text is built in, so the whole Bible works offline.",
   },
   {
     icon: Film,
@@ -46,19 +46,19 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Palette,
     title: "Themes do the styling for you",
-    desc: "A theme is a saved look — font, text color, size, background, animation, even background audio — bundled together. Pick a theme in a song's settings and every slide in that song instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own from the palette icon; change a theme and the songs using it update to match. Any individual slide can still override the look in the inspector.",
+    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a song's settings and every slide in that song instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own from the palette icon; change a theme and the songs using it update to match. Any individual slide can still override the look in the inspector.",
   },
   {
     icon: WifiOff,
     title: "Install it & use it offline",
-    desc: "WorshipStudio can be installed straight from your browser — look for Install in the address bar, or “Add to Home Screen” on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.",
+    desc: "WorshipStudio can be installed straight from your browser. Look for Install in the address bar, or “Add to Home Screen” on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.",
   },
 ];
 
 const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
   { icon: HelpCircle, name: "About & Help", desc: "The story behind the app, FAQs, and how to reach me." },
   { icon: ImageIcon, name: "Asset Library", desc: "Manage background images, custom colors, and audio." },
-  { icon: Palette, name: "Themes", desc: "Create and edit looks — fonts, colors, background, animation, playback." },
+  { icon: Palette, name: "Themes", desc: "Create and edit looks: fonts, colors, background, animation, playback." },
   { icon: Keyboard, name: "Shortcuts", desc: "Every keyboard control available while presenting." },
   { icon: Settings, name: "Settings", desc: "Presentation options, transitions, audio, backup, and reset." },
 ];
@@ -100,12 +100,12 @@ export function GuideModal() {
           flexDirection: "column",
           borderRadius: 18,
           overflow: "hidden",
-          background: "rgba(20,18,26,0.98)",
-          border: `1px solid ${C.border}`,
+          background: "rgba(22,19,36,0.75)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+          border: `1px solid ${colors.border}`,
           boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
         }}
       >
-        <div style={{ padding: "22px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ padding: "22px 24px 16px", borderBottom: `1px solid ${colors.border}` }}>
           <div
             style={{
               fontFamily: UI,
@@ -113,12 +113,12 @@ export function GuideModal() {
               fontWeight: 700,
               letterSpacing: 0.6,
               textTransform: "uppercase",
-              color: C.gold,
+              color: colors.accent,
             }}
           >
             Welcome
           </div>
-          <h2 style={{ margin: "4px 0 0", fontFamily: DISPLAY, fontSize: 25, fontWeight: 600, color: C.text }}>
+          <h2 style={{ margin: "4px 0 0", fontFamily: DISPLAY, fontSize: 25, fontWeight: 600, color: colors.text }}>
             A quick tour of WorshipStudio
           </h2>
         </div>
@@ -127,7 +127,7 @@ export function GuideModal() {
           const el = e.currentTarget;
           if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setReachedEnd(true);
         }} style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-          <p style={{ fontFamily: UI, fontSize: 14, color: C.sub, lineHeight: 1.7, marginTop: 0 }}>
+          <p style={{ fontFamily: UI, fontSize: 14, color: colors.sub, lineHeight: 1.7, marginTop: 0 }}>
             WorshipStudio is a light, distraction-free studio for presenting songs, scripture,
             images and videos reliably. Here are a few things worth knowing before you start.
           </p>
@@ -142,28 +142,28 @@ export function GuideModal() {
                   borderRadius: 10,
                   display: "grid",
                   placeItems: "center",
-                  background: "rgba(216,162,74,0.14)",
-                  color: C.goldSoft,
+                  background: fade(colors.accent, 0.14),
+                  color: colors.accentSoft,
                 }}
               >
                 <tip.icon size={18} />
               </div>
               <div>
-                <div style={{ fontFamily: UI, fontSize: 14.5, fontWeight: 600, color: C.text }}>{tip.title}</div>
-                <div style={{ fontFamily: UI, fontSize: 13, color: C.sub, lineHeight: 1.6, marginTop: 2 }}>
+                <div style={{ fontFamily: UI, fontSize: 14.5, fontWeight: 600, color: colors.text }}>{tip.title}</div>
+                <div style={{ fontFamily: UI, fontSize: 13, color: colors.sub, lineHeight: 1.6, marginTop: 2 }}>
                   {tip.desc}
                 </div>
               </div>
             </div>
           ))}
 
-          <h3 style={{ fontFamily: DISPLAY, fontSize: 17, color: C.text, margin: "22px 0 12px" }}>
+          <h3 style={{ fontFamily: DISPLAY, fontSize: 17, color: colors.text, margin: "22px 0 12px" }}>
             What the header icons do
           </h3>
           {HEADER_ICONS.map((item) => (
             <div
               key={item.name}
-              style={{ display: "flex", alignItems: "center", gap: 13, padding: "9px 0", borderBottom: `1px solid ${C.border}` }}
+              style={{ display: "flex", alignItems: "center", gap: 13, padding: "9px 0", borderBottom: `1px solid ${colors.border}` }}
             >
               <div
                 style={{
@@ -173,21 +173,21 @@ export function GuideModal() {
                   borderRadius: 9,
                   display: "grid",
                   placeItems: "center",
-                  background: C.raise,
-                  color: C.text,
+                  background: colors.raise,
+                  color: colors.text,
                 }}
               >
                 <item.icon size={16} />
               </div>
               <div>
-                <div style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, color: C.text }}>{item.name}</div>
-                <div style={{ fontFamily: UI, fontSize: 12.5, color: C.sub, lineHeight: 1.5 }}>{item.desc}</div>
+                <div style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, color: colors.text }}>{item.name}</div>
+                <div style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub, lineHeight: 1.5 }}>{item.desc}</div>
               </div>
             </div>
           ))}
 
-          <p style={{ fontFamily: UI, fontSize: 13.5, color: C.sub, lineHeight: 1.7, margin: "20px 0 0" }}>
-            That's it — create a song from the dashboard or open the library to start. You can revisit
+          <p style={{ fontFamily: UI, fontSize: 13.5, color: colors.sub, lineHeight: 1.7, margin: "20px 0 0" }}>
+            That's it, create a song from the dashboard or open the library to start. You can revisit
             all of this anytime under About &amp; Help. Welcome aboard. ✝
           </p>
         </div>
@@ -199,15 +199,15 @@ export function GuideModal() {
             justifyContent: "space-between",
             gap: 12,
             padding: "14px 24px",
-            borderTop: `1px solid ${C.border}`,
+            borderTop: `1px solid ${colors.border}`,
           }}
         >
-          <span style={{ fontFamily: UI, fontSize: 12.5, color: reachedEnd ? C.dim : C.gold }}>
+          <span style={{ fontFamily: UI, fontSize: 12.5, color: reachedEnd ? colors.dim : colors.accent }}>
             {reachedEnd ? "You're all set." : "Scroll to the end to continue"}
           </span>
-          <Btn variant="primary" disabled={!reachedEnd} onClick={completeGuide}>
+          <Button variant="primary" disabled={!reachedEnd} onClick={completeGuide}>
             Understood
-          </Btn>
+          </Button>
         </div>
       </div>
     </div>

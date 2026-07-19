@@ -9,7 +9,7 @@ import { Stage } from "./Stage";
 
 /**
  * Renders in the popup window opened by Go Live. Mirrors whatever the
- * operator console is showing via BroadcastChannel — no controls, no
+ * operator console is showing via BroadcastChannel, no controls, no
  * presenter bar, just the stage that gets projected to the audience.
  */
 export function PresentWindow() {
@@ -31,7 +31,7 @@ export function PresentWindow() {
   }, []);
 
   useEffect(() => {
-    document.title = "WorshipStudio — Live";
+    document.title = "WorshipStudio · Live";
     document.body.style.background = "#000";
     document.body.style.margin = "0";
   }, []);
@@ -95,7 +95,7 @@ export function PresentWindow() {
     return () => window.clearTimeout(timer);
   }, [state, deck, load]);
 
-  const frame = deck && state ? buildStageFrame(deck, deck.slides[state.idx], bgMap, prefs.transition) : null;
+  const frame = deck && state ? buildStageFrame(deck, deck.slides[state.slideIndex], bgMap, prefs.transition) : null;
 
   const fullscreenButton = (
     <button
@@ -140,7 +140,7 @@ export function PresentWindow() {
       style={{ position: "fixed", inset: 0, background: "#000" }}
     >
       <Stage
-        idx={state.idx}
+        slideIndex={state.slideIndex}
         content={frame.content}
         animation={frame.animation}
         view={state.view}

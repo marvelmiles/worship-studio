@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { AlertTriangle, HardDrive, Trash2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { C, DISPLAY, UI } from "../../theme/tokens";
-import { Btn } from "./Button";
-import { fmtBytes } from "../../lib/storageStats";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { Button } from "./Button";
+import { formatBytes } from "../../lib/storageStats";
 
 export function StorageGate() {
   const storage = useStore((s) => s.storage);
@@ -29,7 +29,7 @@ export function StorageGate() {
         display: "grid",
         placeItems: "center",
         padding: 20,
-        background: "rgba(8,7,11,0.93)",
+        background: "rgba(0,0,0,0.9)",
         backdropFilter: "blur(10px)",
       }}
     >
@@ -39,8 +39,8 @@ export function StorageGate() {
           maxWidth: 480,
           borderRadius: 18,
           padding: 26,
-          background: "rgba(20,18,26,0.98)",
-          border: `1px solid ${C.border}`,
+          background: "rgba(22,19,36,0.75)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+          border: `1px solid ${colors.border}`,
           boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
         }}
       >
@@ -51,8 +51,8 @@ export function StorageGate() {
             borderRadius: 13,
             display: "grid",
             placeItems: "center",
-            background: "rgba(224,100,79,0.16)",
-            color: C.danger,
+            background: "rgba(239,68,68,0.16)",
+            color: colors.danger,
             marginBottom: 16,
           }}
         >
@@ -64,7 +64,7 @@ export function StorageGate() {
             fontFamily: DISPLAY,
             fontSize: 23,
             fontWeight: 600,
-            color: C.text,
+            color: colors.text,
           }}
         >
           Not enough storage space
@@ -73,14 +73,14 @@ export function StorageGate() {
           style={{
             fontFamily: UI,
             fontSize: 14,
-            color: C.sub,
+            color: colors.sub,
             lineHeight: 1.65,
             marginTop: 0,
           }}
         >
           Your browser hasn't given WorshipStudio enough room to run smoothly
           {storage.budget > 0
-            ? ` (about ${fmtBytes(storage.budget)} available)`
+            ? ` (about ${formatBytes(storage.budget)} available)`
             : ""}
           . To use the app you'll need to free up space in your browser, or
           upgrade to a newer browser version.
@@ -93,21 +93,21 @@ export function StorageGate() {
               gap: 11,
               padding: 14,
               borderRadius: 11,
-              background: "rgba(224,100,79,0.1)",
-              border: `1px solid rgba(224,100,79,0.3)`,
+              background: "rgba(239,68,68,0.1)",
+              border: `1px solid rgba(239,68,68,0.3)`,
               marginBottom: 16,
             }}
           >
             <AlertTriangle
               size={18}
-              color={C.danger}
+              color={colors.danger}
               style={{ flexShrink: 0, marginTop: 1 }}
             />
             <div
               style={{
                 fontFamily: UI,
                 fontSize: 13,
-                color: C.text,
+                color: colors.text,
                 lineHeight: 1.6,
               }}
             >
@@ -120,20 +120,20 @@ export function StorageGate() {
           </div>
         )}
 
-        <Btn
+        <Button
           variant="danger"
           onClick={onFree}
-          disabled={busy}
+          busy={busy}
           style={{ width: "100%", justifyContent: "center" }}
         >
           <Trash2 size={15} />
-          {busy ? "Freeing up space…" : "Free up storage"}
-        </Btn>
+          Free up storage
+        </Button>
         <p
           style={{
             fontFamily: UI,
             fontSize: 11.5,
-            color: C.dim,
+            color: colors.dim,
             marginTop: 10,
             marginBottom: 0,
             lineHeight: 1.5,

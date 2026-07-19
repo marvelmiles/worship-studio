@@ -1,5 +1,5 @@
 // Remembers where the reader stopped, so the Bible page can offer
-// "Continue — John 3:16" across visits. The verse is the last one the user
+// "Continue, John 3:16" across visits. The verse is the last one the user
 // had selected in the reader; when they read without selecting anything we
 // only remember the book and chapter. Stored in localStorage; falls back to
 // John 3 for first-time readers.
@@ -29,7 +29,7 @@ export function loadReadingPosition(): ReadingPosition {
       }
     }
   } catch {
-    /* corrupt or unavailable storage — start from the default */
+    /* corrupt or unavailable storage, start from the default */
   }
   return DEFAULT_POSITION;
 }
@@ -39,6 +39,6 @@ export function saveReadingPosition(position: ReadingPosition): void {
     const stamped: ReadingPosition = { ...position, at: new Date().toISOString() };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stamped));
   } catch {
-    /* non-fatal — the reader just won't remember its place */
+    /* non-fatal, the reader just won't remember its place */
   }
 }

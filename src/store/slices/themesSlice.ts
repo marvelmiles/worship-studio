@@ -1,6 +1,6 @@
 import type { Theme } from "../../types";
 import { now, uid } from "../../lib/id";
-import { sDel, sPut } from "../../lib/storage";
+import { deleteRecord, saveRecord } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
@@ -25,7 +25,7 @@ export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
         : [...state.themes, stamped];
       return { themes };
     });
-    void sPut("themes", stamped);
+    void saveRecord("themes", stamped);
     afterWrite(get);
   },
 
@@ -47,7 +47,7 @@ export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
     const theme = get().themes.find((t) => t.id === id);
     if (theme?.builtIn) return;
     set((state) => ({ themes: state.themes.filter((t) => t.id !== id) }));
-    void sDel("themes", id);
+    void deleteRecord("themes", id);
     afterDelete(get);
   },
 });

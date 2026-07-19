@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
-import { C, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "./Modal";
-import { Btn } from "./Button";
+import { Button } from "./Button";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -20,6 +20,8 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { colors, fonts } = useUITheme();
+  const UI = fonts.ui;
   return (
     <Modal
       open={open}
@@ -28,16 +30,16 @@ export function ConfirmDialog({
       width={440}
       footer={
         <>
-          <Btn onClick={onCancel}>Cancel</Btn>
-          <Btn variant="danger" onClick={onConfirm}>
+          <Button onClick={onCancel}>Cancel</Button>
+          <Button variant="danger" onClick={onConfirm}>
             {confirmLabel}
-          </Btn>
+          </Button>
         </>
       }
     >
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <AlertTriangle size={20} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
-        <p style={{ fontFamily: UI, fontSize: 13.5, color: C.text, lineHeight: 1.6, margin: 0 }}>
+        <AlertTriangle size={20} color={colors.danger} style={{ flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontFamily: UI, fontSize: 13.5, color: colors.text, lineHeight: 1.6, margin: 0 }}>
           {message}
         </p>
       </div>

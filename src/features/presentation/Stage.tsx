@@ -11,7 +11,7 @@ import { VideoSurface, type VideoSurfaceHandle } from "../../components/media/Vi
 import type { StageContent } from "./stageContent";
 
 interface StageProps {
-  idx: number;
+  slideIndex: number;
   content: StageContent;
   animation: AnimationKind;
   view: PresentationView;
@@ -49,7 +49,7 @@ function resolveBgStyle(background: Background | null, blobUrl: string | null): 
 }
 
 export function Stage({
-  idx,
+  slideIndex,
   content,
   animation,
   view,
@@ -109,7 +109,7 @@ export function Stage({
     >
       <AnimatePresence initial={false}>
         <motion.div
-          key={idx}
+          key={slideIndex}
           initial={variant.initial}
           animate={variant.animate}
           exit={{ opacity: 0 }}

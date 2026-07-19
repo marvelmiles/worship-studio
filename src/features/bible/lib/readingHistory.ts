@@ -19,7 +19,7 @@ const MAX_ENTRIES = 50;
 /**
  * Dedupe key. A chapter read and a verse-1 read are the same activity (verse 1
  * is where a chapter starts), but the stored entry keeps the verse the user's
- * latest interaction actually had — "Numbers 1:1" when they selected or read
+ * latest interaction actually had, "Numbers 1:1" when they selected or read
  * aloud that verse, "Numbers 1" when they just opened the chapter.
  */
 function eventKey(bookId: number, chapter: number, verse: number | null): string {
@@ -54,7 +54,7 @@ export function loadReadingHistory(): ReadingEvent[] {
       }
     }
   } catch {
-    /* corrupt or unavailable storage — treat as no history */
+    /* corrupt or unavailable storage, treat as no history */
   }
   // Users from before the history log existed still get their last position.
   const last = loadReadingPosition();
@@ -85,6 +85,6 @@ export function recordReading(position: {
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, MAX_ENTRIES)));
   } catch {
-    /* non-fatal — the dashboard just won't list this read */
+    /* non-fatal, the dashboard just won't list this read */
   }
 }

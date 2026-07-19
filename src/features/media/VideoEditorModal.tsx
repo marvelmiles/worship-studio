@@ -3,10 +3,10 @@ import { Save, TimerReset, Undo2 } from "lucide-react";
 import type { MediaItem, VideoSettings } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { buildFilter, DEFAULT_VIDEO_SETTINGS, fmtDuration, videoSettingsOf } from "../../lib/media";
-import { C, UI } from "../../theme/tokens";
+import { buildFilter, DEFAULT_VIDEO_SETTINGS, formatDuration, videoSettingsOf } from "../../lib/media";
+import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { Field, Range, Select, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
 import { AdjustmentControls } from "./AdjustmentControls";
 
@@ -67,15 +67,15 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
       width={760}
       footer={
         <>
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="ghost" onClick={() => setSettings(DEFAULT_VIDEO_SETTINGS)}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={() => setSettings(DEFAULT_VIDEO_SETTINGS)}>
             <Undo2 size={14} />
             Reset all
-          </Btn>
-          <Btn variant="primary" onClick={save}>
+          </Button>
+          <Button variant="primary" onClick={save}>
             <Save size={15} />
             Save
-          </Btn>
+          </Button>
         </>
       }
     >
@@ -85,7 +85,7 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
           aspectRatio: "16/9",
           borderRadius: 12,
           overflow: "hidden",
-          border: "1px solid rgba(228,210,180,0.12)",
+          border: "1px solid rgba(255,255,255,0.1)",
           background: "#000",
         }}
       >
@@ -112,12 +112,12 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
       </div>
 
       <SectionTitle>Trim</SectionTitle>
-      <p style={{ fontFamily: UI, fontSize: 12.5, color: C.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
-        Playback runs from the trim start to the trim end{duration ? ` (video is ${fmtDuration(duration)})` : ""}.
+      <p style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
+        Playback runs from the trim start to the trim end{duration ? ` (video is ${formatDuration(duration)})` : ""}.
         Scrub the preview, then capture the playhead.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12 }}>
-        <Field label={`Start — ${fmtDuration(settings.trimStart)}`}>
+        <Field label={`Start: ${formatDuration(settings.trimStart)}`}>
           <div className="ws-row">
             <TextInput
               type="number"
@@ -126,13 +126,13 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
               value={String(settings.trimStart)}
               onChange={(e) => patch({ trimStart: Math.max(0, Number(e.target.value) || 0) })}
             />
-            <Btn size="sm" variant="ghost" onClick={() => patch({ trimStart: playheadTime() })}>
+            <Button size="sm" variant="ghost" onClick={() => patch({ trimStart: playheadTime() })}>
               <TimerReset size={13} />
               Playhead
-            </Btn>
+            </Button>
           </div>
         </Field>
-        <Field label={`End — ${settings.trimEnd === null ? "full length" : fmtDuration(settings.trimEnd)}`}>
+        <Field label={`End: ${settings.trimEnd === null ? "full length" : formatDuration(settings.trimEnd)}`}>
           <div className="ws-row">
             <TextInput
               type="number"
@@ -144,10 +144,10 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
                 patch({ trimEnd: e.target.value === "" ? null : Math.max(0, Number(e.target.value) || 0) })
               }
             />
-            <Btn size="sm" variant="ghost" onClick={() => patch({ trimEnd: playheadTime() })}>
+            <Button size="sm" variant="ghost" onClick={() => patch({ trimEnd: playheadTime() })}>
               <TimerReset size={13} />
               Playhead
-            </Btn>
+            </Button>
           </div>
         </Field>
       </div>

@@ -3,12 +3,12 @@ import { useLocation } from "react-router-dom";
 import { ArrowLeft, BookOpen, Bookmark, ChevronRight, Trash2 } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_VERSIONS, bookById } from "../../data/bibleBooks";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { Select } from "../../components/ui/Field";
 import { BibleReader } from "./BibleReader";
 import { SavedPassages } from "./SavedPassages";
@@ -24,12 +24,12 @@ type BibleTab = "read" | "saved";
 /** Drill-down steps of the read tab: books → chapters → verses → reading. */
 type ReadStep = "books" | "chapters" | "verses" | "read";
 
-const versionOptions = BIBLE_VERSIONS.map((v) => ({ value: v.id, label: `${v.id} — ${v.name}` }));
+const versionOptions = BIBLE_VERSIONS.map((v) => ({ value: v.id, label: `${v.id} · ${v.name}` }));
 
 /**
  * The Bible page. The "Read" tab is a four-step drill-down (pick a book →
  * chapter → verse → read); the "Saved" tab lists stored passages. This
- * component only coordinates which step is visible and where the reader is —
+ * component only coordinates which step is visible and where the reader is,
  * each step renders in its own component, and all verse text comes from the
  * offline data layer via the useBibleChapter / useBibleSearch hooks.
  */
@@ -59,7 +59,7 @@ export function BiblePage() {
   }, [step, readingPosition]);
 
   // Deep-links (e.g. dashboard activities) jump straight into the reader at a
-  // given position — focusing its verse, or verse 1 for a whole-chapter read.
+  // given position, focusing its verse, or verse 1 for a whole-chapter read.
   const location = useLocation();
   const readTarget = (
     location.state as {
@@ -145,10 +145,10 @@ export function BiblePage() {
     fontFamily: UI,
     fontSize: 13.5,
     fontWeight: 600,
-    color: C.sub,
+    color: colors.sub,
   };
-  const crumbCurrent: CSSProperties = { ...crumbBtn, cursor: "default", color: C.goldSoft };
-  const crumbSep = <ChevronRight size={13} color={C.dim} style={{ flexShrink: 0 }} />;
+  const crumbCurrent: CSSProperties = { ...crumbBtn, cursor: "default", color: colors.accentSoft };
+  const crumbSep = <ChevronRight size={13} color={colors.dim} style={{ flexShrink: 0 }} />;
 
   const readView = (
     <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
@@ -159,10 +159,10 @@ export function BiblePage() {
           gap: 8,
           marginBottom: 14,
           paddingBottom: 12,
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        {step !== "books" && <IconBtn icon={ArrowLeft} title="Back" onClick={goBack} />}
+        {step !== "books" && <IconButton icon={ArrowLeft} title="Back" onClick={goBack} />}
         <div className="ws-row" style={{ gap: 6, alignItems: "center", flexWrap: "wrap", minWidth: 0 }}>
           <button style={step === "books" ? crumbCurrent : crumbBtn} onClick={() => setStep("books")}>
             Books
@@ -254,7 +254,7 @@ export function BiblePage() {
     <div className="ws-page" style={{ display: "flex", flexDirection: "column", height: "100%", maxHeight: "100%" }}>
       <PageHeader
         title="Bible"
-        subtitle="Read, project and save scripture — KJV and ASV, built in and fully offline."
+        subtitle="Read, project and save scripture, KJV and ASV, built in and fully offline."
         actions={
           <>
             <PillTabs<BibleTab>
@@ -269,10 +269,10 @@ export function BiblePage() {
               }}
             />
             {tab === "saved" && (
-              <Btn variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView((v) => !v)}>
+              <Button variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView((v) => !v)}>
                 <Trash2 size={15} />
                 {trashView ? "Passages" : "Trash"}
-              </Btn>
+              </Button>
             )}
           </>
         }

@@ -7,7 +7,7 @@ export type OverlayName = "assets" | "settings" | "themes" | "shortcuts" | "abou
 
 export interface UiSlice {
   overlay: OverlayName | null;
-  /** Optional target inside the overlay — e.g. a theme id or an assets tab. */
+  /** Optional target inside the overlay, e.g. a theme id or an assets tab. */
   overlayContext: string | null;
   toasts: Toast[];
   alerts: AppAlert[];

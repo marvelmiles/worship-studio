@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Settings2, Type } from "lucide-react";
 import type { Song } from "../../types";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { useDeckEditor } from "./useDeckEditor";
 import { DeckWorkspace } from "./DeckWorkspace";
 import { LyricsModal } from "./LyricsModal";
@@ -39,32 +39,32 @@ export function EditorWorkspace({ song }: { song: Song }) {
       topBarActions={(compact) =>
         compact ? (
           <>
-            <IconBtn icon={Type} title="Edit lyrics" onClick={() => setLyricsOpen(true)} />
-            <IconBtn icon={Settings2} title="Song settings" onClick={() => setSettingsOpen(true)} />
+            <IconButton icon={Type} title="Edit lyrics" onClick={() => setLyricsOpen(true)} />
+            <IconButton icon={Settings2} title="Song settings" onClick={() => setSettingsOpen(true)} />
           </>
         ) : (
           <>
-            <Btn variant="ghost" size="sm" onClick={() => setLyricsOpen(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setLyricsOpen(true)}>
               <Type size={14} />
               Lyrics
-            </Btn>
-            <Btn variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <Settings2 size={14} />
               Song Settings
-            </Btn>
+            </Button>
           </>
         )
       }
       emptyState={
         <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
           <div style={{ textAlign: "center", maxWidth: 320 }}>
-            <p style={{ fontFamily: UI, color: C.sub, lineHeight: 1.6 }}>
+            <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
               This song has no slides yet. Add lyrics to generate slides automatically.
             </p>
-            <Btn variant="primary" onClick={() => setLyricsOpen(true)}>
+            <Button variant="primary" onClick={() => setLyricsOpen(true)}>
               <Type size={15} />
               Edit lyrics
-            </Btn>
+            </Button>
           </div>
         </div>
       }

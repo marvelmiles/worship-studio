@@ -67,7 +67,7 @@ export function buildImageTransform(settings: ImageSettings): string {
 export const sortMediaByRecency = (a: MediaItem, b: MediaItem): number =>
   b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : 0;
 
-export function fmtDuration(seconds?: number): string {
+export function formatDuration(seconds?: number): string {
   if (seconds === undefined || !Number.isFinite(seconds)) return "";
   const total = Math.round(seconds);
   const m = Math.floor(total / 60);

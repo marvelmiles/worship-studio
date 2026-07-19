@@ -1,7 +1,7 @@
 import { AlertTriangle, Info, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AppAlert } from "../../types";
-import { UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 
 const STYLES: Record<
@@ -9,26 +9,28 @@ const STYLES: Record<
   { bg: string; border: string; color: string; icon: LucideIcon }
 > = {
   error: {
-    bg: "rgba(224,100,79,0.16)",
-    border: "rgba(224,100,79,0.45)",
-    color: "#ffd9d0",
+    bg: "rgba(239,68,68,0.16)",
+    border: "rgba(239,68,68,0.45)",
+    color: "#fecaca",
     icon: AlertTriangle,
   },
   warning: {
-    bg: "rgba(216,162,74,0.16)",
-    border: "rgba(216,162,74,0.42)",
-    color: "#f4e2c0",
+    bg: "rgba(251,113,133,0.14)",
+    border: "rgba(251,113,133,0.4)",
+    color: "#fecdd3",
     icon: AlertTriangle,
   },
   info: {
-    bg: "rgba(120,160,220,0.16)",
-    border: "rgba(120,160,220,0.42)",
-    color: "#dbe7ff",
+    bg: "rgba(96,165,250,0.14)",
+    border: "rgba(96,165,250,0.4)",
+    color: "#dbeafe",
     icon: Info,
   },
 };
 
 export function AlertBar() {
+  const { fonts } = useUITheme();
+  const UI = fonts.ui;
   const alerts = useStore((s) => s.alerts);
   const dismissAlert = useStore((s) => s.dismissAlert);
   if (alerts.length === 0) return null;

@@ -1,31 +1,23 @@
-import type { CSSProperties } from "react";
+/** Compatibility layer over the UI theme system.
+ *
+ *  The single source of truth for the app's look is src/theme/uiTheme.ts,
+ *  served to components through the useUITheme() hook (src/theme/ThemeProvider).
+ *  These re-exports keep older modules and module-level style constants working;
+ *  new or touched components should call useUITheme() instead. */
+import { midnightTheme } from "./uiTheme";
 
-export const C = {
-  bg: "#0b0a0e",
-  bg2: "#100f15",
-  panel: "rgba(24,22,31,0.62)",
-  panelSolid: "#17151f",
-  raise: "rgba(40,37,50,0.5)",
-  border: "rgba(228,210,180,0.12)",
-  borderStrong: "rgba(228,210,180,0.24)",
-  gold: "#d8a24a",
-  goldSoft: "#ecc784",
-  text: "#f3efe6",
-  sub: "#a8a194",
-  dim: "#6e685e",
-  danger: "#e0644f",
-} as const;
+export { fade, chartColor } from "./uiTheme";
+export type { UITheme, UIThemeColors } from "./uiTheme";
+export { midnightTheme } from "./uiTheme";
 
-export const glass: CSSProperties = {
-  background: C.panel,
-  backdropFilter: "blur(14px)",
-  WebkitBackdropFilter: "blur(14px)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 16,
-};
+export const colors = midnightTheme.colors;
 
-export const UI = "Outfit, ui-sans-serif, system-ui, sans-serif";
-export const DISPLAY = "Fraunces, Georgia, serif";
+/** Frosted glass surface: translucent indigo over the ambient gradient,
+ *  heavy blur + saturation, light top edge highlight. */
+export const glass = midnightTheme.glass;
+
+export const UI = midnightTheme.fonts.ui;
+export const DISPLAY = midnightTheme.fonts.display;
 
 export const FONTS = [
   "Fraunces",

@@ -16,12 +16,16 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Background } from "../../types";
-import { C, CATEGORIES, DISPLAY, glass, UI } from "../../theme/tokens";
+import { CATEGORIES, fade } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
-import { fmtDate } from "../../lib/id";
-import { fmtBytes } from "../../lib/storageStats";
+import { useViewport } from "../../hooks/useViewport";
+import { TimeOfDayScene, type DayPeriod } from "./TimeOfDayScene";
+import { formatDate } from "../../lib/id";
+import { formatBytes } from "../../lib/storageStats";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { BgSwatch } from "../../components/controls/BgSwatch";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { bookById } from "../../data/bibleBooks";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
 
@@ -32,7 +36,7 @@ interface UsedItem {
   bg?: Background;
 }
 
-type MostTab = "background" | "theme" | "sound";
+type UsageTab = "background" | "theme" | "sound";
 
 /** One row in the Recent Activities feed, gathered from every module. */
 interface Activity {
@@ -60,29 +64,42 @@ function timeAgo(iso: string): string {
   if (h < 24) return `${h}h ago`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
-  return fmtDate(iso);
+  return formatDate(iso);
 }
 
-function greeting(): { heading: string; tag: string } {
+function greeting(): {
+  label: string;
+  heading: string;
+  tag: string;
+  period: DayPeriod;
+} {
   const h = new Date().getHours();
   if (h >= 5 && h < 12)
     return {
-      heading: "Good morning",
-      tag: "A fresh start — let's prepare something beautiful.",
+      label: "Good morning! 👋",
+      heading: "Rise and shine",
+      tag: "A fresh start. Let's prepare something beautiful.",
+      period: "morning",
     };
   if (h >= 12 && h < 17)
     return {
-      heading: "Good afternoon",
+      label: "Good afternoon! 👋",
+      heading: "Keep the momentum going",
       tag: "A great moment to polish your set and get ahead.",
+      period: "afternoon",
     };
   if (h >= 17 && h < 22)
     return {
-      heading: "Good evening",
+      label: "Good evening! 👋",
+      heading: "Almost service time",
       tag: "Let's get everything ready for a smooth service.",
+      period: "evening",
     };
   return {
+    label: "Hello, night owl! 👋",
     heading: "Burning the midnight oil",
     tag: "The quiet hours are perfect for getting things done.",
+    period: "night",
   };
 }
 
@@ -94,6 +111,10 @@ function rank(counts: Record<string, number>): [string, number][] {
 
 export function Dashboard() {
   useDocumentTitle("Dashboard · WorshipStudio");
+  const theme = useUITheme();
+  const { colors, glass, gradients, charts, controls } = theme;
+  const UI = theme.fonts.ui;
+  const DISPLAY = theme.fonts.display;
   const navigate = useNavigate();
   const songs = useStore((s) => s.songs);
   const scriptures = useStore((s) => s.scriptures);
@@ -110,28 +131,30 @@ export function Dashboard() {
     void refreshStorage();
   }, [refreshStorage]);
 
-  const [mostTab, setMostTab] = useState<MostTab>("background");
-  const { heading, tag } = useMemo(greeting, []);
+  const [usageTab, setUsageTab] = useState<UsageTab>("background");
+  const { label, heading, tag, period } = useMemo(greeting, []);
+  const { width } = useViewport();
+  const showScene = width >= 640;
 
-  const active = useMemo(() => songs.filter((s) => !s.deleted), [songs]);
-  const totalSlides = active.reduce((n, s) => n + (s.slides?.length || 0), 0);
-  const byCat = CATEGORIES.map((c) => ({
+  const activeSongs = useMemo(() => songs.filter((s) => !s.deleted), [songs]);
+  const totalSlides = activeSongs.reduce((n, s) => n + (s.slides?.length || 0), 0);
+  const songsByCategory = CATEGORIES.map((c) => ({
     name: c,
-    n: active.filter((s) => s.category === c).length,
-  })).filter((x) => x.n > 0);
-  const maxCat = Math.max(1, ...byCat.map((x) => x.n));
+    count: activeSongs.filter((s) => s.category === c).length,
+  })).filter((x) => x.count > 0);
+  const largestCategoryCount = Math.max(1, ...songsByCategory.map((x) => x.count));
 
-  const bgMap = useMemo(() => {
+  const backgroundById = useMemo(() => {
     const map: Record<string, Background> = {};
     for (const bg of backgrounds) map[bg.id] = bg;
     return map;
   }, [backgrounds]);
 
-  const mostUsed = useMemo<Record<MostTab, UsedItem[]>>(() => {
+  const mostUsed = useMemo<Record<UsageTab, UsedItem[]>>(() => {
     const themeUse: Record<string, number> = {};
     const bgUse: Record<string, number> = {};
     const soundUse: Record<string, number> = {};
-    for (const s of active) {
+    for (const s of activeSongs) {
       if (s.defaultThemeId)
         themeUse[s.defaultThemeId] = (themeUse[s.defaultThemeId] || 0) + 1;
       if (s.defaultBackgroundId)
@@ -146,11 +169,11 @@ export function Dashboard() {
           id,
           count,
           name: t?.name || "Unknown",
-          bg: t ? bgMap[t.backgroundId] : undefined,
+          bg: t ? backgroundById[t.backgroundId] : undefined,
         };
       }),
       background: rank(bgUse).map(([id, count]) => {
-        const bg = bgMap[id];
+        const bg = backgroundById[id];
         return { id, count, name: bg?.name || "Unknown", bg };
       }),
       sound: rank(soundUse).map(([id, count]) => {
@@ -158,12 +181,12 @@ export function Dashboard() {
         return { id, count, name: a?.name || "Unknown" };
       }),
     };
-  }, [active, themes, audio, bgMap]);
+  }, [activeSongs, themes, audio, backgroundById]);
 
   const activities = useMemo<Activity[]>(() => {
     const list: Activity[] = [];
 
-    for (const s of active) {
+    for (const s of activeSongs) {
       list.push({
         key: `song:${s.id}`,
         title: s.title,
@@ -258,7 +281,7 @@ export function Dashboard() {
     }
 
     return list.sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 15);
-  }, [active, scriptures, media, audio, themes, backgrounds, navigate, openOverlay]);
+  }, [activeSongs, scriptures, media, audio, themes, backgrounds, navigate, openOverlay]);
 
   const onNew = () => {
     const created = createSong();
@@ -269,37 +292,42 @@ export function Dashboard() {
   const imageCount = media.filter((m) => m.kind === "image").length;
   const videoCount = media.filter((m) => m.kind === "video").length;
 
-  const stats: { label: string; value: number; icon: LucideIcon }[] = [
-    { label: "Songs", value: active.length, icon: Music },
-    { label: "Slides", value: totalSlides, icon: Layers },
-    { label: "Passages", value: savedPassages, icon: BookOpen },
-    { label: "Images", value: imageCount, icon: ImageIcon },
-    { label: "Videos", value: videoCount, icon: Film },
-    { label: "Themes", value: themes.length, icon: Palette },
-    { label: "Sounds", value: audio.length, icon: Volume2 },
+  const stats: { label: string; value: number; icon: LucideIcon; color: string }[] = [
+    { label: "Songs", value: activeSongs.length, icon: Music, color: charts[0] },
+    { label: "Slides", value: totalSlides, icon: Layers, color: charts[1] },
+    { label: "Passages", value: savedPassages, icon: BookOpen, color: charts[2] },
+    { label: "Images", value: imageCount, icon: ImageIcon, color: charts[3] },
+    { label: "Videos", value: videoCount, icon: Film, color: charts[4] },
+    { label: "Themes", value: themes.length, icon: Palette, color: charts[5] },
+    { label: "Sounds", value: audio.length, icon: Volume2, color: charts[6] },
   ];
   const actions: {
     label: string;
+    sub: string;
     icon: LucideIcon;
-    fn: () => void;
+    onClick: () => void;
     primary?: boolean;
   }[] = [
-    { label: "New Song", icon: Plus, fn: onNew, primary: true },
-    { label: "Open Bible", icon: BookOpen, fn: () => navigate("/bible") },
-    { label: "Song Library", icon: Music, fn: () => navigate("/songs") },
-    { label: "Images", icon: ImageIcon, fn: () => navigate("/images") },
-    { label: "Videos", icon: Film, fn: () => navigate("/videos") },
-    { label: "Manage Themes", icon: Palette, fn: () => openOverlay("themes") },
-    { label: "Upload Assets", icon: Upload, fn: () => openOverlay("assets") },
+    { label: "New Song", sub: "Create a new song", icon: Plus, onClick: onNew, primary: true },
+    { label: "Open Bible", sub: "Browse Bible", icon: BookOpen, onClick: () => navigate("/bible") },
+    { label: "Song Library", sub: "View all songs", icon: Music, onClick: () => navigate("/songs") },
+    { label: "Images", sub: "Manage images", icon: ImageIcon, onClick: () => navigate("/images") },
+    { label: "Videos", sub: "Manage videos", icon: Film, onClick: () => navigate("/videos") },
+    { label: "Manage Themes", sub: "Customize themes", icon: Palette, onClick: () => openOverlay("themes") },
+    { label: "Upload Assets", sub: "Add your media", icon: Upload, onClick: () => openOverlay("assets") },
   ];
 
-  const mostTabs: { id: MostTab; label: string }[] = [
+  /** Category → bar color, matching the mockup's distinct hues per row. */
+  const categoryColor = (name: string) =>
+    charts[Math.max(0, CATEGORIES.indexOf(name)) % charts.length];
+
+  const usageTabs: { id: UsageTab; label: string }[] = [
     { id: "background", label: "Backgrounds" },
     { id: "theme", label: "Themes" },
     { id: "sound", label: "Sounds" },
   ];
-  const mostList = mostUsed[mostTab];
-  const maxUse = Math.max(1, ...mostList.map((m) => m.count));
+  const mostUsedList = mostUsed[usageTab];
+  const highestUseCount = Math.max(1, ...mostUsedList.map((m) => m.count));
 
   return (
     <div
@@ -309,31 +337,68 @@ export function Dashboard() {
         margin: "0 auto",
       }}
     >
-      <div style={{ marginBottom: 26 }}>
-        <p
-          style={{
-            margin: 0,
-            color: C.gold,
-            fontFamily: UI,
-            fontWeight: 600,
-            letterSpacing: 1.2,
-            fontSize: 12,
-          }}
-        >
-          {tag}
-        </p>
-        <h1
-          style={{
-            margin: "4px 0 0",
-            fontFamily: DISPLAY,
-            fontSize: "clamp(26px,5vw,38px)",
-            fontWeight: 600,
-            color: C.text,
-            letterSpacing: -0.5,
-          }}
-        >
-          {heading}
-        </h1>
+      <div
+        style={{
+          position: "relative",
+          marginBottom: 26,
+          minHeight: showScene ? "clamp(120px,16vw,190px)" : undefined,
+        }}
+      >
+        {showScene && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              top: "clamp(-32px,-3vw,-18px)",
+              right: "clamp(-36px,-4vw,-14px)",
+              bottom: -14,
+              width: "min(58%,660px)",
+              pointerEvents: "none",
+              maskImage:
+                "radial-gradient(120% 120% at 100% 10%, black 50%, transparent 98%)",
+              WebkitMaskImage:
+                "radial-gradient(120% 120% at 100% 10%, black 50%, transparent 98%)",
+            }}
+          >
+            <TimeOfDayScene period={period} />
+          </div>
+        )}
+        <div style={{ position: "relative" }}>
+          <p
+            style={{
+              margin: 0,
+              color: colors.accent,
+              fontFamily: UI,
+              fontWeight: 600,
+              letterSpacing: 1.2,
+              fontSize: 13,
+            }}
+          >
+            {label}
+          </p>
+          <h1
+            style={{
+              margin: "6px 0 0",
+              fontFamily: DISPLAY,
+              fontSize: "clamp(28px,5.5vw,44px)",
+              fontWeight: 600,
+              color: colors.text,
+              letterSpacing: -0.5,
+            }}
+          >
+            {heading}
+          </h1>
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontFamily: UI,
+              fontSize: 14.5,
+              color: colors.sub,
+            }}
+          >
+            {tag}
+          </p>
+        </div>
       </div>
 
       <div
@@ -346,20 +411,28 @@ export function Dashboard() {
       >
         {stats.map((s) => (
           <div key={s.label} style={{ ...glass, padding: "18px 20px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-              }}
-            >
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  display: "grid",
+                  placeItems: "center",
+                  background: fade(s.color, 0.13),
+                  color: s.color,
+                  flexShrink: 0,
+                }}
+              >
+                <s.icon size={20} />
+              </div>
               <div>
                 <div
                   style={{
                     fontFamily: DISPLAY,
-                    fontSize: 34,
+                    fontSize: 30,
                     fontWeight: 600,
-                    color: C.text,
+                    color: colors.text,
                     lineHeight: 1,
                   }}
                 >
@@ -369,25 +442,12 @@ export function Dashboard() {
                   style={{
                     fontFamily: UI,
                     fontSize: 13,
-                    color: C.sub,
-                    marginTop: 6,
+                    color: colors.sub,
+                    marginTop: 5,
                   }}
                 >
                   {s.label}
                 </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 11,
-                  display: "grid",
-                  placeItems: "center",
-                  background: "rgba(216,162,74,0.12)",
-                  color: C.goldSoft,
-                }}
-              >
-                <s.icon size={19} />
               </div>
             </div>
           </div>
@@ -423,16 +483,16 @@ export function Dashboard() {
                     placeItems: "center",
                     background:
                       storage.level === "critical"
-                        ? "rgba(224,100,79,0.14)"
+                        ? "rgba(239,68,68,0.14)"
                         : storage.level === "warn"
-                          ? "rgba(216,162,74,0.14)"
-                          : "rgba(63,191,127,0.14)",
+                          ? "rgba(251,113,133,0.14)"
+                          : "rgba(74,222,128,0.14)",
                     color:
                       storage.level === "critical"
-                        ? C.danger
+                        ? colors.danger
                         : storage.level === "warn"
-                          ? "#e0a64f"
-                          : "#46c98a",
+                          ? "#fb7185"
+                          : "#4ade80",
                     flexShrink: 0,
                   }}
                 >
@@ -444,7 +504,7 @@ export function Dashboard() {
                       fontFamily: UI,
                       fontWeight: 600,
                       fontSize: 14,
-                      color: C.text,
+                      color: colors.text,
                     }}
                   >
                     Storage used
@@ -453,14 +513,14 @@ export function Dashboard() {
                     style={{
                       fontFamily: UI,
                       fontSize: 12,
-                      color: C.sub,
+                      color: colors.sub,
                       marginTop: 2,
                     }}
                   >
                     {storage.blocked
-                      ? "Storage full — delete songs, audio or backgrounds to continue"
+                      ? "Storage full. Delete songs, audio or backgrounds to continue"
                       : storage.level === "critical"
-                        ? "Critical — free up space soon"
+                        ? "Critical: free up space soon"
                         : storage.level === "warn"
                           ? "Storage is filling up"
                           : "Plenty of space available"}
@@ -473,15 +533,15 @@ export function Dashboard() {
                     fontFamily: DISPLAY,
                     fontSize: 22,
                     fontWeight: 600,
-                    color: storage.level === "critical" ? C.danger : C.text,
+                    color: storage.level === "critical" ? colors.danger : colors.text,
                     lineHeight: 1,
                   }}
                 >
                   {Math.min(100, Math.round(storage.pct * 100))}%
                 </div>
-                <div style={{ fontSize: 11.5, color: C.dim, marginTop: 4 }}>
-                  {fmtBytes(storage.userUsed)} used — ~
-                  {fmtBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
+                <div style={{ fontSize: 11.5, color: colors.dim, marginTop: 4 }}>
+                  {formatBytes(storage.userUsed)} used, about{" "}
+                  {formatBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
                   free
                 </div>
               </div>
@@ -490,7 +550,7 @@ export function Dashboard() {
               style={{
                 height: 9,
                 borderRadius: 99,
-                background: "rgba(255,255,255,0.07)",
+                background: controls.track,
                 overflow: "hidden",
                 marginTop: 13,
               }}
@@ -502,10 +562,10 @@ export function Dashboard() {
                   borderRadius: 99,
                   background:
                     storage.level === "critical"
-                      ? `linear-gradient(90deg, #e0644f, #f08a78)`
+                      ? gradients.dangerBar
                       : storage.level === "warn"
-                        ? `linear-gradient(90deg, ${C.gold}, ${C.goldSoft})`
-                        : `linear-gradient(90deg, #2f9e6a, #46c98a)`,
+                        ? gradients.accentBar
+                        : gradients.successBar,
                   transition: "width 0.4s ease",
                 }}
               />
@@ -524,7 +584,7 @@ export function Dashboard() {
         {actions.map((a) => (
           <button
             key={a.label}
-            onClick={a.fn}
+            onClick={a.onClick}
             style={{
               ...glass,
               padding: "20px",
@@ -534,11 +594,12 @@ export function Dashboard() {
               alignItems: "center",
               gap: 14,
               border: a.primary
-                ? "1px solid rgba(216,162,74,0.4)"
-                : `1px solid ${C.border}`,
-              background: a.primary
-                ? "linear-gradient(120deg,rgba(216,162,74,0.16),rgba(24,22,31,0.62))"
-                : C.panel,
+                ? `1px solid ${fade(colors.accentSoft, 0.45)}`
+                : `1px solid ${colors.border}`,
+              background: a.primary ? gradients.ctaCard : colors.panel,
+              boxShadow: a.primary
+                ? `${theme.shadows.cta}, inset 0 1px 0 rgba(255,255,255,0.12)`
+                : glass.boxShadow,
             }}
             onMouseEnter={(e) =>
               (e.currentTarget.style.transform = "translateY(-2px)")
@@ -552,22 +613,34 @@ export function Dashboard() {
                 borderRadius: 12,
                 display: "grid",
                 placeItems: "center",
-                background: a.primary ? "rgba(216,162,74,0.22)" : C.raise,
-                color: a.primary ? C.goldSoft : C.text,
+                background: a.primary ? "rgba(255,255,255,0.16)" : colors.raise,
+                color: a.primary ? "#ffffff" : colors.text,
               }}
             >
               <a.icon size={21} />
             </div>
-            <span
-              style={{
-                fontFamily: UI,
-                fontWeight: 600,
-                fontSize: 15,
-                color: C.text,
-              }}
-            >
-              {a.label}
-            </span>
+            <div style={{ minWidth: 0 }}>
+              <div
+                style={{
+                  fontFamily: UI,
+                  fontWeight: 600,
+                  fontSize: 15,
+                  color: a.primary ? colors.onAccent : colors.text,
+                }}
+              >
+                {a.label}
+              </div>
+              <div
+                style={{
+                  fontFamily: UI,
+                  fontSize: 12.5,
+                  marginTop: 3,
+                  color: a.primary ? "rgba(255,255,255,0.75)" : colors.sub,
+                }}
+              >
+                {a.sub}
+              </div>
+            </div>
           </button>
         ))}
       </div>
@@ -585,19 +658,22 @@ export function Dashboard() {
               margin: "0 0 14px",
               fontFamily: DISPLAY,
               fontSize: 18,
-              color: C.text,
+              color: colors.text,
               display: "flex",
               alignItems: "center",
               gap: 8,
             }}
           >
-            <Clock size={16} color={C.gold} /> Recent Activities
+            <Clock size={16} color={colors.accent} /> Recent Activities
           </h3>
           {activities.length === 0 && (
-            <p style={{ color: C.dim, fontFamily: UI, fontSize: 14 }}>
-              No activity yet — create a song, read the Bible or upload media
-              to see it here.
-            </p>
+            <EmptyState
+              bare
+              compact
+              icon={Clock}
+              title="No activity yet"
+              message="Create a song, read the Bible or upload media and it will show up here."
+            />
           )}
           <div style={{ maxHeight: 520, overflowY: "auto" }}>
             {activities.map((a) => (
@@ -609,7 +685,7 @@ export function Dashboard() {
                   alignItems: "center",
                   gap: 12,
                   padding: "11px 0",
-                  borderBottom: `1px solid ${C.border}`,
+                  borderBottom: `1px solid ${colors.border}`,
                   cursor: "pointer",
                 }}
               >
@@ -620,8 +696,8 @@ export function Dashboard() {
                     borderRadius: 10,
                     display: "grid",
                     placeItems: "center",
-                    background: "rgba(216,162,74,0.12)",
-                    color: C.goldSoft,
+                    background: fade(colors.accent, 0.12),
+                    color: colors.accentSoft,
                     flexShrink: 0,
                   }}
                 >
@@ -633,7 +709,7 @@ export function Dashboard() {
                       fontFamily: UI,
                       fontWeight: 600,
                       fontSize: 14.5,
-                      color: C.text,
+                      color: colors.text,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -641,7 +717,7 @@ export function Dashboard() {
                   >
                     {a.title}
                   </div>
-                  <div style={{ fontFamily: UI, fontSize: 12.5, color: C.sub }}>
+                  <div style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub }}>
                     {a.detail}
                   </div>
                 </div>
@@ -649,7 +725,7 @@ export function Dashboard() {
                   style={{
                     fontFamily: UI,
                     fontSize: 12,
-                    color: C.dim,
+                    color: colors.dim,
                     flexShrink: 0,
                   }}
                 >
@@ -667,47 +743,57 @@ export function Dashboard() {
                 margin: "0 0 14px",
                 fontFamily: DISPLAY,
                 fontSize: 18,
-                color: C.text,
+                color: colors.text,
               }}
             >
               Songs by Category
             </h3>
-            {byCat.length === 0 && (
-              <p style={{ color: C.dim, fontFamily: UI, fontSize: 14 }}>—</p>
+            {songsByCategory.length === 0 && (
+              <EmptyState
+                bare
+                compact
+                icon={Music}
+                title="No categories yet"
+                message="Give your songs a category and the breakdown appears here."
+              />
             )}
-            {byCat.map((c) => (
-              <div key={c.name} style={{ marginBottom: 11 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontFamily: UI,
-                    fontSize: 13,
-                    color: C.sub,
-                    marginBottom: 5,
-                  }}
-                >
-                  <span>{c.name}</span>
-                  <span>{c.n}</span>
-                </div>
-                <div
-                  style={{
-                    height: 7,
-                    borderRadius: 99,
-                    background: "rgba(255,255,255,0.07)",
-                  }}
-                >
+            {songsByCategory.map((c) => {
+              const barColor = categoryColor(c.name);
+              return (
+                <div key={c.name} style={{ marginBottom: 11 }}>
                   <div
                     style={{
-                      height: "100%",
-                      width: `${(c.n / maxCat) * 100}%`,
-                      borderRadius: 99,
-                      background: `linear-gradient(90deg,${C.gold},${C.goldSoft})`,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      fontFamily: UI,
+                      fontSize: 13,
+                      color: colors.sub,
+                      marginBottom: 5,
                     }}
-                  />
+                  >
+                    <span>{c.name}</span>
+                    <span style={{ color: colors.text }}>{c.count}</span>
+                  </div>
+                  <div
+                    style={{
+                      height: 7,
+                      borderRadius: 99,
+                      background: controls.track,
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${(c.count / largestCategoryCount) * 100}%`,
+                        borderRadius: 99,
+                        background: `linear-gradient(90deg,${fade(barColor, 0.75)},${barColor})`,
+                        boxShadow: `0 0 10px ${fade(barColor, 0.35)}`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div style={{ ...glass, padding: 22 }}>
@@ -716,18 +802,18 @@ export function Dashboard() {
                 margin: "0 0 12px",
                 fontFamily: DISPLAY,
                 fontSize: 18,
-                color: C.text,
+                color: colors.text,
               }}
             >
               Most Used Artifacts
             </h3>
             <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-              {mostTabs.map((t) => {
-                const activeTab = mostTab === t.id;
+              {usageTabs.map((t) => {
+                const activeTab = usageTab === t.id;
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setMostTab(t.id)}
+                    onClick={() => setUsageTab(t.id)}
                     style={{
                       flex: 1,
                       padding: "7px 0",
@@ -736,11 +822,11 @@ export function Dashboard() {
                       fontFamily: UI,
                       fontSize: 12.5,
                       fontWeight: 600,
-                      border: `1px solid ${activeTab ? "rgba(216,162,74,0.4)" : C.border}`,
+                      border: `1px solid ${activeTab ? fade(colors.accent, 0.4) : colors.border}`,
                       background: activeTab
-                        ? "rgba(216,162,74,0.16)"
+                        ? fade(colors.accent, 0.16)
                         : "transparent",
-                      color: activeTab ? C.goldSoft : C.sub,
+                      color: activeTab ? colors.accentSoft : colors.sub,
                     }}
                   >
                     {t.label}
@@ -748,19 +834,16 @@ export function Dashboard() {
                 );
               })}
             </div>
-            {mostList.length === 0 ? (
-              <p
-                style={{
-                  color: C.dim,
-                  fontFamily: UI,
-                  fontSize: 13.5,
-                  margin: "6px 0",
-                }}
-              >
-                Nothing used yet — it fills in as you build songs.
-              </p>
+            {mostUsedList.length === 0 ? (
+              <EmptyState
+                bare
+                compact
+                icon={Layers}
+                title="Nothing used yet"
+                message="This fills in as you build songs with themes, backgrounds and sounds."
+              />
             ) : (
-              mostList.map((item) => (
+              mostUsedList.map((item) => (
                 <div
                   key={item.id}
                   style={{
@@ -779,7 +862,7 @@ export function Dashboard() {
                         borderRadius: 6,
                         flexShrink: 0,
                         overflow: "hidden",
-                        border: `1px solid ${C.border}`,
+                        border: `1px solid ${colors.border}`,
                       }}
                     />
                   ) : (
@@ -791,9 +874,9 @@ export function Dashboard() {
                         flexShrink: 0,
                         display: "grid",
                         placeItems: "center",
-                        background: "rgba(216,162,74,0.14)",
-                        border: `1px solid ${C.border}`,
-                        color: C.goldSoft,
+                        background: fade(colors.accent, 0.14),
+                        border: `1px solid ${colors.border}`,
+                        color: colors.accentSoft,
                       }}
                     >
                       <Volume2 size={14} />
@@ -804,7 +887,7 @@ export function Dashboard() {
                       style={{
                         fontFamily: UI,
                         fontSize: 13.5,
-                        color: C.text,
+                        color: colors.text,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
@@ -816,16 +899,16 @@ export function Dashboard() {
                       style={{
                         height: 5,
                         borderRadius: 99,
-                        background: "rgba(255,255,255,0.07)",
+                        background: controls.track,
                         marginTop: 4,
                       }}
                     >
                       <div
                         style={{
                           height: "100%",
-                          width: `${(item.count / maxUse) * 100}%`,
+                          width: `${(item.count / highestUseCount) * 100}%`,
                           borderRadius: 99,
-                          background: `linear-gradient(90deg,${C.gold},${C.goldSoft})`,
+                          background: gradients.accentBar,
                         }}
                       />
                     </div>
@@ -834,7 +917,7 @@ export function Dashboard() {
                     style={{
                       fontFamily: UI,
                       fontSize: 12.5,
-                      color: C.sub,
+                      color: colors.sub,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >

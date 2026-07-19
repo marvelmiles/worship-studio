@@ -4,7 +4,7 @@ import type { AudioItem } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { Field, Select } from "../ui/Field";
-import { Btn } from "../ui/Button";
+import { Button } from "../ui/Button";
 
 interface AudioPickerProps {
   audio: AudioItem[];
@@ -35,10 +35,10 @@ export function AudioPicker({ audio, value, onSelect, inheritLabel, onUploaded }
       )}
       {onUploaded && (
         <>
-          <Btn variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
             <Upload size={14} />
             Upload audio
-          </Btn>
+          </Button>
           <input
             ref={inputRef}
             type="file"

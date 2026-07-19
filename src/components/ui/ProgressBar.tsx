@@ -1,4 +1,4 @@
-import { C, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 
 interface ProgressBarProps {
   value: number;
@@ -6,6 +6,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ value, label }: ProgressBarProps) {
+  const { colors, controls, fonts, gradients } = useUITheme();
   const pct = Math.max(0, Math.min(100, value));
   return (
     <div style={{ marginTop: 12 }}>
@@ -14,9 +15,9 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
           style={{
             display: "flex",
             justifyContent: "space-between",
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 12,
-            color: C.sub,
+            color: colors.sub,
             marginBottom: 6,
           }}
         >
@@ -24,13 +25,13 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
           <span style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(pct)}%</span>
         </div>
       )}
-      <div style={{ height: 8, borderRadius: 99, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+      <div style={{ height: 8, borderRadius: 99, background: controls.track, overflow: "hidden" }}>
         <div
           style={{
             height: "100%",
             width: `${pct}%`,
             borderRadius: 99,
-            background: `linear-gradient(90deg,${C.gold},${C.goldSoft})`,
+            background: gradients.accentBar,
             transition: "width 0.2s ease",
           }}
         />

@@ -42,12 +42,12 @@ function splitTagNumber(raw: string): { base: string; num: number | null } {
 
 /** Split a section's lines into slide chunks. Blank lines are hard breaks. */
 function chunkLines(lines: string[], maxLines: number): string[][] {
-  const out: string[][] = [];
-  let cur: string[] = [];
+  const chunks: string[][] = [];
+  let currentChunk: string[] = [];
   const flush = () => {
-    if (cur.length) {
-      out.push(cur);
-      cur = [];
+    if (currentChunk.length) {
+      chunks.push(currentChunk);
+      currentChunk = [];
     }
   };
   for (const raw of lines) {
@@ -56,11 +56,11 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
       flush();
       continue;
     }
-    cur.push(line);
-    if (cur.length >= maxLines) flush();
+    currentChunk.push(line);
+    if (currentChunk.length >= maxLines) flush();
   }
   flush();
-  return out.length ? out : [[]];
+  return chunks.length ? chunks : [[]];
 }
 
 /**
@@ -71,7 +71,7 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
  * - A tag may include an explicit number, e.g. [Verse 3]. Explicit numbers are
  *   reserved first; sections left without one fill in whatever numbers remain,
  *   smallest first, in the order they appear. Slides of the same label are
- *   then reordered into ascending numeric order — e.g. typing Verse 2 before
+ *   then reordered into ascending numeric order, e.g. typing Verse 2 before
  *   Verse 1 still presents Verse 1 first. Other section types keep their own
  *   position, so a Verse/Chorus/Verse/Chorus skeleton is preserved even while
  *   the verses themselves get sorted into place.
@@ -79,15 +79,15 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
  * - Long sections are split across slides at `maxLines`.
  */
 export function parseLyrics(text: string, maxLines = 6): Slide[] {
-  const src = (text || "").replace(/\r\n?/g, "\n");
-  const headerRe = /^\s*\[([a-zA-Z0-9 \-]{1,24})\]\s*$/;
-  const hasHeaders = src.split("\n").some((l) => headerRe.test(l));
+  const normalizedText = (text || "").replace(/\r\n?/g, "\n");
+  const headerPattern = /^\s*\[([a-zA-Z0-9 \-]{1,24})\]\s*$/;
+  const hasHeaders = normalizedText.split("\n").some((l) => headerPattern.test(l));
 
   let sections: Section[] = [];
   if (hasHeaders) {
     let current: Section | null = null;
-    for (const line of src.split("\n")) {
-      const m = line.match(headerRe);
+    for (const line of normalizedText.split("\n")) {
+      const m = line.match(headerPattern);
       if (m) {
         const { base, num } = splitTagNumber(m[1]);
         const key = base.toLowerCase();
@@ -104,7 +104,7 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
       }
     }
   } else {
-    const stanzas = src
+    const stanzas = normalizedText
       .split(/\n\s*\n/)
       .map((s) => s.split("\n"))
       .filter((g) => g.some((l) => l.trim() !== ""));
@@ -114,9 +114,9 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
       explicitNum: null,
       lines: g,
     }));
-    if (!sections.length && src.trim())
+    if (!sections.length && normalizedText.trim())
       sections = [
-        { type: "verse", baseLabel: "Verse", explicitNum: null, lines: src.split("\n") },
+        { type: "verse", baseLabel: "Verse", explicitNum: null, lines: normalizedText.split("\n") },
       ];
   }
 
@@ -124,9 +124,9 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
   // reserved first, then unnumbered sections fill in whatever's left, smallest
   // first, in document order.
   const slotsByLabel: Record<string, number[]> = {};
-  sections.forEach((s, i) => (slotsByLabel[s.baseLabel] ||= []).push(i));
+  sections.forEach((section, i) => (slotsByLabel[section.baseLabel] ||= []).push(i));
 
-  const resolvedNum: (number | null)[] = sections.map(() => null);
+  const resolvedNumbers: (number | null)[] = sections.map(() => null);
   const order = sections.map((_, i) => i);
   for (const slots of Object.values(slotsByLabel)) {
     if (slots.length < 2 && sections[slots[0]].explicitNum === null) continue;
@@ -135,35 +135,35 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
     for (const i of slots) {
       const n = sections[i].explicitNum;
       if (n !== null && !claimed.has(n)) {
-        resolvedNum[i] = n;
+        resolvedNumbers[i] = n;
         claimed.add(n);
       }
     }
     let next = 1;
     for (const i of slots) {
-      if (resolvedNum[i] !== null) continue;
+      if (resolvedNumbers[i] !== null) continue;
       while (claimed.has(next)) next++;
-      resolvedNum[i] = next;
+      resolvedNumbers[i] = next;
       claimed.add(next++);
     }
 
     // Reorder: each slot (by document position) takes the content whose
     // resolved number matches that slot's rank, so the group ends up sorted
     // ascending while sections of other labels keep their own position.
-    const byNum = [...slots].sort((a, b) => resolvedNum[a]! - resolvedNum[b]!);
-    slots.forEach((slot, rank) => (order[slot] = byNum[rank]));
+    const sortedByNumber = [...slots].sort((a, b) => resolvedNumbers[a]! - resolvedNumbers[b]!);
+    slots.forEach((slot, rank) => (order[slot] = sortedByNumber[rank]));
   }
 
   const slides: Slide[] = [];
   order.forEach((srcIndex) => {
-    const s = sections[srcIndex];
-    const num = resolvedNum[srcIndex];
-    const numbered = num !== null ? `${s.baseLabel} ${num}` : s.baseLabel;
-    const chunks = chunkLines(s.lines, maxLines);
+    const section = sections[srcIndex];
+    const num = resolvedNumbers[srcIndex];
+    const numbered = num !== null ? `${section.baseLabel} ${num}` : section.baseLabel;
+    const chunks = chunkLines(section.lines, maxLines);
     chunks.forEach((lines, i) => {
       const label =
         chunks.length > 1 ? `${numbered} · ${i + 1}/${chunks.length}` : numbered;
-      slides.push({ id: uid(), type: s.type, label, lines, overrides: {}, notes: "" });
+      slides.push({ id: uid(), type: section.type, label, lines, overrides: {}, notes: "" });
     });
   });
   if (!slides.length)

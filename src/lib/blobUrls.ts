@@ -64,7 +64,7 @@ export function releaseBlobUrl(id: string): void {
   }, RELEASE_GRACE_MS);
 }
 
-/** Immediate revoke — call when the underlying file is deleted or replaced. */
+/** Immediate revoke, call when the underlying file is deleted or replaced. */
 export function invalidateBlobUrl(id: string): void {
   for (const key of [id, thumbId(id)]) {
     const entry = entries.get(key);

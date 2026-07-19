@@ -11,14 +11,14 @@ import {
   Trash2,
 } from "lucide-react";
 import type { ContentKind, SlideDeckDoc } from "../../types";
-import { C, DISPLAY, UI } from "../../theme/tokens";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
 import type { DeckEditor } from "./useDeckEditor";
@@ -58,7 +58,7 @@ export function DeckWorkspace({
   const navigate = useNavigate();
   const { width } = useViewport();
   const stacked = width < 1080;
-  useDocumentTitle(`${doc.title} — WorshipStudio`);
+  useDocumentTitle(`${doc.title} · WorshipStudio`);
 
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -184,9 +184,9 @@ export function DeckWorkspace({
             gridTemplateColumns: "292px 1fr 308px",
           }}
         >
-          <div style={{ overflow: "auto", borderRight: `1px solid ${C.border}` }}>{listPanel}</div>
+          <div style={{ overflow: "auto", borderRight: `1px solid ${colors.border}` }}>{listPanel}</div>
           <div style={{ overflow: "auto" }}>{previewPanel}</div>
-          <div style={{ overflow: "auto", borderLeft: `1px solid ${C.border}` }}>{inspectorPanel}</div>
+          <div style={{ overflow: "auto", borderLeft: `1px solid ${colors.border}` }}>{inspectorPanel}</div>
         </div>
       )}
 
@@ -215,11 +215,11 @@ function TopBar({ title, compact, backTitle, onBack, onTitle, onPresent, actions
         alignItems: "center",
         gap: 10,
         padding: "11px 16px",
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${colors.border}`,
         flexWrap: "wrap",
       }}
     >
-      <IconBtn icon={ArrowLeft} title={backTitle} onClick={onBack} />
+      <IconButton icon={ArrowLeft} title={backTitle} onClick={onBack} />
       <input
         value={title}
         onChange={(e) => onTitle(e.target.value)}
@@ -232,17 +232,17 @@ function TopBar({ title, compact, backTitle, onBack, onTitle, onPresent, actions
           fontFamily: DISPLAY,
           fontSize: compact ? 17 : 20,
           fontWeight: 600,
-          color: C.text,
+          color: colors.text,
         }}
       />
       {actions}
       {compact ? (
-        <IconBtn icon={Play} title="Present" onClick={onPresent} active />
+        <IconButton icon={Play} title="Present" onClick={onPresent} active />
       ) : (
-        <Btn variant="primary" size="sm" onClick={onPresent}>
+        <Button variant="primary" size="sm" onClick={onPresent}>
           <Play size={14} />
           Present
-        </Btn>
+        </Button>
       )}
     </div>
   );
@@ -263,7 +263,7 @@ function TabBar({
     { id: "style", label: "Style" },
   ];
   return (
-    <div style={{ display: "flex", borderBottom: `1px solid ${C.border}` }}>
+    <div style={{ display: "flex", borderBottom: `1px solid ${colors.border}` }}>
       {tabs.map(({ id, label }) => {
         const active = tab === id;
         const disabled = id === "style" && !hasSlide;
@@ -277,8 +277,8 @@ function TabBar({
               padding: "12px 0",
               background: "transparent",
               border: "none",
-              borderBottom: `2px solid ${active ? C.gold : "transparent"}`,
-              color: active ? C.goldSoft : disabled ? C.dim : C.sub,
+              borderBottom: `2px solid ${active ? colors.accent : "transparent"}`,
+              color: active ? colors.accentSoft : disabled ? colors.dim : colors.sub,
               fontFamily: UI,
               fontWeight: 600,
               fontSize: 13,

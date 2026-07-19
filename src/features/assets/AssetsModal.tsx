@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Music, Palette, Trash2, Upload, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AudioItem } from "../../types";
-import { C, UI } from "../../theme/tokens";
+import { fade, colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
@@ -21,7 +21,7 @@ function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void })
         alignItems: "center",
         gap: 12,
         padding: "11px 0",
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${colors.border}`,
         flexWrap: "wrap",
       }}
     >
@@ -30,20 +30,20 @@ function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void })
           width: 38,
           height: 38,
           borderRadius: 9,
-          background: "rgba(216,162,74,0.14)",
-          color: C.goldSoft,
+          background: fade(colors.accent, 0.14),
+          color: colors.accentSoft,
           display: "grid",
           placeItems: "center",
         }}
       >
         <Music size={17} />
       </div>
-      <div style={{ flex: 1, minWidth: 120, fontFamily: UI, fontSize: 14, color: C.text }}>
+      <div style={{ flex: 1, minWidth: 120, fontFamily: UI, fontSize: 14, color: colors.text }}>
         {item.name}
-        {item.builtIn && <span style={{ fontSize: 11, color: C.dim, marginLeft: 8 }}>· default</span>}
+        {item.builtIn && <span style={{ fontSize: 11, color: colors.dim, marginLeft: 8 }}>· default</span>}
       </div>
       {url && <audio src={url} controls loop preload="none" style={{ height: 32 }} />}
-      {!item.builtIn && <IconBtn icon={Trash2} danger title="Remove" onClick={onRemove} />}
+      {!item.builtIn && <IconButton icon={Trash2} danger title="Remove" onClick={onRemove} />}
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function AssetsModal() {
   return (
     <Modal open={overlay === "assets"} onClose={close} title="Asset Library" width={680}>
       <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-        {tabs.map(([id, label, Ico]) => (
+        {tabs.map(([id, label, Icon]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -92,12 +92,12 @@ export function AssetsModal() {
               fontFamily: UI,
               fontSize: 13,
               fontWeight: 600,
-              border: `1px solid ${tab === id ? "rgba(216,162,74,0.4)" : C.border}`,
-              background: tab === id ? "rgba(216,162,74,0.16)" : "transparent",
-              color: tab === id ? C.goldSoft : C.sub,
+              border: `1px solid ${tab === id ? fade(colors.accent, 0.4) : colors.border}`,
+              background: tab === id ? fade(colors.accent, 0.16) : "transparent",
+              color: tab === id ? colors.accentSoft : colors.sub,
             }}
           >
-            <Ico size={14} />
+            <Icon size={14} />
             {label}
           </button>
         ))}
@@ -106,14 +106,14 @@ export function AssetsModal() {
       {tab === "backgrounds" ? (
         <>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn variant="primary" onClick={() => bgInput.current?.click()}>
+            <Button variant="primary" onClick={() => bgInput.current?.click()}>
               <Upload size={15} />
               Upload Images
-            </Btn>
-            <Btn variant="ghost" onClick={() => setShowColor((v) => !v)}>
+            </Button>
+            <Button variant="ghost" onClick={() => setShowColor((v) => !v)}>
               <Palette size={15} />
               Add Color / CSS
-            </Btn>
+            </Button>
           </div>
           <input
             ref={bgInput}
@@ -153,12 +153,12 @@ export function AssetsModal() {
                     aspectRatio: "16/9",
                     borderRadius: 9,
                     overflow: "hidden",
-                    border: `1px solid ${C.border}`,
+                    border: `1px solid ${colors.border}`,
                   }}
                 />
-                <div style={{ fontFamily: UI, fontSize: 11.5, color: C.sub, marginTop: 5 }}>
+                <div style={{ fontFamily: UI, fontSize: 11.5, color: colors.sub, marginTop: 5 }}>
                   {bg.name}
-                  {bg.builtIn && <span style={{ color: C.dim }}> · default</span>}
+                  {bg.builtIn && <span style={{ color: colors.dim }}> · default</span>}
                 </div>
                 {!bg.builtIn && (
                   <button
@@ -188,10 +188,10 @@ export function AssetsModal() {
         </>
       ) : (
         <>
-          <Btn variant="primary" onClick={() => audioInput.current?.click()}>
+          <Button variant="primary" onClick={() => audioInput.current?.click()}>
             <Upload size={15} />
             Upload Audio
-          </Btn>
+          </Button>
           <input
             ref={audioInput}
             type="file"

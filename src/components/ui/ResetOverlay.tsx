@@ -1,5 +1,5 @@
 import { useStore } from "../../store/useStore";
-import { C, DISPLAY, UI } from "../../theme/tokens";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
 
 export function ResetOverlay() {
   const resetting = useStore((s) => s.resetting);
@@ -14,7 +14,7 @@ export function ResetOverlay() {
         display: "grid",
         placeItems: "center",
         padding: 24,
-        background: "rgba(8,7,11,0.92)",
+        background: "rgba(0,0,0,0.9)",
         backdropFilter: "blur(8px)",
       }}
     >
@@ -25,15 +25,15 @@ export function ResetOverlay() {
             height: 46,
             margin: "0 auto 20px",
             borderRadius: "50%",
-            border: `3px solid ${C.border}`,
-            borderTopColor: C.gold,
+            border: `3px solid ${colors.border}`,
+            borderTopColor: colors.accent,
             animation: "wfSpin 0.9s linear infinite",
           }}
         />
-        <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: C.text }}>
-          Resetting WorshipStudio…
+        <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: colors.text }}>
+          Resetting WorshipStudio
         </div>
-        <p style={{ fontFamily: UI, fontSize: 14, color: C.sub, lineHeight: 1.6, marginTop: 10 }}>
+        <p style={{ fontFamily: UI, fontSize: 14, color: colors.sub, lineHeight: 1.6, marginTop: 10 }}>
           Restoring defaults. Please don't reload or close this tab.
         </p>
       </div>

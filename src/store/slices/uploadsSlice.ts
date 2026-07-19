@@ -6,6 +6,10 @@ export type UploadKind = "background" | "audio" | "image" | "video";
 export interface PendingUpload {
   kind: UploadKind;
   files: File[];
+  /** Index of the file currently saving, or null before saving starts. */
+  savingIndex: number | null;
+  /** How many files have finished saving. */
+  savedCount: number;
   onComplete?: (ids: string[]) => void;
 }
 
@@ -33,7 +37,10 @@ export const createUploadsSlice: SliceCreator<UploadsSlice> = (set, get) => ({
 
   beginUpload: (kind, files, onComplete) => {
     if (blockWrite(get)) return;
-    if (files.length) set({ pendingUpload: { kind, files, onComplete } });
+    if (files.length)
+      set({
+        pendingUpload: { kind, files, savingIndex: null, savedCount: 0, onComplete },
+      });
   },
 
   cancelUpload: () => set({ pendingUpload: null }),
@@ -41,8 +48,11 @@ export const createUploadsSlice: SliceCreator<UploadsSlice> = (set, get) => ({
   commitUpload: async (labels) => {
     const pending = get().pendingUpload;
     if (!pending) return;
-    const ids: string[] = [];
+    const savedIds: string[] = [];
     for (let i = 0; i < pending.files.length; i += 1) {
+      set({
+        pendingUpload: { ...pending, savingIndex: i, savedCount: savedIds.length },
+      });
       const file = pending.files[i];
       const label = labels[i];
       let id = "";
@@ -51,15 +61,15 @@ export const createUploadsSlice: SliceCreator<UploadsSlice> = (set, get) => ({
       else if (pending.kind === "audio")
         id = await get().uploadAudio(file, label);
       else id = await get().uploadMedia(pending.kind, file, label);
-      ids.push(id);
+      savedIds.push(id);
     }
-    pending.onComplete?.(ids);
+    pending.onComplete?.(savedIds);
     set({ pendingUpload: null });
     afterWrite(get);
     const noun = UPLOAD_NOUNS[pending.kind];
     get().pushToast(
-      ids.length > 1
-        ? `${ids.length} ${noun.many} added.`
+      savedIds.length > 1
+        ? `${savedIds.length} ${noun.many} added.`
         : `${noun.one} added.`,
     );
   },

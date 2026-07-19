@@ -18,7 +18,7 @@ export interface PresentState {
   id: string;
   /** Last-updated stamp of the presented doc so the popup can spot stale data. */
   rev?: string;
-  idx: number;
+  slideIndex: number;
   paused: boolean;
   zoom: number;
   pan: { x: number; y: number };

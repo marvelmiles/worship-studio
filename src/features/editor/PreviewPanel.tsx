@@ -1,5 +1,5 @@
 import type { Background, ResolvedStyle, Slide } from "../../types";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { inputStyle } from "../../components/ui/Field";
 
@@ -61,13 +61,13 @@ export function PreviewPanel({
             fontWeight: 700,
             letterSpacing: 0.5,
             textTransform: "uppercase",
-            color: C.dim,
+            color: colors.dim,
           }}
         >
           Slide Text
         </span>
-        <p style={{ fontFamily: UI, fontSize: 11.5, color: C.dim, margin: "4px 0 8px", lineHeight: 1.5 }}>
-          Click a line above to format it on its own — font, size, color, alignment.
+        <p style={{ fontFamily: UI, fontSize: 11.5, color: colors.dim, margin: "4px 0 8px", lineHeight: 1.5 }}>
+          Click a line above to format it on its own: font, size, color, alignment.
         </p>
         <textarea
           value={(slide.lines || []).join("\n")}

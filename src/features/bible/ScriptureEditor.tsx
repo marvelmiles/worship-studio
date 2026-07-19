@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, Settings2 } from "lucide-react";
-import { C, DISPLAY, UI } from "../../theme/tokens";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { useDeckEditor } from "../editor/useDeckEditor";
 import { DeckWorkspace } from "../editor/DeckWorkspace";
 import { PassageSettingsModal } from "./PassageSettingsModal";
@@ -18,12 +18,12 @@ export function ScriptureEditor() {
     return (
       <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: DISPLAY, color: C.text }}>Passage not found</h2>
-          <p style={{ fontFamily: UI, color: C.sub }}>It may have been deleted.</p>
-          <Btn variant="primary" onClick={() => navigate("/bible")}>
+          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>Passage not found</h2>
+          <p style={{ fontFamily: UI, color: colors.sub }}>It may have been deleted.</p>
+          <Button variant="primary" onClick={() => navigate("/bible")}>
             <ArrowLeft size={15} />
             Back to Bible
-          </Btn>
+          </Button>
         </div>
       </div>
     );
@@ -81,25 +81,25 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
       backTitle="Back to Bible"
       topBarActions={(compact) =>
         compact ? (
-          <IconBtn icon={Settings2} title="Passage settings" onClick={() => setSettingsOpen(true)} />
+          <IconButton icon={Settings2} title="Passage settings" onClick={() => setSettingsOpen(true)} />
         ) : (
-          <Btn variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+          <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
             <Settings2 size={14} />
             Passage Settings
-          </Btn>
+          </Button>
         )
       }
       emptyState={
         <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
           <div style={{ textAlign: "center", maxWidth: 320 }}>
-            <BookOpen size={30} color={C.dim} style={{ margin: "0 auto 10px" }} />
-            <p style={{ fontFamily: UI, color: C.sub, lineHeight: 1.6 }}>
+            <BookOpen size={30} color={colors.dim} style={{ margin: "0 auto 10px" }} />
+            <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
               This passage has no slides. Open passage settings to rebuild them from the verses.
             </p>
-            <Btn variant="primary" onClick={() => setSettingsOpen(true)}>
+            <Button variant="primary" onClick={() => setSettingsOpen(true)}>
               <Settings2 size={15} />
               Passage settings
-            </Btn>
+            </Button>
           </div>
         </div>
       }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
-import { C, DISPLAY, glass } from "../../theme/tokens";
-import { IconBtn } from "./Button";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { IconButton } from "./Button";
 
 interface ModalProps {
   open: boolean;
@@ -13,6 +13,7 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, width = 520, footer }: ModalProps) {
+  const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
   return (
     <div
@@ -27,8 +28,8 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        background: "rgba(6,5,9,0.7)",
-        backdropFilter: "blur(6px)",
+        background: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(10px)",
         animation: "wfFade .18s ease",
       }}
     >
@@ -40,8 +41,9 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
           maxHeight: "90vh",
           overflow: "auto",
           ...glass,
-          background: "rgba(20,18,26,0.96)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+          borderRadius: 20,
+          background: "rgba(22,19,36,0.72)",
+          boxShadow: `${shadows.overlay}, inset 0 1px 0 rgba(255,255,255,0.06)`,
         }}
       >
         <div
@@ -50,13 +52,13 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
             alignItems: "center",
             justifyContent: "space-between",
             padding: "18px 22px",
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${colors.border}`,
           }}
         >
-          <h3 style={{ margin: 0, fontFamily: DISPLAY, fontSize: 19, fontWeight: 600, color: C.text }}>
+          <h3 style={{ margin: 0, fontFamily: fonts.display, fontSize: 19, fontWeight: 600, color: colors.text }}>
             {title}
           </h3>
-          <IconBtn icon={X} onClick={onClose} title="Close" />
+          <IconButton icon={X} onClick={onClose} title="Close" />
         </div>
         <div style={{ padding: 22 }}>{children}</div>
         {footer && (
@@ -66,7 +68,7 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
               justifyContent: "flex-end",
               gap: 10,
               padding: "16px 22px",
-              borderTop: `1px solid ${C.border}`,
+              borderTop: `1px solid ${colors.border}`,
             }}
           >
             {footer}

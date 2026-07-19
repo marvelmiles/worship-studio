@@ -7,7 +7,7 @@ interface ImageSurfaceProps {
   item: MediaItem;
   /** Overrides the item's stored settings (used for live editor previews). */
   settings?: ImageSettings;
-  /** "thumb" resolves the small stored thumbnail — use it in grids and previews. */
+  /** "thumb" resolves the small stored thumbnail, use it in grids and previews. */
   variant?: "full" | "thumb";
   style?: CSSProperties;
 }

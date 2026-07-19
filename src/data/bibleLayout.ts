@@ -1,11 +1,11 @@
-// GENERATED FILE — do not edit by hand.
+// GENERATED FILE, do not edit by hand.
 // Built by scripts/generate-bible-layout.mjs (run: pnpm run generate:bible-layout).
 //
 // The holy-bible package stores each translation as ONE flat array of
 // 31103 verse strings in reading order (Genesis 1:1 first, Revelation
 // 22:21 last) with no book/chapter structure of its own. This table supplies
 // that structure: how many verses each chapter has. Adding up the chapters
-// before the one you want gives its start position in the flat array —
+// before the one you want gives its start position in the flat array,
 // that's all chapterStartPosition() does.
 
 /** Verses in a chapter: CHAPTER_VERSE_COUNTS[bookId - 1][chapter - 1]. */

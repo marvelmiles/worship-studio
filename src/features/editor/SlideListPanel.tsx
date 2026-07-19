@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
-import { C, UI } from "../../theme/tokens";
-import { IconBtn } from "../../components/ui/Button";
+import { colors, UI } from "../../theme/tokens";
+import { IconButton } from "../../components/ui/Button";
 import { SortableSlideList } from "./SortableSlideList";
 import type { TagGroup } from "../../lib/tagGroups";
 
@@ -47,12 +47,12 @@ export function SlideListPanel({
             fontWeight: 700,
             letterSpacing: 0.5,
             textTransform: "uppercase",
-            color: C.dim,
+            color: colors.dim,
           }}
         >
           Slides
         </span>
-        <IconBtn icon={Plus} title="Add slide" onClick={onAdd} />
+        <IconButton icon={Plus} title="Add slide" onClick={onAdd} />
       </div>
       <SortableSlideList
         slides={slides}

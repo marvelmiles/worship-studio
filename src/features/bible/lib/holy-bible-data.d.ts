@@ -1,8 +1,5 @@
-// Hand-written types for the holy-bible package's data files, which have no
-// type declarations of their own. Each file is a flat array of verse strings
-// in reading order (see offlineBible.ts). Declaring the shape here means
-// TypeScript (both tsc and the editor) never has to open and parse the
-// multi-megabyte JSON files just to infer "string[]".
+// Types for the holy-bible data files. Declaring the shape here stops
+// TypeScript from parsing the multi-megabyte JSON just to infer "string[]".
 
 declare module "holy-bible/bibles/kjv.json" {
   const verses: string[];

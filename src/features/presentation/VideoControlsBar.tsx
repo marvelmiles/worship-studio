@@ -1,9 +1,9 @@
 import { Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import type { VideoSettings } from "../../types";
 import type { MediaPlayback } from "../../lib/presentChannel";
-import { fmtDuration } from "../../lib/media";
-import { C, UI } from "../../theme/tokens";
-import { PCtl } from "../../components/ui/Button";
+import { formatDuration } from "../../lib/media";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { StageButton } from "../../components/ui/Button";
 
 interface VideoControlsBarProps {
   playback: MediaPlayback;
@@ -32,9 +32,17 @@ export function VideoControlsBar({
   onSeek,
   onRestart,
 }: VideoControlsBarProps) {
+  const { colors, controls, fonts } = useUITheme();
+  const UI = fonts.ui;
   const start = settings?.trimStart ?? 0;
   const end = settings?.trimEnd ?? (duration || 0);
   const muted = playback.muted;
+  const seekMax = Math.max(end, start + 0.1);
+  const seekValue = Math.min(Math.max(time, start), end);
+  const seekPct = ((seekValue - start) / (seekMax - start)) * 100;
+  const volume = muted ? 0 : playback.volume;
+  const sliderFill = (pct: number) =>
+    `linear-gradient(90deg, ${colors.accent} 0%, ${colors.accentSoft} ${pct}%, ${controls.track} ${pct}%)`;
 
   return (
     <div
@@ -60,12 +68,12 @@ export function VideoControlsBar({
         transition: "opacity 0.3s ease",
       }}
     >
-      <PCtl
+      <StageButton
         icon={playback.playing ? Pause : Play}
         title={playback.playing ? "Pause video (Space)" : "Play video (Space)"}
         onClick={onTogglePlaying}
       />
-      <PCtl icon={RotateCcw} title="Restart from trim start" onClick={onRestart} />
+      <StageButton icon={RotateCcw} title="Restart from trim start" onClick={onRestart} />
       <span
         style={{
           fontFamily: UI,
@@ -76,16 +84,17 @@ export function VideoControlsBar({
           textAlign: "right",
         }}
       >
-        {fmtDuration(time)}
+        {formatDuration(time)}
       </span>
       <input
         type="range"
+        className="ws-slider"
         min={start}
-        max={Math.max(end, start + 0.1)}
+        max={seekMax}
         step={0.1}
-        value={Math.min(Math.max(time, start), end)}
+        value={seekValue}
         onChange={(e) => onSeek(Number(e.target.value))}
-        style={{ flex: 1, accentColor: C.gold }}
+        style={{ flex: 1, background: sliderFill(seekPct) }}
       />
       <span
         style={{
@@ -96,9 +105,9 @@ export function VideoControlsBar({
           minWidth: 38,
         }}
       >
-        {fmtDuration(end)}
+        {formatDuration(end)}
       </span>
-      <PCtl
+      <StageButton
         icon={muted ? VolumeX : Volume2}
         title={muted ? "Unmute (M)" : "Mute (M)"}
         active={muted}
@@ -106,11 +115,12 @@ export function VideoControlsBar({
       />
       <input
         type="range"
+        className="ws-slider"
         min={0}
         max={100}
-        value={muted ? 0 : playback.volume}
+        value={volume}
         onChange={(e) => onVolume(Number(e.target.value))}
-        style={{ width: 84, accentColor: C.gold }}
+        style={{ width: 84, background: sliderFill(volume) }}
       />
     </div>
   );

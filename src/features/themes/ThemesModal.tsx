@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { Background, Slide, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
-import { C, UI } from "../../theme/tokens";
+import { colors, fade, UI } from "../../theme/tokens";
 import { resolveStyle } from "../../lib/resolve";
 import { Modal } from "../../components/ui/Modal";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import {
   Field,
   Range,
@@ -40,16 +40,29 @@ export function ThemesModal() {
   const createTheme = useStore((s) => s.createTheme);
   const deleteTheme = useStore((s) => s.deleteTheme);
   const addCustomBackground = useStore((s) => s.addCustomBackground);
+  const pushToast = useStore((s) => s.pushToast);
   const { width } = useViewport();
   const stacked = width < 760;
 
   const [selectedId, setSelectedId] = useState<string | null>(
     themes[0]?.id ?? null,
   );
-  const selected = themes.find((t) => t.id === selectedId) || themes[0];
+  const savedTheme = themes.find((t) => t.id === selectedId) || themes[0];
 
-  // Deep-links (e.g. dashboard activities) open the modal on a specific theme,
-  // with the theme list scrolled so its card is visible.
+  // Edits go into this draft; nothing is stored until the user clicks Save.
+  const [draft, setDraft] = useState<Theme | null>(savedTheme ?? null);
+  useEffect(() => {
+    // Reset the draft when another theme is picked or the modal reopens.
+    setDraft(themes.find((t) => t.id === selectedId) ?? themes[0] ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, overlay]);
+
+  const hasUnsavedChanges = Boolean(
+    draft && savedTheme && JSON.stringify(draft) !== JSON.stringify(savedTheme),
+  );
+
+  // Deep links (like dashboard activities) open the modal on a specific theme,
+  // scrolled so that theme's card is visible.
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (overlay !== "themes" || !overlayContext) return;
@@ -61,19 +74,29 @@ export function ThemesModal() {
     });
   }, [overlay, overlayContext]);
 
-  const bgMap = useMemo(() => {
+  const backgroundById = useMemo(() => {
     const map: Record<string, Background> = {};
-    for (const bg of backgrounds) map[bg.id] = bg;
+    for (const background of backgrounds) map[background.id] = background;
     return map;
   }, [backgrounds]);
 
-  const patch = (changes: Partial<Theme>) =>
-    upsertTheme({ ...selected, ...changes });
+  const patchDraft = (changes: Partial<Theme>) =>
+    setDraft((current) => (current ? { ...current, ...changes } : current));
 
-  const remove = () => {
-    if (!selected || selected.builtIn) return;
-    deleteTheme(selected.id);
-    setSelectedId(themes.find((t) => t.id !== selected.id)?.id ?? null);
+  const saveDraft = () => {
+    if (!draft) return;
+    upsertTheme(draft);
+    pushToast(`Theme "${draft.name}" saved.`);
+  };
+
+  const discardChanges = () => {
+    if (savedTheme) setDraft(savedTheme);
+  };
+
+  const removeSelected = () => {
+    if (!savedTheme || savedTheme.builtIn) return;
+    deleteTheme(savedTheme.id);
+    setSelectedId(themes.find((t) => t.id !== savedTheme.id)?.id ?? null);
   };
 
   return (
@@ -91,18 +114,18 @@ export function ThemesModal() {
         }}
       >
         <div style={{ marginBottom: stacked ? 18 : 0 }}>
-          <Btn
+          <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              const t = createTheme();
-              if (t) setSelectedId(t.id);
+              const created = createTheme();
+              if (created) setSelectedId(created.id);
             }}
             style={{ width: "100%" }}
           >
             <Plus size={14} />
             New Theme
-          </Btn>
+          </Button>
           <div
             ref={listRef}
             style={{
@@ -119,20 +142,57 @@ export function ThemesModal() {
               <ThemeCard
                 key={theme.id}
                 theme={theme}
-                background={bgMap[theme.backgroundId]}
-                active={theme.id === selected?.id}
+                background={backgroundById[theme.backgroundId]}
+                active={theme.id === savedTheme?.id}
                 onSelect={() => setSelectedId(theme.id)}
               />
             ))}
           </div>
         </div>
 
-        {selected && (
+        {draft && (
           <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 14,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button variant="primary" size="sm" onClick={saveDraft} disabled={!hasUnsavedChanges}>
+                <Check size={14} />
+                Save theme
+              </Button>
+              {hasUnsavedChanges && (
+                <>
+                  <Button variant="ghost" size="sm" onClick={discardChanges}>
+                    <RotateCcw size={13} />
+                    Discard changes
+                  </Button>
+                  <span
+                    style={{
+                      fontFamily: UI,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: colors.accentSoft,
+                      background: fade(colors.accent, 0.14),
+                      border: `1px solid ${fade(colors.accent, 0.3)}`,
+                      borderRadius: 999,
+                      padding: "4px 11px",
+                    }}
+                  >
+                    Unsaved changes
+                  </span>
+                </>
+              )}
+            </div>
+
             <Field label="Theme name">
               <TextInput
-                value={selected.name}
-                onChange={(e) => patch({ name: e.target.value })}
+                value={draft.name}
+                onChange={(e) => patchDraft({ name: e.target.value })}
               />
             </Field>
             <div
@@ -140,31 +200,31 @@ export function ThemesModal() {
             >
               <SlideCanvas
                 slide={SAMPLE}
-                style={resolveStyle(undefined, undefined, selected)}
-                bg={bgMap[selected.backgroundId]}
+                style={resolveStyle(undefined, undefined, draft)}
+                bg={backgroundById[draft.backgroundId]}
                 radius={10}
               />
             </div>
             <StyleControls
-              style={resolveStyle(undefined, undefined, selected)}
+              style={resolveStyle(undefined, undefined, draft)}
               onChange={(key, value) =>
-                patch({ [key]: value } as Partial<Theme>)
+                patchDraft({ [key]: value } as Partial<Theme>)
               }
             />
             <BackgroundPicker
               backgrounds={backgrounds}
-              value={selected.backgroundId}
-              onSelect={(id) => patch({ backgroundId: id })}
-              onUploaded={(id) => patch({ backgroundId: id })}
+              value={draft.backgroundId}
+              onSelect={(id) => patchDraft({ backgroundId: id })}
+              onUploaded={(id) => patchDraft({ backgroundId: id })}
               onAddColor={(value, name) =>
-                patch({ backgroundId: addCustomBackground(value, name) })
+                patchDraft({ backgroundId: addCustomBackground(value, name) })
               }
             />
             <AnimationPicker
-              value={selected.animation || ""}
+              value={draft.animation || ""}
               inheritLabel="App default"
               onSelect={(value) =>
-                patch({ animation: (value || undefined) as Theme["animation"] })
+                patchDraft({ animation: (value || undefined) as Theme["animation"] })
               }
             />
 
@@ -172,53 +232,53 @@ export function ThemesModal() {
             <div style={{ marginBottom: 12 }}>
               <Toggle
                 label="Auto-play slides"
-                checked={Boolean(selected.autoPlay)}
-                onChange={(checked) => patch({ autoPlay: checked })}
+                checked={Boolean(draft.autoPlay)}
+                onChange={(checked) => patchDraft({ autoPlay: checked })}
               />
             </div>
             <Field
-              label={`Seconds per slide (${selected.slideDurationSeconds ?? 15}s)`}
+              label={`Seconds per slide (${draft.slideDurationSeconds ?? 15}s)`}
             >
               <Range
-                value={selected.slideDurationSeconds ?? 15}
+                value={draft.slideDurationSeconds ?? 15}
                 min={3}
                 max={60}
                 suffix="s"
                 onChange={(e) =>
-                  patch({ slideDurationSeconds: Number(e.target.value) })
+                  patchDraft({ slideDurationSeconds: Number(e.target.value) })
                 }
               />
             </Field>
             <AudioPicker
               audio={audio}
-              value={selected.defaultAudioId || ""}
+              value={draft.defaultAudioId || ""}
               inheritLabel="None"
-              onSelect={(id) => patch({ defaultAudioId: id || null })}
-              onUploaded={(id) => patch({ defaultAudioId: id })}
+              onSelect={(id) => patchDraft({ defaultAudioId: id || null })}
+              onUploaded={(id) => patchDraft({ defaultAudioId: id })}
             />
 
-            {selected.builtIn ? (
+            {draft.builtIn ? (
               <p
                 style={{
                   fontFamily: UI,
                   fontSize: 12.5,
-                  color: C.dim,
+                  color: colors.dim,
                   margin: "8px 0 0",
                 }}
               >
-                This is a default theme — you can edit it, but it can't be
+                This is a default theme. You can edit it, but it can't be
                 deleted.
               </p>
             ) : (
-              <Btn
+              <Button
                 variant="danger"
                 size="sm"
-                onClick={remove}
+                onClick={removeSelected}
                 style={{ marginTop: 10 }}
               >
                 <Trash2 size={13} />
                 Delete theme
-              </Btn>
+              </Button>
             )}
           </div>
         )}
@@ -249,8 +309,8 @@ function ThemeCard({
         borderRadius: 11,
         cursor: "pointer",
         textAlign: "left",
-        background: active ? "rgba(216,162,74,0.12)" : C.raise,
-        border: `1px solid ${active ? "rgba(216,162,74,0.4)" : C.border}`,
+        background: active ? fade(colors.accent, 0.12) : colors.raise,
+        border: `1px solid ${active ? fade(colors.accent, 0.4) : colors.border}`,
       }}
     >
       <div style={{ borderRadius: 7, overflow: "hidden" }}>
@@ -266,13 +326,13 @@ function ThemeCard({
           fontFamily: UI,
           fontSize: 12.5,
           fontWeight: 600,
-          color: active ? C.goldSoft : C.text,
+          color: active ? colors.accentSoft : colors.text,
           padding: "7px 4px 3px",
         }}
       >
         {theme.name}
         {theme.builtIn && (
-          <span style={{ color: C.dim, fontWeight: 500 }}> · default</span>
+          <span style={{ color: colors.dim, fontWeight: 500 }}> · default</span>
         )}
       </div>
     </button>

@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { C, DISPLAY, UI, glass } from "../../theme/tokens";
+import { colors, DISPLAY, UI, glass } from "../../theme/tokens";
 
-// ── Update config ──────────────────────────────────────────────────────────
-// Set SHOW_UPDATE to true before pushing to show the modal on load.
-// Change UPDATE_KEY whenever you want returning users to see the modal again.
+// Set SHOW_UPDATE to true to show the modal on load; bump UPDATE_KEY so
+// returning users see it again.
 export const SHOW_UPDATE = true;
 const UPDATE_KEY = "ws-update-2026-06-14-r4";
-// ──────────────────────────────────────────────────────────────────────────
 
 const CHANGES: { title: string; body: string }[] = [
   {
@@ -14,11 +12,11 @@ const CHANGES: { title: string; body: string }[] = [
     body: 'Songs now have a Keyboard Shortcut Mode setting in Song Settings → Keyboard Shortcuts. Choose "Tag first slide only" (default) to assign Ctrl+number shortcuts to the first slide of each section, or "Every slide" to assign a unique number to each individual slide for granular navigation during presentation.',
   },
   {
-    title: "Keyboard Shortcuts — Clearer Ctrl Key",
-    body: 'Keyboard shortcuts in the song slide list now display a bold, raised "Ctrl" key badge so you can instantly see which keys to press. The shortcut for jumping to the first Chorus slide (Ctrl+C) is highlighted in gold.',
+    title: "Keyboard Shortcuts: Clearer Ctrl Key",
+    body: 'Keyboard shortcuts in the song slide list now display a bold, raised "Ctrl" key badge so you can instantly see which keys to press. The shortcut for jumping to the first Chorus slide (Ctrl+C) is highlighted.',
   },
   {
-    title: "Classic Theme — Larger Default Font",
+    title: "Classic Theme: Larger Default Font",
     body: "The Classic Worship theme now defaults to a font size of 6 (up from 5.6) for better on-screen readability, and it is listed first in the theme picker.",
   },
   {
@@ -35,15 +33,15 @@ const CHANGES: { title: string; body: string }[] = [
   },
   {
     title: "Slide Background Shown in Presentation Mode",
-    body: "The presentation stage now renders each slide's own background (image, solid colour, or gradient) directly on the stage so the background fills the entire screen — not just the slide canvas area. The previous solid-black backdrop is gone.",
+    body: "The presentation stage now renders each slide's own background (image, solid colour, or gradient) directly on the stage so the background fills the entire screen, not just the slide canvas area. The previous solid-black backdrop is gone.",
   },
   {
     title: "PWA Auto-Updates When You Return to the App",
-    body: "The installed PWA now checks for a new version every time you bring the app back into the foreground (e.g. after switching away and returning). Updates apply automatically in the background — no manual refresh needed. It also polls for updates once per hour while the tab stays open.",
+    body: "The installed PWA now checks for a new version every time you bring the app back into the foreground (e.g. after switching away and returning). Updates apply automatically in the background with no manual refresh needed. It also polls for updates once per hour while the tab stays open.",
   },
   {
     title: "Update Notifications",
-    body: "WorshipStudio now shows a brief update modal when new features or improvements arrive. Scroll to the bottom and click \"Understood\" to dismiss it — it will not show again unless there is something new.",
+    body: "WorshipStudio now shows a brief update modal when new features or improvements arrive. Scroll to the bottom and click \"Understood\" to dismiss it; it will not show again unless there is something new.",
   },
 ];
 
@@ -97,7 +95,7 @@ export function UpdateModal() {
           flexDirection: "column",
           maxHeight: "88vh",
           ...glass,
-          background: "rgba(20,18,26,0.97)",
+          background: "rgba(22,19,36,0.72)",
           boxShadow: "0 30px 80px rgba(0,0,0,0.65)",
         }}
       >
@@ -105,7 +103,7 @@ export function UpdateModal() {
         <div
           style={{
             padding: "20px 24px 16px",
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${colors.border}`,
             flexShrink: 0,
           }}
         >
@@ -116,7 +114,7 @@ export function UpdateModal() {
               fontWeight: 600,
               letterSpacing: 1.2,
               textTransform: "uppercase",
-              color: C.gold,
+              color: colors.accent,
               marginBottom: 6,
             }}
           >
@@ -128,13 +126,13 @@ export function UpdateModal() {
               fontFamily: DISPLAY,
               fontSize: 22,
               fontWeight: 700,
-              color: C.text,
+              color: colors.text,
             }}
           >
             WorshipStudio Update
           </h2>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: C.sub, fontFamily: UI }}>
-            Scroll through the changes below, then click <strong style={{ color: C.text }}>Understood</strong> to continue.
+          <p style={{ margin: "6px 0 0", fontSize: 13, color: colors.sub, fontFamily: UI }}>
+            Scroll through the changes below, then click <strong style={{ color: colors.text }}>Understood</strong> to continue.
           </p>
         </div>
 
@@ -166,12 +164,12 @@ export function UpdateModal() {
                     width: 22,
                     height: 22,
                     borderRadius: "50%",
-                    background: `linear-gradient(140deg,${C.goldSoft},${C.gold})`,
+                    background: `linear-gradient(140deg,${colors.accentSoft},${colors.accent})`,
                     display: "grid",
                     placeItems: "center",
                     fontSize: 11,
                     fontWeight: 800,
-                    color: "#231a08",
+                    color: "#ffffff",
                     flexShrink: 0,
                     fontFamily: UI,
                   }}
@@ -184,7 +182,7 @@ export function UpdateModal() {
                     fontFamily: DISPLAY,
                     fontSize: 16,
                     fontWeight: 600,
-                    color: C.text,
+                    color: colors.text,
                   }}
                 >
                   {item.title}
@@ -195,7 +193,7 @@ export function UpdateModal() {
                   margin: 0,
                   fontSize: 13.5,
                   lineHeight: 1.65,
-                  color: C.sub,
+                  color: colors.sub,
                   fontFamily: UI,
                   paddingLeft: 32,
                 }}
@@ -213,7 +211,7 @@ export function UpdateModal() {
         <div
           style={{
             padding: "14px 24px",
-            borderTop: `1px solid ${C.border}`,
+            borderTop: `1px solid ${colors.border}`,
             display: "flex",
             justifyContent: "flex-end",
             flexShrink: 0,
@@ -231,9 +229,9 @@ export function UpdateModal() {
               fontWeight: 700,
               cursor: atBottom ? "pointer" : "not-allowed",
               background: atBottom
-                ? `linear-gradient(135deg,${C.goldSoft},${C.gold})`
+                ? `linear-gradient(135deg,${colors.accentSoft},${colors.accent})`
                 : "rgba(255,255,255,0.07)",
-              color: atBottom ? "#231a08" : C.dim,
+              color: atBottom ? "#ffffff" : colors.dim,
               transition: "background 0.25s, color 0.25s",
             }}
           >

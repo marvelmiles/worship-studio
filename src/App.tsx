@@ -12,15 +12,17 @@ import {
   Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { C, DISPLAY, UI } from "./theme/tokens";
+import { fade } from "./theme/uiTheme";
+import { useUITheme } from "./theme/ThemeProvider";
 import { useStore } from "./store/useStore";
 import { useViewport } from "./hooks/useViewport";
-import { IconBtn } from "./components/ui/Button";
+import { IconButton } from "./components/ui/Button";
 import { Toaster } from "./components/ui/Toaster";
 import { AlertBar } from "./components/ui/AlertBar";
 import { StorageGate } from "./components/ui/StorageGate";
 import { UploadLabelModal } from "./components/ui/UploadLabelModal";
 import { ResetOverlay } from "./components/ui/ResetOverlay";
+import { LoadingArea } from "./components/ui/Spinner";
 import { GuideModal } from "./features/onboarding/GuideModal";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { Library } from "./features/library/Library";
@@ -52,6 +54,9 @@ const NAV: [string, string, LucideIcon][] = [
 ];
 
 export default function App() {
+  const { colors, fonts } = useUITheme();
+  const UI = fonts.ui;
+  const DISPLAY = fonts.display;
   const load = useStore((s) => s.load);
   const loading = useStore((s) => s.loading);
   const presentation = useStore((s) => s.presentation);
@@ -72,8 +77,8 @@ export default function App() {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: `radial-gradient(1200px 600px at 80% -10%, rgba(216,162,74,0.07), transparent), radial-gradient(900px 500px at 10% 110%, rgba(80,116,168,0.06), transparent), ${C.bg}`,
-        color: C.text,
+        background: `radial-gradient(1100px 520px at 80% -12%, rgba(124,58,237,0.17), transparent 65%), radial-gradient(900px 460px at 10% -14%, rgba(99,102,241,0.1), transparent 60%), radial-gradient(1200px 500px at 50% -15%, rgba(255,255,255,0.02), transparent 70%), ${colors.bg}`,
+        color: colors.text,
         fontFamily: UI,
         overflow: "hidden",
       }}
@@ -86,10 +91,11 @@ export default function App() {
           gap: compact ? 8 : 16,
           padding: compact ? "0 12px" : "0 22px",
           height: 58,
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${colors.border}`,
           flexShrink: 0,
-          background: "rgba(13,12,17,0.6)",
-          backdropFilter: "blur(10px)",
+          background: "rgba(9,7,17,0.5)",
+          backdropFilter: "blur(18px) saturate(150%)",
+          WebkitBackdropFilter: "blur(18px) saturate(150%)",
         }}
       >
         <Link
@@ -103,20 +109,13 @@ export default function App() {
             flexShrink: 1,
           }}
         >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: `linear-gradient(140deg,${C.goldSoft},${C.gold})`,
-              display: "grid",
-              placeItems: "center",
-              color: "#231a08",
-              boxShadow: "0 4px 16px rgba(216,162,74,0.3)",
-            }}
-          >
-            <Music size={18} />
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="WorshipStudio logo"
+            width={34}
+            height={34}
+            style={{ borderRadius: 9, boxShadow: `0 4px 16px ${fade(colors.accent, 0.25)}` }}
+          />
           {!compact && (
             <div>
               <div
@@ -125,7 +124,7 @@ export default function App() {
                   fontSize: 18,
                   fontWeight: 600,
                   lineHeight: 1,
-                  color: C.text,
+                  color: colors.text,
                 }}
               >
                 WorshipStudio
@@ -133,7 +132,7 @@ export default function App() {
               <div
                 style={{
                   fontSize: 10.5,
-                  color: C.dim,
+                  color: colors.dim,
                   letterSpacing: 1,
                   textTransform: "uppercase",
                 }}
@@ -152,7 +151,7 @@ export default function App() {
             flexShrink: 0,
           }}
         >
-          {NAV.map(([path, label, Ico]) => {
+          {NAV.map(([path, label, Icon]) => {
             const active =
               path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
             return (
@@ -170,12 +169,12 @@ export default function App() {
                   fontFamily: UI,
                   fontWeight: 600,
                   fontSize: 13.5,
-                  background: active ? C.raise : "transparent",
-                  border: `1px solid ${active ? C.border : "transparent"}`,
-                  color: active ? C.text : C.sub,
+                  background: active ? colors.raise : "transparent",
+                  border: `1px solid ${active ? colors.border : "transparent"}`,
+                  color: active ? colors.text : colors.sub,
                 }}
               >
-                <Ico size={16} />
+                <Icon size={16} />
                 {!compact && label}
               </Link>
             );
@@ -191,27 +190,27 @@ export default function App() {
             flexShrink: 0,
           }}
         >
-          <IconBtn
+          <IconButton
             icon={HelpCircle}
             title="About & Help"
             onClick={() => openOverlay("about")}
           />
-          <IconBtn
+          <IconButton
             icon={ImageIcon}
             title="Asset library"
             onClick={() => openOverlay("assets")}
           />
-          <IconBtn
+          <IconButton
             icon={Palette}
             title="Themes"
             onClick={() => openOverlay("themes")}
           />
-          <IconBtn
+          <IconButton
             icon={Keyboard}
             title="Keyboard shortcuts"
             onClick={() => openOverlay("shortcuts")}
           />
-          <IconBtn
+          <IconButton
             icon={Settings}
             title="Settings"
             onClick={() => openOverlay("settings")}
@@ -232,17 +231,7 @@ export default function App() {
         }}
       >
         {loading ? (
-          <div
-            style={{
-              display: "grid",
-              placeItems: "center",
-              height: "100%",
-              color: C.dim,
-              fontFamily: UI,
-            }}
-          >
-            Loading library…
-          </div>
+          <LoadingArea size={30} />
         ) : (
           <Routes>
             <Route path="/" element={<Dashboard />} />

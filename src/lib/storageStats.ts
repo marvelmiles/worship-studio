@@ -35,7 +35,7 @@ export function bytesOf(value: unknown): number {
   }
 }
 
-export function fmtBytes(n: number): string {
+export function formatBytes(n: number): string {
   if (n <= 0) return "0 MB";
   if (n < 1024) return `${Math.round(n)} B`;
   if (n < MB) return `${(n / 1024).toFixed(0)} KB`;

@@ -1,7 +1,7 @@
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Align, ResolvedStyle, TextStyle } from "../../types";
-import { C, FONTS } from "../../theme/tokens";
+import { fade, colors, FONTS } from "../../theme/tokens";
 import { Field, Range, Select, TextInput, Toggle } from "../ui/Field";
 
 interface StyleControlsProps {
@@ -62,9 +62,9 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
                   padding: 9,
                   borderRadius: 9,
                   cursor: "pointer",
-                  background: active ? "rgba(216,162,74,0.16)" : C.raise,
-                  border: `1px solid ${active ? "rgba(216,162,74,0.35)" : C.border}`,
-                  color: active ? C.goldSoft : C.sub,
+                  background: active ? fade(colors.accent, 0.16) : colors.raise,
+                  border: `1px solid ${active ? fade(colors.accent, 0.35) : colors.border}`,
+                  color: active ? colors.accentSoft : colors.sub,
                   display: "grid",
                   placeItems: "center",
                 }}
@@ -85,7 +85,7 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
               width: 42,
               height: 38,
               borderRadius: 9,
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${colors.border}`,
               background: "transparent",
               cursor: "pointer",
             }}

@@ -1,6 +1,6 @@
 import type { BibleVersionId, Prefs } from "../../types";
 import { DEFAULT_BIBLE_VERSION } from "../../data/bibleBooks";
-import { sPut } from "../../lib/storage";
+import { saveRecord } from "../../lib/storage";
 import type { SliceCreator } from "../storeTypes";
 
 export const DEFAULT_PREFS: Prefs = {
@@ -32,7 +32,7 @@ export const createPrefsSlice: SliceCreator<PrefsSlice> = (set, get) => ({
 
   savePrefs: (prefs) => {
     set({ prefs });
-    void sPut("prefs", prefs);
+    void saveRecord("prefs", prefs);
   },
 
   setBibleVersion: (version) => {

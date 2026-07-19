@@ -4,11 +4,11 @@ export interface TagGroup {
   type: string;
   label: string;
   firstIndex: number;
-  /** Only set for verse groups — Ctrl+number jumps are verse-only. */
+  /** Only set for verse groups, Ctrl+number jumps are verse-only. */
   shortcutNum?: number;
 }
 
-/** Fixed Ctrl+letter shortcuts for non-verse section types — these jump to
+/** Fixed Ctrl+letter shortcuts for non-verse section types, these jump to
  * the first slide of that type instead of being part of the verse numbering. */
 export const FIXED_TAG_SHORTCUTS: { letter: string; type: string; label: string }[] = [
   { letter: "c", type: "chorus", label: "Chorus" },

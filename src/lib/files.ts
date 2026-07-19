@@ -11,7 +11,7 @@ export const downloadJSON = (data: unknown, name: string): void => {
 };
 
 /**
- * Text reads only. Binary files are never read into JS memory — store the
+ * Text reads only. Binary files are never read into JS memory, store the
  * File/Blob itself (see lib/fileStore) and display it via object URLs.
  */
 export function readFile(file: File, as: "text" = "text"): Promise<string> {

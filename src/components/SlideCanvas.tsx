@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
-import { UI } from "../theme/tokens";
+import { colors, fade, UI } from "../theme/tokens";
 import { useThumbUrl } from "../lib/blobUrls";
 
 interface SlideCanvasProps {
@@ -48,7 +48,7 @@ export function SlideCanvas({
     : bg?.type === "image"
     ? {
         backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
-        backgroundColor: "#0a090d",
+        backgroundColor: "#0a0a0c",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }
@@ -122,14 +122,14 @@ export function SlideCanvas({
                   padding: interactive ? "0.3cqw 0.6cqw" : undefined,
                   margin: interactive ? "-0.3cqw -0.6cqw" : undefined,
                   outline: selected
-                    ? "0.25cqw solid #d8a24a"
+                    ? "0.25cqw solid #8b5cf6"
                     : hovered
-                    ? "0.25cqw dashed rgba(216,162,74,0.55)"
+                    ? `0.25cqw dashed ${fade(colors.accent, 0.55)}`
                     : interactive
                     ? "0.25cqw dashed transparent"
                     : undefined,
                   outlineOffset: 2,
-                  background: selected ? "rgba(216,162,74,0.14)" : undefined,
+                  background: selected ? fade(colors.accent, 0.14) : undefined,
                   transition: interactive ? "outline-color .15s ease, background .15s ease" : undefined,
                 }}
               >

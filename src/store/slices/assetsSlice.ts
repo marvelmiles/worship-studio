@@ -8,7 +8,7 @@ import {
   thumbId,
 } from "../../lib/fileStore";
 import { invalidateBlobUrl } from "../../lib/blobUrls";
-import { sDel, sPut, sPutStrict } from "../../lib/storage";
+import { deleteRecord, saveRecord, saveRecordStrict } from "../../lib/storage";
 import { probeImageFile } from "../../lib/media";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
@@ -25,7 +25,7 @@ export interface AssetsSlice {
 }
 
 const QUOTA_TOAST =
-  "Not enough storage space for that file — free up space and try again.";
+  "Not enough storage space for that file. Free up space and try again.";
 
 export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
   backgrounds: [],
@@ -47,7 +47,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
         builtIn: false,
         createdAt: now(),
       };
-      await sPutStrict("backgrounds", background);
+      await saveRecordStrict("backgrounds", background);
       set((state) => ({ backgrounds: [...state.backgrounds, background] }));
       return id;
     } catch (err) {
@@ -71,7 +71,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       ...(isGradient ? { type: "gradient" as const, css } : { type: "solid" as const, color: css }),
     };
     set((state) => ({ backgrounds: [...state.backgrounds, background] }));
-    void sPut("backgrounds", background);
+    void saveRecord("backgrounds", background);
     afterWrite(get);
     return background.id;
   },
@@ -80,7 +80,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
     const background = get().backgrounds.find((b) => b.id === id);
     if (!background || background.builtIn) return;
     set((state) => ({ backgrounds: state.backgrounds.filter((b) => b.id !== id) }));
-    await sDel("backgrounds", id);
+    await deleteRecord("backgrounds", id);
     const blobId = background.blobId;
     if (blobId) {
       const state = get();
@@ -107,7 +107,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
         builtIn: false,
         createdAt: now(),
       };
-      await sPutStrict("audio", item);
+      await saveRecordStrict("audio", item);
       set((state) => ({ audio: [...state.audio, item] }));
       return id;
     } catch (err) {
@@ -122,7 +122,7 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
     const item = get().audio.find((a) => a.id === id);
     if (!item || item.builtIn) return;
     set((state) => ({ audio: state.audio.filter((a) => a.id !== id) }));
-    await sDel("audio", id);
+    await deleteRecord("audio", id);
     if (item.blobId) {
       invalidateBlobUrl(item.blobId);
       await deleteFileBlob(item.blobId);

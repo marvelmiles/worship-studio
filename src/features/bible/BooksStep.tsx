@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { Play } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
-import { C, DISPLAY, UI } from "../../theme/tokens";
-import { Btn } from "../../components/ui/Button";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
+import { Spinner } from "../../components/ui/Spinner";
 import { useBibleSearch } from "./useBibleSearch";
 import { tileStyle } from "./tileStyle";
 import type { ReadingPosition } from "./lib/readingPosition";
@@ -24,7 +25,7 @@ export function BooksStep({
 }: {
   position: ReadingPosition;
   version: BibleVersionId;
-  /** e.g. "John 3" — omitted when there is nothing to continue. */
+  /** e.g. "John 3", omitted when there is nothing to continue. */
   continueLabel: string | null;
   onOpenBook: (bookId: number) => void;
   onContinueReading: () => void;
@@ -52,18 +53,18 @@ export function BooksStep({
         <SearchInput
           value={query}
           onChange={setQuery}
-          placeholder="Search books or words — e.g. Psalms, living water…"
+          placeholder="Search books or words, like Psalms or living water"
         />
         {continueLabel && (
-          <Btn variant="ghost" onClick={onContinueReading} title="Pick up where you left off">
+          <Button variant="ghost" onClick={onContinueReading} title="Pick up where you left off">
             <Play size={14} />
-            Continue — {continueLabel}
-          </Btn>
+            Continue: {continueLabel}
+          </Button>
         )}
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 12 }}>
         {matchingBooks.length === 0 && !search.enabled && (
-          <p style={{ fontFamily: UI, color: C.dim, textAlign: "center", padding: 30 }}>
+          <p style={{ fontFamily: UI, color: colors.dim, textAlign: "center", padding: 30 }}>
             No book matches "{query}".
           </p>
         )}
@@ -73,7 +74,7 @@ export function BooksStep({
           return (
             <div key={key} style={{ marginBottom: 20 }}>
               <div className="ws-section-label" style={{ margin: "6px 0 10px" }}>
-                {query.trim() ? `${label} — matching books` : label}
+                {query.trim() ? `${label}: matching books` : label}
               </div>
               <div
                 style={{
@@ -100,7 +101,7 @@ export function BooksStep({
                       <span className="ws-ellipsis" style={{ fontFamily: DISPLAY, fontSize: 15, maxWidth: "100%" }}>
                         {b.name}
                       </span>
-                      <span style={{ fontFamily: UI, fontSize: 11, fontWeight: 500, color: active ? C.goldSoft : C.dim }}>
+                      <span style={{ fontFamily: UI, fontSize: 11, fontWeight: 500, color: active ? colors.accentSoft : colors.dim }}>
                         {b.chapters} chapter{b.chapters === 1 ? "" : "s"}
                       </span>
                     </button>
@@ -115,20 +116,20 @@ export function BooksStep({
           <div style={{ marginBottom: 20 }}>
             <div className="ws-section-label" style={{ margin: "6px 0 10px" }}>
               Verses matching "{search.term}"
-              {search.total > 0 ? ` — ${search.total.toLocaleString()} found` : ""}
+              {search.total > 0 ? ` (${search.total.toLocaleString()} found)` : ""}
             </div>
             {search.loading && search.results.length === 0 && (
-              <p style={{ fontFamily: UI, fontSize: 13, color: C.dim, padding: "10px 2px" }}>
-                Searching {version}…
-              </p>
+              <div style={{ padding: "14px 2px" }}>
+                <Spinner size={20} />
+              </div>
             )}
             {search.error && (
-              <p style={{ fontFamily: UI, fontSize: 13, color: C.danger, padding: "10px 2px" }}>
+              <p style={{ fontFamily: UI, fontSize: 13, color: colors.danger, padding: "10px 2px" }}>
                 {search.error}
               </p>
             )}
             {!search.loading && !search.error && search.results.length === 0 && (
-              <p style={{ fontFamily: UI, fontSize: 13, color: C.dim, padding: "10px 2px" }}>
+              <p style={{ fontFamily: UI, fontSize: 13, color: colors.dim, padding: "10px 2px" }}>
                 No verses in {version} contain "{search.term}".
               </p>
             )}
@@ -146,8 +147,8 @@ export function BooksStep({
                       padding: "10px 13px",
                       borderRadius: 10,
                       cursor: "pointer",
-                      border: `1px solid ${C.border}`,
-                      background: C.raise,
+                      border: `1px solid ${colors.border}`,
+                      background: colors.raise,
                     }}
                   >
                     <span
@@ -156,13 +157,13 @@ export function BooksStep({
                         fontFamily: UI,
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: C.goldSoft,
+                        color: colors.accentSoft,
                         marginBottom: 3,
                       }}
                     >
                       {resultBook.name} {result.chapter}:{result.verse}
                     </span>
-                    <span style={{ fontFamily: UI, fontSize: 13.5, lineHeight: 1.55, color: C.sub }}>
+                    <span style={{ fontFamily: UI, fontSize: 13.5, lineHeight: 1.55, color: colors.sub }}>
                       {highlightSearchWords(snippetAroundFirstMatch(result.text, search.term), search.term)}
                     </span>
                   </button>
@@ -171,9 +172,9 @@ export function BooksStep({
             </div>
             {search.hasMore && (
               <div style={{ marginTop: 12, textAlign: "center" }}>
-                <Btn variant="ghost" onClick={search.loadMore} disabled={search.loading}>
-                  {search.loading ? "Loading…" : `Load more (${search.results.length} of ${search.total.toLocaleString()})`}
-                </Btn>
+                <Button variant="ghost" onClick={search.loadMore} busy={search.loading}>
+                  Load more ({search.results.length} of {search.total.toLocaleString()})
+                </Button>
               </div>
             )}
           </div>
@@ -186,7 +187,7 @@ export function BooksStep({
 /** Escapes regex metacharacters so search words can be matched literally. */
 const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** Wraps occurrences of the search words in a gold highlight. */
+/** Highlights the search words inside a verse snippet. */
 function highlightSearchWords(text: string, term: string) {
   const words = term.split(/\s+/).filter(Boolean).map(escapeRegExp);
   if (!words.length) return text;
@@ -194,7 +195,7 @@ function highlightSearchWords(text: string, term: string) {
   const isMatch = new RegExp(`^(?:${words.join("|")})$`, "i");
   return text.split(splitter).map((part, i) =>
     isMatch.test(part) ? (
-      <span key={i} style={{ color: C.goldSoft, fontWeight: 700 }}>
+      <span key={i} style={{ color: colors.accentSoft, fontWeight: 700 }}>
         {part}
       </span>
     ) : (

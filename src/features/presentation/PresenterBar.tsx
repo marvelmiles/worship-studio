@@ -1,8 +1,8 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { C, DISPLAY, UI } from "../../theme/tokens";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { fmtClock } from "../../lib/id";
 import { useViewport } from "../../hooks/useViewport";
-import { PCtl } from "../../components/ui/Button";
+import { StageButton } from "../../components/ui/Button";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
@@ -14,7 +14,7 @@ interface PresenterBarProps {
   notes?: string;
   nextFrame: StageFrame | null;
   endLabel: string;
-  idx: number;
+  slideIndex: number;
   total: number;
   elapsed: number;
   paused: boolean;
@@ -30,7 +30,7 @@ const labelStyle = {
   fontWeight: 700,
   letterSpacing: 0.6,
   textTransform: "uppercase" as const,
-  color: C.gold,
+  color: colors.accent,
 };
 
 function NextPreview({ frame, endLabel }: { frame: StageFrame | null; endLabel: string }) {
@@ -44,7 +44,7 @@ function NextPreview({ frame, endLabel }: { frame: StageFrame | null; endLabel: 
           display: "grid",
           placeItems: "center",
           background: "rgba(255,255,255,0.05)",
-          color: C.dim,
+          color: colors.dim,
           fontFamily: UI,
           fontSize: 13,
         }}
@@ -90,7 +90,7 @@ export function PresenterBar({
   notes,
   nextFrame,
   endLabel,
-  idx,
+  slideIndex,
   total,
   elapsed,
   paused,
@@ -134,7 +134,7 @@ export function PresenterBar({
           style={{
             fontFamily: UI,
             fontSize: 13.5,
-            color: notes ? "#fff" : C.dim,
+            color: notes ? "#fff" : colors.dim,
             marginTop: 4,
             lineHeight: 1.45,
             maxHeight: 44,
@@ -164,8 +164,8 @@ export function PresenterBar({
           >
             {fmtClock(elapsed)}
           </div>
-          <div style={{ fontFamily: UI, fontSize: 12, color: C.sub, fontVariantNumeric: "tabular-nums" }}>
-            {idx + 1} / {total}
+          <div style={{ fontFamily: UI, fontSize: 12, color: colors.sub, fontVariantNumeric: "tabular-nums" }}>
+            {slideIndex + 1} / {total}
           </div>
         </div>
         <div
@@ -176,8 +176,8 @@ export function PresenterBar({
             pointerEvents: paused ? "none" : "auto",
           }}
         >
-          <PCtl icon={ChevronLeft} title="Previous" onClick={onPrev} />
-          <PCtl icon={ChevronRight} title="Next" onClick={onNext} />
+          <StageButton icon={ChevronLeft} title="Previous" onClick={onPrev} />
+          <StageButton icon={ChevronRight} title="Next" onClick={onNext} />
         </div>
       </div>
     </div>

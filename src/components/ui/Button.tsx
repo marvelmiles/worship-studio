@@ -1,37 +1,44 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { C, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { Spinner } from "./Spinner";
 
-type BtnVariant = "primary" | "ghost" | "subtle" | "danger";
-type BtnSize = "sm" | "md" | "lg";
+type ButtonVariant = "primary" | "ghost" | "subtle" | "danger";
+type ButtonSize = "sm" | "md" | "lg";
 
-interface BtnProps {
+interface ButtonProps {
   children: ReactNode;
   onClick?: () => void;
-  variant?: BtnVariant;
-  size?: BtnSize;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   title?: string;
   disabled?: boolean;
+  /** Shows a spinner in place of the label and blocks clicks. */
+  busy?: boolean;
   style?: CSSProperties;
 }
 
-export function Btn({
+export function Button({
   children,
   onClick,
   variant = "ghost",
   size = "md",
   title,
   disabled,
-  style: st,
-}: BtnProps) {
+  busy,
+  style,
+}: ButtonProps) {
+  const { colors, fonts, gradients } = useUITheme();
+  const blocked = disabled || busy;
   const base: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    fontFamily: UI,
+    fontFamily: fonts.ui,
     fontWeight: 600,
-    cursor: disabled ? "not-allowed" : "pointer",
+    cursor: blocked ? "not-allowed" : "pointer",
     borderRadius: 11,
     transition: "all .16s ease",
     whiteSpace: "nowrap",
@@ -40,37 +47,39 @@ export function Btn({
     padding: size === "sm" ? "6px 11px" : size === "lg" ? "12px 20px" : "9px 15px",
     fontSize: size === "sm" ? 12.5 : size === "lg" ? 15 : 13.5,
   };
-  const variants: Record<BtnVariant, CSSProperties> = {
+  const variants: Record<ButtonVariant, CSSProperties> = {
     primary: {
-      background: `linear-gradient(180deg,${C.goldSoft},${C.gold})`,
-      color: "#231a08",
-      boxShadow: "0 6px 20px rgba(216,162,74,0.28)",
+      background: gradients.cta,
+      color: colors.onAccent,
+      border: `1px solid ${fade(colors.accentSoft, 0.35)}`,
+      boxShadow: `0 6px 20px ${fade(colors.accent, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.14)`,
     },
-    ghost: { background: C.raise, color: C.text, border: `1px solid ${C.border}` },
-    subtle: { background: "transparent", color: C.sub, border: "1px solid transparent" },
+    ghost: { background: colors.raise, color: colors.text, border: `1px solid ${colors.border}` },
+    subtle: { background: "transparent", color: colors.sub, border: "1px solid transparent" },
     danger: {
-      background: "rgba(224,100,79,0.14)",
-      color: C.danger,
-      border: "1px solid rgba(224,100,79,0.3)",
+      background: fade(colors.danger, 0.14),
+      color: colors.danger,
+      border: `1px solid ${fade(colors.danger, 0.3)}`,
     },
   };
+  const spinnerColor = variant === "primary" ? colors.onAccent : colors.accent;
   return (
     <button
       title={title}
-      disabled={disabled}
+      disabled={blocked}
       onClick={onClick}
       onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.filter = "brightness(1.1)";
+        if (!blocked) e.currentTarget.style.filter = "brightness(1.1)";
       }}
       onMouseLeave={(e) => (e.currentTarget.style.filter = "none")}
-      style={{ ...base, ...variants[variant], ...st }}
+      style={{ ...base, ...variants[variant], ...style }}
     >
-      {children}
+      {busy ? <Spinner size={size === "sm" ? 13 : 15} color={spinnerColor} /> : children}
     </button>
   );
 }
 
-interface IconBtnProps {
+interface IconButtonProps {
   icon: LucideIcon;
   onClick?: () => void;
   title: string;
@@ -78,7 +87,9 @@ interface IconBtnProps {
   danger?: boolean;
 }
 
-export function IconBtn({ icon: Icon, onClick, title, active, danger }: IconBtnProps) {
+export function IconButton({ icon: Icon, onClick, title, active, danger }: IconButtonProps) {
+  const { colors } = useUITheme();
+  const restBackground = active ? fade(colors.accent, 0.16) : "transparent";
   return (
     <button
       title={title}
@@ -93,27 +104,21 @@ export function IconBtn({ icon: Icon, onClick, title, active, danger }: IconBtnP
         borderRadius: 9,
         cursor: "pointer",
         transition: "all .15s",
-        background: active ? "rgba(216,162,74,0.16)" : "transparent",
-        color: danger ? C.danger : active ? C.goldSoft : C.sub,
-        border: `1px solid ${active ? "rgba(216,162,74,0.3)" : "transparent"}`,
+        background: restBackground,
+        color: danger ? colors.danger : active ? colors.accentSoft : colors.sub,
+        border: `1px solid ${active ? fade(colors.accent, 0.3) : "transparent"}`,
       }}
       onMouseEnter={(e) =>
-        (e.currentTarget.style.background = active
-          ? "rgba(216,162,74,0.22)"
-          : C.raise)
+        (e.currentTarget.style.background = active ? fade(colors.accent, 0.22) : colors.raise)
       }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = active
-          ? "rgba(216,162,74,0.16)"
-          : "transparent")
-      }
+      onMouseLeave={(e) => (e.currentTarget.style.background = restBackground)}
     >
       <Icon size={16.5} />
     </button>
   );
 }
 
-interface PCtlProps {
+interface StageButtonProps {
   icon: LucideIcon;
   onClick?: () => void;
   title: string;
@@ -121,8 +126,9 @@ interface PCtlProps {
   solid?: boolean;
 }
 
-/** Presentation-mode control button (light-on-dark). */
-export function PCtl({ icon: Icon, onClick, title, active, solid }: PCtlProps) {
+/** Control button used on the live presentation stage (light on dark). */
+export function StageButton({ icon: Icon, onClick, title, active, solid }: StageButtonProps) {
+  const { colors } = useUITheme();
   return (
     <button
       title={title}
@@ -136,11 +142,11 @@ export function PCtl({ icon: Icon, onClick, title, active, solid }: PCtlProps) {
         display: "grid",
         placeItems: "center",
         background: active
-          ? "rgba(216,162,74,0.3)"
+          ? fade(colors.accent, 0.3)
           : solid
           ? "rgba(255,255,255,0.1)"
           : "rgba(255,255,255,0.06)",
-        color: active ? C.goldSoft : "#fff",
+        color: active ? colors.accentSoft : "#fff",
         border: "1px solid rgba(255,255,255,0.12)",
       }}
     >

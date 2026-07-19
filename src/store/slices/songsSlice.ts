@@ -1,7 +1,7 @@
 import type { Song } from "../../types";
 import { now, uid } from "../../lib/id";
 import { parseLyrics } from "../../lib/parser";
-import { sDel, sPut } from "../../lib/storage";
+import { deleteRecord, saveRecord } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
@@ -27,7 +27,7 @@ export const createSongsSlice: SliceCreator<SongsSlice> = (set, get) => ({
         : [song, ...state.songs];
       return { songs };
     });
-    void sPut("songs", song);
+    void saveRecord("songs", song);
     afterWrite(get);
   },
 
@@ -69,7 +69,7 @@ export const createSongsSlice: SliceCreator<SongsSlice> = (set, get) => ({
     const song = get().songs.find((s) => s.id === id);
     if (song?.builtIn) return;
     set((state) => ({ songs: state.songs.filter((s) => s.id !== id) }));
-    void sDel("songs", id);
+    void deleteRecord("songs", id);
     afterDelete(get);
   },
 });

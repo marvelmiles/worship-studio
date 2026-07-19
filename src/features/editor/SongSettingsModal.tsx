@@ -5,7 +5,7 @@ import type {
   TextStyle,
   Theme,
 } from "../../types";
-import { C, CATEGORIES, UI } from "../../theme/tokens";
+import { colors, CATEGORIES, UI } from "../../theme/tokens";
 import {
   resolveAutoPlay,
   resolveSlideDuration,
@@ -69,7 +69,7 @@ export function SongSettingsModal({
         style={{
           fontFamily: UI,
           fontSize: 13,
-          color: C.sub,
+          color: colors.sub,
           marginTop: 0,
           lineHeight: 1.6,
         }}
@@ -157,7 +157,7 @@ export function SongSettingsModal({
           }
         />
       </Field>
-      <p style={{ fontFamily: UI, fontSize: 12, color: C.dim, margin: "-4px 0 0" }}>
+      <p style={{ fontFamily: UI, fontSize: 12, color: colors.dim, margin: "-4px 0 0" }}>
         {song.shortcutMode === "all-slides"
           ? "Ctrl+number shortcuts are assigned to every slide in order (Ctrl+1 → slide 1, Ctrl+2 → slide 2…)."
           : "Ctrl+number shortcuts jump to verses only (Ctrl+1 → Verse 1, Ctrl+2 → Verse 2…). Other sections use fixed shortcuts: Ctrl+C Chorus, Ctrl+B Bridge, Ctrl+I Intro, Ctrl+O Outro, Ctrl+P Pre-Chorus, Ctrl+R Refrain, Ctrl+T Tag."}
@@ -183,8 +183,8 @@ export function SongSettingsModal({
         />
       </Field>
       {!autoPlay && (
-        <p style={{ fontFamily: UI, fontSize: 12, color: C.dim, margin: 0 }}>
-          Auto-play is off — slides change only when you navigate, animating in
+        <p style={{ fontFamily: UI, fontSize: 12, color: colors.dim, margin: 0 }}>
+          Auto-play is off, so slides change only when you navigate, animating in
           with their chosen animation.
         </p>
       )}

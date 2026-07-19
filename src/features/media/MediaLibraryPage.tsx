@@ -5,15 +5,15 @@ import type { LucideIcon } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { fmtBytes } from "../../lib/storageStats";
-import { fmtDuration, sortMediaByRecency } from "../../lib/media";
+import { formatBytes } from "../../lib/storageStats";
+import { formatDuration, sortMediaByRecency } from "../../lib/media";
 import { imageDeckIndex } from "../presentation/useDeck";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
 import { ImageEditorModal } from "./ImageEditorModal";
@@ -25,6 +25,7 @@ interface MediaPageConfig {
   subtitle: string;
   uploadLabel: string;
   accept: string;
+  emptyTitle: string;
   emptyMessage: string;
   emptyIcon: LucideIcon;
 }
@@ -33,10 +34,11 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
   image: {
     kind: "image",
     title: "Images",
-    subtitle: "Upload, edit and project images — presenting one flips through the library like a slideshow.",
+    subtitle: "Upload, edit and project images. Presenting one flips through the library like a slideshow.",
     uploadLabel: "Upload Images",
     accept: "image/*",
-    emptyMessage: "No images yet — upload some to present them or use them as backgrounds.",
+    emptyTitle: "No images yet",
+    emptyMessage: "Upload some to present them on screen or use them as slide backgrounds.",
     emptyIcon: ImageIcon,
   },
   video: {
@@ -45,12 +47,13 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     subtitle: "Upload, trim and project videos with full playback control while live.",
     uploadLabel: "Upload Videos",
     accept: "video/*",
-    emptyMessage: "No videos yet — upload some to play them on the projector.",
+    emptyTitle: "No videos yet",
+    emptyMessage: "Upload some to play them on the projector.",
     emptyIcon: Film,
   },
 };
 
-const itemSize = (item: MediaItem) => fmtBytes(item.size || 0);
+const itemSize = (item: MediaItem) => formatBytes(item.size || 0);
 
 export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const config = CONFIGS[kind];
@@ -101,10 +104,10 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
         title={config.title}
         subtitle={config.subtitle}
         actions={
-          <Btn variant="primary" onClick={() => inputRef.current?.click()}>
+          <Button variant="primary" onClick={() => inputRef.current?.click()}>
             <Upload size={16} />
             {config.uploadLabel}
-          </Btn>
+          </Button>
         }
       />
       <input
@@ -125,16 +128,25 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
       </div>
 
       {list.length === 0 ? (
-        <EmptyState
-          icon={config.emptyIcon}
-          message={config.emptyMessage}
-          action={
-            <Btn variant="primary" onClick={() => inputRef.current?.click()}>
-              <ImagePlus size={15} />
-              {config.uploadLabel}
-            </Btn>
-          }
-        />
+        query.trim() ? (
+          <EmptyState
+            icon={config.emptyIcon}
+            title={`No ${config.title.toLowerCase()} match`}
+            message="Try a different search."
+          />
+        ) : (
+          <EmptyState
+            icon={config.emptyIcon}
+            title={config.emptyTitle}
+            message={config.emptyMessage}
+            action={
+              <Button variant="primary" onClick={() => inputRef.current?.click()}>
+                <ImagePlus size={15} />
+                {config.uploadLabel}
+              </Button>
+            }
+          />
+        )
       ) : (
         <div className="ws-card-grid">
           {list.map((item) => (
@@ -152,7 +164,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                     <>
                       <VideoThumb item={item} />
                       {item.duration !== undefined && (
-                        <div className="ws-thumb-badge">{fmtDuration(item.duration)}</div>
+                        <div className="ws-thumb-badge">{formatDuration(item.duration)}</div>
                       )}
                     </>
                   )}
@@ -167,19 +179,19 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                   {itemSize(item)}
                 </div>
                 <div className="ws-card-actions">
-                  <Btn size="sm" variant="primary" onClick={() => present(item)}>
+                  <Button size="sm" variant="primary" onClick={() => present(item)}>
                     <Play size={13} />
                     Present
-                  </Btn>
-                  <Btn size="sm" variant="ghost" onClick={() => setEditing(item)}>
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
                     <Pencil size={13} />
                     Edit
-                  </Btn>
+                  </Button>
                   {item.kind === "image" && (
-                    <IconBtn icon={Wallpaper} title="Use as background" onClick={() => asBackground(item)} />
+                    <IconButton icon={Wallpaper} title="Use as background" onClick={() => asBackground(item)} />
                   )}
                   <div style={{ marginLeft: "auto" }}>
-                    <IconBtn icon={Trash2} title="Delete" danger onClick={() => setDeleting(item)} />
+                    <IconButton icon={Trash2} title="Delete" danger onClick={() => setDeleting(item)} />
                   </div>
                 </div>
               </div>

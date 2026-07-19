@@ -23,16 +23,9 @@ export const updateServiceWorker = registerSW({
   },
 });
 
-// When the installed PWA is brought back to the foreground (user taps the
-// home-screen icon after the app was backgrounded or the phone screen was off),
-// immediately check for a new service worker. Without this, the tab would only
-// check at registration time or on the hourly poll, so a freshly deployed
-// version wouldn't be seen until one of those fires.
-//
-// Flow when an update is found:
-//   registration.update() → new SW installs → skipWaiting (workbox config)
-//   → new SW activates with isUpdate:true → window.location.reload()
-//   (the reload is handled by vite-plugin-pwa's autoUpdate 'activated' listener)
+// Also check for updates whenever the installed app returns to the foreground,
+// so a fresh deploy is picked up without waiting for the hourly poll.
+// vite-plugin-pwa's autoUpdate mode installs and reloads automatically.
 if ("serviceWorker" in navigator) {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {

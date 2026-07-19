@@ -1,6 +1,6 @@
 import type { BibleVerse, BibleVersionId, PassageRange, ScripturePassage } from "../../types";
 import { now, uid } from "../../lib/id";
-import { sDel, sPut } from "../../lib/storage";
+import { deleteRecord, saveRecord } from "../../lib/storage";
 import { buildScriptureSlides } from "../../features/bible/lib/scriptureSlides";
 import { formatReference } from "../../features/bible/lib/reference";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
@@ -87,7 +87,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
         : [passage, ...state.scriptures];
       return { scriptures };
     });
-    void sPut("scriptures", passage);
+    void saveRecord("scriptures", passage);
     afterWrite(get);
   },
 
@@ -107,7 +107,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
     const showReference = options.showReference ?? true;
     const next: ScripturePassage = {
       ...current,
-      // The existing title is kept on purpose — it may carry a copy number.
+      // The existing title is kept on purpose, it may carry a copy number.
       version: options.version,
       range: options.range,
       verses: options.verses,
@@ -154,13 +154,13 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
   },
   deleteScripture: (id) => {
     set((state) => ({ scriptures: state.scriptures.filter((s) => s.id !== id) }));
-    void sDel("scriptures", id);
+    void deleteRecord("scriptures", id);
     afterDelete(get);
   },
 
   presentScriptureSelection: (selection) => {
     if (blockWrite(get)) return;
-    // Quick presents default to no verse-number prefixes — the reference line
+    // Quick presents default to no verse-number prefixes, the reference line
     // already identifies the verse on screen.
     const passage = buildPassage(
       { ...selection, showVerseNumbers: false },

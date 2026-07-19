@@ -9,7 +9,7 @@ interface LazyMountProps {
 
 /**
  * Mounts children only while the container is near the viewport and unmounts
- * them again once it scrolls well away — so long media grids only hold object
+ * them again once it scrolls well away, so long media grids only hold object
  * URLs and decoded frames for what's actually visible.
  */
 export function LazyMount({ children, placeholder, rootMargin = "400px" }: LazyMountProps) {

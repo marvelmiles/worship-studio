@@ -1,5 +1,5 @@
 import { useStore } from "../../store/useStore";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import { SectionTitle } from "../../components/ui/Field";
 import { SHORTCUT_GROUPS } from "../../lib/shortcuts";
@@ -8,9 +8,9 @@ const keyStyle = {
   fontFamily: "ui-monospace, monospace",
   fontSize: 12,
   fontWeight: 600,
-  color: C.text,
+  color: colors.text,
   background: "rgba(255,255,255,0.07)",
-  border: `1px solid ${C.border}`,
+  border: `1px solid ${colors.border}`,
   borderRadius: 6,
   padding: "3px 8px",
   minWidth: 22,
@@ -23,7 +23,7 @@ export function ShortcutsModal() {
 
   return (
     <Modal open={overlay === "shortcuts"} onClose={close} title="Keyboard Shortcuts" width={540}>
-      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
         These shortcuts are available while presenting.
       </p>
       {SHORTCUT_GROUPS.map((group) => (
@@ -34,7 +34,7 @@ export function ShortcutsModal() {
               style={{
                 fontFamily: UI,
                 fontSize: 12,
-                color: C.sub,
+                color: colors.sub,
                 margin: "4px 0 10px",
                 lineHeight: 1.55,
                 fontStyle: "italic",
@@ -52,10 +52,10 @@ export function ShortcutsModal() {
                 justifyContent: "space-between",
                 gap: 12,
                 padding: "8px 0",
-                borderBottom: i < group.shortcuts.length - 1 ? `1px solid ${C.border}` : "none",
+                borderBottom: i < group.shortcuts.length - 1 ? `1px solid ${colors.border}` : "none",
               }}
             >
-              <span style={{ fontFamily: UI, fontSize: 13.5, color: C.text }}>
+              <span style={{ fontFamily: UI, fontSize: 13.5, color: colors.text }}>
                 {shortcut.description}
               </span>
               <span style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 260 }}>

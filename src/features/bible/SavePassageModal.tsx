@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus } from "lucide-react";
 import type { ScriptureSelection } from "../../store/useStore";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { Field, Range, Toggle } from "../../components/ui/Field";
 import { formatReference } from "./lib/reference";
 
@@ -38,19 +38,19 @@ export function SavePassageModal({ selection, onClose, onSave }: SavePassageModa
       width={480}
       footer={
         <>
-          <Btn onClick={onClose}>Cancel</Btn>
-          <Btn variant="primary" onClick={() => onSave(versesPerSlide, showVerseNumbers, showReference)}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={() => onSave(versesPerSlide, showVerseNumbers, showReference)}>
             <BookmarkPlus size={15} />
             Save passage
-          </Btn>
+          </Button>
         </>
       }
     >
-      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
         The passage is turned into presentation slides. You can restyle it, change backgrounds and
         re-chunk verses any time in the passage editor.
       </p>
-      <Field label={`Verses per slide (${versesPerSlide}) — makes ${slideCount} slide${slideCount === 1 ? "" : "s"}`}>
+      <Field label={`Verses per slide (${versesPerSlide}), makes ${slideCount} slide${slideCount === 1 ? "" : "s"}`}>
         <Range value={versesPerSlide} min={1} max={6} onChange={(e) => setVersesPerSlide(Number(e.target.value))} />
       </Field>
       <div style={{ marginBottom: 10 }}>

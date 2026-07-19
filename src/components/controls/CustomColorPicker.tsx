@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
-import { C, UI } from "../../theme/tokens";
-import { Btn } from "../ui/Button";
+import { colors, UI } from "../../theme/tokens";
+import { Button } from "../ui/Button";
 import { TextInput } from "../ui/Field";
 
 interface CustomColorPickerProps {
@@ -9,7 +9,7 @@ interface CustomColorPickerProps {
 }
 
 const PALETTE: { value: string; name: string }[] = [
-  { value: "#0b0a0e", name: "Charcoal" },
+  { value: "#101013", name: "Charcoal" },
   { value: "#101a3d", name: "Midnight Navy" },
   { value: "#1b1733", name: "Deep Indigo" },
   { value: "#2a2118", name: "Espresso" },
@@ -33,7 +33,7 @@ const caption = {
   fontWeight: 700,
   letterSpacing: 0.5,
   textTransform: "uppercase" as const,
-  color: C.dim,
+  color: colors.dim,
   margin: "0 0 7px",
 };
 
@@ -55,7 +55,7 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
   };
 
   return (
-    <div style={{ padding: 12, borderRadius: 11, background: C.raise, border: `1px solid ${C.border}`, marginBottom: 12 }}>
+    <div style={{ padding: 12, borderRadius: 11, background: colors.raise, border: `1px solid ${colors.border}`, marginBottom: 12 }}>
       <p style={caption}>Presets</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 6, marginBottom: 14 }}>
         {PALETTE.map((swatch) => (
@@ -67,14 +67,14 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
               aspectRatio: "1",
               borderRadius: 7,
               background: swatch.value,
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${colors.border}`,
               cursor: "pointer",
             }}
           />
         ))}
       </div>
 
-      <p style={caption}>Add custom — label required</p>
+      <p style={caption}>Add custom (label required)</p>
       <TextInput value={label} placeholder="Label (e.g. Soft Cream)" onChange={(e) => setLabel(e.target.value)} />
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0" }}>
@@ -82,12 +82,12 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          style={{ width: 42, height: 38, borderRadius: 9, border: `1px solid ${C.border}`, background: "transparent", cursor: "pointer" }}
+          style={{ width: 42, height: 38, borderRadius: 9, border: `1px solid ${colors.border}`, background: "transparent", cursor: "pointer" }}
         />
-        <Btn variant="ghost" size="sm" disabled={!trimmed} onClick={addColor}>
+        <Button variant="ghost" size="sm" disabled={!trimmed} onClick={addColor}>
           <Plus size={14} />
           Add color
-        </Btn>
+        </Button>
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
@@ -96,13 +96,13 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
           placeholder="#1b1733, rgba(20,20,40,1), linear-gradient(…)"
           onChange={(e) => setCss(e.target.value)}
         />
-        <Btn variant="ghost" size="sm" disabled={!trimmed || !css.trim()} onClick={addCss}>
+        <Button variant="ghost" size="sm" disabled={!trimmed || !css.trim()} onClick={addCss}>
           <Check size={14} />
           Add
-        </Btn>
+        </Button>
       </div>
-      <p style={{ fontFamily: UI, fontSize: 11.5, color: C.dim, margin: "8px 0 0" }}>
-        Accepts any CSS background — hex, rgb / rgba, hsl, or a gradient. Presets already include a name.
+      <p style={{ fontFamily: UI, fontSize: 11.5, color: colors.dim, margin: "8px 0 0" }}>
+        Accepts any CSS background: hex, rgb / rgba, hsl, or a gradient. Presets already include a name.
       </p>
     </div>
   );

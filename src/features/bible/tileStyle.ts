@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { C, UI } from "../../theme/tokens";
+import { fade, colors, UI } from "../../theme/tokens";
 
 /** Shared look of the tappable book/chapter/verse tiles on the Bible page. */
 export const tileStyle = (active = false): CSSProperties => ({
@@ -11,7 +11,7 @@ export const tileStyle = (active = false): CSSProperties => ({
   fontWeight: 600,
   fontVariantNumeric: "tabular-nums",
   textAlign: "center",
-  border: `1px solid ${active ? "rgba(216,162,74,0.4)" : C.border}`,
-  background: active ? "rgba(216,162,74,0.16)" : C.raise,
-  color: active ? C.goldSoft : C.text,
+  border: `1px solid ${active ? fade(colors.accent, 0.4) : colors.border}`,
+  background: active ? fade(colors.accent, 0.16) : colors.raise,
+  color: active ? colors.accentSoft : colors.text,
 });

@@ -8,7 +8,7 @@ import {
   thumbId,
 } from "../../lib/fileStore";
 import { invalidateBlobUrl } from "../../lib/blobUrls";
-import { sDel, sPut, sPutStrict } from "../../lib/storage";
+import { deleteRecord, saveRecord, saveRecordStrict } from "../../lib/storage";
 import {
   DEFAULT_IMAGE_SETTINGS,
   DEFAULT_VIDEO_SETTINGS,
@@ -30,7 +30,7 @@ export interface MediaSlice {
 }
 
 const QUOTA_TOAST =
-  "Not enough storage space for that file — free up space and try again.";
+  "Not enough storage space for that file. Free up space and try again.";
 
 export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
   media: [],
@@ -70,7 +70,7 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
         createdAt: now(),
         updatedAt: now(),
       };
-      await sPutStrict("media", item);
+      await saveRecordStrict("media", item);
       set((state) => ({ media: [item, ...state.media] }));
       return id;
     } catch (err) {
@@ -90,14 +90,14 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     if (!current) return;
     const next: MediaItem = { ...current, ...changes, id, updatedAt: now() };
     set((state) => ({ media: state.media.map((m) => (m.id === id ? next : m)) }));
-    void sPut("media", next);
+    void saveRecord("media", next);
     afterWrite(get);
   },
 
   removeMedia: async (id) => {
     const backgroundsUseFile = get().backgrounds.some((b) => b.blobId === id);
     set((state) => ({ media: state.media.filter((m) => m.id !== id) }));
-    await sDel("media", id);
+    await deleteRecord("media", id);
     if (backgroundsUseFile) {
       await deleteFileBlob(thumbId(id));
     } else {
@@ -124,7 +124,7 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
       createdAt: now(),
     };
     set((state) => ({ backgrounds: [...state.backgrounds, background] }));
-    void sPut("backgrounds", background);
+    void saveRecord("backgrounds", background);
     afterWrite(get);
     return background.id;
   },

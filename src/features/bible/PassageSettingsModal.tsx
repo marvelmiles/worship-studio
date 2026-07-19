@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { BibleVersionId, ScripturePassage } from "../../types";
 import { BIBLE_BOOKS, BIBLE_VERSIONS, DEFAULT_BIBLE_VERSION, bookById, isBibleVersion } from "../../data/bibleBooks";
-import { C, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Modal } from "../../components/ui/Modal";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { Field, Range, Select, Toggle, SectionTitle } from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
@@ -38,7 +38,7 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
 
   // Passages saved by older releases may carry a translation that is no
   // longer available (copyrighted versions were removed when scripture went
-  // fully offline) — rebuilding those falls back to the default.
+  // fully offline), rebuilding those falls back to the default.
   const safeVersion = (value: BibleVersionId) => (isBibleVersion(value) ? value : DEFAULT_BIBLE_VERSION);
   const [version, setVersion] = useState<BibleVersionId>(safeVersion(passage.version));
   const [bookId, setBookId] = useState(passage.range.bookId);
@@ -107,7 +107,7 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
 
   return (
     <Modal open={open} onClose={onClose} title="Passage Settings" width={620}>
-      <p style={{ fontFamily: UI, fontSize: 13, color: C.sub, marginTop: 0, lineHeight: 1.6 }}>
+      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
         These settings apply to every slide in this passage. Individual slides can still override
         them in the inspector.
       </p>
@@ -164,11 +164,11 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
       <div style={{ marginBottom: 12 }}>
         <Toggle label="Show reference on each slide" checked={showReference} onChange={setShowReference} />
       </div>
-      <Btn variant="primary" onClick={() => void rebuild()} disabled={rebuilding}>
+      <Button variant="primary" onClick={() => void rebuild()} busy={rebuilding}>
         <RefreshCw size={15} />
-        {rebuilding ? "Rebuilding…" : "Apply & rebuild slides"}
-      </Btn>
-      <p style={{ fontFamily: UI, fontSize: 12, color: C.danger, opacity: 0.85, margin: "10px 0 0" }}>
+        Apply & rebuild slides
+      </Button>
+      <p style={{ fontFamily: UI, fontSize: 12, color: colors.danger, opacity: 0.85, margin: "10px 0 0" }}>
         Rebuilding refetches the verses and resets per-slide overrides.
       </p>
 

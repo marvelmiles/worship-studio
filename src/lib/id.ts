@@ -3,7 +3,7 @@ export const uid = (): string =>
 
 export const now = (): string => new Date().toISOString();
 
-export const fmtDate = (d: string): string => {
+export const formatDate = (d: string): string => {
   try {
     return new Date(d).toLocaleDateString(undefined, {
       month: "short",

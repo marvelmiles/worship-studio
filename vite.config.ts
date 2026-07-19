@@ -20,12 +20,12 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "WorshipStudio — Worship Presentation Studio",
+        name: "WorshipStudio · Worship Presentation Studio",
         short_name: "WorshipStudio",
         description:
-          "Present songs, Bible passages, images and videos live — installable and offline-ready.",
-        theme_color: "#0b0a0e",
-        background_color: "#0b0a0e",
+          "Present songs, Bible passages, images and videos live, installable and offline-ready.",
+        theme_color: "#101013",
+        background_color: "#101013",
         display: "standalone",
         orientation: "any",
         start_url: "/",

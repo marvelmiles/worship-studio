@@ -17,7 +17,7 @@ import { parseLyrics } from "../../lib/parser";
 import { now, uid } from "../../lib/id";
 import { readFile } from "../../lib/files";
 import { dataFileSchema } from "../../lib/schema";
-import { sAll, sClear, sPut } from "../../lib/storage";
+import { readAllRecords, clearStore, saveRecord } from "../../lib/storage";
 import type { StoreName } from "../../lib/storage";
 import { putFileBlob, thumbId } from "../../lib/fileStore";
 import { probeImageFile } from "../../lib/media";
@@ -134,13 +134,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
   load: async () => {
     const [songs, scriptures, rawMedia, rawBackgrounds, rawAudio, themes, prefsRows] =
       await Promise.all([
-        sAll<Song>("songs"),
-        sAll<ScripturePassage>("scriptures"),
-        sAll<MediaItem>("media"),
-        sAll<Background>("backgrounds"),
-        sAll<AudioItem>("audio"),
-        sAll<Theme>("themes"),
-        sAll<Prefs>("prefs"),
+        readAllRecords<Song>("songs"),
+        readAllRecords<ScripturePassage>("scriptures"),
+        readAllRecords<MediaItem>("media"),
+        readAllRecords<Background>("backgrounds"),
+        readAllRecords<AudioItem>("audio"),
+        readAllRecords<Theme>("themes"),
+        readAllRecords<Prefs>("prefs"),
       ]);
 
     const { media, backgrounds, audio } = await migrateLegacyBinaries(
@@ -152,13 +152,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     let songList = songs;
     if (!songList.length) {
       songList = seedSongs();
-      for (const song of songList) await sPut("songs", song);
+      for (const song of songList) await saveRecord("songs", song);
     }
 
     let themeList = themes;
     if (!themeList.length) {
       themeList = THEMES;
-      for (const theme of themeList) await sPut("themes", theme);
+      for (const theme of themeList) await saveRecord("themes", theme);
     }
 
     const prefs = prefsRows[0] ? { ...DEFAULT_PREFS, ...prefsRows[0] } : DEFAULT_PREFS;
@@ -167,8 +167,8 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     // versions that no longer exist fall back to the default.
     if (!isBibleVersion(prefs.bibleVersion)) prefs.bibleVersion = DEFAULT_BIBLE_VERSION;
     // The per-chapter download cache is obsolete now that the text ships
-    // with the app — clear leftovers from older releases.
-    void sClear("bible");
+    // with the app, clear leftovers from older releases.
+    void clearStore("bible");
 
     set({
       songs: songList,
@@ -235,7 +235,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
       if (!override && state.storage?.blocked) {
         get().pushAlert(BLOCK_MSG, "error", "storage-block");
-        return { ok: false, message: "Storage is full — delete some data, or use Replace to import." };
+        return { ok: false, message: "Storage is full. Delete some data, or use Replace to import." };
       }
 
       let songs = state.songs;
@@ -294,13 +294,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
       if (override) {
         await Promise.all([
-          sClear("songs"),
-          sClear("scriptures"),
-          sClear("media"),
-          sClear("themes"),
-          sClear("backgrounds"),
-          sClear("audio"),
-          sClear("files"),
+          clearStore("songs"),
+          clearStore("scriptures"),
+          clearStore("media"),
+          clearStore("themes"),
+          clearStore("backgrounds"),
+          clearStore("audio"),
+          clearStore("files"),
         ]);
       }
 
@@ -372,7 +372,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
       let done = 0;
       for (const task of puts) {
-        await sPut(task.store, task.value);
+        await saveRecord(task.store, task.value);
         done += 1;
         onProgress?.(0.8 + 0.2 * (done / puts.length));
       }
@@ -391,20 +391,20 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     const startedAt = Date.now();
     try {
       await Promise.all([
-        sClear("songs"),
-        sClear("scriptures"),
-        sClear("media"),
-        sClear("themes"),
-        sClear("backgrounds"),
-        sClear("audio"),
-        sClear("prefs"),
-        sClear("bible"),
-        sClear("files"),
+        clearStore("songs"),
+        clearStore("scriptures"),
+        clearStore("media"),
+        clearStore("themes"),
+        clearStore("backgrounds"),
+        clearStore("audio"),
+        clearStore("prefs"),
+        clearStore("bible"),
+        clearStore("files"),
       ]);
       const songs = seedSongs();
-      for (const song of songs) await sPut("songs", song);
-      for (const theme of THEMES) await sPut("themes", theme);
-      await sPut("prefs", DEFAULT_PREFS);
+      for (const song of songs) await saveRecord("songs", song);
+      for (const theme of THEMES) await saveRecord("themes", theme);
+      await saveRecord("prefs", DEFAULT_PREFS);
       set({
         songs,
         scriptures: [],

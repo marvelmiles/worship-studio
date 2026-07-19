@@ -1,17 +1,9 @@
-// The offline Bible, from the ground up:
-//
-// 1. The holy-bible npm package (MIT license) ships each public-domain
-//    translation as ONE flat array of 31,103 verse strings in reading order:
-//    Genesis 1:1 is position 0, Revelation 22:21 is the last position. The
-//    data itself has no book/chapter structure.
-// 2. src/data/bibleLayout.ts (generated — see scripts/generate-bible-layout.mjs)
-//    provides that structure: how many verses each chapter has, and where a
-//    chapter starts inside the flat array.
-// 3. This module combines the two. It lazy-loads a translation's verse array
-//    the first time it's needed (each translation is its own code-split
-//    chunk, precached by the service worker) and answers two questions:
-//    "give me this chapter's verses" and "which verses contain these words?".
-//    Nothing ever touches the network at runtime.
+// Fully offline Bible. The holy-bible package stores each translation as one
+// flat array of 31,103 verse strings in reading order, with no book/chapter
+// structure. bibleLayout.ts (generated) says where each chapter starts in that
+// array. This module joins the two: it lazy-loads a translation on first use
+// and answers "give me this chapter" and "which verses contain these words",
+// without ever touching the network.
 
 import type { BibleVerse, BibleVersionId } from "../../../types";
 import {
@@ -60,7 +52,7 @@ export class BibleLoadError extends Error {
   }
 }
 
-/** A translation chunk failed to load — usually offline before first cache. */
+/** A translation chunk failed to load, usually offline before first cache. */
 function translationUnavailable(version: BibleVersionId): BibleLoadError {
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
   return new BibleLoadError(

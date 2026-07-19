@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { LucideIcon } from "lucide-react";
-import { C, glass, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 
 export interface MenuItem {
   label?: string;
@@ -18,6 +18,8 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
+  const { colors, fonts, glass } = useUITheme();
+  const UI = fonts.ui;
   useEffect(() => {
     const h = () => onClose();
     window.addEventListener("click", h);
@@ -37,14 +39,14 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         zIndex: 300,
         width: 196,
         ...glass,
-        background: "rgba(22,20,28,0.98)",
+        background: "rgba(22,19,36,0.85)",
         padding: 6,
         boxShadow: "0 18px 50px rgba(0,0,0,0.5)",
       }}
     >
       {items.map((it, i) =>
         it.divider ? (
-          <div key={i} style={{ height: 1, background: C.border, margin: "5px 8px" }} />
+          <div key={i} style={{ height: 1, background: colors.border, margin: "5px 8px" }} />
         ) : (
           <button
             key={i}
@@ -64,10 +66,10 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
               cursor: "pointer",
               fontFamily: UI,
               fontSize: 13.5,
-              color: it.danger ? C.danger : C.text,
+              color: it.danger ? colors.danger : colors.text,
               textAlign: "left",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = C.raise)}
+            onMouseEnter={(e) => (e.currentTarget.style.background = colors.raise)}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             {it.icon && <it.icon size={15} />} {it.label}

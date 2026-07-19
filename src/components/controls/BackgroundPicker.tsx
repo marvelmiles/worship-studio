@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { Palette, Upload } from "lucide-react";
 import type { Background } from "../../types";
-import { C } from "../../theme/tokens";
+import { colors } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Field, Select } from "../ui/Field";
-import { Btn } from "../ui/Button";
+import { Button } from "../ui/Button";
 import { CustomColorPicker } from "./CustomColorPicker";
 import { BgSwatch } from "./BgSwatch";
 
@@ -55,7 +55,7 @@ export function BackgroundPicker({
               padding: 0,
               overflow: "hidden",
               background: "transparent",
-              border: `1.5px solid ${activeId === bg.id ? C.gold : C.border}`,
+              border: `1.5px solid ${activeId === bg.id ? colors.accent : colors.border}`,
             }}
           >
             <BgSwatch bg={bg} style={{ width: "100%", height: "100%" }} />
@@ -65,16 +65,16 @@ export function BackgroundPicker({
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
         {onUploaded && (
-          <Btn variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
             <Upload size={14} />
             Upload image
-          </Btn>
+          </Button>
         )}
         {onAddColor && (
-          <Btn variant="ghost" size="sm" onClick={() => setShowColor((v) => !v)}>
+          <Button variant="ghost" size="sm" onClick={() => setShowColor((v) => !v)}>
             <Palette size={14} />
             Solid / custom color
-          </Btn>
+          </Button>
         )}
       </div>
 

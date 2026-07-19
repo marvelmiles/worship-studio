@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { PresentationView } from "../../types";
-import { C, UI } from "../../theme/tokens";
-import { PCtl } from "../../components/ui/Button";
+import { fade, colors, UI } from "../../theme/tokens";
+import { StageButton } from "../../components/ui/Button";
 
 const VIEW_OPTIONS: { value: PresentationView; label: string; hint: string; icon: LucideIcon }[] = [
   { value: "normal", label: "Normal", hint: "Fit, letterboxed", icon: RectangleHorizontal },
@@ -120,23 +120,23 @@ export function PresentationControls({
         transition: "opacity 0.3s ease",
       }}
     >
-      <PCtl
+      <StageButton
         icon={MonitorUp}
-        title={isLive ? "Live — projecting to external display" : isExternal ? "Go Live on external display" : "Go Live / project"}
+        title={isLive ? "Live: projecting to external display" : isExternal ? "Go Live on external display" : "Go Live / project"}
         active={isLive}
         onClick={onGoLive}
       />
       {isLive && (
-        <PCtl
+        <StageButton
           icon={PictureInPicture2}
           title={isRevealed ? "Send projected window back to the display" : "Bring projected window to this screen"}
           active={isRevealed}
           onClick={onToggleReveal}
         />
       )}
-      <PCtl icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
+      <StageButton icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
       {canRead && (
-        <PCtl
+        <StageButton
           icon={reading ? Square : Volume2}
           title={reading ? "Stop reading (R)" : "Read passage aloud (R)"}
           active={reading}
@@ -145,7 +145,7 @@ export function PresentationControls({
       )}
 
       <div ref={viewRef} style={{ position: "relative" }}>
-        <PCtl icon={Scan} title="Screen fit (V)" active={menuOpen} onClick={() => setMenuOpen((o) => !o)} />
+        <StageButton icon={Scan} title="Screen fit (V)" active={menuOpen} onClick={() => setMenuOpen((o) => !o)} />
         {menuOpen && (
           <div
             style={{
@@ -155,8 +155,8 @@ export function PresentationControls({
               minWidth: 196,
               padding: 6,
               borderRadius: 12,
-              background: "rgba(22,20,28,0.98)",
-              border: `1px solid ${C.border}`,
+              background: "rgba(22,19,36,0.9)", backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)",
+              border: `1px solid ${colors.border}`,
               boxShadow: "0 18px 50px rgba(0,0,0,0.55)",
             }}
           >
@@ -167,7 +167,7 @@ export function PresentationControls({
                 fontWeight: 700,
                 letterSpacing: 0.6,
                 textTransform: "uppercase",
-                color: C.dim,
+                color: colors.dim,
                 padding: "6px 9px 8px",
               }}
             >
@@ -192,8 +192,8 @@ export function PresentationControls({
                     cursor: "pointer",
                     textAlign: "left",
                     border: "none",
-                    background: active ? "rgba(216,162,74,0.16)" : "transparent",
-                    color: active ? C.goldSoft : C.text,
+                    background: active ? fade(colors.accent, 0.16) : "transparent",
+                    color: active ? colors.accentSoft : colors.text,
                   }}
                   onMouseEnter={(e) => {
                     if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
@@ -207,7 +207,7 @@ export function PresentationControls({
                     <span style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, display: "block" }}>
                       {option.label}
                     </span>
-                    <span style={{ fontFamily: UI, fontSize: 11.5, color: active ? C.goldSoft : C.sub }}>
+                    <span style={{ fontFamily: UI, fontSize: 11.5, color: active ? colors.accentSoft : colors.sub }}>
                       {option.hint}
                     </span>
                   </span>
@@ -220,7 +220,7 @@ export function PresentationControls({
       </div>
 
       <span style={{ display: "flex", alignItems: "center", gap: 2 }}>
-        <PCtl icon={ZoomOut} title="Zoom out (-)" onClick={onZoomOut} />
+        <StageButton icon={ZoomOut} title="Zoom out (-)" onClick={onZoomOut} />
         <button
           onClick={onResetZoom}
           title="Reset zoom (0)"
@@ -245,16 +245,16 @@ export function PresentationControls({
           <RotateCcw size={13} />
           {Math.round(zoom * 100)}%
         </button>
-        <PCtl icon={ZoomIn} title="Zoom in (+)" onClick={onZoomIn} />
+        <StageButton icon={ZoomIn} title="Zoom in (+)" onClick={onZoomIn} />
       </span>
 
-      <PCtl icon={Monitor} title="Presenter bar (I)" active={showInfo} onClick={onToggleInfo} />
-      <PCtl
+      <StageButton icon={Monitor} title="Presenter bar (I)" active={showInfo} onClick={onToggleInfo} />
+      <StageButton
         icon={isFullscreen ? Minimize2 : Maximize2}
         title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
         onClick={onToggleFullscreen}
       />
-      <PCtl icon={X} title="Exit (Esc)" onClick={onExit} />
+      <StageButton icon={X} title="Exit (Esc)" onClick={onExit} />
     </div>
   );
 }

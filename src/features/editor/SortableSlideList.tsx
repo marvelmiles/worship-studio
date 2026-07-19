@@ -15,7 +15,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
-import { C, UI } from "../../theme/tokens";
+import { fade, colors, UI } from "../../theme/tokens";
 import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
@@ -28,7 +28,7 @@ interface SortableSlideListProps {
   theme: Theme;
   bgMap: Record<string, Background>;
   onReorder: (next: Slide[]) => void;
-  onContextMenu: (idx: number, x: number, y: number) => void;
+  onContextMenu: (slideIndex: number, x: number, y: number) => void;
   tagGroups?: TagGroup[];
 }
 
@@ -40,7 +40,7 @@ interface RowProps {
   doc: SlideDeckDoc;
   theme: Theme;
   bgMap: Record<string, Background>;
-  onContextMenu: (idx: number, x: number, y: number) => void;
+  onContextMenu: (slideIndex: number, x: number, y: number) => void;
   shortcutNum?: number;
   fixedShortcut?: { letter: string; label: string };
 }
@@ -84,10 +84,10 @@ function ShortcutBadge({
           ...kbdKey,
           ...(highlight
             ? {
-                background: "rgba(216,162,74,0.2)",
-                border: "1px solid rgba(216,162,74,0.5)",
-                borderBottom: "2px solid rgba(216,162,74,0.5)",
-                color: C.gold,
+                background: fade(colors.accent, 0.2),
+                border: `1px solid ${fade(colors.accent, 0.5)}`,
+                borderBottom: `2px solid ${fade(colors.accent, 0.5)}`,
+                color: colors.accent,
               }
             : {}),
         }}
@@ -98,7 +98,7 @@ function ShortcutBadge({
         style={{
           fontSize: 9,
           fontWeight: 800,
-          color: highlight ? C.gold : "rgba(255,255,255,0.7)",
+          color: highlight ? colors.accent : "rgba(255,255,255,0.7)",
           fontFamily: "ui-monospace, monospace",
         }}
       >
@@ -145,8 +145,8 @@ function SortableRow({
         marginBottom: 8,
         borderRadius: 11,
         cursor: "pointer",
-        background: selected ? "rgba(216,162,74,0.12)" : "transparent",
-        border: `1px solid ${selected ? "rgba(216,162,74,0.35)" : "transparent"}`,
+        background: selected ? fade(colors.accent, 0.12) : "transparent",
+        border: `1px solid ${selected ? fade(colors.accent, 0.35) : "transparent"}`,
         opacity: isDragging ? 0.4 : 1,
       }}
     >
@@ -159,7 +159,7 @@ function SortableRow({
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          color: C.dim,
+          color: colors.dim,
           cursor: "grab",
           touchAction: "none",
         }}
@@ -171,7 +171,7 @@ function SortableRow({
           width: 32,
           fontFamily: UI,
           fontSize: 12,
-          color: C.dim,
+          color: colors.dim,
           display: "flex",
           alignItems: "center",
           fontVariantNumeric: "tabular-nums",
@@ -201,7 +201,7 @@ function SortableRow({
             style={{
               fontFamily: UI,
               fontSize: 11,
-              color: selected ? C.goldSoft : C.sub,
+              color: selected ? colors.accentSoft : colors.sub,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",

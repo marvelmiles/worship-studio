@@ -1,8 +1,8 @@
 import { Copy, Trash2, X } from "lucide-react";
 import type { AudioItem, Background, SlideDeckDoc, Theme } from "../../types";
-import { C, UI } from "../../theme/tokens";
+import { fade, colors, UI } from "../../theme/tokens";
 import { resolveBackgroundId, resolveLineStyle, resolveStyle } from "../../lib/resolve";
-import { Btn } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
@@ -62,11 +62,11 @@ export function InspectorPanel({
             marginBottom: 10,
             padding: "7px 9px",
             borderRadius: 9,
-            background: "rgba(216,162,74,0.1)",
-            border: "1px solid rgba(216,162,74,0.3)",
+            background: fade(colors.accent, 0.1),
+            border: `1px solid ${fade(colors.accent, 0.3)}`,
           }}
         >
-          <span style={{ fontFamily: UI, fontSize: 12, color: C.goldSoft }}>
+          <span style={{ fontFamily: UI, fontSize: 12, color: colors.accentSoft }}>
             Formatting this line only
           </span>
           <div style={{ display: "flex", gap: 6 }}>
@@ -77,7 +77,7 @@ export function InspectorPanel({
                 style={{
                   fontFamily: UI,
                   fontSize: 11.5,
-                  color: C.sub,
+                  color: colors.sub,
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
@@ -90,14 +90,14 @@ export function InspectorPanel({
             )}
             <button
               onClick={() => onSelectLine(null)}
-              title="Done — back to slide style"
+              title="Done. Back to slide style"
               style={{
                 display: "grid",
                 placeItems: "center",
                 width: 20,
                 height: 20,
                 borderRadius: 6,
-                color: C.sub,
+                color: colors.sub,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
@@ -155,20 +155,20 @@ export function InspectorPanel({
       />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-        <Btn size="sm" variant="ghost" onClick={() => editor.duplicateSlide(selectedIndex)}>
+        <Button size="sm" variant="ghost" onClick={() => editor.duplicateSlide(selectedIndex)}>
           <Copy size={13} />
           Duplicate
-        </Btn>
-        <Btn size="sm" variant="ghost" onClick={() => editor.splitSlide(selectedIndex)}>
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => editor.splitSlide(selectedIndex)}>
           Split
-        </Btn>
-        <Btn size="sm" variant="ghost" onClick={() => editor.mergeSlideDown(selectedIndex)}>
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => editor.mergeSlideDown(selectedIndex)}>
           Merge ↓
-        </Btn>
-        <Btn size="sm" variant="danger" onClick={() => editor.removeSlide(selectedIndex)}>
+        </Button>
+        <Button size="sm" variant="danger" onClick={() => editor.removeSlide(selectedIndex)}>
           <Trash2 size={13} />
           Delete
-        </Btn>
+        </Button>
       </div>
     </div>
   );

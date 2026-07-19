@@ -76,12 +76,7 @@ export function useGoLive() {
 
   useEffect(() => endLive, [endLive]);
 
-  /**
-   * Pulls the live popup onto the operator's own screen so it can actually
-   * be seen and clicked into — the taskbar thumbnail alone isn't enough
-   * when the window normally lives on a screen the operator isn't looking
-   * at.
-   */
+  /** Pulls the live popup onto the operator's own screen so it can be seen and clicked. */
   const revealLiveWindow = useCallback(() => {
     const win = winRef.current;
     if (!win || win.closed) return;
@@ -114,12 +109,9 @@ export function useGoLive() {
   }, []);
 
   /**
-   * Exiting fullscreen never needs a user gesture, so that direction always
-   * works. Entering fullscreen on another window's document does need one —
-   * the popup only has it right after window.open() delegates it, so a
-   * later remote request here can be rejected by the browser. Callers should
-   * fall back to the fullscreen button rendered inside the popup itself
-   * (a real click there always works) when this resolves to false.
+   * Entering fullscreen on the popup needs a user gesture the browser may no
+   * longer honor, so this can resolve false. Callers should then point the
+   * user at the fullscreen button inside the popup, where a real click works.
    */
   const toggleLiveFullscreen = useCallback(async (): Promise<boolean> => {
     const win = winRef.current;
@@ -203,13 +195,8 @@ export function useGoLive() {
           setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
         });
         setIsLiveFullscreen(Boolean(win.document.fullscreenElement));
-        // Auto-enters fullscreen when we could place the popup on its own
-        // screen — this call relies on activation delegated from the
-        // window.open() that just created it, which is spent after this.
-        // Note: on Windows, Chrome treats a script-fullscreened window as
-        // "exclusive fullscreen," which can make the OS taskbar/Alt-Tab
-        // less reliable at switching focus to it — use the "bring here"
-        // control (revealLiveWindow) if you need to interact with it.
+        // Auto-fullscreen only works right after window.open(), while the
+        // browser still honors the delegated user gesture.
         if (left !== undefined) {
           void win.document.documentElement.requestFullscreen?.().catch(() => {});
         }

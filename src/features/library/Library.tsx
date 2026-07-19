@@ -1,13 +1,13 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Music, Pencil, Play, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { C, CATEGORIES, UI } from "../../theme/tokens";
+import { colors, CATEGORIES, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { BgSwatch } from "../../components/controls/BgSwatch";
-import { Btn, IconBtn } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -27,8 +27,8 @@ export function Library() {
   const startPresent = useStore((s) => s.startPresent);
   const bgMap = useBgMap();
 
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("All");
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
   const [trashView, setTrashView] = useState(false);
 
   const onNew = () => {
@@ -38,8 +38,8 @@ export function Library() {
 
   const list = useMemo(() => {
     let base = songs.filter((s) => (trashView ? s.deleted : !s.deleted));
-    if (cat !== "All") base = base.filter((s) => s.category === cat);
-    const term = q.trim().toLowerCase();
+    if (category !== "All") base = base.filter((s) => s.category === category);
+    const term = query.trim().toLowerCase();
     if (term)
       base = base.filter((s) =>
         [s.title, s.artist, s.category, s.lyrics]
@@ -47,7 +47,7 @@ export function Library() {
           .some((f) => (f as string).toLowerCase().includes(term))
       );
     return base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
-  }, [songs, q, cat, trashView]);
+  }, [songs, query, category, trashView]);
 
   return (
     <div className="ws-page">
@@ -56,15 +56,15 @@ export function Library() {
         subtitle={trashView ? undefined : "Lyrics turned into styled, presentable slides."}
         actions={
           <>
-            <Btn variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView(!trashView)}>
+            <Button variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView(!trashView)}>
               <Trash2 size={15} />
               {trashView ? "Songs" : "Trash"}
-            </Btn>
+            </Button>
             {!trashView && (
-              <Btn variant="primary" onClick={onNew}>
+              <Button variant="primary" onClick={onNew}>
                 <Plus size={16} />
                 New Song
-              </Btn>
+              </Button>
             )}
           </>
         }
@@ -72,21 +72,41 @@ export function Library() {
 
       {!trashView && (
         <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
-          <SearchInput value={q} onChange={setQ} placeholder="Search by title, artist, lyrics…" />
+          <SearchInput value={query} onChange={setQuery} placeholder="Search by title, artist, lyrics…" />
           <PillTabs
             tabs={["All", ...CATEGORIES].map((c) => ({ id: c, label: c }))}
-            value={cat}
-            onChange={setCat}
+            value={category}
+            onChange={setCategory}
           />
         </div>
       )}
 
-      {list.length === 0 && (
-        <EmptyState
-          icon={Music}
-          message={trashView ? "Trash is empty." : "No songs match. Add one to get started."}
-        />
-      )}
+      {list.length === 0 &&
+        (trashView ? (
+          <EmptyState
+            icon={Trash2}
+            title="Trash is empty"
+            message="Songs you delete are kept here until you remove them for good."
+          />
+        ) : query.trim() || category !== "All" ? (
+          <EmptyState
+            icon={Music}
+            title="No songs match"
+            message="Try a different search or switch category."
+          />
+        ) : (
+          <EmptyState
+            icon={Music}
+            title="No songs yet"
+            message="Create your first song and its lyrics will turn into styled slides, ready to present."
+            action={
+              <Button variant="primary" onClick={onNew}>
+                <Plus size={15} />
+                New Song
+              </Button>
+            }
+          />
+        ))}
 
       <div className="ws-card-grid">
         {list.map((s) => {
@@ -121,7 +141,7 @@ export function Library() {
                         fontFamily: UI,
                         fontSize: 10,
                         fontWeight: 700,
-                        color: C.dim,
+                        color: colors.dim,
                         letterSpacing: 0.4,
                       }}
                     >
@@ -136,28 +156,28 @@ export function Library() {
                 <div className="ws-card-actions">
                   {trashView ? (
                     <>
-                      <Btn size="sm" variant="ghost" onClick={() => restoreSong(s.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => restoreSong(s.id)}>
                         <RotateCcw size={13} />
                         Restore
-                      </Btn>
-                      <Btn size="sm" variant="danger" onClick={() => deleteSong(s.id)}>
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => deleteSong(s.id)}>
                         <Trash2 size={13} />
                         Delete
-                      </Btn>
+                      </Button>
                     </>
                   ) : (
                     <>
-                      <Btn size="sm" variant="primary" onClick={() => startPresent("song", s.id)}>
+                      <Button size="sm" variant="primary" onClick={() => startPresent("song", s.id)}>
                         <Play size={13} />
                         Present
-                      </Btn>
-                      <Btn size="sm" variant="ghost" onClick={() => navigate(`/songs/${s.id}`)}>
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => navigate(`/songs/${s.id}`)}>
                         <Pencil size={13} />
                         Edit
-                      </Btn>
+                      </Button>
                       {!s.builtIn && (
                         <div style={{ marginLeft: "auto" }}>
-                          <IconBtn icon={Trash2} title="Move to trash" danger onClick={() => trashSong(s.id)} />
+                          <IconButton icon={Trash2} title="Move to trash" danger onClick={() => trashSong(s.id)} />
                         </div>
                       )}
                     </>

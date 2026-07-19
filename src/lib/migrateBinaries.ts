@@ -1,7 +1,7 @@
 import type { AudioItem, Background, MediaItem } from "../types";
 import { putFileBlob, thumbId } from "./fileStore";
 import { probeImageFile } from "./media";
-import { sPut } from "./storage";
+import { saveRecord } from "./storage";
 
 interface LegacyMediaItem extends MediaItem {
   dataUrl?: string;
@@ -39,7 +39,7 @@ export async function migrateLegacyBinaries(
       }
       const next: MediaItem = { ...item, size: item.size || blob.size, hasThumb };
       delete (next as LegacyMediaItem).dataUrl;
-      await sPut("media", next);
+      await saveRecord("media", next);
       migratedMedia.push(next);
     } catch {
       migratedMedia.push(item);
@@ -59,7 +59,7 @@ export async function migrateLegacyBinaries(
       if (probe.thumbnail) await putFileBlob(thumbId(bg.id), probe.thumbnail);
       const next: Background = { ...bg, blobId: bg.id, size: bg.size || blob.size };
       delete next.dataUrl;
-      await sPut("backgrounds", next);
+      await saveRecord("backgrounds", next);
       migratedBackgrounds.push(next);
     } catch {
       migratedBackgrounds.push(bg);
@@ -77,7 +77,7 @@ export async function migrateLegacyBinaries(
       await putFileBlob(item.id, blob);
       const next: AudioItem = { ...item, blobId: item.id, size: item.size || blob.size };
       delete next.dataUrl;
-      await sPut("audio", next);
+      await saveRecord("audio", next);
       migratedAudio.push(next);
     } catch {
       migratedAudio.push(item);

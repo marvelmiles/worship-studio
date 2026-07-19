@@ -1,5 +1,5 @@
-// Unified persistence layer. The app talks to ONE interface (sAll/sPut/sDel/
-// sClear) and never cares which backend is active. We prefer IndexedDB, fall
+// Unified persistence layer. The app talks to ONE interface (readAllRecords/saveRecord/deleteRecord/
+// clearStore) and never cares which backend is active. We prefer IndexedDB, fall
 // back to sessionStorage when IndexedDB is unavailable, and fall back again to
 // in-memory storage when neither works. Import/export and all CRUD behave
 // identically regardless of the active backend.
@@ -131,7 +131,7 @@ function init(): Promise<Backend> {
       try {
         void navigator.storage?.persist?.();
       } catch {
-        /* optional — denial or absence changes nothing */
+        /* optional, denial or absence changes nothing */
       }
       return "indexeddb";
     }
@@ -152,7 +152,7 @@ export async function getBackend(): Promise<Backend> {
   return init();
 }
 
-export async function sAll<T extends HasId>(store: StoreName): Promise<T[]> {
+export async function readAllRecords<T extends HasId>(store: StoreName): Promise<T[]> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
@@ -169,7 +169,7 @@ export async function sAll<T extends HasId>(store: StoreName): Promise<T[]> {
   return Array.from(mem[store].values()) as T[];
 }
 
-export async function sGet<T extends HasId>(store: StoreName, id: string): Promise<T | undefined> {
+export async function readRecord<T extends HasId>(store: StoreName, id: string): Promise<T | undefined> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
@@ -186,21 +186,21 @@ export async function sGet<T extends HasId>(store: StoreName, id: string): Promi
   return mem[store].get(id) as T | undefined;
 }
 
-export async function sPut<T extends HasId>(store: StoreName, val: T): Promise<void> {
+export async function saveRecord<T extends HasId>(store: StoreName, val: T): Promise<void> {
   try {
-    await sPutStrict(store, val);
+    await saveRecordStrict(store, val);
   } catch {
-    /* best-effort writes swallow failures; use sPutStrict when they matter */
+    /* best-effort writes swallow failures; use saveRecordStrict when they matter */
   }
 }
 
 /**
- * Like `sPut` but rejects on failure (notably QuotaExceededError) so upload
+ * Like `saveRecord` but rejects on failure (notably QuotaExceededError) so upload
  * pipelines can surface the problem instead of silently losing data. Under
- * IndexedDB the value is NOT kept in the in-memory map — critical for Blobs,
+ * IndexedDB the value is NOT kept in the in-memory map, critical for Blobs,
  * which would otherwise pin the whole file in RAM for the session.
  */
-export async function sPutStrict<T extends HasId>(store: StoreName, val: T): Promise<void> {
+export async function saveRecordStrict<T extends HasId>(store: StoreName, val: T): Promise<void> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve, reject) => {
@@ -219,7 +219,7 @@ export async function sPutStrict<T extends HasId>(store: StoreName, val: T): Pro
   if (backend === "session") persistSession(store);
 }
 
-export async function sDel(store: StoreName, id: string): Promise<void> {
+export async function deleteRecord(store: StoreName, id: string): Promise<void> {
   const backend = await init();
   mem[store].delete(id);
   if (backend === "indexeddb" && idb) {
@@ -237,7 +237,7 @@ export async function sDel(store: StoreName, id: string): Promise<void> {
   if (backend === "session") persistSession(store);
 }
 
-export async function sClear(store: StoreName): Promise<void> {
+export async function clearStore(store: StoreName): Promise<void> {
   mem[store].clear();
   const backend = await init();
   if (backend === "indexeddb" && idb) {
@@ -262,8 +262,8 @@ export async function sClear(store: StoreName): Promise<void> {
 }
 
 // Wipe everything across the active backend (used by "free up storage" / reset).
-export async function sWipeAll(): Promise<void> {
-  for (const store of STORES) await sClear(store);
+export async function wipeAllStores(): Promise<void> {
+  for (const store of STORES) await clearStore(store);
 }
 
 function sessionUsageBytes(): number {
@@ -304,7 +304,7 @@ export async function estimateQuota(): Promise<QuotaEstimate> {
     try {
       if (navigator.storage && typeof navigator.storage.estimate === "function") {
         const e = await navigator.storage.estimate();
-        // Note: this quota is dynamic — browsers may grow it as the origin
+        // Note: this quota is dynamic, browsers may grow it as the origin
         // stores more data. The meter shows usage as a percentage of it, so
         // levels reflect how close we are to the CURRENT grant, not a fixed max.
         if (e.quota) return { quota: e.quota, usage: e.usage || 0, fromEstimate: true };
