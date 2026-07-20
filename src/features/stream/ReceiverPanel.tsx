@@ -49,9 +49,17 @@ export function ReceiverPanel({ wantAudio, onBack }: { wantAudio: boolean; onBac
     };
   }, [wantAudio, pushToast]);
 
+  // Attach the incoming stream once the <video> exists. The track event lands
+  // while status is still "connecting", before the video is mounted, so this
+  // must also re-run when the connection goes live and the element appears —
+  // otherwise the source is never assigned and the screen stays black.
   useEffect(() => {
-    if (stream && videoRef.current) videoRef.current.srcObject = stream;
-  }, [stream]);
+    const el = videoRef.current;
+    if (stream && el && el.srcObject !== stream) {
+      el.srcObject = stream;
+      void el.play().catch(() => {});
+    }
+  }, [stream, status]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
