@@ -10,6 +10,7 @@ import {
   Music,
   Palette,
   Settings,
+  Radio,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { fade } from "./theme/uiTheme";
@@ -30,6 +31,7 @@ import { Editor } from "./features/editor/Editor";
 import { BiblePage } from "./features/bible/BiblePage";
 import { ScriptureEditor } from "./features/bible/ScriptureEditor";
 import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
+import { StreamPage } from "./features/stream/StreamPage";
 import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
@@ -51,6 +53,7 @@ const NAV: [string, string, LucideIcon][] = [
   ["/bible", "Bible", BookOpen],
   ["/images", "Images", ImageIcon],
   ["/videos", "Videos", Film],
+  ["/stream", "Stream", Radio],
 ];
 
 export default function App() {
@@ -242,6 +245,7 @@ export default function App() {
             <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
             <Route path="/images" element={<ImagesPage />} />
             <Route path="/videos" element={<VideosPage />} />
+            <Route path="/stream" element={<StreamPage />} />
             <Route path="/editor/:songId" element={<LegacyEditorRedirect />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

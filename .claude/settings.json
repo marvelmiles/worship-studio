@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 60 npm view jsqr version)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(npm --version)",
+      "Bash(node -e \"const j=require\\('./node_modules/jsqr/package.json'\\); const q=require\\('./node_modules/qrcode-generator/package.json'\\); console.log\\('jsqr main:',j.main,'types:',j.types||j.typings\\); console.log\\('qrgen main:',q.main,'types:',q.types||q.typings\\)\")",
+      "Bash(node .probeout/__probe_stream.js)"
+    ]
+  }
+}
