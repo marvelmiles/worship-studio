@@ -15,7 +15,12 @@ import jsQR from "jsqr";
  */
 export function drawQr(canvas: HTMLCanvasElement, text: string, sizePx: number): void {
   const qr = qrcode(0, "L");
-  qr.addData(text);
+  // Alphanumeric mode packs ~5.5 bits per character instead of byte mode's 8,
+  // producing a lower-density code for the same payload. Safe because the
+  // signal encoder emits only Base45 + prefix characters, all of which are in
+  // the QR alphanumeric charset. Byte mode would be the fallback if that ever
+  // stopped holding, but it does not here.
+  qr.addData(text, "Alphanumeric");
   qr.make();
 
   const count = qr.getModuleCount();
@@ -46,17 +51,28 @@ export function scanFrame(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement
 ): string | null {
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  if (!w || !h) return null;
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return null;
 
-  canvas.width = w;
-  canvas.height = h;
+  // Analyse only the centred square. The scanner shows a square viewport with
+  // `object-fit: cover`, so that square is exactly what the operator sees and
+  // aims the code at; sampling the same region keeps the code at full capture
+  // resolution instead of shrinking it inside the wider 16:9 frame — and it is
+  // less work for jsQR, which raises the scan rate. dontInvert stays because a
+  // QR on a bright phone screen is always dark-on-light, and skipping the
+  // inverted pass leaves more time for more attempts.
+  const side = Math.min(vw, vh);
+  const sx = (vw - side) / 2;
+  const sy = (vh - side) / 2;
+
+  canvas.width = side;
+  canvas.height = side;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
 
-  ctx.drawImage(video, 0, 0, w, h);
-  const image = ctx.getImageData(0, 0, w, h);
-  const found = jsQR(image.data, w, h, { inversionAttempts: "dontInvert" });
+  ctx.drawImage(video, sx, sy, side, side, 0, 0, side, side);
+  const image = ctx.getImageData(0, 0, side, side);
+  const found = jsQR(image.data, side, side, { inversionAttempts: "dontInvert" });
   return found?.data ?? null;
 }
