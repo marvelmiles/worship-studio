@@ -32,6 +32,7 @@ import { BiblePage } from "./features/bible/BiblePage";
 import { ScriptureEditor } from "./features/bible/ScriptureEditor";
 import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
 import { StreamPage } from "./features/stream/StreamPage";
+import { StreamWindow } from "./features/stream/StreamWindow";
 import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
@@ -73,6 +74,7 @@ export default function App() {
   }, [load]);
 
   if (location.pathname === "/present") return <PresentWindow />;
+  if (location.pathname === "/stream-live") return <StreamWindow />;
 
   return (
     <div

@@ -189,7 +189,7 @@ function AutoReceivePanel({
                   </span>
                   <Button variant="primary" size="sm" onClick={() => connect(d)} disabled={phase === "connecting"}>
                     {isConnecting ? <Spinner size={14} /> : <Wifi size={14} />}
-                    {isConnecting ? "Connecting…" : "Go live"}
+                    {isConnecting ? "Connecting…" : "Connect"}
                   </Button>
                 </div>
               );
