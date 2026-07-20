@@ -22,6 +22,15 @@ export function QrScanner({
   const doneRef = useRef(false);
   const [ready, setReady] = useState(false);
 
+  // Keep the latest callbacks in refs so the scanning effect depends only on
+  // `facing`. Otherwise a fresh `onResult`/`onError` on every parent re-render
+  // would tear down and reopen the camera each time, and the video would never
+  // hold still long enough to capture a decodable frame.
+  const onResultRef = useRef(onResult);
+  const onErrorRef = useRef(onError);
+  onResultRef.current = onResult;
+  onErrorRef.current = onError;
+
   useEffect(() => {
     let stream: MediaStream | null = null;
     let raf = 0;
@@ -34,7 +43,7 @@ export function QrScanner({
         const text = scanFrame(video, workCanvas.current);
         if (text) {
           doneRef.current = true;
-          onResult(text);
+          onResultRef.current(text);
           return;
         }
       }
@@ -42,7 +51,14 @@ export function QrScanner({
     };
 
     navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: facing }, audio: false })
+      // A handshake QR is dense (it carries a whole deflated SDP), so the
+      // capture needs to be high-resolution or jsQR can't resolve the modules.
+      // facingMode stays advisory (no `exact`) so a laptop with only one webcam
+      // still opens instead of rejecting.
+      .getUserMedia({
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      })
       .then((s) => {
         stream = s;
         const video = videoRef.current;
@@ -52,14 +68,14 @@ export function QrScanner({
         setReady(true);
         raf = requestAnimationFrame(tick);
       })
-      .catch(() => onError?.("Couldn't open the camera. Check camera permission and try again."));
+      .catch(() => onErrorRef.current?.("Couldn't open the camera. Check camera permission and try again."));
 
     return () => {
       doneRef.current = true;
       cancelAnimationFrame(raf);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [facing, onResult, onError]);
+  }, [facing]);
 
   return (
     <div
