@@ -33,6 +33,7 @@ import { ScriptureEditor } from "./features/bible/ScriptureEditor";
 import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
 import { StreamPage } from "./features/stream/StreamPage";
 import { StreamWindow } from "./features/stream/StreamWindow";
+import { StreamProjectionRoot } from "./features/stream/StreamProjectionRoot";
 import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
@@ -255,6 +256,7 @@ export default function App() {
       </main>
 
       {presentation && <Presentation key={`${presentation.kind}:${presentation.id}`} />}
+      <StreamProjectionRoot />
       <AssetsModal />
       <SettingsModal />
       <ThemesModal />

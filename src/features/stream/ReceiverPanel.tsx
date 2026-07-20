@@ -8,7 +8,9 @@ import { createReceiver, type PeerStatus, type ReceiverHandle } from "./lib/peer
 import { decodeSignal, encodeSignal } from "./lib/streamSignal";
 import { signalingConfigured } from "./lib/firebase";
 import { deriveNetworkRoom } from "./lib/room";
-import { watchBroadcasters, requestStream, type CallHandle, type DeviceEntry } from "./lib/signaling";
+import { watchBroadcasters, type DeviceEntry } from "./lib/signaling";
+import { startStreamSession, useStreamSession } from "./lib/streamSession";
+import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { ShowCode, ReadCode } from "./CodeExchange";
 import { ProjectionSurface } from "./ProjectionSurface";
 
@@ -34,8 +36,6 @@ export function ReceiverPanel({ wantAudio, onBack }: { wantAudio: boolean; onBac
 
 /* ------------------------------- One-tap receive -------------------------- */
 
-type AutoPhase = "finding" | "waiting" | "connecting" | "live" | "failed";
-
 function AutoReceivePanel({
   wantAudio,
   onBack,
@@ -47,14 +47,10 @@ function AutoReceivePanel({
 }) {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
-  const [phase, setPhase] = useState<AutoPhase>("finding");
+  const session = useStreamSession();
+  const [finding, setFinding] = useState(true);
   const [devices, setDevices] = useState<DeviceEntry[]>([]);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [connecting, setConnecting] = useState<DeviceEntry | null>(null);
   const roomRef = useRef<string | null>(null);
-  const handleRef = useRef<ReceiverHandle | null>(null);
-  const callRef = useRef<CallHandle | null>(null);
-  const answeredRef = useRef(false);
   const viewerId = useRef(crypto.randomUUID()).current;
 
   useEffect(() => {
@@ -69,75 +65,26 @@ function AutoReceivePanel({
         return;
       }
       roomRef.current = room;
-      setPhase("waiting");
+      setFinding(false);
       unwatch = watchBroadcasters(room, (list) => {
         if (!cancelled) setDevices(list);
       });
     });
 
+    // Only the device watch is torn down here — the live connection lives in the
+    // app-wide session, so leaving this panel never drops an active projection.
     return () => {
       cancelled = true;
       unwatch();
-      void callRef.current?.close();
-      handleRef.current?.close();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Once connected, drop the SDP the middleman was holding.
-  useEffect(() => {
-    if (phase === "live") void callRef.current?.close();
-  }, [phase]);
-
-  const disconnect = () => {
-    void callRef.current?.close();
-    handleRef.current?.close();
-    callRef.current = null;
-    handleRef.current = null;
-    answeredRef.current = false;
-    setStream(null);
-    setConnecting(null);
-    setPhase("waiting");
-  };
-
-  const connect = async (device: DeviceEntry) => {
+  const connect = (device: DeviceEntry) => {
     const room = roomRef.current;
-    if (!room || phase === "connecting" || phase === "live") return;
-    setConnecting(device);
-    setPhase("connecting");
-    answeredRef.current = false;
-    try {
-      const receiver = await createReceiver({
-        wantAudio,
-        onStream: (s) => setStream(s),
-        onStatus: (s: PeerStatus) => {
-          if (s === "live") setPhase("live");
-          else if (s === "failed") setPhase("failed");
-        },
-      });
-      handleRef.current = receiver;
-      const call = requestStream(room, device.id, viewerId, receiver.invite);
-      callRef.current = call;
-      call.onAnswer((answerSdp) => {
-        if (answeredRef.current) return;
-        answeredRef.current = true;
-        void receiver.accept(answerSdp).catch(() => setPhase("failed"));
-      });
-    } catch {
-      setPhase("failed");
-    }
+    if (!room || session.active) return;
+    void startStreamSession({ room, device, viewerId, wantAudio });
   };
-
-  if (phase === "live" && stream) {
-    return (
-      <div>
-        <ProjectionSurface stream={stream} wantAudio={wantAudio} onStop={disconnect} />
-        <div style={{ marginTop: 14, textAlign: "center", fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}>
-          Projecting {connecting?.name ?? "a camera"}. Stop to pick a different one.
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -152,7 +99,7 @@ function AutoReceivePanel({
           On the phone, open Stream → Send my camera → it broadcasts automatically. Pick it here to go live.
         </p>
 
-        {phase === "finding" ? (
+        {finding ? (
           <Centered>
             <Spinner size={20} />
             <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}>Finding your network…</span>
@@ -167,7 +114,9 @@ function AutoReceivePanel({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {devices.map((d) => {
-              const isConnecting = phase === "connecting" && connecting?.id === d.id;
+              const isThis = session.active && session.deviceId === d.id;
+              const isConnecting = isThis && session.status === "connecting";
+              const isConnected = isThis && session.status === "live";
               return (
                 <div
                   key={d.id}
@@ -178,7 +127,7 @@ function AutoReceivePanel({
                     padding: "12px 14px",
                     borderRadius: 12,
                     background: colors.bg,
-                    border: `1px solid ${colors.border}`,
+                    border: `1px solid ${isConnected ? colors.accent : colors.border}`,
                   }}
                 >
                   <span style={{ width: 38, height: 38, borderRadius: 10, display: "grid", placeItems: "center", background: colors.raise, color: colors.accentSoft, flexShrink: 0 }}>
@@ -187,20 +136,21 @@ function AutoReceivePanel({
                   <span style={{ flex: 1, fontFamily: fonts.ui, fontSize: 14, fontWeight: 600, color: colors.text }}>
                     {d.name}
                   </span>
-                  <Button variant="primary" size="sm" onClick={() => connect(d)} disabled={phase === "connecting"}>
-                    {isConnecting ? <Spinner size={14} /> : <Wifi size={14} />}
-                    {isConnecting ? "Connecting…" : "Connect"}
-                  </Button>
+                  {isThis ? (
+                    <Button variant={isConnected ? "ghost" : "primary"} size="sm" disabled>
+                      {isConnecting ? <Spinner size={14} /> : <Wifi size={14} />}
+                      {isConnecting ? "Connecting…" : "Connected"}
+                    </Button>
+                  ) : (
+                    <Button variant="primary" size="sm" onClick={() => connect(d)} disabled={session.active}>
+                      <Wifi size={14} />
+                      Connect
+                    </Button>
+                  )}
                 </div>
               );
             })}
           </div>
-        )}
-
-        {phase === "failed" && (
-          <p style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.danger, marginTop: 14 }}>
-            Couldn't connect to that phone. Make sure both devices are on the same WiFi and try again.
-          </p>
         )}
       </div>
 
@@ -271,6 +221,15 @@ function ManualReceiverPanel({
       created?.close();
     };
   }, [wantAudio, pushToast]);
+
+  // This panel owns its own projection (it isn't hoisted to the session), so it
+  // closes the external live window when it goes away.
+  useEffect(() => {
+    return () => {
+      if (streamLiveWindow.getState().isLive) streamLiveWindow.endLive();
+      setLiveStream(null);
+    };
+  }, []);
 
   const applyReply = (text: string) => {
     const parsed = decodeSignal(text);

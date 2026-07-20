@@ -1,48 +1,43 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Maximize2,
-  Minimize2,
-  MonitorPlay,
-  MonitorX,
-  Wifi,
-  X,
-} from "lucide-react";
+import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, Wifi, X } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { Button } from "../../components/ui/Button";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 
+/** Video never shrinks below this, so a short viewport scrolls instead. */
+const MIN_VIDEO_HEIGHT = 360;
+
 /**
- * The live video the laptop projects. Shared by both pairing paths (one-tap and
- * QR) so the "go fullscreen / go live / stop" surface behaves identically
- * however the connection was made. Attaching the stream re-runs whenever the
- * element (re)mounts, so the picture never lands on a video tag that isn't
- * there yet.
+ * The full-screen "stage" view of the projected camera. Purely presentational:
+ * it renders whatever stream it's given and reports actions upward. For the
+ * one-tap flow it's rendered at the app root from the shared session (so it
+ * overlays the whole app and survives navigation); the QR flow renders it
+ * inline without a pop-out.
  *
- * "Go live" opens a separate projection window on the external display, reusing
- * the same live-window machinery as the slide presentation (see streamLive.ts).
- * "Project fullscreen" instead fills this window in place — useful when the app
- * itself is already on the projector.
+ * "Pop out" shrinks it into the floating PiP (via onPopOut). "Go live" opens the
+ * external projection window; "Project fullscreen" fills this one in place.
  */
 export function ProjectionSurface({
   stream,
   wantAudio,
+  deviceName,
   onStop,
+  onPopOut,
 }: {
   stream: MediaStream | null;
   wantAudio: boolean;
+  deviceName?: string;
   onStop: () => void;
+  onPopOut?: () => void;
 }) {
-  const { fonts } = useUITheme();
+  const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // The camera's true aspect ratio (w / h). The in-app frame is shaped to match
-  // it so the video fills edge-to-edge with no black bars and no cropping.
-  const [ratio, setRatio] = useState(16 / 9);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -50,23 +45,6 @@ export function ProjectionSurface({
       el.srcObject = stream;
       void el.play().catch(() => {});
     }
-  }, [stream]);
-
-  // Track the intrinsic video size — it's unknown until metadata loads, and it
-  // changes when the phone flips between a landscape and portrait camera.
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    const update = () => {
-      if (el.videoWidth && el.videoHeight) setRatio(el.videoWidth / el.videoHeight);
-    };
-    el.addEventListener("loadedmetadata", update);
-    el.addEventListener("resize", update);
-    update();
-    return () => {
-      el.removeEventListener("loadedmetadata", update);
-      el.removeEventListener("resize", update);
-    };
   }, [stream]);
 
   // Keep the projection window pointed at the current stream while it's live.
@@ -78,15 +56,6 @@ export function ProjectionSurface({
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  // If the connection stops (this surface unmounts), close the projected window
-  // too — the stream it was showing is gone.
-  useEffect(() => {
-    return () => {
-      if (streamLiveWindow.getState().isLive) streamLiveWindow.endLive();
-      setLiveStream(null);
-    };
   }, []);
 
   const toggleFullscreen = () => {
@@ -111,10 +80,7 @@ export function ProjectionSurface({
           : "Projection window opened. Drag it to your projector, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
-      pushToast(
-        "Popup blocked. Allow popups for this site to go live.",
-        "error",
-      );
+      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
     }
   };
 
@@ -122,86 +88,97 @@ export function ProjectionSurface({
   // doesn't hear the phone's audio twice.
   const previewMuted = !wantAudio || isLive;
 
-  // In-app: shape the frame to the video's own ratio so it fills completely
-  // with no bars and no crop — landscape is sized by width (capped by height),
-  // portrait by height (capped by width). Fullscreen: fill the whole screen and
-  // let `cover` trim only the unavoidable overflow, never distorting.
-  const portrait = ratio < 1;
-  const shellStyle: React.CSSProperties = isFullscreen
-    ? { width: "100vw", height: "100vh", borderRadius: 0 }
-    : portrait
-      ? { height: "78vh", width: "auto", maxWidth: "100%", aspectRatio: String(ratio), borderRadius: 16, margin: "0 auto" }
-      : { width: "100%", maxWidth: `calc(78vh * ${ratio})`, aspectRatio: String(ratio), borderRadius: 16, margin: "0 auto" };
-
   return (
     <div
       ref={shellRef}
       style={{
-        position: "relative",
-        background: "#000",
-        overflow: "hidden",
-        ...shellStyle,
+        // Full-screen overlay: header + video are exactly one screen tall.
+        // 100dvh tracks the mobile browser's UI; it scrolls internally only when
+        // it can't fit the min video size.
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: "100dvh",
+        zIndex: 200,
+        display: "flex",
+        flexDirection: "column",
+        background: colors.bg,
+        overflowX: "hidden",
+        overflowY: "auto",
       }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={previewMuted}
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-        }}
-      />
+      {/* Header: status on the left, controls on the right. */}
       <div
         style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
           display: "flex",
-          gap: 8,
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          flexShrink: 0,
+          padding: "10px 14px",
+          background: colors.raise,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
-          {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          {isFullscreen ? "Exit" : "Project fullscreen"}
-        </Button>
-        <Button
-          variant={isLive ? "danger" : "primary"}
-          size="sm"
-          onClick={handleGoLive}
-        >
-          {isLive ? <MonitorX size={14} /> : <MonitorPlay size={14} />}
-          {isLive ? "End live" : "Go live"}
-        </Button>
-        {!isFullscreen && (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 11px",
+              borderRadius: 999,
+              background: isLive ? "rgba(220,38,38,0.92)" : "rgba(22,163,74,0.9)",
+              color: "#fff",
+              fontFamily: fonts.ui,
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: 0.4,
+              flexShrink: 0,
+            }}
+          >
+            <Wifi size={12} /> {isLive ? "LIVE ON PROJECTOR" : "RECEIVING"}
+          </span>
+          {deviceName && (
+            <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
+              {deviceName}
+            </span>
+          )}
+        </span>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
+            {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
+          </Button>
+          {onPopOut && (
+            <Button variant="ghost" size="sm" onClick={onPopOut}>
+              <PictureInPicture2 size={14} />
+              Pop out
+            </Button>
+          )}
+          <Button variant={isLive ? "danger" : "primary"} size="sm" onClick={handleGoLive}>
+            {isLive ? <MonitorX size={14} /> : <MonitorPlay size={14} />}
+            {isLive ? "End live" : "Go live"}
+          </Button>
           <Button variant="danger" size="sm" onClick={onStop}>
             <X size={14} />
             Stop
           </Button>
-        )}
+        </div>
       </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 12,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 10px",
-          borderRadius: 999,
-          background: isLive ? "rgba(220,38,38,0.92)" : "rgba(22,163,74,0.9)",
-          color: "#fff",
-          fontFamily: fonts.ui,
-          fontSize: 11,
-          fontWeight: 800,
-          letterSpacing: 0.4,
-        }}
-      >
-        <Wifi size={12} /> {isLive ? "LIVE ON PROJECTOR" : "RECEIVING"}
+
+      {/* Video: full width, all remaining height, floored at a usable minimum. */}
+      <div style={{ flex: 1, minHeight: MIN_VIDEO_HEIGHT, background: "#000" }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={previewMuted}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
       </div>
     </div>
   );
