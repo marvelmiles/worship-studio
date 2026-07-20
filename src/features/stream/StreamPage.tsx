@@ -10,11 +10,11 @@ import { SenderPanel } from "./SenderPanel";
 type Role = "choose" | "receive" | "send";
 
 /**
- * Internal camera streaming over the local WiFi, browser-only. One device
- * displays (the laptop, wired to the projector), another sends its camera (a
- * phone). They pair by scanning a QR code — or, when a camera isn't handy,
- * by pasting a code shared through any app. Nothing leaves the local network
- * once connected, and no server of ours is involved.
+ * Internal camera streaming over the local WiFi, browser only. Either device
+ * can play either role: one shows an incoming camera and can project it, the
+ * other shares its own camera. They pair automatically on the same WiFi, or by
+ * scanning a QR code, or by pasting a code shared through any app. Nothing
+ * leaves the local network once connected.
  */
 export function StreamPage() {
   useDocumentTitle("Stream · WorshipStudio");
@@ -28,7 +28,7 @@ export function StreamPage() {
   if (!window.isSecureContext) {
     return (
       <div className="ws-page">
-        <PageHeader title="Stream" subtitle="Send a phone camera to this app over your WiFi." />
+        <PageHeader title="Stream" subtitle="Share a camera between devices over your WiFi." />
         <div style={{ maxWidth: 560, margin: "40px auto 0", background: colors.raise, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 24, textAlign: "center" }}>
           <ShieldAlert size={30} color={colors.danger} style={{ marginBottom: 12 }} />
           <div style={{ fontFamily: fonts.display, fontSize: 18, fontWeight: 600, color: colors.text, marginBottom: 8 }}>
@@ -47,10 +47,10 @@ export function StreamPage() {
     <div className="ws-page">
       <PageHeader
         title="Stream"
-        subtitle="Send a phone camera to this app over your WiFi, then project it through HDMI."
+        subtitle="Share a camera between devices over your WiFi, then project it on a display."
         actions={
           role === "choose" ? (
-            <Button variant="ghost" size="sm" onClick={() => setWantAudio((a) => !a)} title="Include the sending device's microphone">
+            <Button variant="ghost" size="sm" onClick={() => setWantAudio((a) => !a)} title="Include the sharing device's microphone">
               {wantAudio ? <Volume2 size={14} /> : <VolumeX size={14} />}
               {wantAudio ? "With sound" : "Video only"}
             </Button>
@@ -63,16 +63,16 @@ export function StreamPage() {
           <div style={{ maxWidth: 720, margin: "10px auto 0", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
             <RoleCard
               icon={MonitorSmartphone}
-              title="Display here"
-              body="This device shows the incoming camera. Use it on the laptop that's wired to your projector or TV."
-              cta="Display on this device"
+              title="Show a camera here"
+              body="This device receives another device's camera and can project it on a display."
+              cta="Receive a camera"
               onClick={() => setRole("receive")}
             />
             <RoleCard
               icon={Radio}
-              title="Send my camera"
-              body="This device's camera streams to the display. Use it on the phone you'll point at the stage."
-              cta="Stream this camera"
+              title="Share this camera"
+              body="This device sends its own camera to another device to be shown or projected."
+              cta="Share this camera"
               onClick={() => setRole("send")}
             />
           </div>

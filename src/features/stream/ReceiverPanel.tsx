@@ -1,10 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyRound, MonitorSmartphone, RotateCcw, Smartphone, Wifi } from "lucide-react";
+import {
+  KeyRound,
+  MonitorSmartphone,
+  RotateCcw,
+  Smartphone,
+  Wifi,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { Spinner } from "../../components/ui/Spinner";
-import { createReceiver, type PeerStatus, type ReceiverHandle } from "./lib/peer";
+import {
+  createReceiver,
+  type PeerStatus,
+  type ReceiverHandle,
+} from "./lib/peer";
 import { decodeSignal, encodeSignal } from "./lib/streamSignal";
 import { signalingConfigured } from "./lib/firebase";
 import { deriveNetworkRoom } from "./lib/room";
@@ -19,11 +29,25 @@ import { ProjectionSurface } from "./ProjectionSurface";
  * of phones broadcasting on the same WiFi — tap one to go live and project it,
  * no codes. The QR / paste pairing stays available as an offline fallback.
  */
-export function ReceiverPanel({ wantAudio, onBack }: { wantAudio: boolean; onBack: () => void }) {
-  const [mode, setMode] = useState<"auto" | "manual">(signalingConfigured ? "auto" : "manual");
+export function ReceiverPanel({
+  wantAudio,
+  onBack,
+}: {
+  wantAudio: boolean;
+  onBack: () => void;
+}) {
+  const [mode, setMode] = useState<"auto" | "manual">(
+    signalingConfigured ? "auto" : "manual",
+  );
 
   if (mode === "auto") {
-    return <AutoReceivePanel wantAudio={wantAudio} onBack={onBack} onUseCode={() => setMode("manual")} />;
+    return (
+      <AutoReceivePanel
+        wantAudio={wantAudio}
+        onBack={onBack}
+        onUseCode={() => setMode("manual")}
+      />
+    );
   }
   return (
     <ManualReceiverPanel
@@ -50,17 +74,29 @@ function AutoReceivePanel({
   const session = useStreamSession();
   const [finding, setFinding] = useState(true);
   const [devices, setDevices] = useState<DeviceEntry[]>([]);
+  const [researchNonce, setResearchNonce] = useState(0);
   const roomRef = useRef<string | null>(null);
   const viewerId = useRef(crypto.randomUUID()).current;
+
+  // When a connected device drops or is stopped, the session ends. Search the
+  // network again from scratch so the list is fresh before the operator picks
+  // another device, rather than leaving a stale entry behind.
+  const wasActive = useRef(session.active);
+  useEffect(() => {
+    if (wasActive.current && !session.active) setResearchNonce((n) => n + 1);
+    wasActive.current = session.active;
+  }, [session.active]);
 
   useEffect(() => {
     let cancelled = false;
     let unwatch = () => {};
+    setFinding(true);
+    setDevices([]);
 
     deriveNetworkRoom().then((room) => {
       if (cancelled) return;
       if (!room) {
-        pushToast("Couldn't detect your network for one-tap. Use a code instead.", "error");
+        pushToast("Couldn't detect your network. Use a code instead.", "error");
         onUseCode();
         return;
       }
@@ -78,7 +114,7 @@ function AutoReceivePanel({
       unwatch();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [researchNonce]);
 
   const connect = (device: DeviceEntry) => {
     const room = roomRef.current;
@@ -88,27 +124,63 @@ function AutoReceivePanel({
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
-      <div style={{ background: colors.raise, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
+      <div
+        style={{
+          background: colors.raise,
+          border: `1px solid ${colors.border}`,
+          borderRadius: 16,
+          padding: 20,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            marginBottom: 6,
+          }}
+        >
           <MonitorSmartphone size={18} color={colors.accentSoft} />
-          <span style={{ fontFamily: fonts.display, fontSize: 17, fontWeight: 600, color: colors.text }}>
-            Phones on your WiFi
+          <span
+            style={{
+              fontFamily: fonts.display,
+              fontSize: 17,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          >
+            Devices on your WiFi
           </span>
         </div>
-        <p style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub, margin: "0 0 16px", lineHeight: 1.5 }}>
-          On the phone, open Stream → Send my camera → it broadcasts automatically. Pick it here to go live.
+        <p
+          style={{
+            fontFamily: fonts.ui,
+            fontSize: 13,
+            color: colors.sub,
+            margin: "0 0 16px",
+            lineHeight: 1.5,
+          }}
+        >
+          On the other device, open Stream and choose Share this camera. It
+          appears here. Pick one to show it.
         </p>
 
         {finding ? (
           <Centered>
             <Spinner size={20} />
-            <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}>Finding your network…</span>
+            <span
+              style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}
+            >
+              Searching for devices…
+            </span>
           </Centered>
         ) : devices.length === 0 ? (
           <Centered>
             <Spinner size={20} />
-            <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}>
-              Waiting for a phone to start broadcasting…
+            <span
+              style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub }}
+            >
+              Waiting for a device to start sharing…
             </span>
           </Centered>
         ) : (
@@ -130,19 +202,51 @@ function AutoReceivePanel({
                     border: `1px solid ${isConnected ? colors.accent : colors.border}`,
                   }}
                 >
-                  <span style={{ width: 38, height: 38, borderRadius: 10, display: "grid", placeItems: "center", background: colors.raise, color: colors.accentSoft, flexShrink: 0 }}>
+                  <span
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 10,
+                      display: "grid",
+                      placeItems: "center",
+                      background: colors.raise,
+                      color: colors.accentSoft,
+                      flexShrink: 0,
+                    }}
+                  >
                     <Smartphone size={18} />
                   </span>
-                  <span style={{ flex: 1, fontFamily: fonts.ui, fontSize: 14, fontWeight: 600, color: colors.text }}>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontFamily: fonts.ui,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: colors.text,
+                    }}
+                  >
                     {d.name}
                   </span>
                   {isThis ? (
-                    <Button variant={isConnected ? "ghost" : "primary"} size="sm" disabled>
-                      {isConnecting ? <Spinner size={14} /> : <Wifi size={14} />}
+                    <Button
+                      variant={isConnected ? "ghost" : "primary"}
+                      size="sm"
+                      disabled
+                    >
+                      {isConnecting ? (
+                        <Spinner size={14} />
+                      ) : (
+                        <Wifi size={14} />
+                      )}
                       {isConnecting ? "Connecting…" : "Connected"}
                     </Button>
                   ) : (
-                    <Button variant="primary" size="sm" onClick={() => connect(d)} disabled={session.active}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => connect(d)}
+                      disabled={session.active}
+                    >
                       <Wifi size={14} />
                       Connect
                     </Button>
@@ -154,7 +258,14 @@ function AutoReceivePanel({
         )}
       </div>
 
-      <div style={{ marginTop: 16, display: "flex", gap: 10, justifyContent: "center" }}>
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          gap: 10,
+          justifyContent: "center",
+        }}
+      >
         <Button variant="ghost" size="sm" onClick={onUseCode}>
           <KeyRound size={14} />
           Pair with a code instead
@@ -170,7 +281,15 @@ function AutoReceivePanel({
 
 function Centered({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "28px 0" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+        padding: "28px 0",
+      }}
+    >
       {children}
     </div>
   );
@@ -215,7 +334,9 @@ function ManualReceiverPanel({
         setHandle(h);
         setInvite(encodeSignal("offer", h.invite));
       })
-      .catch(() => pushToast("Couldn't start the receiver on this device.", "error"));
+      .catch(() =>
+        pushToast("Couldn't start the receiver on this device.", "error"),
+      );
     return () => {
       live = false;
       created?.close();
@@ -234,26 +355,41 @@ function ManualReceiverPanel({
   const applyReply = (text: string) => {
     const parsed = decodeSignal(text);
     if (!parsed || parsed.kind !== "answer") {
-      pushToast("That doesn't look like a reply code from the phone.", "error");
+      pushToast("That doesn't look like a reply code from the other device.", "error");
       return;
     }
-    void handle?.accept(parsed.sdp).catch(() => pushToast("Couldn't complete the connection.", "error"));
+    void handle
+      ?.accept(parsed.sdp)
+      .catch(() => pushToast("Couldn't complete the connection.", "error"));
   };
 
   const live = status === "live";
 
   if (live) {
-    return <ProjectionSurface stream={stream} wantAudio={wantAudio} onStop={onBack} />;
+    return (
+      <ProjectionSurface
+        stream={stream}
+        wantAudio={wantAudio}
+        onStop={onBack}
+      />
+    );
   }
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 22, alignItems: "start" }}>
-        <Step n={1} title="Show this to your phone">
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+          gap: 22,
+          alignItems: "start",
+        }}
+      >
+        <Step n={1} title="Show this to the other device">
           {invite ? (
             <ShowCode
               value={invite}
-              caption="On your phone: open this app → Stream → Send my camera, then scan this code (or paste it)."
+              caption="On the other device: open this app, go to Stream, choose Share this camera, then scan this code or paste it."
             />
           ) : (
             <div style={{ padding: 30, display: "grid", placeItems: "center" }}>
@@ -262,10 +398,10 @@ function ManualReceiverPanel({
           )}
         </Step>
 
-        <Step n={2} title="Then read your phone's reply">
+        <Step n={2} title="Then read its reply">
           <ReadCode
             scanFacing="user"
-            scanLabel="Hold your phone's reply code up to this computer's camera."
+            scanLabel="Hold the other device's reply code up to this camera."
             onCode={applyReply}
           />
           <StatusLine status={status} />
@@ -276,7 +412,7 @@ function ManualReceiverPanel({
         {onUseOneTap && (
           <Button variant="ghost" size="sm" onClick={onUseOneTap}>
             <MonitorSmartphone size={14} />
-            One-tap connect
+            Quick connect
           </Button>
         )}
         <Button variant="ghost" size="sm" onClick={onBack}>
@@ -288,15 +424,59 @@ function ManualReceiverPanel({
   );
 }
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({
+  n,
+  title,
+  children,
+}: {
+  n: number;
+  title: string;
+  children: React.ReactNode;
+}) {
   const { colors, fonts } = useUITheme();
   return (
-    <div style={{ background: colors.raise, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 18 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 14 }}>
-        <span style={{ width: 24, height: 24, borderRadius: 999, display: "grid", placeItems: "center", background: colors.accent, color: "#fff", fontFamily: fonts.ui, fontSize: 12.5, fontWeight: 800 }}>
+    <div
+      style={{
+        background: colors.raise,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 16,
+        padding: 18,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          marginBottom: 14,
+        }}
+      >
+        <span
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 999,
+            display: "grid",
+            placeItems: "center",
+            background: colors.accent,
+            color: "#fff",
+            fontFamily: fonts.ui,
+            fontSize: 12.5,
+            fontWeight: 800,
+          }}
+        >
           {n}
         </span>
-        <span style={{ fontFamily: fonts.display, fontSize: 16, fontWeight: 600, color: colors.text }}>{title}</span>
+        <span
+          style={{
+            fontFamily: fonts.display,
+            fontSize: 16,
+            fontWeight: 600,
+            color: colors.text,
+          }}
+        >
+          {title}
+        </span>
       </div>
       {children}
     </div>
@@ -305,12 +485,27 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 function StatusLine({ status }: { status: PeerStatus }) {
   const { colors, fonts } = useUITheme();
-  if (status === "idle" || status === "gathering" || status === "waiting") return null;
+  if (status === "idle" || status === "gathering" || status === "waiting")
+    return null;
   const label =
-    status === "connecting" ? "Connecting to your phone…" : status === "failed" ? "Connection failed. Try the code again." : "";
+    status === "connecting"
+      ? "Connecting to the other device…"
+      : status === "failed"
+        ? "Connection failed. Try the code again."
+        : "";
   if (!label) return null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontFamily: fonts.ui, fontSize: 13, color: status === "failed" ? colors.danger : colors.sub }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginTop: 12,
+        fontFamily: fonts.ui,
+        fontSize: 13,
+        color: status === "failed" ? colors.danger : colors.sub,
+      }}
+    >
       {status === "connecting" && <Spinner size={14} />}
       {label}
     </div>

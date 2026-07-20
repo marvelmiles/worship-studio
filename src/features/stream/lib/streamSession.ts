@@ -129,7 +129,12 @@ export async function startStreamSession(opts: {
       return;
     }
     handle = receiver;
-    const activeCall = requestStream(opts.room, opts.device.id, opts.viewerId, receiver.invite);
+    const activeCall = requestStream(
+      opts.room,
+      opts.device.id,
+      opts.viewerId,
+      receiver.invite,
+    );
     call = activeCall;
     activeCall.onAnswer((answerSdp) => {
       if (answered) return;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyRound, Radio, RotateCcw, SwitchCamera, Wifi } from "lucide-react";
+import { KeyRound, Radio, RotateCcw, SwitchCamera } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
@@ -9,32 +9,27 @@ import { decodeSignal, encodeSignal } from "./lib/streamSignal";
 import { signalingConfigured } from "./lib/firebase";
 import { deriveNetworkRoom } from "./lib/room";
 import { publishBroadcaster, type BroadcastHandle } from "./lib/signaling";
+import { listCameras, nextCameraId, currentCameraId, cameraById } from "./lib/cameras";
+import { detectDeviceName } from "./lib/deviceName";
+import { StreamStatusBadge } from "./StreamStatusBadge";
 import { ShowCode, ReadCode } from "./CodeExchange";
 
-type Facing = "environment" | "user";
-
-const CAMERA = (facing: Facing, audio: boolean): MediaStreamConstraints => ({
+const CAMERA = (audio: boolean): MediaStreamConstraints => ({
+  // Prefer the back camera to start; switching afterwards is by device id.
   video: {
-    facingMode: facing,
+    facingMode: "environment",
     width: { ideal: 1920 },
     height: { ideal: 1080 },
   },
   audio,
 });
 
-/** A friendly name so the laptop's device list reads like something human. */
-function deviceLabel(): string {
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod/.test(ua)) return "iPhone camera";
-  if (/Android/.test(ua)) return "Android camera";
-  return "Phone camera";
-}
-
 /**
- * Phone side. When a signalling backend is configured it defaults to one-tap
- * Broadcast — the laptop on the same WiFi sees this camera appear and picks it,
- * no codes at all. The QR / paste pairing remains as an always-available
- * fallback for offline venues or when the network can't be auto-detected.
+ * The sharing side. When a signalling backend is configured it defaults to a
+ * quick automatic connect: the other device on the same WiFi sees this camera
+ * appear and picks it, no codes at all. The QR / paste pairing remains as an
+ * always available fallback for offline venues or when the network can't be
+ * auto detected.
  */
 export function SenderPanel({
   wantAudio,
@@ -81,11 +76,12 @@ function AutoBroadcastPanel({
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [phase, setPhase] = useState<AutoPhase>("starting");
-  const [facing, setFacing] = useState<Facing>("environment");
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const broadcastRef = useRef<BroadcastHandle | null>(null);
   const senderRef = useRef<SenderHandle | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const cameraIdRef = useRef<string | undefined>(undefined);
   const answeredRef = useRef(false);
 
   useEffect(() => {
@@ -105,9 +101,7 @@ function AutoBroadcastPanel({
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(
-          CAMERA("environment", wantAudio),
-        );
+        stream = await navigator.mediaDevices.getUserMedia(CAMERA(wantAudio));
       } catch {
         if (!cancelled) {
           pushToast(
@@ -123,11 +117,18 @@ function AutoBroadcastPanel({
         return;
       }
       streamRef.current = stream;
+      cameraIdRef.current = currentCameraId(stream);
       if (videoRef.current) videoRef.current.srcObject = stream;
+      // Labels (and so the flip button) are only available after permission.
+      void listCameras().then((cams) => {
+        if (!cancelled) setCameras(cams);
+      });
 
+      const name = await detectDeviceName();
+      if (cancelled) return;
       let broadcast: BroadcastHandle;
       try {
-        broadcast = publishBroadcaster(room, deviceLabel());
+        broadcast = publishBroadcaster(room, name);
       } catch {
         if (!cancelled) onUseCode();
         return;
@@ -176,30 +177,33 @@ function AutoBroadcastPanel({
   }, [phase]);
 
   const flipCamera = async () => {
-    const next: Facing = facing === "environment" ? "user" : "environment";
+    const nextId = nextCameraId(cameras, cameraIdRef.current);
+    if (!nextId) {
+      pushToast("This device only has one camera.", "error");
+      return;
+    }
     const sender = senderRef.current;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(
-        CAMERA(next, false),
-      );
+      const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
       if (sender) {
         await sender.replaceVideo(stream);
         if (videoRef.current) videoRef.current.srcObject = sender.stream;
       } else {
-        // Not connected yet — swap the preview/broadcast source directly.
+        // Not connected yet: swap the preview/broadcast source directly.
         streamRef.current?.getVideoTracks().forEach((t) => t.stop());
         const audio = streamRef.current?.getAudioTracks() ?? [];
         const merged = new MediaStream([...stream.getVideoTracks(), ...audio]);
         streamRef.current = merged;
         if (videoRef.current) videoRef.current.srcObject = merged;
       }
-      setFacing(next);
+      cameraIdRef.current = nextId;
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
   };
 
   const live = phase === "live";
+  const hasMultipleCameras = cameras.length > 1;
 
   return (
     <div style={{ maxWidth: 460, margin: "0 auto" }}>
@@ -231,26 +235,9 @@ function AutoBroadcastPanel({
             }}
           >
             <Radio size={16} color={colors.accentSoft} />
-            Broadcasting your camera
+            Sharing this camera
           </span>
-          {live && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "3px 9px",
-                borderRadius: 999,
-                background: "rgba(22,163,74,0.9)",
-                color: "#fff",
-                fontFamily: fonts.ui,
-                fontSize: 10.5,
-                fontWeight: 800,
-              }}
-            >
-              <Wifi size={11} /> Connected
-            </span>
-          )}
+          {live && <StreamStatusBadge status="connected" size="sm" />}
         </div>
 
         <div
@@ -274,10 +261,12 @@ function AutoBroadcastPanel({
         <AutoStatusLine phase={phase} />
 
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <Button variant="ghost" size="sm" onClick={flipCamera}>
-            <SwitchCamera size={14} />
-            Flip camera
-          </Button>
+          {hasMultipleCameras && (
+            <Button variant="ghost" size="sm" onClick={flipCamera}>
+              <SwitchCamera size={14} />
+              Switch camera
+            </Button>
+          )}
           <Button variant="danger" size="sm" onClick={onBack}>
             Stop
           </Button>
@@ -313,8 +302,8 @@ function AutoStatusLine({ phase }: { phase: AutoPhase }) {
   if (phase === "waiting")
     return (
       <div style={{ ...base, color: colors.sub }}>
-        <Spinner size={14} /> Waiting for the laptop to pick this camera. Open
-        Stream → Display here on it.
+        <Spinner size={14} /> Waiting for another device to pick this camera. On
+        it, open Stream and choose Show a camera here.
       </div>
     );
   if (phase === "connecting")
@@ -331,7 +320,7 @@ function AutoStatusLine({ phase }: { phase: AutoPhase }) {
     );
   return (
     <div style={{ ...base, color: colors.sub }}>
-      You're live — the laptop is projecting this camera.
+      You're live. The other device is showing this camera.
     </div>
   );
 }
@@ -356,20 +345,19 @@ function ManualSenderPanel({
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [phase, setPhase] = useState<Phase>("read-invite");
-  const [facing, setFacing] = useState<Facing>("environment");
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [handle, setHandle] = useState<SenderHandle | null>(null);
   const [reply, setReply] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
   const offerRef = useRef<string>("");
+  const cameraIdRef = useRef<string | undefined>(undefined);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const startStreaming = async (offerSdp: string, useFacing: Facing) => {
+  const startStreaming = async (offerSdp: string) => {
     offerRef.current = offerSdp;
     setPhase("streaming");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(
-        CAMERA(useFacing, wantAudio),
-      );
+      const stream = await navigator.mediaDevices.getUserMedia(CAMERA(wantAudio));
       const sender = await createSender({
         offerSdp,
         stream,
@@ -377,7 +365,9 @@ function ManualSenderPanel({
       });
       setHandle(sender);
       setReply(encodeSignal("answer", sender.reply));
+      cameraIdRef.current = currentCameraId(stream);
       if (videoRef.current) videoRef.current.srcObject = stream;
+      void listCameras().then(setCameras);
     } catch {
       pushToast(
         "Couldn't open the camera. Allow camera access and try again.",
@@ -391,23 +381,24 @@ function ManualSenderPanel({
     const parsed = decodeSignal(text);
     if (!parsed || parsed.kind !== "offer") {
       pushToast(
-        "That doesn't look like an invite code from the laptop.",
+        "That doesn't look like an invite code from the other device.",
         "error",
       );
       return;
     }
-    void startStreaming(parsed.sdp, facing);
+    void startStreaming(parsed.sdp);
   };
 
   const flipCamera = async () => {
-    const next: Facing = facing === "environment" ? "user" : "environment";
-    if (!handle) return;
+    const nextId = nextCameraId(cameras, cameraIdRef.current);
+    if (!nextId || !handle) {
+      if (!nextId) pushToast("This device only has one camera.", "error");
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(
-        CAMERA(next, false),
-      );
+      const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
       await handle.replaceVideo(stream);
-      setFacing(next);
+      cameraIdRef.current = nextId;
       if (videoRef.current) videoRef.current.srcObject = handle.stream;
     } catch {
       pushToast("Couldn't switch cameras.", "error");
@@ -417,6 +408,7 @@ function ManualSenderPanel({
   useEffect(() => () => handle?.close(), [handle]);
 
   const live = status === "live";
+  const hasMultipleCameras = cameras.length > 1;
 
   if (phase === "read-invite") {
     return (
@@ -440,7 +432,7 @@ function ManualSenderPanel({
               marginBottom: 4,
             }}
           >
-            Point your phone at the laptop
+            Scan the other device's code
           </div>
           <p
             style={{
@@ -451,12 +443,12 @@ function ManualSenderPanel({
               lineHeight: 1.5,
             }}
           >
-            On the laptop, open Stream → Display here. Scan the code it shows,
-            or paste it.
+            On the other device, open Stream and choose Show a camera here. Scan
+            the code it shows, or paste it.
           </p>
           <ReadCode
             scanFacing="environment"
-            scanLabel="Aim at the code on the laptop screen."
+            scanLabel="Aim at the code on the other device's screen."
             onCode={applyInvite}
           />
         </div>
@@ -472,7 +464,7 @@ function ManualSenderPanel({
           {onUseOneTap && (
             <Button variant="ghost" size="sm" onClick={onUseOneTap}>
               <Radio size={14} />
-              One-tap broadcast
+              Quick connect
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={onBack}>
@@ -510,12 +502,12 @@ function ManualSenderPanel({
             marginBottom: 12,
           }}
         >
-          Show this reply to the laptop
+          Show this reply to the other device
         </div>
         {reply ? (
           <ShowCode
             value={reply}
-            caption="On the laptop, scan or paste this to finish connecting."
+            caption="On the other device, scan or paste this to finish connecting."
           />
         ) : (
           <div style={{ padding: 24, display: "grid", placeItems: "center" }}>
@@ -550,24 +542,7 @@ function ManualSenderPanel({
           >
             Your camera
           </span>
-          {live && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: "3px 9px",
-                borderRadius: 999,
-                background: "rgba(22,163,74,0.9)",
-                color: "#fff",
-                fontFamily: fonts.ui,
-                fontSize: 10.5,
-                fontWeight: 800,
-              }}
-            >
-              <Wifi size={11} /> LIVE
-            </span>
-          )}
+          {live && <StreamStatusBadge status="live" size="sm" />}
         </div>
         <div
           style={{
@@ -587,12 +562,14 @@ function ManualSenderPanel({
           />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <Button variant="ghost" size="sm" onClick={flipCamera}>
-            <SwitchCamera size={14} />
-            Flip camera
-          </Button>
+          {hasMultipleCameras && (
+            <Button variant="ghost" size="sm" onClick={flipCamera}>
+              <SwitchCamera size={14} />
+              Switch camera
+            </Button>
+          )}
           <Button variant="danger" size="sm" onClick={onBack}>
-            Stop streaming
+            Stop sharing
           </Button>
         </div>
         {status === "connecting" && (
@@ -607,7 +584,8 @@ function ManualSenderPanel({
               color: colors.sub,
             }}
           >
-            <Spinner size={14} /> Waiting for the laptop to finish connecting…
+            <Spinner size={14} /> Waiting for the other device to finish
+            connecting…
           </div>
         )}
         {status === "failed" && (

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, Wifi, X } from "lucide-react";
+import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, X } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { Button } from "../../components/ui/Button";
+import { StreamStatusBadge } from "./StreamStatusBadge";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 
 /** Video never shrinks below this, so a short viewport scrolls instead. */
@@ -77,7 +78,7 @@ export function ProjectionSurface({
       pushToast(
         isExtended
           ? "Live on the external display."
-          : "Projection window opened. Drag it to your projector, then press its fullscreen button.",
+          : "Projection window opened. Drag it to your display, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
       pushToast("Popup blocked. Allow popups for this site to go live.", "error");
@@ -123,24 +124,7 @@ export function ProjectionSurface({
         }}
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "5px 11px",
-              borderRadius: 999,
-              background: isLive ? "rgba(220,38,38,0.92)" : "rgba(22,163,74,0.9)",
-              color: "#fff",
-              fontFamily: fonts.ui,
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: 0.4,
-              flexShrink: 0,
-            }}
-          >
-            <Wifi size={12} /> {isLive ? "LIVE ON PROJECTOR" : "RECEIVING"}
-          </span>
+          <StreamStatusBadge status={isLive ? "liveOnDisplay" : "receiving"} />
           {deviceName && (
             <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
               {deviceName}

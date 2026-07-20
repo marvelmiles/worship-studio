@@ -4,6 +4,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
+import { StreamStatusBadge } from "./StreamStatusBadge";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { endStreamSession, setStreamMode, useStreamSession } from "./lib/streamSession";
 
@@ -87,7 +88,7 @@ export function StreamPip() {
       pushToast(
         isExtended
           ? "Live on the external display."
-          : "Projection window opened. Drag it to your projector, then press its fullscreen button.",
+          : "Projection window opened. Drag it to your display, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
       pushToast("Popup blocked. Allow popups for this site to go live.", "error");
@@ -140,27 +141,7 @@ export function StreamPip() {
         >
           {session.deviceName || "Phone camera"}
         </span>
-        {isLive && (
-          <span
-            title="Projecting to the external display"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "2px 7px",
-              borderRadius: 999,
-              fontFamily: fonts.ui,
-              fontSize: 9.5,
-              fontWeight: 800,
-              letterSpacing: 0.5,
-              color: "#fff",
-              background: "#dc2626",
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: 999, background: "#fff" }} />
-            LIVE
-          </span>
-        )}
+        {isLive && <StreamStatusBadge status="live" size="sm" />}
       </div>
 
       {/* Camera preview. */}
@@ -182,15 +163,15 @@ export function StreamPip() {
       {/* Controls. */}
       <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 9px", borderTop: `1px solid ${colors.border}` }}>
         {isLive ? (
-          <MiniButton icon={MonitorOff} title="End live — close the external display" danger onClick={handleGoLive} />
+          <MiniButton icon={MonitorOff} title="End live. Close the external display." danger onClick={handleGoLive} />
         ) : (
           <MiniButton icon={MonitorUp} title="Go live on the external display" onClick={handleGoLive} />
         )}
-        <span style={{ flex: 1, minWidth: 0, textAlign: "center", fontFamily: fonts.ui, fontSize: 10.5, fontWeight: 600, color: colors.dim }}>
-          {isLive ? "Live on projector" : "Receiving"}
+        <span style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
+          <StreamStatusBadge status={isLive ? "liveOnDisplay" : "receiving"} size="sm" />
         </span>
         <MiniButton icon={Maximize2} title="Maximise to the full stream window" onClick={() => setStreamMode("stage")} />
-        <MiniButton icon={X} title="Stop — disconnect this device" danger onClick={endStreamSession} />
+        <MiniButton icon={X} title="Stop. Disconnect this device." danger onClick={endStreamSession} />
       </div>
     </div>
   );
