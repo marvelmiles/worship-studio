@@ -40,6 +40,9 @@ export function ProjectionSurface({
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // The camera's true aspect ratio (w / h). The in-app frame is shaped to match
+  // it so the video fills edge-to-edge with no black bars and no cropping.
+  const [ratio, setRatio] = useState(16 / 9);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -47,6 +50,23 @@ export function ProjectionSurface({
       el.srcObject = stream;
       void el.play().catch(() => {});
     }
+  }, [stream]);
+
+  // Track the intrinsic video size — it's unknown until metadata loads, and it
+  // changes when the phone flips between a landscape and portrait camera.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const update = () => {
+      if (el.videoWidth && el.videoHeight) setRatio(el.videoWidth / el.videoHeight);
+    };
+    el.addEventListener("loadedmetadata", update);
+    el.addEventListener("resize", update);
+    update();
+    return () => {
+      el.removeEventListener("loadedmetadata", update);
+      el.removeEventListener("resize", update);
+    };
   }, [stream]);
 
   // Keep the projection window pointed at the current stream while it's live.
@@ -102,14 +122,25 @@ export function ProjectionSurface({
   // doesn't hear the phone's audio twice.
   const previewMuted = !wantAudio || isLive;
 
+  // In-app: shape the frame to the video's own ratio so it fills completely
+  // with no bars and no crop — landscape is sized by width (capped by height),
+  // portrait by height (capped by width). Fullscreen: fill the whole screen and
+  // let `cover` trim only the unavoidable overflow, never distorting.
+  const portrait = ratio < 1;
+  const shellStyle: React.CSSProperties = isFullscreen
+    ? { width: "100vw", height: "100vh", borderRadius: 0 }
+    : portrait
+      ? { height: "78vh", width: "auto", maxWidth: "100%", aspectRatio: String(ratio), borderRadius: 16, margin: "0 auto" }
+      : { width: "100%", maxWidth: `calc(78vh * ${ratio})`, aspectRatio: String(ratio), borderRadius: 16, margin: "0 auto" };
+
   return (
     <div
       ref={shellRef}
       style={{
         position: "relative",
         background: "#000",
-        borderRadius: isFullscreen ? 0 : 16,
         overflow: "hidden",
+        ...shellStyle,
       }}
     >
       <video
@@ -119,9 +150,8 @@ export function ProjectionSurface({
         muted={previewMuted}
         style={{
           width: "100%",
-          height: isFullscreen ? "100vh" : "auto",
-          maxHeight: "78vh",
-          objectFit: "contain",
+          height: "100%",
+          objectFit: "cover",
           display: "block",
         }}
       />

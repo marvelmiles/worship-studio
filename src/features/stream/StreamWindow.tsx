@@ -97,7 +97,9 @@ export function StreamWindow() {
         ref={videoRef}
         autoPlay
         playsInline
-        style={{ width: "100%", height: "100%", objectFit: "contain", display: "block", background: "#000" }}
+        // Fill the whole projector screen. `cover` never distorts; it only trims
+        // the unavoidable overflow when the camera and screen differ in shape.
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", background: "#000" }}
       />
 
       {!stream && (
