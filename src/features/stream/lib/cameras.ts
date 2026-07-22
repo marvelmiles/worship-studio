@@ -1,8 +1,8 @@
 /**
- * Camera enumeration helpers for the sender. A device with both a front and a
- * back camera exposes them as two separate video inputs, so switching is just a
- * matter of moving to the next input by its id — which works the same on a
- * phone (front/back) and a laptop (built-in/USB).
+ * Camera enumeration helpers for the sender. A device with more than one camera
+ * exposes each as a separate video input; switching (see openNextCamera) walks
+ * those inputs to open a genuinely different one, which works the same on a phone
+ * (front/back and its extra rear lenses) and a laptop (built-in/USB).
  */
 
 export async function listCameras(): Promise<MediaDeviceInfo[]> {
@@ -12,18 +12,6 @@ export async function listCameras(): Promise<MediaDeviceInfo[]> {
   } catch {
     return [];
   }
-}
-
-/** The next camera id after the current one, cycling round, or null if there's only one. */
-export function nextCameraId(cameras: MediaDeviceInfo[], currentId?: string): string | null {
-  if (cameras.length < 2) return null;
-  const index = cameras.findIndex((c) => c.deviceId === currentId);
-  return cameras[(index + 1) % cameras.length]?.deviceId ?? null;
-}
-
-/** The id of the video track currently in a stream. */
-export function currentCameraId(stream: MediaStream | null): string | undefined {
-  return stream?.getVideoTracks()[0]?.getSettings().deviceId;
 }
 
 /**
@@ -81,35 +69,79 @@ export function cameraByFacing(facingMode: FacingMode): MediaStreamConstraints {
 }
 
 /**
- * Opens the "other" camera for a front/back switch, video only.
+ * Whether two video tracks are the same physical camera, judged on whatever
+ * identifying signal the device actually exposes. Budget phones frequently leave
+ * deviceId or facingMode blank, so we fall through the available signals in turn:
+ * deviceId, then label, then facingMode. When nothing is comparable we report
+ * "not the same", so a switch is attempted rather than silently suppressed.
+ */
+function isSameCamera(a?: MediaStreamTrack, b?: MediaStreamTrack): boolean {
+  if (!a || !b) return false;
+  const sa = a.getSettings();
+  const sb = b.getSettings();
+  if (sa.deviceId && sb.deviceId) return sa.deviceId === sb.deviceId;
+  if (a.label && b.label) return a.label === b.label;
+  if (sa.facingMode && sb.facingMode) return sa.facingMode === sb.facingMode;
+  return false;
+}
+
+/**
+ * Opens a camera that is genuinely different from the one currently streaming,
+ * video only. Returns the new stream, or throws if no other camera can be opened.
  *
- * A phone lists each of its rear lenses (wide, ultra-wide, tele) as a separate
- * video input alongside the front one, so cycling raw device ids can hop between
- * two near-identical rear cameras and look like nothing changed. So when the
- * current track reports a facingMode — every phone does — we flip that instead,
- * the reliable way to toggle front ↔ back. Laptops and desktops report no
- * facingMode, so there we cycle through the distinct video inputs by id. And if a
- * facing flip is over-constrained on some device, we fall back to the id cycle
- * rather than failing the switch outright.
+ * Budget Android phones are wildly inconsistent here — some ignore a `deviceId`
+ * constraint and always hand back the default camera, some leave deviceId or
+ * facingMode blank so cycling can't tell two inputs apart, some list several rear
+ * lenses as separate inputs. Trusting any single strategy fails on one device or
+ * another, so we try everything and keep the first result that is actually a
+ * different camera from the live one:
+ *
+ *   1. every enumerated video input, by id, ordered to continue the cycle just
+ *      after the current camera (so repeated switches walk through them all);
+ *   2. a front/back facingMode flip, for devices that ignore deviceId but still
+ *      honour the orientation.
+ *
+ * Every attempt is verified against the live track with {@link isSameCamera}; an
+ * attempt that reopens the same camera, or fails outright, is discarded and the
+ * next is tried. Only when nothing yields a different camera do we give up.
  */
 export async function openNextCamera(
   stream: MediaStream | null,
   cameras: MediaDeviceInfo[],
 ): Promise<MediaStream> {
-  const facing = currentFacingMode(stream);
-  if (facing) {
-    try {
-      return await navigator.mediaDevices.getUserMedia(
-        cameraByFacing(facing === "user" ? "environment" : "user"),
-      );
-    } catch {
-      /* over-constrained on this device; fall back to cycling ids below */
+  const currentTrack = stream?.getVideoTracks()[0];
+  const currentId = currentTrack?.getSettings().deviceId;
+
+  const attempts: MediaStreamConstraints[] = [];
+
+  // Every other input, ordered to continue the cycle from the current camera.
+  const startIndex = cameras.findIndex((c) => c.deviceId === currentId);
+  for (let offset = 1; offset <= cameras.length; offset += 1) {
+    const camera = cameras[(Math.max(startIndex, 0) + offset) % cameras.length];
+    if (camera?.deviceId && camera.deviceId !== currentId) {
+      attempts.push(cameraById(camera.deviceId));
     }
   }
 
-  const nextId = nextCameraId(cameras, currentCameraId(stream));
-  if (!nextId) throw new Error("No other camera to switch to");
-  return navigator.mediaDevices.getUserMedia(cameraById(nextId));
+  // Front/back flips, for devices that ignore deviceId but honour orientation.
+  const facing = currentFacingMode(stream);
+  const facingTargets: FacingMode[] =
+    facing === "user" ? ["environment"] : facing === "environment" ? ["user"] : ["environment", "user"];
+  for (const target of facingTargets) attempts.push(cameraByFacing(target));
+
+  for (const constraints of attempts) {
+    let opened: MediaStream;
+    try {
+      opened = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch {
+      continue;
+    }
+    if (!isSameCamera(currentTrack, opened.getVideoTracks()[0])) return opened;
+    // Reopened the same camera — release it and try the next strategy.
+    opened.getTracks().forEach((track) => track.stop());
+  }
+
+  throw new Error("No other camera to switch to");
 }
 
 /**
