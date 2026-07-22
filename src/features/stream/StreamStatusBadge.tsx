@@ -1,5 +1,6 @@
 import { Wifi } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import type { PeerStatus } from "./lib/peer";
 
 /**
  * The one badge used across the stream module for connection status, so the
@@ -9,9 +10,8 @@ import { useUITheme } from "../../theme/ThemeProvider";
 export type StreamBadgeStatus =
   | "waiting"
   | "connecting"
-  | "receiving"
-  | "sharing"
   | "connected"
+  | "disconnected"
   | "live"
   | "liveOnDisplay";
 
@@ -21,12 +21,27 @@ const RED = "rgba(220,38,38,0.92)";
 const CONFIG: Record<StreamBadgeStatus, { label: string; solid?: string }> = {
   waiting: { label: "Waiting" },
   connecting: { label: "Connecting" },
-  receiving: { label: "Receiving", solid: GREEN },
-  sharing: { label: "Sharing", solid: GREEN },
   connected: { label: "Connected", solid: GREEN },
+  disconnected: { label: "Disconnected", solid: RED },
   live: { label: "Live", solid: RED },
   liveOnDisplay: { label: "Live on display", solid: RED },
 };
+
+/**
+ * Maps a live peer-connection status to the badge that describes it, so every
+ * surface in the module reports the same real-time state. `projecting` promotes a
+ * connected feed to "live on display" when it's on the external projection window.
+ */
+export function connectionBadgeStatus(status: PeerStatus, projecting: boolean): StreamBadgeStatus {
+  switch (status) {
+    case "failed":
+      return "disconnected";
+    case "live":
+      return projecting ? "liveOnDisplay" : "connected";
+    default:
+      return "connecting";
+  }
+}
 
 export function StreamStatusBadge({
   status,

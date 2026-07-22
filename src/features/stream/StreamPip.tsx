@@ -4,8 +4,10 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
-import { StreamStatusBadge } from "./StreamStatusBadge";
+import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
+import { AudioSharingPill } from "./AudioSharingPill";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
+import { useRemoteAudio } from "./lib/useRemoteAudio";
 import { endStreamSession, setStreamMode, useStreamSession } from "./lib/streamSession";
 
 const WIDTH = 300;
@@ -24,6 +26,7 @@ export function StreamPip() {
   const pushToast = useStore((s) => s.pushToast);
   const session = useStreamSession();
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
+  const audio = useRemoteAudio(session.stream);
   const videoRef = useRef<HTMLVideoElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(() => ({
@@ -96,6 +99,7 @@ export function StreamPip() {
   };
 
   const connecting = session.status === "connecting";
+  const disconnected = session.status === "failed";
   // Play the sender's audio in the floating preview, unless the external
   // projection is live and already carrying the sound.
   const previewMuted = isLive;
@@ -143,6 +147,7 @@ export function StreamPip() {
         >
           {session.deviceName || "Phone camera"}
         </span>
+        {audio.available && <AudioSharingPill muted={audio.muted} size="sm" />}
         {isLive && <StreamStatusBadge status="live" size="sm" />}
       </div>
 
@@ -155,9 +160,9 @@ export function StreamPip() {
           muted={previewMuted}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
-        {connecting && (
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "rgba(255,255,255,0.75)", fontFamily: fonts.ui, fontSize: 12 }}>
-            Connecting…
+        {(connecting || disconnected) && (
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: disconnected ? "rgba(0,0,0,0.55)" : "transparent", color: "rgba(255,255,255,0.8)", fontFamily: fonts.ui, fontSize: 12 }}>
+            {disconnected ? "Disconnected" : "Connecting…"}
           </div>
         )}
       </div>
@@ -170,7 +175,7 @@ export function StreamPip() {
           <MiniButton icon={MonitorUp} title="Go live on the external display" onClick={handleGoLive} />
         )}
         <span style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
-          <StreamStatusBadge status={isLive ? "liveOnDisplay" : "receiving"} size="sm" />
+          <StreamStatusBadge status={connectionBadgeStatus(session.status, isLive)} size="sm" />
         </span>
         <MiniButton icon={Maximize2} title="Maximise to the full stream window" onClick={() => setStreamMode("stage")} />
         <MiniButton icon={X} title="Stop. Disconnect this device." danger onClick={endStreamSession} />

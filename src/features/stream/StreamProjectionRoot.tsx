@@ -17,6 +17,7 @@ export function StreamProjectionRoot() {
   return (
     <ProjectionSurface
       stream={session.stream}
+      status={session.status}
       deviceName={session.deviceName}
       onStop={endStreamSession}
       onPopOut={() => setStreamMode("pip")}

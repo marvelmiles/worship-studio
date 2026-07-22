@@ -116,12 +116,14 @@ export async function startStreamSession(opts: {
       onStatus: (s) => {
         if (!state.active) return;
         if (s === "live") setState({ status: "live" });
+        else if (s === "connecting") setState({ status: "connecting" });
         else if (s === "failed") {
-          // The sharing device dropped: end the session (which closes the
-          // projection) and tell the operator why the view went away, so they
-          // can pick a device again once one starts sharing.
-          useStore.getState().pushToast("The camera stopped sharing. Pick a device to reconnect.", "error");
-          endStreamSession();
+          // The sharing device dropped. Keep the projection on screen showing a
+          // "Disconnected" badge in real time rather than yanking it away; the
+          // operator presses Stop to dismiss it, which frees the connection and
+          // lets the device list refresh so they can reconnect.
+          setState({ status: "failed" });
+          useStore.getState().pushToast("The camera stopped sharing.", "error");
         }
       },
     });

@@ -1,8 +1,8 @@
 /**
  * Camera enumeration helpers for the sender. A device with more than one camera
- * exposes each as a separate video input; switching (see openNextCamera) walks
- * those inputs to open a genuinely different one, which works the same on a phone
- * (front/back and its extra rear lenses) and a laptop (built-in/USB).
+ * exposes each as a separate video input; switching (see openCameraFacing) opens
+ * the requested front/back lens, which works the same on a phone (front/back and
+ * its extra rear lenses) and a laptop (built-in/USB).
  */
 
 export async function listCameras(): Promise<MediaDeviceInfo[]> {
@@ -48,7 +48,7 @@ export function cameraById(deviceId: string): MediaStreamConstraints {
   };
 }
 
-type FacingMode = "user" | "environment";
+export type FacingMode = "user" | "environment";
 
 /** Constraints that pin a specific front/back lens, used to flip a phone camera. */
 export function cameraByFacing(facingMode: FacingMode): MediaStreamConstraints {
@@ -117,10 +117,10 @@ export interface CameraSwitch {
 }
 
 /**
- * Switches to a camera genuinely different from the one currently streaming,
- * video only. Returns the new stream (switched: true), or — if no other camera
- * can be opened — the original camera reopened so the broadcast keeps running
- * (switched: false). Throws only if even the original can't be reopened.
+ * Switches the sender to the requested front/back camera, video only. Returns the
+ * new stream (switched: true), or — if that camera can't be opened — the original
+ * reopened so the broadcast keeps running (switched: false). Throws only if even
+ * the original can't be reopened.
  *
  * Budget Android phones are wildly inconsistent: some ignore a `deviceId`
  * constraint and always hand back the default camera; some leave deviceId or
@@ -131,21 +131,23 @@ export interface CameraSwitch {
  *   1. release the current camera first (required by single-camera-at-a-time
  *      hardware; the preview shows a brief black frame, the normal cost of a
  *      flip on such devices);
- *   2. try every route to another camera — each enumerated input by id, then a
- *      front/back facingMode flip in both its strict and loose forms — and keep
+ *   2. ask for the requested facing (strict then loose), then — for devices that
+ *      ignore facingMode — fall back to any other enumerated input, which on a
+ *      phone with just a front and back camera is exactly the other side; keep
  *      the first result verified as a different camera than the original;
  *   3. if nothing else opens, reopen the original so the stream survives.
  */
-export async function openNextCamera(
+export async function openCameraFacing(
+  facing: FacingMode,
   stream: MediaStream | null,
   cameras: MediaDeviceInfo[],
 ): Promise<CameraSwitch> {
   const currentTrack = stream?.getVideoTracks()[0];
   const current = cameraIdentity(currentTrack);
 
-  const switchAttempts: MediaStreamConstraints[] = [];
-
-  // Every other input, ordered to continue the cycle from the current camera.
+  // The requested front/back lens first; every other input as a fallback for
+  // devices that don't honour facingMode.
+  const switchAttempts: MediaStreamConstraints[] = [...facingAttempts(facing)];
   const startIndex = cameras.findIndex((c) => c.deviceId === current.deviceId);
   for (let offset = 1; offset <= cameras.length; offset += 1) {
     const camera = cameras[(Math.max(startIndex, 0) + offset) % cameras.length];
@@ -153,15 +155,6 @@ export async function openNextCamera(
       switchAttempts.push(cameraById(camera.deviceId));
     }
   }
-
-  // Front/back flips, for devices that ignore deviceId but honour orientation.
-  const facingTargets: FacingMode[] =
-    current.facingMode === "user"
-      ? ["environment"]
-      : current.facingMode === "environment"
-        ? ["user"]
-        : ["environment", "user"];
-  for (const target of facingTargets) switchAttempts.push(...facingAttempts(target));
 
   // Free the current camera so single-camera-at-a-time hardware can open another.
   currentTrack?.stop();

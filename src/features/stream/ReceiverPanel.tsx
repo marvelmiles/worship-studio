@@ -347,8 +347,11 @@ function ManualReceiverPanel({
 
   const live = status === "live";
 
-  if (live) {
-    return <ProjectionSurface stream={stream} onStop={onBack} />;
+  // Keep the projection mounted once connected, including after a drop, so the
+  // surface can show its real-time "Disconnected" state instead of snapping back
+  // to the pairing screen.
+  if (stream && (live || status === "failed")) {
+    return <ProjectionSurface stream={stream} status={status} onStop={onBack} />;
   }
 
   return (

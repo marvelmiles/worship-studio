@@ -1,5 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { KeyRound, Radio, RotateCcw, SwitchCamera, Volume2, VolumeX } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import {
+  KeyRound,
+  Radio,
+  RotateCcw,
+  SwitchCamera,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
@@ -11,12 +25,17 @@ import { deriveNetworkRoom } from "./lib/room";
 import { publishBroadcaster, type BroadcastHandle } from "./lib/signaling";
 import {
   listCameras,
-  openNextCamera,
+  openCameraFacing,
   cameraConstraints,
   setStreamAudioEnabled,
+  type FacingMode,
 } from "./lib/cameras";
 import { detectDeviceName } from "./lib/deviceName";
-import { StreamStatusBadge } from "./StreamStatusBadge";
+import {
+  StreamStatusBadge,
+  connectionBadgeStatus,
+  type StreamBadgeStatus,
+} from "./StreamStatusBadge";
 import { ShowCode, ReadCode } from "./CodeExchange";
 
 /**
@@ -32,7 +51,9 @@ export function SenderPanel({ onBack }: { onBack: () => void }) {
   );
 
   if (mode === "auto") {
-    return <AutoBroadcastPanel onBack={onBack} onUseCode={() => setMode("manual")} />;
+    return (
+      <AutoBroadcastPanel onBack={onBack} onUseCode={() => setMode("manual")} />
+    );
   }
   return (
     <ManualSenderPanel
@@ -96,6 +117,151 @@ function AudioToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
+/**
+ * Front/back camera toggle. Reads as a toggle at a glance — the label names the
+ * live lens and the icon mirrors when it's the front camera — so the operator can
+ * see which side is active and that a tap flipped it, the same way the audio
+ * button flips between its states.
+ */
+function CameraFlipButton({
+  facing,
+  onFlip,
+}: {
+  facing: FacingMode;
+  onFlip: () => void;
+}) {
+  const onFront = facing === "user";
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onFlip}
+      title={
+        onFront ? "Switch to the back camera" : "Switch to the front camera"
+      }
+    >
+      <SwitchCamera
+        size={14}
+        style={{ transform: onFront ? "scaleX(-1)" : undefined }}
+      />
+      {onFront ? "Front camera" : "Back camera"}
+    </Button>
+  );
+}
+
+/**
+ * The shared camera card for both sharing flows — the live preview, a neutral
+ * "Your camera" heading, and the include-audio, flip-camera and stop controls.
+ * The one-tap and QR panels both render it so the camera display and its
+ * stop/reconnect controls look and behave identically; only the surrounding
+ * connection UI differs. `badge` and `statusLine` are slots each flow fills with
+ * its own connection status. `onStop` returns to the choose screen — the single
+ * path back for stopping and reconnecting — the same for both flows.
+ */
+function SharingCameraCard({
+  videoRef,
+  badge,
+  statusLine,
+  audioOn,
+  onToggleAudio,
+  facing,
+  onFlip,
+  hasMultipleCameras,
+  onStop,
+}: {
+  videoRef: RefObject<HTMLVideoElement>;
+  badge?: ReactNode;
+  statusLine?: ReactNode;
+  audioOn: boolean;
+  onToggleAudio: () => void;
+  facing: FacingMode;
+  onFlip: () => void;
+  hasMultipleCameras: boolean;
+  onStop: () => void;
+}) {
+  const { colors, fonts } = useUITheme();
+  return (
+    <div
+      style={{
+        background: colors.raise,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 16,
+        padding: 18,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            fontFamily: fonts.display,
+            fontSize: 16,
+            fontWeight: 600,
+            color: colors.text,
+          }}
+        >
+          <Radio size={16} color={colors.accentSoft} />
+          Your camera
+        </span>
+        {badge}
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 12,
+          overflow: "hidden",
+          background: "#000",
+          aspectRatio: "16/9",
+        }}
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      </div>
+
+      {statusLine}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <AudioToggle on={audioOn} onToggle={onToggleAudio} />
+        {hasMultipleCameras && (
+          <CameraFlipButton facing={facing} onFlip={onFlip} />
+        )}
+        <Button variant="danger" size="sm" onClick={onStop}>
+          Stop
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Maps the one-tap flow's phase to the shared connection badge. */
+function autoPhaseBadge(phase: AutoPhase): StreamBadgeStatus {
+  switch (phase) {
+    case "connecting":
+      return "connecting";
+    case "live":
+      return "connected";
+    case "failed":
+      return "disconnected";
+    default:
+      return "waiting";
+  }
+}
+
 /* ------------------------------ One-tap broadcast ------------------------- */
 
 type AutoPhase = "starting" | "waiting" | "connecting" | "live" | "failed";
@@ -107,10 +273,10 @@ function AutoBroadcastPanel({
   onBack: () => void;
   onUseCode: () => void;
 }) {
-  const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [phase, setPhase] = useState<AutoPhase>("starting");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [facing, setFacing] = useState<FacingMode>("environment");
   const videoRef = useRef<HTMLVideoElement>(null);
   const broadcastRef = useRef<BroadcastHandle | null>(null);
   const senderRef = useRef<SenderHandle | null>(null);
@@ -218,7 +384,9 @@ function AutoBroadcastPanel({
   // device's list.
   useEffect(() => {
     if (phase !== "failed") return;
-    pushToast("The other device stopped viewing. Share this camera again to reconnect.");
+    pushToast(
+      "The other device stopped viewing. Share this camera again to reconnect.",
+    );
     onBack();
   }, [phase, pushToast, onBack]);
 
@@ -227,9 +395,15 @@ function AutoBroadcastPanel({
       pushToast("This device only has one camera.", "error");
       return;
     }
+    const target: FacingMode =
+      facing === "environment" ? "user" : "environment";
     const sender = senderRef.current;
     try {
-      const { stream, switched } = await openNextCamera(streamRef.current, cameras);
+      const { stream, switched } = await openCameraFacing(
+        target,
+        streamRef.current,
+        cameras,
+      );
       if (sender) {
         await sender.replaceVideo(stream);
         streamRef.current = sender.stream;
@@ -237,89 +411,35 @@ function AutoBroadcastPanel({
       } else {
         // Not connected yet: swap the preview/broadcast source directly, keeping
         // any microphone the operator already switched on. The old video track is
-        // already stopped by openNextCamera, so we only carry the audio across.
+        // already stopped by openCameraFacing, so we only carry the audio across.
         const audio = streamRef.current?.getAudioTracks() ?? [];
         const merged = new MediaStream([...stream.getVideoTracks(), ...audio]);
         streamRef.current = merged;
         if (videoRef.current) videoRef.current.srcObject = merged;
       }
-      if (!switched) pushToast("This device wouldn't switch to another camera.", "error");
+      if (switched) setFacing(target);
+      else
+        pushToast("This device wouldn't switch to the other camera.", "error");
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
   };
 
-  const live = phase === "live";
   const hasMultipleCameras = cameras.length > 1;
 
   return (
     <div style={{ maxWidth: 460, margin: "0 auto" }}>
-      <div
-        style={{
-          background: colors.raise,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 16,
-          padding: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              fontFamily: fonts.display,
-              fontSize: 16,
-              fontWeight: 600,
-              color: colors.text,
-            }}
-          >
-            <Radio size={16} color={colors.accentSoft} />
-            Sharing this camera
-          </span>
-          {live && <StreamStatusBadge status="connected" size="sm" />}
-        </div>
-
-        <div
-          style={{
-            position: "relative",
-            borderRadius: 12,
-            overflow: "hidden",
-            background: "#000",
-            aspectRatio: "16/9",
-          }}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-          />
-        </div>
-
-        <AutoStatusLine phase={phase} />
-
-        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-          <AudioToggle on={audioOn} onToggle={() => void toggleAudio()} />
-          {hasMultipleCameras && (
-            <Button variant="ghost" size="sm" onClick={flipCamera}>
-              <SwitchCamera size={14} />
-              Switch camera
-            </Button>
-          )}
-          <Button variant="danger" size="sm" onClick={onBack}>
-            Stop
-          </Button>
-        </div>
-      </div>
+      <SharingCameraCard
+        videoRef={videoRef}
+        badge={<StreamStatusBadge status={autoPhaseBadge(phase)} size="sm" />}
+        statusLine={<AutoStatusLine phase={phase} />}
+        audioOn={audioOn}
+        onToggleAudio={() => void toggleAudio()}
+        facing={facing}
+        onFlip={() => void flipCamera()}
+        hasMultipleCameras={hasMultipleCameras}
+        onStop={onBack}
+      />
 
       <div style={{ marginTop: 16, textAlign: "center" }}>
         <Button variant="ghost" size="sm" onClick={onUseCode}>
@@ -373,6 +493,32 @@ function AutoStatusLine({ phase }: { phase: AutoPhase }) {
   );
 }
 
+/** The QR flow's status line, shown under the shared camera preview. */
+function ManualStatusLine({ status }: { status: PeerStatus }) {
+  const { colors, fonts } = useUITheme();
+  const base = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    fontFamily: fonts.ui,
+    fontSize: 13,
+  } as const;
+  if (status === "connecting")
+    return (
+      <div style={{ ...base, color: colors.sub }}>
+        <Spinner size={14} /> Waiting for the other device to finish connecting…
+      </div>
+    );
+  if (status === "failed")
+    return (
+      <div style={{ ...base, color: colors.danger }}>
+        Connection failed. Go back and exchange the codes again.
+      </div>
+    );
+  return null;
+}
+
 /* ------------------------------- QR / code pairing ------------------------ */
 
 type Phase = "read-invite" | "streaming";
@@ -392,6 +538,7 @@ function ManualSenderPanel({
   const pushToast = useStore((s) => s.pushToast);
   const [phase, setPhase] = useState<Phase>("read-invite");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [facing, setFacing] = useState<FacingMode>("environment");
   const [handle, setHandle] = useState<SenderHandle | null>(null);
   const [reply, setReply] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
@@ -407,7 +554,8 @@ function ManualSenderPanel({
     offerRef.current = offerSdp;
     setPhase("streaming");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(cameraConstraints());
+      const stream =
+        await navigator.mediaDevices.getUserMedia(cameraConstraints());
       streamRef.current = stream;
       const sender = await createSender({
         offerSdp,
@@ -445,12 +593,20 @@ function ManualSenderPanel({
       pushToast("This device only has one camera.", "error");
       return;
     }
+    const target: FacingMode =
+      facing === "environment" ? "user" : "environment";
     try {
-      const { stream, switched } = await openNextCamera(streamRef.current, cameras);
+      const { stream, switched } = await openCameraFacing(
+        target,
+        streamRef.current,
+        cameras,
+      );
       await handle.replaceVideo(stream);
       streamRef.current = handle.stream;
       if (videoRef.current) videoRef.current.srcObject = handle.stream;
-      if (!switched) pushToast("This device wouldn't switch to another camera.", "error");
+      if (switched) setFacing(target);
+      else
+        pushToast("This device wouldn't switch to the other camera.", "error");
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
@@ -458,9 +614,11 @@ function ManualSenderPanel({
 
   useEffect(() => () => handle?.close(), [handle]);
   // Stop the local capture if we leave before a connection took ownership of it.
-  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), []);
+  useEffect(
+    () => () => streamRef.current?.getTracks().forEach((t) => t.stop()),
+    [],
+  );
 
-  const live = status === "live";
   const hasMultipleCameras = cameras.length > 1;
 
   if (phase === "read-invite") {
@@ -569,92 +727,22 @@ function ManualSenderPanel({
         )}
       </div>
 
-      <div
-        style={{
-          background: colors.raise,
-          border: `1px solid ${colors.border}`,
-          borderRadius: 16,
-          padding: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: fonts.display,
-              fontSize: 16,
-              fontWeight: 600,
-              color: colors.text,
-            }}
-          >
-            Your camera
-          </span>
-          {live && <StreamStatusBadge status="live" size="sm" />}
-        </div>
-        <div
-          style={{
-            position: "relative",
-            borderRadius: 12,
-            overflow: "hidden",
-            background: "#000",
-            aspectRatio: "16/9",
-          }}
-        >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      <SharingCameraCard
+        videoRef={videoRef}
+        badge={
+          <StreamStatusBadge
+            status={connectionBadgeStatus(status, false)}
+            size="sm"
           />
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-          <AudioToggle on={audioOn} onToggle={() => void toggleAudio()} />
-          {hasMultipleCameras && (
-            <Button variant="ghost" size="sm" onClick={flipCamera}>
-              <SwitchCamera size={14} />
-              Switch camera
-            </Button>
-          )}
-          <Button variant="danger" size="sm" onClick={onBack}>
-            Stop sharing
-          </Button>
-        </div>
-        {status === "connecting" && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 12,
-              fontFamily: fonts.ui,
-              fontSize: 13,
-              color: colors.sub,
-            }}
-          >
-            <Spinner size={14} /> Waiting for the other device to finish
-            connecting…
-          </div>
-        )}
-        {status === "failed" && (
-          <p
-            style={{
-              fontFamily: fonts.ui,
-              fontSize: 13,
-              color: colors.danger,
-              marginTop: 12,
-            }}
-          >
-            Connection failed. Go back and exchange the codes again.
-          </p>
-        )}
-      </div>
+        }
+        statusLine={<ManualStatusLine status={status} />}
+        audioOn={audioOn}
+        onToggleAudio={() => void toggleAudio()}
+        facing={facing}
+        onFlip={() => void flipCamera()}
+        hasMultipleCameras={hasMultipleCameras}
+        onStop={onBack}
+      />
     </div>
   );
 }

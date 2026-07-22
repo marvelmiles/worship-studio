@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, X } from "lucide-react";
+import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, Volume2, VolumeX, X } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { Button } from "../../components/ui/Button";
-import { StreamStatusBadge } from "./StreamStatusBadge";
+import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
+import { useRemoteAudio } from "./lib/useRemoteAudio";
+import { AudioSharingPill } from "./AudioSharingPill";
+import type { PeerStatus } from "./lib/peer";
 
 /** Video never shrinks below this, so a short viewport scrolls instead. */
 const MIN_VIDEO_HEIGHT = 360;
@@ -22,11 +25,13 @@ const MIN_VIDEO_HEIGHT = 360;
  */
 export function ProjectionSurface({
   stream,
+  status,
   deviceName,
   onStop,
   onPopOut,
 }: {
   stream: MediaStream | null;
+  status: PeerStatus;
   deviceName?: string;
   onStop: () => void;
   onPopOut?: () => void;
@@ -34,9 +39,11 @@ export function ProjectionSurface({
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
+  const audio = useRemoteAudio(stream);
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const disconnected = status === "failed";
 
   useEffect(() => {
     const el = videoRef.current;
@@ -122,8 +129,9 @@ export function ProjectionSurface({
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <StreamStatusBadge status={isLive ? "liveOnDisplay" : "receiving"} />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
+          <StreamStatusBadge status={connectionBadgeStatus(status, isLive)} />
+          {audio.available && <AudioSharingPill muted={audio.muted} />}
           {deviceName && (
             <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
               {deviceName}
@@ -132,6 +140,17 @@ export function ProjectionSurface({
         </span>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {audio.available && (
+            <Button
+              variant={audio.muted ? "ghost" : "primary"}
+              size="sm"
+              onClick={audio.toggleMuted}
+              title={audio.muted ? "Unmute the sender's audio" : "Mute the sender's audio"}
+            >
+              {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              {audio.muted ? "Unmute audio" : "Mute audio"}
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
@@ -142,7 +161,7 @@ export function ProjectionSurface({
               Pop out
             </Button>
           )}
-          <Button variant={isLive ? "danger" : "primary"} size="sm" onClick={handleGoLive}>
+          <Button variant={isLive ? "danger" : "primary"} size="sm" onClick={handleGoLive} disabled={disconnected && !isLive}>
             {isLive ? <MonitorX size={14} /> : <MonitorPlay size={14} />}
             {isLive ? "End live" : "Go live"}
           </Button>
@@ -154,7 +173,7 @@ export function ProjectionSurface({
       </div>
 
       {/* Video: full width, all remaining height, floored at a usable minimum. */}
-      <div style={{ flex: 1, minHeight: MIN_VIDEO_HEIGHT, background: "#000" }}>
+      <div style={{ position: "relative", flex: 1, minHeight: MIN_VIDEO_HEIGHT, background: "#000" }}>
         <video
           ref={videoRef}
           autoPlay
@@ -162,6 +181,28 @@ export function ProjectionSurface({
           muted={previewMuted}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
+        {disconnected && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              textAlign: "center",
+              padding: 24,
+              background: "rgba(0,0,0,0.55)",
+            }}
+          >
+            <div>
+              <div style={{ fontFamily: fonts.display, fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 6 }}>
+                The camera disconnected
+              </div>
+              <div style={{ fontFamily: fonts.ui, fontSize: 13.5, color: "rgba(255,255,255,0.7)" }}>
+                Press Stop to close this view, then reconnect from the device list.
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
