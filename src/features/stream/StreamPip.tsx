@@ -96,7 +96,9 @@ export function StreamPip() {
   };
 
   const connecting = session.status === "connecting";
-  const previewMuted = !session.wantAudio || isLive;
+  // Play the sender's audio in the floating preview, unless the external
+  // projection is live and already carrying the sound.
+  const previewMuted = isLive;
 
   return (
     <div

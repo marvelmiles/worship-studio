@@ -22,13 +22,11 @@ const MIN_VIDEO_HEIGHT = 360;
  */
 export function ProjectionSurface({
   stream,
-  wantAudio,
   deviceName,
   onStop,
   onPopOut,
 }: {
   stream: MediaStream | null;
-  wantAudio: boolean;
   deviceName?: string;
   onStop: () => void;
   onPopOut?: () => void;
@@ -85,9 +83,10 @@ export function ProjectionSurface({
     }
   };
 
-  // While projecting to the external window, mute this preview so the room
-  // doesn't hear the phone's audio twice.
-  const previewMuted = !wantAudio || isLive;
+  // Play the sender's audio here while it's shown in-app. When projecting to
+  // the external window, mute this copy so the room doesn't hear it twice — the
+  // external window carries the sound.
+  const previewMuted = isLive;
 
   return (
     <div

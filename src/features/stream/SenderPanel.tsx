@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { KeyRound, Radio, RotateCcw, SwitchCamera } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { KeyRound, Radio, RotateCcw, SwitchCamera, Volume2, VolumeX } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
@@ -9,20 +9,17 @@ import { decodeSignal, encodeSignal } from "./lib/streamSignal";
 import { signalingConfigured } from "./lib/firebase";
 import { deriveNetworkRoom } from "./lib/room";
 import { publishBroadcaster, type BroadcastHandle } from "./lib/signaling";
-import { listCameras, nextCameraId, currentCameraId, cameraById } from "./lib/cameras";
+import {
+  listCameras,
+  nextCameraId,
+  currentCameraId,
+  cameraById,
+  cameraConstraints,
+  setStreamAudioEnabled,
+} from "./lib/cameras";
 import { detectDeviceName } from "./lib/deviceName";
 import { StreamStatusBadge } from "./StreamStatusBadge";
 import { ShowCode, ReadCode } from "./CodeExchange";
-
-const CAMERA = (audio: boolean): MediaStreamConstraints => ({
-  // Prefer the back camera to start; switching afterwards is by device id.
-  video: {
-    facingMode: "environment",
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-  },
-  audio,
-});
 
 /**
  * The sharing side. When a signalling backend is configured it defaults to a
@@ -31,32 +28,73 @@ const CAMERA = (audio: boolean): MediaStreamConstraints => ({
  * always available fallback for offline venues or when the network can't be
  * auto detected.
  */
-export function SenderPanel({
-  wantAudio,
-  onBack,
-}: {
-  wantAudio: boolean;
-  onBack: () => void;
-}) {
+export function SenderPanel({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<"auto" | "manual">(
     signalingConfigured ? "auto" : "manual",
   );
 
   if (mode === "auto") {
-    return (
-      <AutoBroadcastPanel
-        wantAudio={wantAudio}
-        onBack={onBack}
-        onUseCode={() => setMode("manual")}
-      />
-    );
+    return <AutoBroadcastPanel onBack={onBack} onUseCode={() => setMode("manual")} />;
   }
   return (
     <ManualSenderPanel
-      wantAudio={wantAudio}
       onBack={onBack}
       onUseOneTap={signalingConfigured ? () => setMode("auto") : undefined}
     />
+  );
+}
+
+/**
+ * Owns the "Include audio" switch for a sharing panel. Whether the stream
+ * carries sound is entirely the sender's choice: before a viewer connects it
+ * adds/removes the microphone on the local stream; once connected it toggles
+ * the live audio track over the existing transceiver, so it never renegotiates.
+ */
+function useIncludeAudio(
+  getStream: () => MediaStream | null,
+  getSender: () => SenderHandle | null,
+) {
+  const pushToast = useStore((s) => s.pushToast);
+  const [audioOn, setAudioOn] = useState(false);
+
+  const toggle = useCallback(async () => {
+    const next = !audioOn;
+    try {
+      const sender = getSender();
+      if (sender) {
+        await sender.setAudioEnabled(next);
+      } else {
+        const stream = getStream();
+        if (stream) await setStreamAudioEnabled(stream, next);
+      }
+      setAudioOn(next);
+    } catch {
+      pushToast(
+        "Couldn't use the microphone. Allow mic access and try again.",
+        "error",
+      );
+    }
+  }, [audioOn, getSender, getStream, pushToast]);
+
+  return { audioOn, toggle };
+}
+
+/** The sender's audio switch, styled to read as on/off at a glance. */
+function AudioToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      variant={on ? "primary" : "ghost"}
+      size="sm"
+      onClick={onToggle}
+      title={
+        on
+          ? "Audio is shared with the other device. Click to mute."
+          : "Include this device's microphone in the stream."
+      }
+    >
+      {on ? <Volume2 size={14} /> : <VolumeX size={14} />}
+      {on ? "Audio on" : "Include audio"}
+    </Button>
   );
 }
 
@@ -65,11 +103,9 @@ export function SenderPanel({
 type AutoPhase = "starting" | "waiting" | "connecting" | "live" | "failed";
 
 function AutoBroadcastPanel({
-  wantAudio,
   onBack,
   onUseCode,
 }: {
-  wantAudio: boolean;
   onBack: () => void;
   onUseCode: () => void;
 }) {
@@ -83,6 +119,10 @@ function AutoBroadcastPanel({
   const streamRef = useRef<MediaStream | null>(null);
   const cameraIdRef = useRef<string | undefined>(undefined);
   const answeredRef = useRef(false);
+  const { audioOn, toggle: toggleAudio } = useIncludeAudio(
+    () => streamRef.current,
+    () => senderRef.current,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +141,7 @@ function AutoBroadcastPanel({
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(CAMERA(wantAudio));
+        stream = await navigator.mediaDevices.getUserMedia(cameraConstraints());
       } catch {
         if (!cancelled) {
           pushToast(
@@ -166,8 +206,8 @@ function AutoBroadcastPanel({
       senderRef.current?.close();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-    // wantAudio is fixed for the life of this panel (chosen on the previous
-    // screen), so this runs once and never restarts the live connection.
+    // This effect owns the whole broadcast lifecycle, so it runs once and never
+    // restarts the live connection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,6 +215,16 @@ function AutoBroadcastPanel({
   useEffect(() => {
     if (phase === "live") void broadcastRef.current?.clearCall();
   }, [phase]);
+
+  // The viewing device closed the link (it stopped, or the connection dropped).
+  // Return to the choose screen so the operator can share again — until they
+  // do, this device is no longer broadcasting and won't reappear on the other
+  // device's list.
+  useEffect(() => {
+    if (phase !== "failed") return;
+    pushToast("The other device stopped viewing. Share this camera again to reconnect.");
+    onBack();
+  }, [phase, pushToast, onBack]);
 
   const flipCamera = async () => {
     const nextId = nextCameraId(cameras, cameraIdRef.current);
@@ -187,6 +237,7 @@ function AutoBroadcastPanel({
       const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
       if (sender) {
         await sender.replaceVideo(stream);
+        streamRef.current = sender.stream;
         if (videoRef.current) videoRef.current.srcObject = sender.stream;
       } else {
         // Not connected yet: swap the preview/broadcast source directly.
@@ -260,7 +311,8 @@ function AutoBroadcastPanel({
 
         <AutoStatusLine phase={phase} />
 
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          <AudioToggle on={audioOn} onToggle={() => void toggleAudio()} />
           {hasMultipleCameras && (
             <Button variant="ghost" size="sm" onClick={flipCamera}>
               <SwitchCamera size={14} />
@@ -334,11 +386,9 @@ type Phase = "read-invite" | "streaming";
  * shows the reply for the laptop to read back. Works with no internet at all.
  */
 function ManualSenderPanel({
-  wantAudio,
   onBack,
   onUseOneTap,
 }: {
-  wantAudio: boolean;
   onBack: () => void;
   onUseOneTap?: () => void;
 }) {
@@ -351,13 +401,19 @@ function ManualSenderPanel({
   const [status, setStatus] = useState<PeerStatus>("idle");
   const offerRef = useRef<string>("");
   const cameraIdRef = useRef<string | undefined>(undefined);
+  const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { audioOn, toggle: toggleAudio } = useIncludeAudio(
+    () => streamRef.current,
+    () => handle,
+  );
 
   const startStreaming = async (offerSdp: string) => {
     offerRef.current = offerSdp;
     setPhase("streaming");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(CAMERA(wantAudio));
+      const stream = await navigator.mediaDevices.getUserMedia(cameraConstraints());
+      streamRef.current = stream;
       const sender = await createSender({
         offerSdp,
         stream,
@@ -398,6 +454,7 @@ function ManualSenderPanel({
     try {
       const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
       await handle.replaceVideo(stream);
+      streamRef.current = handle.stream;
       cameraIdRef.current = nextId;
       if (videoRef.current) videoRef.current.srcObject = handle.stream;
     } catch {
@@ -406,6 +463,8 @@ function ManualSenderPanel({
   };
 
   useEffect(() => () => handle?.close(), [handle]);
+  // Stop the local capture if we leave before a connection took ownership of it.
+  useEffect(() => () => streamRef.current?.getTracks().forEach((t) => t.stop()), []);
 
   const live = status === "live";
   const hasMultipleCameras = cameras.length > 1;
@@ -561,7 +620,8 @@ function ManualSenderPanel({
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <AudioToggle on={audioOn} onToggle={() => void toggleAudio()} />
           {hasMultipleCameras && (
             <Button variant="ghost" size="sm" onClick={flipCamera}>
               <SwitchCamera size={14} />

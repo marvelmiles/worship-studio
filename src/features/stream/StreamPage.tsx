@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { MonitorSmartphone, Radio, ShieldAlert, Volume2, VolumeX } from "lucide-react";
+import { MonitorSmartphone, Radio, ShieldAlert } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { Button } from "../../components/ui/Button";
 import { ReceiverPanel } from "./ReceiverPanel";
 import { SenderPanel } from "./SenderPanel";
 
@@ -20,7 +19,6 @@ export function StreamPage() {
   useDocumentTitle("Stream · WorshipStudio");
   const { colors, fonts } = useUITheme();
   const [role, setRole] = useState<Role>("choose");
-  const [wantAudio, setWantAudio] = useState(false);
 
   // getUserMedia and WebRTC both require a secure context. localhost counts;
   // a plain http:// LAN address does not, so say so plainly instead of failing
@@ -48,14 +46,6 @@ export function StreamPage() {
       <PageHeader
         title="Stream"
         subtitle="Share a camera between devices over your WiFi, then project it on a display."
-        actions={
-          role === "choose" ? (
-            <Button variant="ghost" size="sm" onClick={() => setWantAudio((a) => !a)} title="Include the sharing device's microphone">
-              {wantAudio ? <Volume2 size={14} /> : <VolumeX size={14} />}
-              {wantAudio ? "With sound" : "Video only"}
-            </Button>
-          ) : undefined
-        }
       />
 
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 20 }}>
@@ -78,8 +68,8 @@ export function StreamPage() {
           </div>
         )}
 
-        {role === "receive" && <ReceiverPanel wantAudio={wantAudio} onBack={() => setRole("choose")} />}
-        {role === "send" && <SenderPanel wantAudio={wantAudio} onBack={() => setRole("choose")} />}
+        {role === "receive" && <ReceiverPanel onBack={() => setRole("choose")} />}
+        {role === "send" && <SenderPanel onBack={() => setRole("choose")} />}
       </div>
     </div>
   );

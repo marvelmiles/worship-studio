@@ -29,29 +29,16 @@ import { ProjectionSurface } from "./ProjectionSurface";
  * of phones broadcasting on the same WiFi — tap one to go live and project it,
  * no codes. The QR / paste pairing stays available as an offline fallback.
  */
-export function ReceiverPanel({
-  wantAudio,
-  onBack,
-}: {
-  wantAudio: boolean;
-  onBack: () => void;
-}) {
+export function ReceiverPanel({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<"auto" | "manual">(
     signalingConfigured ? "auto" : "manual",
   );
 
   if (mode === "auto") {
-    return (
-      <AutoReceivePanel
-        wantAudio={wantAudio}
-        onBack={onBack}
-        onUseCode={() => setMode("manual")}
-      />
-    );
+    return <AutoReceivePanel onBack={onBack} onUseCode={() => setMode("manual")} />;
   }
   return (
     <ManualReceiverPanel
-      wantAudio={wantAudio}
       onBack={onBack}
       onUseOneTap={signalingConfigured ? () => setMode("auto") : undefined}
     />
@@ -61,11 +48,9 @@ export function ReceiverPanel({
 /* ------------------------------- One-tap receive -------------------------- */
 
 function AutoReceivePanel({
-  wantAudio,
   onBack,
   onUseCode,
 }: {
-  wantAudio: boolean;
   onBack: () => void;
   onUseCode: () => void;
 }) {
@@ -119,7 +104,7 @@ function AutoReceivePanel({
   const connect = (device: DeviceEntry) => {
     const room = roomRef.current;
     if (!room || session.active) return;
-    void startStreamSession({ room, device, viewerId, wantAudio });
+    void startStreamSession({ room, device, viewerId });
   };
 
   return (
@@ -302,11 +287,9 @@ function Centered({ children }: { children: React.ReactNode }) {
  * phone's reply, then projects the incoming camera. Works with no internet.
  */
 function ManualReceiverPanel({
-  wantAudio,
   onBack,
   onUseOneTap,
 }: {
-  wantAudio: boolean;
   onBack: () => void;
   onUseOneTap?: () => void;
 }) {
@@ -321,7 +304,6 @@ function ManualReceiverPanel({
     let live = true;
     let created: ReceiverHandle | null = null;
     createReceiver({
-      wantAudio,
       onStream: (s) => live && setStream(s),
       onStatus: (s) => live && setStatus(s),
     })
@@ -341,7 +323,7 @@ function ManualReceiverPanel({
       live = false;
       created?.close();
     };
-  }, [wantAudio, pushToast]);
+  }, [pushToast]);
 
   // This panel owns its own projection (it isn't hoisted to the session), so it
   // closes the external live window when it goes away.
@@ -366,13 +348,7 @@ function ManualReceiverPanel({
   const live = status === "live";
 
   if (live) {
-    return (
-      <ProjectionSurface
-        stream={stream}
-        wantAudio={wantAudio}
-        onStop={onBack}
-      />
-    );
+    return <ProjectionSurface stream={stream} onStop={onBack} />;
   }
 
   return (

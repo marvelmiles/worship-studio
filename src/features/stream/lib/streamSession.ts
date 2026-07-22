@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { useStore } from "../../../store/useStore";
 import { createReceiver, type PeerStatus, type ReceiverHandle } from "./peer";
 import { requestStream, type CallHandle, type DeviceEntry } from "./signaling";
 import { streamLiveWindow, setLiveStream } from "./streamLive";
@@ -23,7 +24,6 @@ export interface StreamSessionState {
   deviceName: string;
   status: PeerStatus;
   stream: MediaStream | null;
-  wantAudio: boolean;
   mode: StreamMode;
 }
 
@@ -33,7 +33,6 @@ const IDLE: StreamSessionState = {
   deviceName: "",
   status: "idle",
   stream: null,
-  wantAudio: false,
   mode: "stage",
 };
 
@@ -97,7 +96,6 @@ export async function startStreamSession(opts: {
   room: string;
   device: DeviceEntry;
   viewerId: string;
-  wantAudio: boolean;
 }): Promise<void> {
   teardown();
   answered = false;
@@ -106,21 +104,25 @@ export async function startStreamSession(opts: {
     active: true,
     deviceId: opts.device.id,
     deviceName: opts.device.name,
-    wantAudio: opts.wantAudio,
     status: "connecting",
   };
   emit();
 
   try {
     const receiver = await createReceiver({
-      wantAudio: opts.wantAudio,
       onStream: (s) => {
         if (state.active) setState({ stream: s });
       },
       onStatus: (s) => {
         if (!state.active) return;
         if (s === "live") setState({ status: "live" });
-        else if (s === "failed") endStreamSession();
+        else if (s === "failed") {
+          // The sharing device dropped: end the session (which closes the
+          // projection) and tell the operator why the view went away, so they
+          // can pick a device again once one starts sharing.
+          useStore.getState().pushToast("The camera stopped sharing. Pick a device to reconnect.", "error");
+          endStreamSession();
+        }
       },
     });
     // The session may have been ended while awaiting the offer.

@@ -17,7 +17,6 @@ export function StreamProjectionRoot() {
   return (
     <ProjectionSurface
       stream={session.stream}
-      wantAudio={session.wantAudio}
       deviceName={session.deviceName}
       onStop={endStreamSession}
       onPopOut={() => setStreamMode("pip")}
