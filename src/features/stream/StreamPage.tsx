@@ -3,8 +3,8 @@ import { MonitorSmartphone, Radio, ShieldAlert } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { ReceiverPanel } from "./ReceiverPanel";
-import { SenderPanel } from "./SenderPanel";
+import { ReceiverLobby } from "./ReceiverPanel";
+import { SenderLobby } from "./SenderPanel";
 
 type Role = "choose" | "receive" | "send";
 
@@ -68,8 +68,8 @@ export function StreamPage() {
           </div>
         )}
 
-        {role === "receive" && <ReceiverPanel onBack={() => setRole("choose")} />}
-        {role === "send" && <SenderPanel onBack={() => setRole("choose")} />}
+        {role === "receive" && <ReceiverLobby onBack={() => setRole("choose")} />}
+        {role === "send" && <SenderLobby onBack={() => setRole("choose")} />}
       </div>
     </div>
   );

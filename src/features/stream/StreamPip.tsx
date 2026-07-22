@@ -147,7 +147,7 @@ export function StreamPip() {
         >
           {session.deviceName || "Phone camera"}
         </span>
-        {audio.available && <AudioSharingPill muted={audio.muted} size="sm" />}
+        <AudioSharingPill available={audio.available} muted={audio.muted} size="sm" />
         {isLive && <StreamStatusBadge status="live" size="sm" />}
       </div>
 

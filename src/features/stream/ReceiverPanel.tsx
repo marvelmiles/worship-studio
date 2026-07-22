@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   KeyRound,
   MonitorSmartphone,
@@ -25,21 +25,31 @@ import { ShowCode, ReadCode } from "./CodeExchange";
 import { ProjectionSurface } from "./ProjectionSurface";
 
 /**
- * Laptop side. With a signalling backend configured it defaults to a live list
- * of phones broadcasting on the same WiFi — tap one to go live and project it,
- * no codes. The QR / paste pairing stays available as an offline fallback.
+ * Laptop side — the receiving lobby. With a signalling backend configured it
+ * defaults to a live list of phones broadcasting on the same WiFi — tap one to
+ * go live and project it, no codes. The QR / paste pairing stays available as an
+ * offline fallback.
+ *
+ * On stop or disconnect the active flow lands back in a fresh lobby: the one-tap
+ * list re-searches the network (driven by the app-wide session ending), and the
+ * QR flow remounts a fresh invite (via a bumped `key`). `onBack` leaves the lobby
+ * for the choose screen.
  */
-export function ReceiverPanel({ onBack }: { onBack: () => void }) {
+export function ReceiverLobby({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<"auto" | "manual">(
     signalingConfigured ? "auto" : "manual",
   );
+  const [resetNonce, setResetNonce] = useState(0);
+  const reset = useCallback(() => setResetNonce((n) => n + 1), []);
 
   if (mode === "auto") {
     return <AutoReceivePanel onBack={onBack} onUseCode={() => setMode("manual")} />;
   }
   return (
     <ManualReceiverPanel
+      key={`manual-${resetNonce}`}
       onBack={onBack}
+      onReset={reset}
       onUseOneTap={signalingConfigured ? () => setMode("auto") : undefined}
     />
   );
@@ -288,9 +298,11 @@ function Centered({ children }: { children: React.ReactNode }) {
  */
 function ManualReceiverPanel({
   onBack,
+  onReset,
   onUseOneTap,
 }: {
   onBack: () => void;
+  onReset: () => void;
   onUseOneTap?: () => void;
 }) {
   const { colors, fonts } = useUITheme();
@@ -299,6 +311,8 @@ function ManualReceiverPanel({
   const [invite, setInvite] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const handleRef = useRef<ReceiverHandle | null>(null);
+  const wasLiveRef = useRef(false);
 
   useEffect(() => {
     let live = true;
@@ -313,6 +327,7 @@ function ManualReceiverPanel({
           return;
         }
         created = h;
+        handleRef.current = h;
         setHandle(h);
         setInvite(encodeSignal("offer", h.invite));
       })
@@ -334,6 +349,16 @@ function ManualReceiverPanel({
     };
   }, []);
 
+  // Toast once when a live connection drops, so the operator knows why the feed
+  // froze even before they read the on-surface message.
+  useEffect(() => {
+    if (status === "live") wasLiveRef.current = true;
+    if (status === "failed" && wasLiveRef.current) {
+      wasLiveRef.current = false;
+      pushToast("The camera stopped sharing.", "error");
+    }
+  }, [status, pushToast]);
+
   const applyReply = (text: string) => {
     const parsed = decodeSignal(text);
     if (!parsed || parsed.kind !== "answer") {
@@ -345,13 +370,25 @@ function ManualReceiverPanel({
       .catch(() => pushToast("Couldn't complete the connection.", "error"));
   };
 
+  // Tell the sender when the feed goes live on the external display.
+  const handleLiveChange = useCallback((isLive: boolean) => {
+    handleRef.current?.setViewerLive(isLive);
+  }, []);
+
   const live = status === "live";
 
   // Keep the projection mounted once connected, including after a drop, so the
-  // surface can show its real-time "Disconnected" state instead of snapping back
-  // to the pairing screen.
+  // surface can show its real-time "Disconnected" state. Stop resets to a fresh
+  // QR lobby (new invite) so a clean reconnect can happen.
   if (stream && (live || status === "failed")) {
-    return <ProjectionSurface stream={stream} status={status} onStop={onBack} />;
+    return (
+      <ProjectionSurface
+        stream={stream}
+        status={status}
+        onStop={onReset}
+        onLiveChange={handleLiveChange}
+      />
+    );
   }
 
   return (

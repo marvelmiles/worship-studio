@@ -92,6 +92,12 @@ export interface ReceiverHandle {
   invite: string;
   /** Feed the phone's reply in to complete the handshake. */
   accept: (answerSdp: string) => Promise<void>;
+  /**
+   * Tell the sender whether this device has put the feed live on a display, so
+   * the sender's card can reflect it. Sent over the control data channel; the
+   * latest value is (re)sent whenever the channel opens.
+   */
+  setViewerLive: (live: boolean) => void;
   close: () => void;
 }
 
@@ -114,6 +120,22 @@ export async function createReceiver(options: {
 
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
+
+  // A tiny control channel, created before the offer so it's negotiated in the
+  // one handshake. The receiver uses it to tell the sender when the feed has
+  // gone live on a display. Created here (the offerer) so the sender simply
+  // receives it via ondatachannel — no renegotiation.
+  const statusChannel = pc.createDataChannel("status");
+  let viewerLive = false;
+  const pushViewerLive = () => {
+    if (statusChannel.readyState !== "open") return;
+    try {
+      statusChannel.send(JSON.stringify({ type: "viewerLive", live: viewerLive }));
+    } catch {
+      /* channel closing; nothing we can do, the sender keeps its last value */
+    }
+  };
+  statusChannel.addEventListener("open", pushViewerLive);
 
   // Assemble every incoming track into one stable stream rather than trusting
   // event.streams: the sender attaches tracks with replaceTrack (which carries
@@ -143,6 +165,10 @@ export async function createReceiver(options: {
     accept: async (answerSdp: string) => {
       options.onStatus("connecting");
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    },
+    setViewerLive: (live: boolean) => {
+      viewerLive = live;
+      pushViewerLive();
     },
     close: () => pc.close(),
   };
@@ -175,6 +201,8 @@ export async function createSender(options: {
   offerSdp: string;
   stream: MediaStream;
   onStatus: (status: PeerStatus) => void;
+  /** Fired when the viewer reports whether it has put the feed live on a display. */
+  onViewerLive?: (live: boolean) => void;
 }): Promise<SenderHandle> {
   const pc = createConnection();
 
@@ -184,6 +212,19 @@ export async function createSender(options: {
     else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
       options.onStatus("failed");
     }
+  });
+
+  // The receiver's control channel: it tells us when the feed goes live on a
+  // display. Arrives via ondatachannel because the receiver (offerer) created it.
+  pc.addEventListener("datachannel", (event) => {
+    event.channel.addEventListener("message", (message) => {
+      try {
+        const parsed = JSON.parse(message.data as string);
+        if (parsed?.type === "viewerLive") options.onViewerLive?.(Boolean(parsed.live));
+      } catch {
+        /* ignore anything that isn't our small JSON status message */
+      }
+    });
   });
 
   await pc.setRemoteDescription({ type: "offer", sdp: options.offerSdp });

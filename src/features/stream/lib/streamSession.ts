@@ -67,6 +67,11 @@ export function setStreamMode(mode: StreamMode): void {
   if (state.active) setState({ mode });
 }
 
+/** Tells the connected sender whether this device has the feed live on a display. */
+export function setSessionViewerLive(live: boolean): void {
+  handle?.setViewerLive(live);
+}
+
 /** Tears down the connection and any projection, without touching `state`. */
 function teardown(): void {
   void call?.close().catch(() => {});

@@ -1,6 +1,11 @@
 import { ProjectionSurface } from "./ProjectionSurface";
 import { StreamPip } from "./StreamPip";
-import { endStreamSession, setStreamMode, useStreamSession } from "./lib/streamSession";
+import {
+  endStreamSession,
+  setSessionViewerLive,
+  setStreamMode,
+  useStreamSession,
+} from "./lib/streamSession";
 
 /**
  * Rendered once at the app root (outside the router), so the live camera
@@ -21,6 +26,7 @@ export function StreamProjectionRoot() {
       deviceName={session.deviceName}
       onStop={endStreamSession}
       onPopOut={() => setStreamMode("pip")}
+      onLiveChange={setSessionViewerLive}
     />
   );
 }

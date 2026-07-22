@@ -29,12 +29,15 @@ export function ProjectionSurface({
   deviceName,
   onStop,
   onPopOut,
+  onLiveChange,
 }: {
   stream: MediaStream | null;
   status: PeerStatus;
   deviceName?: string;
   onStop: () => void;
   onPopOut?: () => void;
+  /** Reports whether the feed is live on the external display, so the sender can reflect it. */
+  onLiveChange?: (live: boolean) => void;
 }) {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
@@ -44,6 +47,11 @@ export function ProjectionSurface({
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const disconnected = status === "failed";
+
+  // Tell the sender whenever the projection goes live on (or leaves) the display.
+  useEffect(() => {
+    onLiveChange?.(isLive);
+  }, [isLive, onLiveChange]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -131,7 +139,7 @@ export function ProjectionSurface({
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
           <StreamStatusBadge status={connectionBadgeStatus(status, isLive)} />
-          {audio.available && <AudioSharingPill muted={audio.muted} />}
+          <AudioSharingPill available={audio.available} muted={audio.muted} />
           {deviceName && (
             <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
               {deviceName}

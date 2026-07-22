@@ -33,31 +33,48 @@ import {
 import { detectDeviceName } from "./lib/deviceName";
 import {
   StreamStatusBadge,
-  connectionBadgeStatus,
   type StreamBadgeStatus,
 } from "./StreamStatusBadge";
+import {
+  useConnectionLifecycle,
+  type ConnectionPhase,
+} from "./lib/useConnectionLifecycle";
 import { ShowCode, ReadCode } from "./CodeExchange";
 
 /**
- * The sharing side. When a signalling backend is configured it defaults to a
+ * The sharing lobby. When a signalling backend is configured it defaults to a
  * quick automatic connect: the other device on the same WiFi sees this camera
  * appear and picks it, no codes at all. The QR / paste pairing remains as an
  * always available fallback for offline venues or when the network can't be
  * auto detected.
+ *
+ * On stop or disconnect the active flow is remounted from scratch (via a bumped
+ * `key`), so the operator lands back in a fresh waiting lobby — camera reopened,
+ * broadcasting again — ready for another viewer, exactly as if they had just
+ * chosen "Share this camera". `onBack` leaves the lobby for the choose screen.
  */
-export function SenderPanel({ onBack }: { onBack: () => void }) {
+export function SenderLobby({ onBack }: { onBack: () => void }) {
   const [mode, setMode] = useState<"auto" | "manual">(
     signalingConfigured ? "auto" : "manual",
   );
+  const [resetNonce, setResetNonce] = useState(0);
+  const reset = useCallback(() => setResetNonce((n) => n + 1), []);
 
   if (mode === "auto") {
     return (
-      <AutoBroadcastPanel onBack={onBack} onUseCode={() => setMode("manual")} />
+      <AutoBroadcastPanel
+        key={`auto-${resetNonce}`}
+        onBack={onBack}
+        onReset={reset}
+        onUseCode={() => setMode("manual")}
+      />
     );
   }
   return (
     <ManualSenderPanel
+      key={`manual-${resetNonce}`}
       onBack={onBack}
+      onReset={reset}
       onUseOneTap={signalingConfigured ? () => setMode("auto") : undefined}
     />
   );
@@ -248,18 +265,28 @@ function SharingCameraCard({
   );
 }
 
-/** Maps the one-tap flow's phase to the shared connection badge. */
-function autoPhaseBadge(phase: AutoPhase): StreamBadgeStatus {
+/**
+ * Maps the one-tap flow's phase to the shared connection badge. A connected feed
+ * the viewer has put on a display reads as "live on display".
+ */
+function autoPhaseBadge(phase: AutoPhase, viewerLive: boolean): StreamBadgeStatus {
   switch (phase) {
     case "connecting":
       return "connecting";
     case "live":
-      return "connected";
+      return viewerLive ? "liveOnDisplay" : "connected";
     case "failed":
       return "disconnected";
     default:
       return "waiting";
   }
+}
+
+/** Maps a shared connection phase to the badge, promoting to "live on display". */
+function phaseBadge(phase: ConnectionPhase, viewerLive: boolean): StreamBadgeStatus {
+  if (phase === "connected") return viewerLive ? "liveOnDisplay" : "connected";
+  if (phase === "disconnected") return "disconnected";
+  return "waiting";
 }
 
 /* ------------------------------ One-tap broadcast ------------------------- */
@@ -268,15 +295,18 @@ type AutoPhase = "starting" | "waiting" | "connecting" | "live" | "failed";
 
 function AutoBroadcastPanel({
   onBack,
+  onReset,
   onUseCode,
 }: {
   onBack: () => void;
+  onReset: () => void;
   onUseCode: () => void;
 }) {
   const pushToast = useStore((s) => s.pushToast);
   const [phase, setPhase] = useState<AutoPhase>("starting");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [facing, setFacing] = useState<FacingMode>("environment");
+  const [viewerLive, setViewerLive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const broadcastRef = useRef<BroadcastHandle | null>(null);
   const senderRef = useRef<SenderHandle | null>(null);
@@ -353,6 +383,9 @@ function AutoBroadcastPanel({
               if (s === "live") setPhase("live");
               else if (s === "failed") setPhase("failed");
             },
+            onViewerLive: (live) => {
+              if (!cancelled) setViewerLive(live);
+            },
           });
           senderRef.current = sender;
           await broadcast.sendAnswer(sender.reply);
@@ -379,16 +412,13 @@ function AutoBroadcastPanel({
   }, [phase]);
 
   // The viewing device closed the link (it stopped, or the connection dropped).
-  // Return to the choose screen so the operator can share again — until they
-  // do, this device is no longer broadcasting and won't reappear on the other
-  // device's list.
+  // Reset to a fresh waiting lobby — camera reopened, broadcasting again — so a
+  // new viewer can pick this device up without the operator doing anything.
   useEffect(() => {
     if (phase !== "failed") return;
-    pushToast(
-      "The other device stopped viewing. Share this camera again to reconnect.",
-    );
-    onBack();
-  }, [phase, pushToast, onBack]);
+    pushToast("The viewing device disconnected. Waiting for a new connection.");
+    onReset();
+  }, [phase, pushToast, onReset]);
 
   const flipCamera = async () => {
     if (cameras.length < 2) {
@@ -431,27 +461,46 @@ function AutoBroadcastPanel({
     <div style={{ maxWidth: 460, margin: "0 auto" }}>
       <SharingCameraCard
         videoRef={videoRef}
-        badge={<StreamStatusBadge status={autoPhaseBadge(phase)} size="sm" />}
-        statusLine={<AutoStatusLine phase={phase} />}
+        badge={
+          <StreamStatusBadge status={autoPhaseBadge(phase, viewerLive)} size="sm" />
+        }
+        statusLine={<AutoStatusLine phase={phase} viewerLive={viewerLive} />}
         audioOn={audioOn}
         onToggleAudio={() => void toggleAudio()}
         facing={facing}
         onFlip={() => void flipCamera()}
         hasMultipleCameras={hasMultipleCameras}
-        onStop={onBack}
+        onStop={onReset}
       />
 
-      <div style={{ marginTop: 16, textAlign: "center" }}>
+      <div
+        style={{
+          marginTop: 16,
+          display: "flex",
+          gap: 10,
+          justifyContent: "center",
+        }}
+      >
         <Button variant="ghost" size="sm" onClick={onUseCode}>
           <KeyRound size={14} />
           Pair with a code instead
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          <RotateCcw size={14} />
+          Back
         </Button>
       </div>
     </div>
   );
 }
 
-function AutoStatusLine({ phase }: { phase: AutoPhase }) {
+function AutoStatusLine({
+  phase,
+  viewerLive,
+}: {
+  phase: AutoPhase;
+  viewerLive: boolean;
+}) {
   const { colors, fonts } = useUITheme();
   const base = {
     display: "flex",
@@ -483,18 +532,20 @@ function AutoStatusLine({ phase }: { phase: AutoPhase }) {
   if (phase === "failed")
     return (
       <div style={{ ...base, color: colors.danger }}>
-        Connection dropped. Stop and start again, or use a code.
+        Connection dropped. Reconnecting…
       </div>
     );
   return (
     <div style={{ ...base, color: colors.sub }}>
-      You're live. The other device is showing this camera.
+      {viewerLive
+        ? "You're live on the other device's display."
+        : "You're connected. The other device is showing this camera."}
     </div>
   );
 }
 
 /** The QR flow's status line, shown under the shared camera preview. */
-function ManualStatusLine({ status }: { status: PeerStatus }) {
+function ManualStatusLine({ phase }: { phase: ConnectionPhase }) {
   const { colors, fonts } = useUITheme();
   const base = {
     display: "flex",
@@ -504,16 +555,16 @@ function ManualStatusLine({ status }: { status: PeerStatus }) {
     fontFamily: fonts.ui,
     fontSize: 13,
   } as const;
-  if (status === "connecting")
+  if (phase === "waiting")
     return (
       <div style={{ ...base, color: colors.sub }}>
-        <Spinner size={14} /> Waiting for the other device to finish connecting…
+        <Spinner size={14} /> Waiting for the other device to scan your reply…
       </div>
     );
-  if (status === "failed")
+  if (phase === "disconnected")
     return (
       <div style={{ ...base, color: colors.danger }}>
-        Connection failed. Go back and exchange the codes again.
+        The other device disconnected. Reconnecting…
       </div>
     );
   return null;
@@ -529,9 +580,11 @@ type Phase = "read-invite" | "streaming";
  */
 function ManualSenderPanel({
   onBack,
+  onReset,
   onUseOneTap,
 }: {
   onBack: () => void;
+  onReset: () => void;
   onUseOneTap?: () => void;
 }) {
   const { colors, fonts } = useUITheme();
@@ -542,6 +595,7 @@ function ManualSenderPanel({
   const [handle, setHandle] = useState<SenderHandle | null>(null);
   const [reply, setReply] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
+  const [viewerLive, setViewerLive] = useState(false);
   const offerRef = useRef<string>("");
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -549,6 +603,14 @@ function ManualSenderPanel({
     () => streamRef.current,
     () => handle,
   );
+
+  // A failure before the first connection just means the viewer hasn't scanned
+  // the reply yet — keep waiting. Only a drop after connecting is a real
+  // disconnect, which resets to a fresh QR lobby.
+  const connectionPhase = useConnectionLifecycle(status, () => {
+    pushToast("The other device disconnected.");
+    onReset();
+  });
 
   const startStreaming = async (offerSdp: string) => {
     offerRef.current = offerSdp;
@@ -561,6 +623,7 @@ function ManualSenderPanel({
         offerSdp,
         stream,
         onStatus: setStatus,
+        onViewerLive: setViewerLive,
       });
       setHandle(sender);
       setReply(encodeSignal("answer", sender.reply));
@@ -731,17 +794,17 @@ function ManualSenderPanel({
         videoRef={videoRef}
         badge={
           <StreamStatusBadge
-            status={connectionBadgeStatus(status, false)}
+            status={phaseBadge(connectionPhase, viewerLive)}
             size="sm"
           />
         }
-        statusLine={<ManualStatusLine status={status} />}
+        statusLine={<ManualStatusLine phase={connectionPhase} />}
         audioOn={audioOn}
         onToggleAudio={() => void toggleAudio()}
         facing={facing}
         onFlip={() => void flipCamera()}
         hasMultipleCameras={hasMultipleCameras}
-        onStop={onBack}
+        onStop={onReset}
       />
     </div>
   );
