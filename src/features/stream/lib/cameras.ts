@@ -60,6 +60,58 @@ export function cameraById(deviceId: string): MediaStreamConstraints {
   };
 }
 
+type FacingMode = "user" | "environment";
+
+/**
+ * The front/back orientation the current video track is reporting, if any. Phones
+ * populate this on every camera track; laptops and desktops generally don't, which
+ * is exactly how we tell the two apart when deciding how to switch cameras.
+ */
+export function currentFacingMode(stream: MediaStream | null): FacingMode | undefined {
+  const facing = stream?.getVideoTracks()[0]?.getSettings().facingMode;
+  return facing === "user" || facing === "environment" ? facing : undefined;
+}
+
+/** Constraints that pin a specific front/back lens, used to flip a phone camera. */
+export function cameraByFacing(facingMode: FacingMode): MediaStreamConstraints {
+  return {
+    video: { facingMode: { exact: facingMode }, ...VIDEO_QUALITY },
+    audio: false,
+  };
+}
+
+/**
+ * Opens the "other" camera for a front/back switch, video only.
+ *
+ * A phone lists each of its rear lenses (wide, ultra-wide, tele) as a separate
+ * video input alongside the front one, so cycling raw device ids can hop between
+ * two near-identical rear cameras and look like nothing changed. So when the
+ * current track reports a facingMode — every phone does — we flip that instead,
+ * the reliable way to toggle front ↔ back. Laptops and desktops report no
+ * facingMode, so there we cycle through the distinct video inputs by id. And if a
+ * facing flip is over-constrained on some device, we fall back to the id cycle
+ * rather than failing the switch outright.
+ */
+export async function openNextCamera(
+  stream: MediaStream | null,
+  cameras: MediaDeviceInfo[],
+): Promise<MediaStream> {
+  const facing = currentFacingMode(stream);
+  if (facing) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(
+        cameraByFacing(facing === "user" ? "environment" : "user"),
+      );
+    } catch {
+      /* over-constrained on this device; fall back to cycling ids below */
+    }
+  }
+
+  const nextId = nextCameraId(cameras, currentCameraId(stream));
+  if (!nextId) throw new Error("No other camera to switch to");
+  return navigator.mediaDevices.getUserMedia(cameraById(nextId));
+}
+
 /**
  * The microphone capture profile. The phone and laptop sit in the same room, so
  * the laptop plays the phone's audio out loud and the phone's mic hears it back

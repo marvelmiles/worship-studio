@@ -11,9 +11,7 @@ import { deriveNetworkRoom } from "./lib/room";
 import { publishBroadcaster, type BroadcastHandle } from "./lib/signaling";
 import {
   listCameras,
-  nextCameraId,
-  currentCameraId,
-  cameraById,
+  openNextCamera,
   cameraConstraints,
   setStreamAudioEnabled,
 } from "./lib/cameras";
@@ -117,7 +115,6 @@ function AutoBroadcastPanel({
   const broadcastRef = useRef<BroadcastHandle | null>(null);
   const senderRef = useRef<SenderHandle | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const cameraIdRef = useRef<string | undefined>(undefined);
   const answeredRef = useRef(false);
   const { audioOn, toggle: toggleAudio } = useIncludeAudio(
     () => streamRef.current,
@@ -157,7 +154,6 @@ function AutoBroadcastPanel({
         return;
       }
       streamRef.current = stream;
-      cameraIdRef.current = currentCameraId(stream);
       if (videoRef.current) videoRef.current.srcObject = stream;
       // Labels (and so the flip button) are only available after permission.
       void listCameras().then((cams) => {
@@ -227,27 +223,26 @@ function AutoBroadcastPanel({
   }, [phase, pushToast, onBack]);
 
   const flipCamera = async () => {
-    const nextId = nextCameraId(cameras, cameraIdRef.current);
-    if (!nextId) {
+    if (cameras.length < 2) {
       pushToast("This device only has one camera.", "error");
       return;
     }
     const sender = senderRef.current;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
+      const stream = await openNextCamera(streamRef.current, cameras);
       if (sender) {
         await sender.replaceVideo(stream);
         streamRef.current = sender.stream;
         if (videoRef.current) videoRef.current.srcObject = sender.stream;
       } else {
-        // Not connected yet: swap the preview/broadcast source directly.
-        streamRef.current?.getVideoTracks().forEach((t) => t.stop());
+        // Not connected yet: swap the preview/broadcast source directly, keeping
+        // any microphone the operator already switched on.
         const audio = streamRef.current?.getAudioTracks() ?? [];
+        streamRef.current?.getVideoTracks().forEach((t) => t.stop());
         const merged = new MediaStream([...stream.getVideoTracks(), ...audio]);
         streamRef.current = merged;
         if (videoRef.current) videoRef.current.srcObject = merged;
       }
-      cameraIdRef.current = nextId;
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
@@ -400,7 +395,6 @@ function ManualSenderPanel({
   const [reply, setReply] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
   const offerRef = useRef<string>("");
-  const cameraIdRef = useRef<string | undefined>(undefined);
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { audioOn, toggle: toggleAudio } = useIncludeAudio(
@@ -421,7 +415,6 @@ function ManualSenderPanel({
       });
       setHandle(sender);
       setReply(encodeSignal("answer", sender.reply));
-      cameraIdRef.current = currentCameraId(stream);
       if (videoRef.current) videoRef.current.srcObject = stream;
       void listCameras().then(setCameras);
     } catch {
@@ -446,16 +439,15 @@ function ManualSenderPanel({
   };
 
   const flipCamera = async () => {
-    const nextId = nextCameraId(cameras, cameraIdRef.current);
-    if (!nextId || !handle) {
-      if (!nextId) pushToast("This device only has one camera.", "error");
+    if (!handle) return;
+    if (cameras.length < 2) {
+      pushToast("This device only has one camera.", "error");
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(cameraById(nextId));
+      const stream = await openNextCamera(streamRef.current, cameras);
       await handle.replaceVideo(stream);
       streamRef.current = handle.stream;
-      cameraIdRef.current = nextId;
       if (videoRef.current) videoRef.current.srcObject = handle.stream;
     } catch {
       pushToast("Couldn't switch cameras.", "error");
