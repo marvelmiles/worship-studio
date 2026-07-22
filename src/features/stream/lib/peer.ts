@@ -168,23 +168,8 @@ export interface SenderHandle {
 }
 
 /**
- * The kind of media an offer-declared transceiver carries. After
- * setRemoteDescription each transceiver has a receiver track whose kind names
- * its m-line, which is what lets us match the sender's video/audio slots
- * without depending on m-line order.
- */
-function transceiverKind(transceiver: RTCRtpTransceiver): string | undefined {
-  return transceiver.receiver.track?.kind ?? transceiver.sender.track?.kind;
-}
-
-/**
  * Phone side. Takes the laptop's offer, attaches the chosen camera and
  * produces the reply that completes the link.
- *
- * Tracks are placed onto the transceivers the offer already declared (video
- * always, audio only when the operator opted in) rather than added as fresh
- * ones, so the answer mirrors the offer's m-lines exactly and audio can be
- * toggled later over the same transceiver.
  */
 export async function createSender(options: {
   offerSdp: string;
@@ -204,10 +189,23 @@ export async function createSender(options: {
   await pc.setRemoteDescription({ type: "offer", sdp: options.offerSdp });
 
   let current = options.stream;
-  const videoTransceiver = pc.getTransceivers().find((t) => transceiverKind(t) === "video");
-  const audioTransceiver = pc.getTransceivers().find((t) => transceiverKind(t) === "audio");
-  await videoTransceiver?.sender.replaceTrack(current.getVideoTracks()[0] ?? null);
-  await audioTransceiver?.sender.replaceTrack(current.getAudioTracks()[0] ?? null);
+
+  // Video: addTrack reuses the receiver's recvonly video transceiver, flips it
+  // to send and tags the stream — the reliable path for the camera feed. (A bare
+  // replaceTrack would attach the track but leave the direction recvonly, so the
+  // answer would broadcast nothing.)
+  const videoTrack = current.getVideoTracks()[0];
+  if (videoTrack) pc.addTrack(videoTrack, current);
+
+  // Audio: the remaining transceiver. Force it sendonly so a live audio channel
+  // is always negotiated even before the mic is on — that's what lets the mic be
+  // toggled over it later with no renegotiation — and attach it now if it's on.
+  const videoTransceiver = pc.getTransceivers().find((t) => t.sender.track?.kind === "video");
+  const audioTransceiver = pc.getTransceivers().find((t) => t !== videoTransceiver);
+  if (audioTransceiver) {
+    audioTransceiver.direction = "sendonly";
+    await audioTransceiver.sender.replaceTrack(current.getAudioTracks()[0] ?? null);
+  }
 
   options.onStatus("gathering");
   await pc.setLocalDescription(await pc.createAnswer());
