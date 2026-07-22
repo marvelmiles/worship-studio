@@ -61,6 +61,24 @@ export function cameraById(deviceId: string): MediaStreamConstraints {
 }
 
 /**
+ * The microphone capture profile. The phone and laptop sit in the same room, so
+ * the laptop plays the phone's audio out loud and the phone's mic hears it back
+ * — a feedback loop that, left alone, echoes badly. `audio: true` leaves this to
+ * the browser's defaults, which on mobile are often weak or off, so we ask for
+ * the built-in DSP explicitly: echo cancellation removes the far-end sound the
+ * mic re-captures, noise suppression strips room hum, and auto gain keeps the
+ * level steady. Mono is enough for a spoken/sung feed and gives the canceller a
+ * single clean channel to work on. This is the single source of truth for mic
+ * capture, shared by every "Include audio" toggle.
+ */
+const AUDIO_QUALITY: MediaTrackConstraints = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  channelCount: 1,
+};
+
+/**
  * Adds or removes a microphone track on an existing stream, in place, so the
  * sender can toggle audio without rebuilding the whole capture. Enabling opens
  * the mic and appends its track; disabling stops and detaches every audio
@@ -69,7 +87,7 @@ export function cameraById(deviceId: string): MediaStreamConstraints {
 export async function setStreamAudioEnabled(stream: MediaStream, enabled: boolean): Promise<void> {
   if (enabled) {
     if (stream.getAudioTracks().length > 0) return;
-    const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mic = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_QUALITY });
     const track = mic.getAudioTracks()[0];
     if (track) stream.addTrack(track);
     return;
