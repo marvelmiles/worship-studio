@@ -470,24 +470,13 @@ function AutoBroadcastPanel({
         facing={facing}
         onFlip={() => void flipCamera()}
         hasMultipleCameras={hasMultipleCameras}
-        onStop={onReset}
+        onStop={onBack}
       />
 
-      <div
-        style={{
-          marginTop: 16,
-          display: "flex",
-          gap: 10,
-          justifyContent: "center",
-        }}
-      >
+      <div style={{ marginTop: 16, textAlign: "center" }}>
         <Button variant="ghost" size="sm" onClick={onUseCode}>
           <KeyRound size={14} />
           Pair with a code instead
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <RotateCcw size={14} />
-          Back
         </Button>
       </div>
     </div>
@@ -804,7 +793,7 @@ function ManualSenderPanel({
         facing={facing}
         onFlip={() => void flipCamera()}
         hasMultipleCameras={hasMultipleCameras}
-        onStop={onReset}
+        onStop={onBack}
       />
     </div>
   );
