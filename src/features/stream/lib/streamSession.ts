@@ -25,6 +25,8 @@ export interface StreamSessionState {
   status: PeerStatus;
   stream: MediaStream | null;
   mode: StreamMode;
+  /** Whether the connected sender is currently sharing its microphone. */
+  audioShared: boolean;
 }
 
 const IDLE: StreamSessionState = {
@@ -34,6 +36,7 @@ const IDLE: StreamSessionState = {
   status: "idle",
   stream: null,
   mode: "stage",
+  audioShared: false,
 };
 
 let state: StreamSessionState = IDLE;
@@ -117,6 +120,9 @@ export async function startStreamSession(opts: {
     const receiver = await createReceiver({
       onStream: (s) => {
         if (state.active) setState({ stream: s });
+      },
+      onAudioShared: (shared) => {
+        if (state.active) setState({ audioShared: shared });
       },
       onStatus: (s) => {
         if (!state.active) return;

@@ -115,16 +115,21 @@ export interface ReceiverHandle {
 export async function createReceiver(options: {
   onStream: (stream: MediaStream) => void;
   onStatus: (status: PeerStatus) => void;
+  /** Fired when the sender reports whether it is currently sharing its microphone. */
+  onAudioShared?: (shared: boolean) => void;
 }): Promise<ReceiverHandle> {
   const pc = createConnection();
 
   pc.addTransceiver("video", { direction: "recvonly" });
   pc.addTransceiver("audio", { direction: "recvonly" });
 
-  // A tiny control channel, created before the offer so it's negotiated in the
-  // one handshake. The receiver uses it to tell the sender when the feed has
-  // gone live on a display. Created here (the offerer) so the sender simply
-  // receives it via ondatachannel — no renegotiation.
+  // A tiny bidirectional control channel, created before the offer so it's
+  // negotiated in the one handshake. The receiver tells the sender when the feed
+  // has gone live on a display; the sender tells the receiver when it toggles its
+  // microphone. Created here (the offerer) so the sender simply receives it via
+  // ondatachannel — no renegotiation. The mic state comes over this channel
+  // rather than from the received track's `muted` flag because browsers are slow
+  // and unreliable about flipping a remote track to muted when RTP merely stops.
   const statusChannel = pc.createDataChannel("status");
   let viewerLive = false;
   const pushViewerLive = () => {
@@ -136,6 +141,14 @@ export async function createReceiver(options: {
     }
   };
   statusChannel.addEventListener("open", pushViewerLive);
+  statusChannel.addEventListener("message", (event) => {
+    try {
+      const parsed = JSON.parse(event.data as string);
+      if (parsed?.type === "audioShared") options.onAudioShared?.(Boolean(parsed.on));
+    } catch {
+      /* ignore anything that isn't our small JSON status message */
+    }
+  });
 
   // Assemble every incoming track into one stable stream rather than trusting
   // event.streams: the sender attaches tracks with replaceTrack (which carries
@@ -214,9 +227,24 @@ export async function createSender(options: {
     }
   });
 
-  // The receiver's control channel: it tells us when the feed goes live on a
-  // display. Arrives via ondatachannel because the receiver (offerer) created it.
+  // The receiver's bidirectional control channel. It tells us when the feed goes
+  // live on a display; we tell it when the microphone is toggled. Arrives via
+  // ondatachannel because the receiver (offerer) created it.
+  let statusChannel: RTCDataChannel | null = null;
+  let audioShared = false;
+  const pushAudioShared = () => {
+    if (statusChannel?.readyState !== "open") return;
+    try {
+      statusChannel.send(JSON.stringify({ type: "audioShared", on: audioShared }));
+    } catch {
+      /* channel closing; the receiver keeps its last value */
+    }
+  };
   pc.addEventListener("datachannel", (event) => {
+    statusChannel = event.channel;
+    // Send the current mic state on open, covering audio toggled before connect.
+    event.channel.addEventListener("open", pushAudioShared);
+    if (event.channel.readyState === "open") pushAudioShared();
     event.channel.addEventListener("message", (message) => {
       try {
         const parsed = JSON.parse(message.data as string);
@@ -230,6 +258,9 @@ export async function createSender(options: {
   await pc.setRemoteDescription({ type: "offer", sdp: options.offerSdp });
 
   let current = options.stream;
+  // The stream may already carry a mic track (audio switched on before a viewer
+  // connected), so seed the shared-audio state from it.
+  audioShared = current.getAudioTracks().length > 0;
 
   // Video: addTrack reuses the receiver's recvonly video transceiver, flips it
   // to send and tags the stream — the reliable path for the camera feed. (A bare
@@ -278,6 +309,8 @@ export async function createSender(options: {
       if (!audioTransceiver) return;
       await setStreamAudioEnabled(current, enabled);
       await audioTransceiver.sender.replaceTrack(current.getAudioTracks()[0] ?? null);
+      audioShared = enabled;
+      pushAudioShared();
     },
     close: () => {
       pc.close();

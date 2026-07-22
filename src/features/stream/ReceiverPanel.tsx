@@ -311,6 +311,7 @@ function ManualReceiverPanel({
   const [invite, setInvite] = useState("");
   const [status, setStatus] = useState<PeerStatus>("idle");
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [audioShared, setAudioShared] = useState(false);
   const handleRef = useRef<ReceiverHandle | null>(null);
   const wasLiveRef = useRef(false);
 
@@ -320,6 +321,7 @@ function ManualReceiverPanel({
     createReceiver({
       onStream: (s) => live && setStream(s),
       onStatus: (s) => live && setStatus(s),
+      onAudioShared: (shared) => live && setAudioShared(shared),
     })
       .then((h) => {
         if (!live) {
@@ -385,6 +387,7 @@ function ManualReceiverPanel({
       <ProjectionSurface
         stream={stream}
         status={status}
+        audioShared={audioShared}
         onStop={onReset}
         onLiveChange={handleLiveChange}
       />

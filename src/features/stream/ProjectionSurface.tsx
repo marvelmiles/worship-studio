@@ -27,6 +27,7 @@ export function ProjectionSurface({
   stream,
   status,
   deviceName,
+  audioShared = false,
   onStop,
   onPopOut,
   onLiveChange,
@@ -34,6 +35,8 @@ export function ProjectionSurface({
   stream: MediaStream | null;
   status: PeerStatus;
   deviceName?: string;
+  /** Whether the sender is currently sharing its microphone (signalled by the sender). */
+  audioShared?: boolean;
   onStop: () => void;
   onPopOut?: () => void;
   /** Reports whether the feed is live on the external display, so the sender can reflect it. */
@@ -139,7 +142,7 @@ export function ProjectionSurface({
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
           <StreamStatusBadge status={connectionBadgeStatus(status, isLive)} />
-          <AudioSharingPill available={audio.available} muted={audio.muted} />
+          <AudioSharingPill available={audioShared} muted={audio.muted} />
           {deviceName && (
             <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
               {deviceName}
@@ -148,7 +151,7 @@ export function ProjectionSurface({
         </span>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {audio.available && (
+          {audioShared && (
             <Button
               variant={audio.muted ? "ghost" : "primary"}
               size="sm"

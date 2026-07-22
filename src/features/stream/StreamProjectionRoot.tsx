@@ -24,6 +24,7 @@ export function StreamProjectionRoot() {
       stream={session.stream}
       status={session.status}
       deviceName={session.deviceName}
+      audioShared={session.audioShared}
       onStop={endStreamSession}
       onPopOut={() => setStreamMode("pip")}
       onLiveChange={setSessionViewerLive}
