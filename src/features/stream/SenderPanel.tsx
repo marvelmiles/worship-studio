@@ -229,20 +229,21 @@ function AutoBroadcastPanel({
     }
     const sender = senderRef.current;
     try {
-      const stream = await openNextCamera(streamRef.current, cameras);
+      const { stream, switched } = await openNextCamera(streamRef.current, cameras);
       if (sender) {
         await sender.replaceVideo(stream);
         streamRef.current = sender.stream;
         if (videoRef.current) videoRef.current.srcObject = sender.stream;
       } else {
         // Not connected yet: swap the preview/broadcast source directly, keeping
-        // any microphone the operator already switched on.
+        // any microphone the operator already switched on. The old video track is
+        // already stopped by openNextCamera, so we only carry the audio across.
         const audio = streamRef.current?.getAudioTracks() ?? [];
-        streamRef.current?.getVideoTracks().forEach((t) => t.stop());
         const merged = new MediaStream([...stream.getVideoTracks(), ...audio]);
         streamRef.current = merged;
         if (videoRef.current) videoRef.current.srcObject = merged;
       }
+      if (!switched) pushToast("This device wouldn't switch to another camera.", "error");
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
@@ -445,10 +446,11 @@ function ManualSenderPanel({
       return;
     }
     try {
-      const stream = await openNextCamera(streamRef.current, cameras);
+      const { stream, switched } = await openNextCamera(streamRef.current, cameras);
       await handle.replaceVideo(stream);
       streamRef.current = handle.stream;
       if (videoRef.current) videoRef.current.srcObject = handle.stream;
+      if (!switched) pushToast("This device wouldn't switch to another camera.", "error");
     } catch {
       pushToast("Couldn't switch cameras.", "error");
     }
