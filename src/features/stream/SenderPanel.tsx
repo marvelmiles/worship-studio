@@ -31,10 +31,7 @@ import {
   type FacingMode,
 } from "./lib/cameras";
 import { detectDeviceName } from "./lib/deviceName";
-import {
-  StreamStatusBadge,
-  type StreamBadgeStatus,
-} from "./StreamStatusBadge";
+import { StreamStatusBadge, type StreamBadgeStatus } from "./StreamStatusBadge";
 import {
   useConnectionLifecycle,
   type ConnectionPhase,
@@ -161,7 +158,7 @@ function CameraFlipButton({
         size={14}
         style={{ transform: onFront ? "scaleX(-1)" : undefined }}
       />
-      {onFront ? "Front camera" : "Back camera"}
+      {"Switch Camera"}
     </Button>
   );
 }
@@ -269,7 +266,10 @@ function SharingCameraCard({
  * Maps the one-tap flow's phase to the shared connection badge. A connected feed
  * the viewer has put on a display reads as "live on display".
  */
-function autoPhaseBadge(phase: AutoPhase, viewerLive: boolean): StreamBadgeStatus {
+function autoPhaseBadge(
+  phase: AutoPhase,
+  viewerLive: boolean,
+): StreamBadgeStatus {
   switch (phase) {
     case "connecting":
       return "connecting";
@@ -283,7 +283,10 @@ function autoPhaseBadge(phase: AutoPhase, viewerLive: boolean): StreamBadgeStatu
 }
 
 /** Maps a shared connection phase to the badge, promoting to "live on display". */
-function phaseBadge(phase: ConnectionPhase, viewerLive: boolean): StreamBadgeStatus {
+function phaseBadge(
+  phase: ConnectionPhase,
+  viewerLive: boolean,
+): StreamBadgeStatus {
   if (phase === "connected") return viewerLive ? "liveOnDisplay" : "connected";
   if (phase === "disconnected") return "disconnected";
   return "waiting";
@@ -462,7 +465,10 @@ function AutoBroadcastPanel({
       <SharingCameraCard
         videoRef={videoRef}
         badge={
-          <StreamStatusBadge status={autoPhaseBadge(phase, viewerLive)} size="sm" />
+          <StreamStatusBadge
+            status={autoPhaseBadge(phase, viewerLive)}
+            size="sm"
+          />
         }
         statusLine={<AutoStatusLine phase={phase} viewerLive={viewerLive} />}
         audioOn={audioOn}
