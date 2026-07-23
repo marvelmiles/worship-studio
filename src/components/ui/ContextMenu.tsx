@@ -18,7 +18,7 @@ interface ContextMenuProps {
 }
 
 export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
-  const { colors, fonts, glass } = useUITheme();
+  const { colors, fonts, glass, shadows } = useUITheme();
   const UI = fonts.ui;
   useEffect(() => {
     const h = () => onClose();
@@ -39,9 +39,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         zIndex: 300,
         width: 196,
         ...glass,
-        background: "rgba(22,19,36,0.85)",
+        background: colors.panelSolid,
         padding: 6,
-        boxShadow: "0 18px 50px rgba(0,0,0,0.5)",
+        boxShadow: shadows.overlay,
       }}
     >
       {items.map((it, i) =>

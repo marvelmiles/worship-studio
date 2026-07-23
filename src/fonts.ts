@@ -2,6 +2,13 @@
 // renders correctly fully offline, no Google Fonts / network dependency.
 // Family names match those used in tokens.ts and themes.ts.
 
+// Inter, Studio theme UI + display font
+import "@fontsource/inter/latin-300.css";
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-500.css";
+import "@fontsource/inter/latin-600.css";
+import "@fontsource/inter/latin-700.css";
+
 // Outfit, UI font
 import "@fontsource/outfit/latin-300.css";
 import "@fontsource/outfit/latin-400.css";

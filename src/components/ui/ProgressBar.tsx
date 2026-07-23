@@ -6,7 +6,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ value, label }: ProgressBarProps) {
-  const { colors, controls, fonts, gradients } = useUITheme();
+  const { colors, controls, fonts, fills } = useUITheme();
   const pct = Math.max(0, Math.min(100, value));
   return (
     <div style={{ marginTop: 12 }}>
@@ -31,7 +31,7 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
             height: "100%",
             width: `${pct}%`,
             borderRadius: 99,
-            background: gradients.accentBar,
+            background: fills.accentBar,
             transition: "width 0.2s ease",
           }}
         />

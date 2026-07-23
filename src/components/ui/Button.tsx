@@ -29,7 +29,7 @@ export function Button({
   busy,
   style,
 }: ButtonProps) {
-  const { colors, fonts, gradients } = useUITheme();
+  const { colors, fonts } = useUITheme();
   const blocked = disabled || busy;
   const base: CSSProperties = {
     display: "inline-flex",
@@ -50,7 +50,7 @@ export function Button({
   };
   const variants: Record<ButtonVariant, CSSProperties> = {
     primary: {
-      background: gradients.cta,
+      background: colors.accent,
       color: colors.onAccent,
       border: `1px solid ${fade(colors.accentSoft, 0.35)}`,
       boxShadow: `0 6px 20px ${fade(colors.accent, 0.32)}, inset 0 1px 0 rgba(255,255,255,0.14)`,

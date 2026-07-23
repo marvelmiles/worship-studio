@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { fade, colors, DISPLAY, UI } from "../../theme/tokens";
+import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 import { Button } from "../../components/ui/Button";
 
 const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
@@ -86,7 +86,7 @@ export function GuideModal() {
         alignItems: "center",
         justifyContent: "center",
         padding: 18,
-        background: "rgba(6,5,9,0.82)",
+        background: fade(colors.bg, 0.82),
         backdropFilter: "blur(8px)",
         animation: "wfFade .2s ease",
       }}
@@ -100,9 +100,11 @@ export function GuideModal() {
           flexDirection: "column",
           borderRadius: 18,
           overflow: "hidden",
-          background: "rgba(22,19,36,0.75)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+          background: colors.panel,
+          backdropFilter: glass.backdropFilter,
+          WebkitBackdropFilter: glass.WebkitBackdropFilter,
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
         }}
       >
         <div style={{ padding: "22px 24px 16px", borderBottom: `1px solid ${colors.border}` }}>

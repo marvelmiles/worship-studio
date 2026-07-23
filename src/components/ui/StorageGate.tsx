@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, HardDrive, Trash2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { colors, DISPLAY, UI, glass, fade } from "../../theme/tokens";
 import { Button } from "./Button";
 import { formatBytes } from "../../lib/storageStats";
 
@@ -39,9 +39,11 @@ export function StorageGate() {
           maxWidth: 480,
           borderRadius: 18,
           padding: 26,
-          background: "rgba(22,19,36,0.75)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+          background: colors.panel,
+          backdropFilter: glass.backdropFilter,
+          WebkitBackdropFilter: glass.WebkitBackdropFilter,
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
         }}
       >
         <div
@@ -51,7 +53,7 @@ export function StorageGate() {
             borderRadius: 13,
             display: "grid",
             placeItems: "center",
-            background: "rgba(239,68,68,0.16)",
+            background: fade(colors.danger, 0.16),
             color: colors.danger,
             marginBottom: 16,
           }}
@@ -93,8 +95,8 @@ export function StorageGate() {
               gap: 11,
               padding: 14,
               borderRadius: 11,
-              background: "rgba(239,68,68,0.1)",
-              border: `1px solid rgba(239,68,68,0.3)`,
+              background: fade(colors.danger, 0.1),
+              border: `1px solid ${fade(colors.danger, 0.3)}`,
               marginBottom: 16,
             }}
           >

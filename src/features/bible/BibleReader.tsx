@@ -542,7 +542,9 @@ export function BibleReader({
             flexWrap: "wrap",
             padding: "10px 14px",
             borderRadius: 14,
-            background: "rgba(22,19,36,0.72)", backdropFilter: "blur(22px) saturate(150%)", WebkitBackdropFilter: "blur(22px) saturate(150%)",
+            background: colors.panel,
+            backdropFilter: glass.backdropFilter,
+            WebkitBackdropFilter: glass.WebkitBackdropFilter,
             border: `1px solid ${colors.borderStrong}`,
             boxShadow: "0 14px 40px rgba(0,0,0,0.5)",
           }}

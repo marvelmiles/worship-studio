@@ -1,5 +1,6 @@
 import { Wifi } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { fade } from "../../theme/uiTheme";
 import type { PeerStatus } from "./lib/peer";
 
 /**
@@ -15,16 +16,16 @@ export type StreamBadgeStatus =
   | "live"
   | "liveOnDisplay";
 
-const GREEN = "rgba(22,163,74,0.9)";
-const RED = "rgba(220,38,38,0.92)";
-
-const CONFIG: Record<StreamBadgeStatus, { label: string; solid?: string }> = {
+const CONFIG: Record<
+  StreamBadgeStatus,
+  { label: string; tone?: "success" | "danger" }
+> = {
   waiting: { label: "Waiting" },
   connecting: { label: "Connecting" },
-  connected: { label: "Connected", solid: GREEN },
-  disconnected: { label: "Disconnected", solid: RED },
-  live: { label: "Live", solid: RED },
-  liveOnDisplay: { label: "Live on display", solid: RED },
+  connected: { label: "Connected", tone: "success" },
+  disconnected: { label: "Disconnected", tone: "danger" },
+  live: { label: "Live", tone: "danger" },
+  liveOnDisplay: { label: "Live on display", tone: "danger" },
 };
 
 /**
@@ -55,6 +56,12 @@ export function StreamStatusBadge({
   const { colors, fonts } = useUITheme();
   const cfg = CONFIG[status];
   const small = size === "sm";
+  const solid =
+    cfg.tone === "success"
+      ? fade(colors.success, 0.9)
+      : cfg.tone === "danger"
+        ? fade(colors.danger, 0.92)
+        : undefined;
   return (
     <span
       style={{
@@ -63,9 +70,9 @@ export function StreamStatusBadge({
         gap: small ? 4 : 6,
         padding: small ? "3px 8px" : "5px 11px",
         borderRadius: 999,
-        background: cfg.solid ?? colors.raise,
-        color: cfg.solid ? "#fff" : colors.sub,
-        border: cfg.solid ? "none" : `1px solid ${colors.border}`,
+        background: solid ?? colors.raise,
+        color: solid ? colors.onAccent : colors.sub,
+        border: solid ? "none" : `1px solid ${colors.border}`,
         fontFamily: fonts.ui,
         fontSize: small ? 10 : 11,
         fontWeight: 800,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { colors, DISPLAY, UI, glass } from "../../theme/tokens";
+import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 
 // Set SHOW_UPDATE to true to show the modal on load; bump UPDATE_KEY so
 // returning users see it again.
@@ -82,7 +82,7 @@ export function UpdateModal() {
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        background: "rgba(6,5,9,0.82)",
+        background: fade(colors.bg, 0.82),
         backdropFilter: "blur(8px)",
         animation: "wfFade .2s ease",
       }}
@@ -95,8 +95,8 @@ export function UpdateModal() {
           flexDirection: "column",
           maxHeight: "88vh",
           ...glass,
-          background: "rgba(22,19,36,0.72)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.65)",
+          background: colors.panel,
+          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
         }}
       >
         {/* Header */}

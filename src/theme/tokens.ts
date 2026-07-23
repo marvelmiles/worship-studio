@@ -4,20 +4,20 @@
  *  served to components through the useUITheme() hook (src/theme/ThemeProvider).
  *  These re-exports keep older modules and module-level style constants working;
  *  new or touched components should call useUITheme() instead. */
-import { midnightTheme } from "./uiTheme";
+import { studioTheme } from "./uiTheme";
 
-export { fade, chartColor } from "./uiTheme";
-export type { UITheme, UIThemeColors } from "./uiTheme";
-export { midnightTheme } from "./uiTheme";
+export { fade, mix, chartColor, feedbackTone } from "./uiTheme";
+export type { UITheme, UIThemeColors, FeedbackTone } from "./uiTheme";
+export { studioTheme } from "./uiTheme";
 
-export const colors = midnightTheme.colors;
+export const colors = studioTheme.colors;
 
 /** Frosted glass surface: translucent indigo over the ambient gradient,
  *  heavy blur + saturation, light top edge highlight. */
-export const glass = midnightTheme.glass;
+export const glass = studioTheme.glass;
 
-export const UI = midnightTheme.fonts.ui;
-export const DISPLAY = midnightTheme.fonts.display;
+export const UI = studioTheme.fonts.ui;
+export const DISPLAY = studioTheme.fonts.display;
 
 export const FONTS = [
   "Fraunces",

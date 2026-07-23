@@ -18,7 +18,7 @@ import type {
 import { useStore } from "../../store/useStore";
 import { formatBytes } from "../../lib/storageStats";
 import { MAX_KEPT_ITEMS, keptSongs, keptThemes } from "../../lib/keepOnReset";
-import { fade, colors, DISPLAY, UI } from "../../theme/tokens";
+import { fade, mix, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import {
   Field,
@@ -312,10 +312,10 @@ export function SettingsModal() {
                     borderRadius: 99,
                     background:
                       storage.level === "critical"
-                        ? "linear-gradient(90deg, #ef4444, #f87171)"
+                        ? `linear-gradient(90deg, ${colors.danger}, ${mix(colors.danger, "#ffffff", 0.28)})`
                         : storage.level === "warn"
-                          ? `linear-gradient(90deg, ${colors.accent}, ${colors.accentSoft})`
-                          : "linear-gradient(90deg, #22c55e, #4ade80)",
+                          ? `linear-gradient(90deg, ${colors.warning}, ${mix(colors.warning, "#ffffff", 0.28)})`
+                          : `linear-gradient(90deg, ${colors.success}, ${mix(colors.success, "#ffffff", 0.28)})`,
                     transition: "width 0.4s ease",
                   }}
                 />
@@ -516,8 +516,8 @@ export function SettingsModal() {
               gap: 12,
               padding: 14,
               borderRadius: 11,
-              background: "rgba(239,68,68,0.1)",
-              border: `1px solid rgba(239,68,68,0.3)`,
+              background: fade(colors.danger, 0.1),
+              border: `1px solid ${fade(colors.danger, 0.3)}`,
               marginBottom: 16,
             }}
           >

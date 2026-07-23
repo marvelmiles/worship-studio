@@ -130,7 +130,7 @@ function rank(counts: Record<string, number>): [string, number][] {
 export function Dashboard() {
   useDocumentTitle("Dashboard · WorshipStudio");
   const theme = useUITheme();
-  const { colors, glass, gradients, charts, controls } = theme;
+  const { colors, glass, fills, charts, controls } = theme;
   const UI = theme.fonts.ui;
   const DISPLAY = theme.fonts.display;
   const navigate = useNavigate();
@@ -546,16 +546,16 @@ export function Dashboard() {
                     placeItems: "center",
                     background:
                       storage.level === "critical"
-                        ? "rgba(239,68,68,0.14)"
+                        ? fade(colors.danger, 0.14)
                         : storage.level === "warn"
-                          ? "rgba(251,113,133,0.14)"
-                          : "rgba(74,222,128,0.14)",
+                          ? fade(colors.warning, 0.14)
+                          : fade(colors.success, 0.14),
                     color:
                       storage.level === "critical"
                         ? colors.danger
                         : storage.level === "warn"
-                          ? "#fb7185"
-                          : "#4ade80",
+                          ? colors.warning
+                          : colors.success,
                     flexShrink: 0,
                   }}
                 >
@@ -630,10 +630,10 @@ export function Dashboard() {
                   borderRadius: 99,
                   background:
                     storage.level === "critical"
-                      ? gradients.dangerBar
+                      ? fills.dangerBar
                       : storage.level === "warn"
-                        ? gradients.accentBar
-                        : gradients.successBar,
+                        ? fills.accentBar
+                        : fills.successBar,
                   transition: "width 0.4s ease",
                 }}
               />
@@ -664,7 +664,7 @@ export function Dashboard() {
               border: a.primary
                 ? `1px solid ${fade(colors.accentSoft, 0.45)}`
                 : `1px solid ${colors.border}`,
-              background: a.primary ? gradients.ctaCard : colors.panel,
+              background: a.primary ? fills.ctaCard : colors.panel,
               boxShadow: a.primary
                 ? `${theme.shadows.cta}, inset 0 1px 0 rgba(255,255,255,0.12)`
                 : glass.boxShadow,

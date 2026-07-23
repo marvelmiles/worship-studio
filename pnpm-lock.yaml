@@ -23,6 +23,9 @@ importers:
       '@fontsource/fraunces':
         specifier: ^5.2.9
         version: 5.2.9
+      '@fontsource/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@fontsource/montserrat':
         specifier: ^5.2.8
         version: 5.2.8
@@ -996,6 +999,9 @@ packages:
 
   '@fontsource/fraunces@5.2.9':
     resolution: {integrity: sha512-XDzuddBtoC7BZgZdBn6b7hsFZY2+V1hgN7yca5fBTKuHjb/lOd45a0Ji8dTUgFhPoL7RdGupo+bC2BFSt6UH8Q==}
+
+  '@fontsource/inter@5.3.0':
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
 
   '@fontsource/montserrat@5.2.8':
     resolution: {integrity: sha512-xTjLxSbSfCycDB0pwmNsfNvdfWPaDaRQ2LC6yt/ZI7SdvXG52zHnzNYC/09mzuAuWNJyShkteutfCoDgym56hQ==}
@@ -3595,6 +3601,8 @@ snapshots:
   '@fontsource/cormorant-garamond@5.2.11': {}
 
   '@fontsource/fraunces@5.2.9': {}
+
+  '@fontsource/inter@5.3.0': {}
 
   '@fontsource/montserrat@5.2.8': {}
 

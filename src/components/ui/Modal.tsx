@@ -42,7 +42,7 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
           overflow: "auto",
           ...glass,
           borderRadius: 20,
-          background: "rgba(22,19,36,0.72)",
+          background: colors.panel,
           boxShadow: `${shadows.overlay}, inset 0 1px 0 rgba(255,255,255,0.06)`,
         }}
       >

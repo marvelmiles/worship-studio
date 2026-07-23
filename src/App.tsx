@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { Link, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import {
   BookOpen,
   Film,
@@ -83,7 +90,7 @@ export default function App() {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: `radial-gradient(1100px 520px at 80% -12%, rgba(124,58,237,0.17), transparent 65%), radial-gradient(900px 460px at 10% -14%, rgba(99,102,241,0.1), transparent 60%), radial-gradient(1200px 500px at 50% -15%, rgba(255,255,255,0.02), transparent 70%), ${colors.bg}`,
+        background: `radial-gradient(1100px 520px at 80% -12%, ${fade(colors.accent, 0.1)}, transparent 65%), radial-gradient(1200px 500px at 50% -15%, rgba(255,255,255,0.02), transparent 70%), ${colors.bg}`,
         color: colors.text,
         fontFamily: UI,
         overflow: "hidden",
@@ -99,9 +106,9 @@ export default function App() {
           height: 58,
           borderBottom: `1px solid ${colors.border}`,
           flexShrink: 0,
-          background: "rgba(9,7,17,0.5)",
-          backdropFilter: "blur(18px) saturate(150%)",
-          WebkitBackdropFilter: "blur(18px) saturate(150%)",
+          background: fade(colors.bg2, 0.8),
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
         }}
       >
         <Link
@@ -120,30 +127,25 @@ export default function App() {
             alt="WorshipStudio logo"
             width={34}
             height={34}
-            style={{ borderRadius: 9, boxShadow: `0 4px 16px ${fade(colors.accent, 0.25)}` }}
+            style={{
+              borderRadius: 9,
+              boxShadow: `0 4px 16px ${fade(colors.accent, 0.25)}`,
+            }}
           />
           {!compact && (
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   fontFamily: DISPLAY,
                   fontSize: 18,
                   fontWeight: 600,
-                  lineHeight: 1,
+                  lineHeight: 1.1,
+                  letterSpacing: -0.2,
                   color: colors.text,
+                  whiteSpace: "nowrap",
                 }}
               >
                 WorshipStudio
-              </div>
-              <div
-                style={{
-                  fontSize: 10.5,
-                  color: colors.dim,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                }}
-              >
-                Presentation Studio
               </div>
             </div>
           )}
@@ -159,7 +161,9 @@ export default function App() {
         >
           {NAV.map(([path, label, Icon]) => {
             const active =
-              path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+              path === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(path);
             return (
               <Link
                 key={path}
@@ -230,8 +234,9 @@ export default function App() {
           minHeight: 0,
           overflowX: "hidden",
           overflowY:
-            ["/editor", "/scripture", "/bible"].some((p) => location.pathname.startsWith(p)) ||
-            /^\/songs\/./.test(location.pathname)
+            ["/editor", "/scripture", "/bible"].some((p) =>
+              location.pathname.startsWith(p),
+            ) || /^\/songs\/./.test(location.pathname)
               ? "hidden"
               : "auto",
         }}
@@ -255,7 +260,9 @@ export default function App() {
         )}
       </main>
 
-      {presentation && <Presentation key={`${presentation.kind}:${presentation.id}`} />}
+      {presentation && (
+        <Presentation key={`${presentation.kind}:${presentation.id}`} />
+      )}
       <StreamProjectionRoot />
       <AssetsModal />
       <SettingsModal />

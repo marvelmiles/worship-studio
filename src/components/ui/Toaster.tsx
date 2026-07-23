@@ -31,7 +31,7 @@ export function Toaster() {
 }
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
-  const { colors, fonts } = useUITheme();
+  const { colors, fonts, glass, shadows } = useUITheme();
   const UI = fonts.ui;
   useEffect(() => {
     const timer = window.setTimeout(onDismiss, 3400);
@@ -51,12 +51,12 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
         gap: 12,
         padding: "13px 14px",
         borderRadius: 13,
-        background: "rgba(22,19,36,0.85)",
-        backdropFilter: "blur(18px) saturate(150%)",
-        WebkitBackdropFilter: "blur(18px) saturate(150%)",
+        background: colors.panel,
+        backdropFilter: glass.backdropFilter,
+        WebkitBackdropFilter: glass.WebkitBackdropFilter,
         border: `1px solid ${colors.border}`,
         borderLeft: `3px solid ${accent}`,
-        boxShadow: "0 18px 50px rgba(0,0,0,0.5)",
+        boxShadow: shadows.overlay,
         animation: "wfToastIn 0.28s cubic-bezier(0.2,0.9,0.3,1)",
       }}
     >

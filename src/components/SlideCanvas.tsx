@@ -122,7 +122,7 @@ export function SlideCanvas({
                   padding: interactive ? "0.3cqw 0.6cqw" : undefined,
                   margin: interactive ? "-0.3cqw -0.6cqw" : undefined,
                   outline: selected
-                    ? "0.25cqw solid #8b5cf6"
+                    ? `0.25cqw solid ${colors.accent}`
                     : hovered
                     ? `0.25cqw dashed ${fade(colors.accent, 0.55)}`
                     : interactive

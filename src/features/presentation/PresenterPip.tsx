@@ -185,11 +185,11 @@ export function PresenterPip({
               fontSize: 9.5,
               fontWeight: 800,
               letterSpacing: 0.5,
-              color: "#fff",
-              background: "#dc2626",
+              color: colors.onAccent,
+              background: colors.danger,
             }}
           >
-            <span style={{ width: 5, height: 5, borderRadius: 999, background: "#fff" }} />
+            <span style={{ width: 5, height: 5, borderRadius: 999, background: colors.onAccent }} />
             LIVE
           </span>
         )}
