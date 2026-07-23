@@ -40,7 +40,9 @@ export const DEFAULT_MEDIA_PLAYBACK: MediaPlayback = {
 };
 
 /** Thin wrapper so both windows share one message shape for the live-output link. */
-export function openPresentChannel(onMessage: (msg: PresentMessage) => void): BroadcastChannel {
+export function openPresentChannel(
+  onMessage: (msg: PresentMessage) => void,
+): BroadcastChannel {
   const channel = new BroadcastChannel(PRESENT_CHANNEL_NAME);
   channel.onmessage = (e: MessageEvent<PresentMessage>) => onMessage(e.data);
   return channel;

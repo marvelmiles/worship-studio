@@ -56,11 +56,31 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
 ];
 
 const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
-  { icon: HelpCircle, name: "About & Help", desc: "The story behind the app, FAQs, and how to reach me." },
-  { icon: ImageIcon, name: "Asset Library", desc: "Manage background images, custom colors, and audio." },
-  { icon: Palette, name: "Themes", desc: "Create and edit looks: fonts, colors, background, animation, playback." },
-  { icon: Keyboard, name: "Shortcuts", desc: "Every keyboard control available while presenting." },
-  { icon: Settings, name: "Settings", desc: "Presentation options, transitions, audio, backup, and reset." },
+  {
+    icon: HelpCircle,
+    name: "About & Help",
+    desc: "The story behind the app, FAQs, and how to reach me.",
+  },
+  {
+    icon: ImageIcon,
+    name: "Asset Library",
+    desc: "Manage background images, custom colors, and audio.",
+  },
+  {
+    icon: Palette,
+    name: "Themes",
+    desc: "Create and edit looks: fonts, colors, background, animation, playback.",
+  },
+  {
+    icon: Keyboard,
+    name: "Shortcuts",
+    desc: "Every keyboard control available while presenting.",
+  },
+  {
+    icon: Settings,
+    name: "Settings",
+    desc: "Presentation options, transitions, audio, backup, and reset.",
+  },
 ];
 
 export function GuideModal() {
@@ -71,7 +91,8 @@ export function GuideModal() {
 
   useEffect(() => {
     const el = bodyRef.current;
-    if (showGuide && el && el.scrollHeight <= el.clientHeight + 8) setReachedEnd(true);
+    if (showGuide && el && el.scrollHeight <= el.clientHeight + 8)
+      setReachedEnd(true);
   }, [showGuide]);
 
   if (!showGuide) return null;
@@ -107,7 +128,12 @@ export function GuideModal() {
           boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
         }}
       >
-        <div style={{ padding: "22px 24px 16px", borderBottom: `1px solid ${colors.border}` }}>
+        <div
+          style={{
+            padding: "22px 24px 16px",
+            borderBottom: `1px solid ${colors.border}`,
+          }}
+        >
           <div
             style={{
               fontFamily: UI,
@@ -120,22 +146,47 @@ export function GuideModal() {
           >
             Welcome
           </div>
-          <h2 style={{ margin: "4px 0 0", fontFamily: DISPLAY, fontSize: 25, fontWeight: 600, color: colors.text }}>
+          <h2
+            style={{
+              margin: "4px 0 0",
+              fontFamily: DISPLAY,
+              fontSize: 25,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          >
             A quick tour of WorshipStudio
           </h2>
         </div>
 
-        <div ref={bodyRef} onScroll={(e) => {
-          const el = e.currentTarget;
-          if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8) setReachedEnd(true);
-        }} style={{ padding: 24, overflowY: "auto", flex: 1 }}>
-          <p style={{ fontFamily: UI, fontSize: 14, color: colors.sub, lineHeight: 1.7, marginTop: 0 }}>
-            WorshipStudio is a light, distraction-free studio for presenting songs, scripture,
-            images and videos reliably. Here are a few things worth knowing before you start.
+        <div
+          ref={bodyRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 8)
+              setReachedEnd(true);
+          }}
+          style={{ padding: 24, overflowY: "auto", flex: 1 }}
+        >
+          <p
+            style={{
+              fontFamily: UI,
+              fontSize: 14,
+              color: colors.sub,
+              lineHeight: 1.7,
+              marginTop: 0,
+            }}
+          >
+            WorshipStudio is a light, distraction-free studio for presenting
+            songs, scripture, images and videos reliably. Here are a few things
+            worth knowing before you start.
           </p>
 
           {TIPS.map((tip) => (
-            <div key={tip.title} style={{ display: "flex", gap: 13, marginBottom: 16 }}>
+            <div
+              key={tip.title}
+              style={{ display: "flex", gap: 13, marginBottom: 16 }}
+            >
               <div
                 style={{
                   width: 38,
@@ -151,21 +202,51 @@ export function GuideModal() {
                 <tip.icon size={18} />
               </div>
               <div>
-                <div style={{ fontFamily: UI, fontSize: 14.5, fontWeight: 600, color: colors.text }}>{tip.title}</div>
-                <div style={{ fontFamily: UI, fontSize: 13, color: colors.sub, lineHeight: 1.6, marginTop: 2 }}>
+                <div
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 14.5,
+                    fontWeight: 600,
+                    color: colors.text,
+                  }}
+                >
+                  {tip.title}
+                </div>
+                <div
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 13,
+                    color: colors.sub,
+                    lineHeight: 1.6,
+                    marginTop: 2,
+                  }}
+                >
                   {tip.desc}
                 </div>
               </div>
             </div>
           ))}
 
-          <h3 style={{ fontFamily: DISPLAY, fontSize: 17, color: colors.text, margin: "22px 0 12px" }}>
+          <h3
+            style={{
+              fontFamily: DISPLAY,
+              fontSize: 17,
+              color: colors.text,
+              margin: "22px 0 12px",
+            }}
+          >
             What the header icons do
           </h3>
           {HEADER_ICONS.map((item) => (
             <div
               key={item.name}
-              style={{ display: "flex", alignItems: "center", gap: 13, padding: "9px 0", borderBottom: `1px solid ${colors.border}` }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 13,
+                padding: "9px 0",
+                borderBottom: `1px solid ${colors.border}`,
+              }}
             >
               <div
                 style={{
@@ -182,15 +263,42 @@ export function GuideModal() {
                 <item.icon size={16} />
               </div>
               <div>
-                <div style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, color: colors.text }}>{item.name}</div>
-                <div style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub, lineHeight: 1.5 }}>{item.desc}</div>
+                <div
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    color: colors.text,
+                  }}
+                >
+                  {item.name}
+                </div>
+                <div
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 12.5,
+                    color: colors.sub,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {item.desc}
+                </div>
               </div>
             </div>
           ))}
 
-          <p style={{ fontFamily: UI, fontSize: 13.5, color: colors.sub, lineHeight: 1.7, margin: "20px 0 0" }}>
-            That's it, create a song from the dashboard or open the library to start. You can revisit
-            all of this anytime under About &amp; Help. Welcome aboard. ✝
+          <p
+            style={{
+              fontFamily: UI,
+              fontSize: 13.5,
+              color: colors.sub,
+              lineHeight: 1.7,
+              margin: "20px 0 0",
+            }}
+          >
+            That's it, create a song from the dashboard or open the library to
+            start. You can revisit all of this anytime under About &amp; Help.
+            Welcome aboard. ✝
           </p>
         </div>
 
@@ -204,10 +312,20 @@ export function GuideModal() {
             borderTop: `1px solid ${colors.border}`,
           }}
         >
-          <span style={{ fontFamily: UI, fontSize: 12.5, color: reachedEnd ? colors.dim : colors.accent }}>
+          <span
+            style={{
+              fontFamily: UI,
+              fontSize: 12.5,
+              color: reachedEnd ? colors.dim : colors.accent,
+            }}
+          >
             {reachedEnd ? "You're all set." : "Scroll to the end to continue"}
           </span>
-          <Button variant="primary" disabled={!reachedEnd} onClick={completeGuide}>
+          <Button
+            variant="primary"
+            disabled={!reachedEnd}
+            onClick={completeGuide}
+          >
             Understood
           </Button>
         </div>

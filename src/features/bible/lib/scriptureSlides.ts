@@ -1,4 +1,10 @@
-import type { BibleVerse, BibleVersionId, PassageRange, Slide, TextStyle } from "../../../types";
+import type {
+  BibleVerse,
+  BibleVersionId,
+  PassageRange,
+  Slide,
+  TextStyle,
+} from "../../../types";
 import { uid } from "../../../lib/id";
 import { formatRange, formatReference } from "./reference";
 
@@ -31,7 +37,9 @@ function chunkLines(chunk: BibleVerse[], showVerseNumbers: boolean): string[] {
   return chunk.flatMap((verse) => {
     const verseLines = verse.t.split("\n");
     if (showVerseNumbers) {
-      return verseLines.map((line, i) => (i === 0 ? `${verse.v}. ${line}` : line));
+      return verseLines.map((line, i) =>
+        i === 0 ? `${verse.v}. ${line}` : line,
+      );
     }
     return verseLines;
   });
@@ -98,10 +106,13 @@ function chunkParts(lines: string[], split: boolean): string[][] {
  * the verse isn't in the passage.
  */
 export function slideIndexForVerse(
-  passage: Pick<ScriptureSlideOptions, "verses" | "versesPerSlide" | "showVerseNumbers"> & {
+  passage: Pick<
+    ScriptureSlideOptions,
+    "verses" | "versesPerSlide" | "showVerseNumbers"
+  > & {
     quick?: boolean;
   },
-  verse: number
+  verse: number,
 ): number {
   const { verses, showVerseNumbers } = passage;
   const perSlide = Math.max(1, passage.versesPerSlide);
@@ -116,7 +127,14 @@ export function slideIndexForVerse(
 }
 
 export function buildScriptureSlides(options: ScriptureSlideOptions): Slide[] {
-  const { version, range, verses, versesPerSlide, showVerseNumbers, showReference } = options;
+  const {
+    version,
+    range,
+    verses,
+    versesPerSlide,
+    showVerseNumbers,
+    showReference,
+  } = options;
   const perSlide = Math.max(1, versesPerSlide);
   const slides: Slide[] = [];
 
@@ -127,7 +145,10 @@ export function buildScriptureSlides(options: ScriptureSlideOptions): Slide[] {
       verseStart: chunk[0].v,
       verseEnd: chunk[chunk.length - 1].v,
     };
-    const parts = chunkParts(chunkLines(chunk, showVerseNumbers), Boolean(options.splitLongVerses));
+    const parts = chunkParts(
+      chunkLines(chunk, showVerseNumbers),
+      Boolean(options.splitLongVerses),
+    );
     parts.forEach((partLines, p) => {
       const lines = [...partLines];
       const lineOverrides: Record<number, TextStyle> = {};

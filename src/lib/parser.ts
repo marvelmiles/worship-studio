@@ -80,8 +80,10 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
  */
 export function parseLyrics(text: string, maxLines = 6): Slide[] {
   const normalizedText = (text || "").replace(/\r\n?/g, "\n");
-  const headerPattern = /^\s*\[([a-zA-Z0-9 \-]{1,24})\]\s*$/;
-  const hasHeaders = normalizedText.split("\n").some((l) => headerPattern.test(l));
+  const headerPattern = /^\s*\[([a-zA-Z0-9 -]{1,24})\]\s*$/;
+  const hasHeaders = normalizedText
+    .split("\n")
+    .some((l) => headerPattern.test(l));
 
   let sections: Section[] = [];
   if (hasHeaders) {
@@ -93,13 +95,19 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
         const key = base.toLowerCase();
         const meta = SECTION_MAP[key];
         const type = meta ? meta.type : "custom";
-        const label = meta?.label || base.charAt(0).toUpperCase() + base.slice(1);
+        const label =
+          meta?.label || base.charAt(0).toUpperCase() + base.slice(1);
         current = { type, baseLabel: label, explicitNum: num, lines: [] };
         sections.push(current);
       } else if (current) {
         current.lines.push(line);
       } else if (line.trim() !== "") {
-        current = { type: "verse", baseLabel: "Verse", explicitNum: null, lines: [line] };
+        current = {
+          type: "verse",
+          baseLabel: "Verse",
+          explicitNum: null,
+          lines: [line],
+        };
         sections.push(current);
       }
     }
@@ -116,7 +124,12 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
     }));
     if (!sections.length && normalizedText.trim())
       sections = [
-        { type: "verse", baseLabel: "Verse", explicitNum: null, lines: normalizedText.split("\n") },
+        {
+          type: "verse",
+          baseLabel: "Verse",
+          explicitNum: null,
+          lines: normalizedText.split("\n"),
+        },
       ];
   }
 
@@ -124,7 +137,9 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
   // reserved first, then unnumbered sections fill in whatever's left, smallest
   // first, in document order.
   const slotsByLabel: Record<string, number[]> = {};
-  sections.forEach((section, i) => (slotsByLabel[section.baseLabel] ||= []).push(i));
+  sections.forEach((section, i) =>
+    (slotsByLabel[section.baseLabel] ||= []).push(i),
+  );
 
   const resolvedNumbers: (number | null)[] = sections.map(() => null);
   const order = sections.map((_, i) => i);
@@ -150,7 +165,9 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
     // Reorder: each slot (by document position) takes the content whose
     // resolved number matches that slot's rank, so the group ends up sorted
     // ascending while sections of other labels keep their own position.
-    const sortedByNumber = [...slots].sort((a, b) => resolvedNumbers[a]! - resolvedNumbers[b]!);
+    const sortedByNumber = [...slots].sort(
+      (a, b) => resolvedNumbers[a]! - resolvedNumbers[b]!,
+    );
     slots.forEach((slot, rank) => (order[slot] = sortedByNumber[rank]));
   }
 
@@ -158,12 +175,22 @@ export function parseLyrics(text: string, maxLines = 6): Slide[] {
   order.forEach((srcIndex) => {
     const section = sections[srcIndex];
     const num = resolvedNumbers[srcIndex];
-    const numbered = num !== null ? `${section.baseLabel} ${num}` : section.baseLabel;
+    const numbered =
+      num !== null ? `${section.baseLabel} ${num}` : section.baseLabel;
     const chunks = chunkLines(section.lines, maxLines);
     chunks.forEach((lines, i) => {
       const label =
-        chunks.length > 1 ? `${numbered} · ${i + 1}/${chunks.length}` : numbered;
-      slides.push({ id: uid(), type: section.type, label, lines, overrides: {}, notes: "" });
+        chunks.length > 1
+          ? `${numbered} · ${i + 1}/${chunks.length}`
+          : numbered;
+      slides.push({
+        id: uid(),
+        type: section.type,
+        label,
+        lines,
+        overrides: {},
+        notes: "",
+      });
     });
   });
   if (!slides.length)

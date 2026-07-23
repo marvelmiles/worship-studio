@@ -92,18 +92,38 @@ export function StreamWindow() {
   };
 
   return (
-    <div onPointerMove={wake} onPointerDown={claimFocus} style={{ position: "fixed", inset: 0, background: "#000" }}>
+    <div
+      onPointerMove={wake}
+      onPointerDown={claimFocus}
+      style={{ position: "fixed", inset: 0, background: "#000" }}
+    >
       <video
         ref={videoRef}
         autoPlay
         playsInline
         // Fill the whole projector screen. `cover` never distorts; it only trims
         // the unavoidable overflow when the camera and screen differ in shape.
-        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", background: "#000" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+          background: "#000",
+        }}
       />
 
       {!stream && (
-        <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "rgba(255,255,255,0.6)", fontFamily: "system-ui, sans-serif", fontSize: 15 }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            color: "rgba(255,255,255,0.6)",
+            fontFamily: "system-ui, sans-serif",
+            fontSize: 15,
+          }}
+        >
           Waiting for the camera…
         </div>
       )}

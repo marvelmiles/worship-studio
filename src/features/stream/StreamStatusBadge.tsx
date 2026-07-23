@@ -33,7 +33,10 @@ const CONFIG: Record<
  * surface in the module reports the same real-time state. `projecting` promotes a
  * connected feed to "live on display" when it's on the external projection window.
  */
-export function connectionBadgeStatus(status: PeerStatus, projecting: boolean): StreamBadgeStatus {
+export function connectionBadgeStatus(
+  status: PeerStatus,
+  projecting: boolean,
+): StreamBadgeStatus {
   switch (status) {
     case "failed":
       return "disconnected";

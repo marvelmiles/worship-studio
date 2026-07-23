@@ -35,7 +35,7 @@ export function buildStageFrame(
   deck: Deck,
   deckSlide: DeckSlide | undefined,
   bgMap: Record<string, Background>,
-  fallbackAnimation: AnimationKind
+  fallbackAnimation: AnimationKind,
 ): StageFrame | null {
   if (!deckSlide) return null;
 
@@ -48,7 +48,9 @@ export function buildStageFrame(
         kind: "text",
         slide,
         style: resolveStyle(slide, doc, theme),
-        lineStyles: slide.lines.map((_, i) => resolveLineStyle(slide, i, doc, theme)),
+        lineStyles: slide.lines.map((_, i) =>
+          resolveLineStyle(slide, i, doc, theme),
+        ),
         background: resolveBackground(slide, doc, theme, bgMap),
       },
       animation: resolveAnimation(slide, doc, theme, fallbackAnimation),

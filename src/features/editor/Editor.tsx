@@ -12,10 +12,21 @@ export function Editor() {
 
   if (!song) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
+      <div
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>Song not found</h2>
-          <p style={{ fontFamily: UI, color: colors.sub }}>It may have been deleted.</p>
+          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>
+            Song not found
+          </h2>
+          <p style={{ fontFamily: UI, color: colors.sub }}>
+            It may have been deleted.
+          </p>
           <Button variant="primary" onClick={() => navigate("/songs")}>
             <ArrowLeft size={15} />
             Back to songs

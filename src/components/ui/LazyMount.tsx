@@ -12,7 +12,11 @@ interface LazyMountProps {
  * them again once it scrolls well away, so long media grids only hold object
  * URLs and decoded frames for what's actually visible.
  */
-export function LazyMount({ children, placeholder, rootMargin = "400px" }: LazyMountProps) {
+export function LazyMount({
+  children,
+  placeholder,
+  rootMargin = "400px",
+}: LazyMountProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -25,9 +29,10 @@ export function LazyMount({ children, placeholder, rootMargin = "400px" }: LazyM
     }
     const observer = new IntersectionObserver(
       (observed) => {
-        for (const observedEntry of observed) setVisible(observedEntry.isIntersecting);
+        for (const observedEntry of observed)
+          setVisible(observedEntry.isIntersecting);
       },
-      { rootMargin }
+      { rootMargin },
     );
     observer.observe(el);
     return () => observer.disconnect();

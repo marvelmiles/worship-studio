@@ -26,9 +26,11 @@ interface Keepable {
  * Built-in songs and themes are restored by a reset anyway, and trashed songs
  * aren't worth a slot, so neither can hold one.
  */
-export const canKeep = (item: Keepable): boolean => !item.builtIn && !item.deleted;
+export const canKeep = (item: Keepable): boolean =>
+  !item.builtIn && !item.deleted;
 
-export const isKept = (item: Keepable): boolean => Boolean(item.keepOnReset) && canKeep(item);
+export const isKept = (item: Keepable): boolean =>
+  Boolean(item.keepOnReset) && canKeep(item);
 
 export const keptSongs = (songs: Song[]): Song[] => songs.filter(isKept);
 export const keptThemes = (themes: Theme[]): Theme[] => themes.filter(isKept);
@@ -52,14 +54,15 @@ export function rehomeKeptSong(
     backgroundIds: Set<string>;
     audioIds: Set<string>;
     defaultThemeId: string;
-  }
+  },
 ): Song {
   const themeOk = surviving.themeIds.has(song.defaultThemeId);
   const slides = song.slides.map((slide) => {
     const { backgroundId, audioId } = slide.overrides;
     // Slide-level overrides pointing at wiped assets are dropped rather than
     // redirected: the slide falls back to whatever the song/theme provides.
-    const staleBackground = backgroundId && !surviving.backgroundIds.has(backgroundId);
+    const staleBackground =
+      backgroundId && !surviving.backgroundIds.has(backgroundId);
     const staleAudio = audioId && !surviving.audioIds.has(audioId);
     if (!staleBackground && !staleAudio) return slide;
     const overrides = { ...slide.overrides };
@@ -72,7 +75,8 @@ export function rehomeKeptSong(
     ...song,
     defaultThemeId: themeOk ? song.defaultThemeId : surviving.defaultThemeId,
     defaultBackgroundId:
-      song.defaultBackgroundId && surviving.backgroundIds.has(song.defaultBackgroundId)
+      song.defaultBackgroundId &&
+      surviving.backgroundIds.has(song.defaultBackgroundId)
         ? song.defaultBackgroundId
         : "",
     defaultAudioId:
@@ -86,7 +90,11 @@ export function rehomeKeptSong(
 /** The theme equivalent: a kept theme whose custom background was wiped falls back to a built-in one. */
 export function rehomeKeptTheme(
   theme: Theme,
-  surviving: { backgroundIds: Set<string>; audioIds: Set<string>; defaultBackgroundId: string }
+  surviving: {
+    backgroundIds: Set<string>;
+    audioIds: Set<string>;
+    defaultBackgroundId: string;
+  },
 ): Theme {
   return {
     ...theme,
@@ -124,7 +132,9 @@ export function survivingAfterReset(options: {
   const audioIds = new Set(options.builtInAudio.map((a) => a.id));
   const themeIds = new Set(themes.map((t) => t.id));
   const defaultBackgroundId =
-    options.builtInThemes[0]?.backgroundId || options.builtInBackgrounds[0]?.id || "";
+    options.builtInThemes[0]?.backgroundId ||
+    options.builtInBackgrounds[0]?.id ||
+    "";
   // The fallback theme must itself be surviving, or kept songs would point at
   // nothing; a missing default lands on the first built-in theme.
   const defaultThemeId = themeIds.has(options.defaultThemeId)
@@ -132,11 +142,18 @@ export function survivingAfterReset(options: {
     : options.builtInThemes[0]?.id || "";
 
   const rehomedThemes = keptThemeList.map((theme) =>
-    rehomeKeptTheme(theme, { backgroundIds, audioIds, defaultBackgroundId })
+    rehomeKeptTheme(theme, { backgroundIds, audioIds, defaultBackgroundId }),
   );
   const rehomedSongs = keptSongs(options.songs)
     .slice(0, songBudget)
-    .map((song) => rehomeKeptSong(song, { themeIds, backgroundIds, audioIds, defaultThemeId }));
+    .map((song) =>
+      rehomeKeptSong(song, {
+        themeIds,
+        backgroundIds,
+        audioIds,
+        defaultThemeId,
+      }),
+    );
 
   return {
     songs: [...rehomedSongs, ...options.seedSongs],

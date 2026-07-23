@@ -34,15 +34,29 @@ export function BackgroundPicker({
 
   const options = [
     ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
-    ...backgrounds.map((bg) => ({ value: bg.id, label: `${bg.name} (${bg.category})` })),
+    ...backgrounds.map((bg) => ({
+      value: bg.id,
+      label: `${bg.name} (${bg.category})`,
+    })),
   ];
 
   return (
     <>
       <Field label="Background">
-        <Select value={value} options={options} onChange={(e) => onSelect(e.target.value)} />
+        <Select
+          value={value}
+          options={options}
+          onChange={(e) => onSelect(e.target.value)}
+        />
       </Field>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 6,
+          marginBottom: 12,
+        }}
+      >
         {backgrounds.map((bg) => (
           <button
             key={bg.id}
@@ -65,13 +79,21 @@ export function BackgroundPicker({
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
         {onUploaded && (
-          <Button variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => inputRef.current?.click()}
+          >
             <Upload size={14} />
             Upload image
           </Button>
         )}
         {onAddColor && (
-          <Button variant="ghost" size="sm" onClick={() => setShowColor((v) => !v)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowColor((v) => !v)}
+          >
             <Palette size={14} />
             Solid / custom color
           </Button>
@@ -98,7 +120,12 @@ export function BackgroundPicker({
           hidden
           onChange={(e) => {
             const files = Array.from(e.target.files || []);
-            if (files.length) beginUpload("background", files, (ids) => ids[0] && onUploaded(ids[0]));
+            if (files.length)
+              beginUpload(
+                "background",
+                files,
+                (ids) => ids[0] && onUploaded(ids[0]),
+              );
             e.target.value = "";
           }}
         />

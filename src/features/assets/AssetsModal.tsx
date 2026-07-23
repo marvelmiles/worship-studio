@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Image as ImageIcon, Music, Palette, Trash2, Upload, X } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Music,
+  Palette,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { AudioItem } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
@@ -12,7 +19,13 @@ import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
 
 type Tab = "backgrounds" | "audio";
 
-function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void }) {
+function AudioRow({
+  item,
+  onRemove,
+}: {
+  item: AudioItem;
+  onRemove: () => void;
+}) {
   const url = useAssetUrl(item);
   return (
     <div
@@ -38,12 +51,28 @@ function AudioRow({ item, onRemove }: { item: AudioItem; onRemove: () => void })
       >
         <Music size={17} />
       </div>
-      <div style={{ flex: 1, minWidth: 120, fontFamily: UI, fontSize: 14, color: colors.text }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 120,
+          fontFamily: UI,
+          fontSize: 14,
+          color: colors.text,
+        }}
+      >
         {item.name}
-        {item.builtIn && <span style={{ fontSize: 11, color: colors.dim, marginLeft: 8 }}>· default</span>}
+        {item.builtIn && (
+          <span style={{ fontSize: 11, color: colors.dim, marginLeft: 8 }}>
+            · default
+          </span>
+        )}
       </div>
-      {url && <audio src={url} controls loop preload="none" style={{ height: 32 }} />}
-      {!item.builtIn && <IconButton icon={Trash2} danger title="Remove" onClick={onRemove} />}
+      {url && (
+        <audio src={url} controls loop preload="none" style={{ height: 32 }} />
+      )}
+      {!item.builtIn && (
+        <IconButton icon={Trash2} danger title="Remove" onClick={onRemove} />
+      )}
     </div>
   );
 }
@@ -66,7 +95,10 @@ export function AssetsModal() {
 
   // Deep-links (e.g. dashboard activities) open the modal on a specific tab.
   useEffect(() => {
-    if (overlay === "assets" && (overlayContext === "backgrounds" || overlayContext === "audio"))
+    if (
+      overlay === "assets" &&
+      (overlayContext === "backgrounds" || overlayContext === "audio")
+    )
       setTab(overlayContext);
   }, [overlay, overlayContext]);
 
@@ -76,7 +108,12 @@ export function AssetsModal() {
   ];
 
   return (
-    <Modal open={overlay === "assets"} onClose={close} title="Asset Library" width={680}>
+    <Modal
+      open={overlay === "assets"}
+      onClose={close}
+      title="Asset Library"
+      width={680}
+    >
       <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
         {tabs.map(([id, label, Icon]) => (
           <button
@@ -93,7 +130,8 @@ export function AssetsModal() {
               fontSize: 13,
               fontWeight: 600,
               border: `1px solid ${tab === id ? fade(colors.accent, 0.4) : colors.border}`,
-              background: tab === id ? fade(colors.accent, 0.16) : "transparent",
+              background:
+                tab === id ? fade(colors.accent, 0.16) : "transparent",
               color: tab === id ? colors.accentSoft : colors.sub,
             }}
           >
@@ -156,9 +194,18 @@ export function AssetsModal() {
                     border: `1px solid ${colors.border}`,
                   }}
                 />
-                <div style={{ fontFamily: UI, fontSize: 11.5, color: colors.sub, marginTop: 5 }}>
+                <div
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 11.5,
+                    color: colors.sub,
+                    marginTop: 5,
+                  }}
+                >
                   {bg.name}
-                  {bg.builtIn && <span style={{ color: colors.dim }}> · default</span>}
+                  {bg.builtIn && (
+                    <span style={{ color: colors.dim }}> · default</span>
+                  )}
                 </div>
                 {!bg.builtIn && (
                   <button
@@ -206,7 +253,11 @@ export function AssetsModal() {
           />
           <div style={{ marginTop: 16 }}>
             {audio.map((item) => (
-              <AudioRow key={item.id} item={item} onRemove={() => removeAudio(item.id)} />
+              <AudioRow
+                key={item.id}
+                item={item}
+                onRemove={() => removeAudio(item.id)}
+              />
             ))}
           </div>
         </>

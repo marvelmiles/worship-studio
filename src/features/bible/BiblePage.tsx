@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useLocation } from "react-router-dom";
-import { ArrowLeft, BookOpen, Bookmark, ChevronRight, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Bookmark,
+  ChevronRight,
+  Trash2,
+} from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_VERSIONS, bookById } from "../../data/bibleBooks";
 import { colors, UI } from "../../theme/tokens";
@@ -15,7 +21,10 @@ import { SavedPassages } from "./SavedPassages";
 import { BooksStep } from "./BooksStep";
 import { ChaptersStep } from "./ChaptersStep";
 import { VersesStep } from "./VersesStep";
-import { loadReadingPosition, saveReadingPosition } from "./lib/readingPosition";
+import {
+  loadReadingPosition,
+  saveReadingPosition,
+} from "./lib/readingPosition";
 import type { ReadingPosition } from "./lib/readingPosition";
 import { recordReading } from "./lib/readingHistory";
 import type { VerseSpan } from "./lib/reference";
@@ -25,7 +34,10 @@ type BibleTab = "read" | "saved";
 /** Drill-down steps of the read tab: books → chapters → verses → reading. */
 type ReadStep = "books" | "chapters" | "verses" | "read";
 
-const versionOptions = BIBLE_VERSIONS.map((v) => ({ value: v.id, label: `${v.id} · ${v.name}` }));
+const versionOptions = BIBLE_VERSIONS.map((v) => ({
+  value: v.id,
+  label: `${v.id} · ${v.name}`,
+}));
 
 /**
  * The Bible page. The "Read" tab is a four-step drill-down (pick a book →
@@ -44,7 +56,8 @@ export function BiblePage() {
   const [tab, setTab] = useState<BibleTab>("read");
   const [trashView, setTrashView] = useState(false);
   const [step, setStep] = useState<ReadStep>("books");
-  const [readingPosition, setReadingPosition] = useState<ReadingPosition>(loadReadingPosition);
+  const [readingPosition, setReadingPosition] =
+    useState<ReadingPosition>(loadReadingPosition);
   /**
    * Verses the reader should scroll to and pre-select, when set. Held in state
    * so its identity stays stable across renders (the reader re-applies the
@@ -92,7 +105,7 @@ export function BiblePage() {
   const openBook = (bookId: number) => {
     // Re-opening the book you were in keeps its remembered chapter and verse.
     setReadingPosition((prev) =>
-      bookId === prev.bookId ? prev : { bookId, chapter: 1, verse: null }
+      bookId === prev.bookId ? prev : { bookId, chapter: 1, verse: null },
     );
     setFocusVerse(null);
     setStep("chapters");
@@ -116,7 +129,11 @@ export function BiblePage() {
    * ("Jn 2:3-10") or a whole chapter ("Jn 2") arrives with its full span, so
    * the reader lands with all of it selected and ready to present or save.
    */
-  const openSearchResult = (bookId: number, chapter: number, span: VerseSpan) => {
+  const openSearchResult = (
+    bookId: number,
+    chapter: number,
+    span: VerseSpan,
+  ) => {
     setReadingPosition({ bookId, chapter, verse: span.start });
     setFocusRange(span);
     setStep("read");
@@ -140,7 +157,9 @@ export function BiblePage() {
    * progress) so "Continue" can return to the exact verse.
    */
   const rememberCurrentVerse = useCallback((verse: number | null) => {
-    setReadingPosition((prev) => (prev.verse === verse ? prev : { ...prev, verse }));
+    setReadingPosition((prev) =>
+      prev.verse === verse ? prev : { ...prev, verse },
+    );
   }, []);
 
   const goBack = () => {
@@ -160,11 +179,24 @@ export function BiblePage() {
     fontWeight: 600,
     color: colors.sub,
   };
-  const crumbCurrent: CSSProperties = { ...crumbBtn, cursor: "default", color: colors.accentSoft };
-  const crumbSep = <ChevronRight size={13} color={colors.dim} style={{ flexShrink: 0 }} />;
+  const crumbCurrent: CSSProperties = {
+    ...crumbBtn,
+    cursor: "default",
+    color: colors.accentSoft,
+  };
+  const crumbSep = (
+    <ChevronRight size={13} color={colors.dim} style={{ flexShrink: 0 }} />
+  );
 
   const readView = (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <div
         className="ws-row-wrap"
         style={{
@@ -175,9 +207,22 @@ export function BiblePage() {
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        {step !== "books" && <IconButton icon={ArrowLeft} title="Back" onClick={goBack} />}
-        <div className="ws-row" style={{ gap: 6, alignItems: "center", flexWrap: "wrap", minWidth: 0 }}>
-          <button style={step === "books" ? crumbCurrent : crumbBtn} onClick={() => setStep("books")}>
+        {step !== "books" && (
+          <IconButton icon={ArrowLeft} title="Back" onClick={goBack} />
+        )}
+        <div
+          className="ws-row"
+          style={{
+            gap: 6,
+            alignItems: "center",
+            flexWrap: "wrap",
+            minWidth: 0,
+          }}
+        >
+          <button
+            style={step === "books" ? crumbCurrent : crumbBtn}
+            onClick={() => setStep("books")}
+          >
             Books
           </button>
           {step !== "books" && book && (
@@ -243,7 +288,11 @@ export function BiblePage() {
         />
       )}
       {step === "chapters" && book && (
-        <ChaptersStep book={book} chapter={readingPosition.chapter} onOpenChapter={openChapter} />
+        <ChaptersStep
+          book={book}
+          chapter={readingPosition.chapter}
+          onOpenChapter={openChapter}
+        />
       )}
       {step === "verses" && book && (
         <VersesStep
@@ -270,7 +319,15 @@ export function BiblePage() {
   );
 
   return (
-    <div className="ws-page" style={{ display: "flex", flexDirection: "column", height: "100%", maxHeight: "100%" }}>
+    <div
+      className="ws-page"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        maxHeight: "100%",
+      }}
+    >
       <PageHeader
         title="Bible"
         subtitle="Read, project and save scripture, KJV and ASV, built in and fully offline."
@@ -288,7 +345,10 @@ export function BiblePage() {
               }}
             />
             {tab === "saved" && (
-              <Button variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView((v) => !v)}>
+              <Button
+                variant={trashView ? "primary" : "ghost"}
+                onClick={() => setTrashView((v) => !v)}
+              >
                 <Trash2 size={15} />
                 {trashView ? "Passages" : "Trash"}
               </Button>

@@ -90,7 +90,10 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
               cursor: "pointer",
             }}
           />
-          <TextInput value={style.color} onChange={(e) => onChange("color", e.target.value)} />
+          <TextInput
+            value={style.color}
+            onChange={(e) => onChange("color", e.target.value)}
+          />
         </div>
       </Field>
       <Field label={`Line Height (${style.lineHeight})`}>
@@ -123,7 +126,10 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
           label="Text shadow"
           checked={style.textShadow !== "none"}
           onChange={(checked) =>
-            onChange("textShadow", checked ? "0 2px 22px rgba(0,0,0,0.55)" : "none")
+            onChange(
+              "textShadow",
+              checked ? "0 2px 22px rgba(0,0,0,0.55)" : "none",
+            )
           }
         />
       </div>

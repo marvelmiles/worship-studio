@@ -16,7 +16,8 @@
 
 import { setStreamAudioEnabled } from "./cameras";
 
-export type PeerStatus = "idle" | "gathering" | "waiting" | "connecting" | "live" | "failed";
+export type PeerStatus =
+  "idle" | "gathering" | "waiting" | "connecting" | "live" | "failed";
 
 /**
  * The projected feed is a phone camera on the same WiFi filling a whole
@@ -70,7 +71,10 @@ async function tuneVideoSender(pc: RTCPeerConnection): Promise<void> {
  * fires the completion event; a description with the candidates gathered so
  * far still connects on a healthy LAN.
  */
-function waitForIceGathering(pc: RTCPeerConnection, timeoutMs = 3000): Promise<void> {
+function waitForIceGathering(
+  pc: RTCPeerConnection,
+  timeoutMs = 3000,
+): Promise<void> {
   if (pc.iceGatheringState === "complete") return Promise.resolve();
   return new Promise((resolve) => {
     const done = () => {
@@ -135,7 +139,9 @@ export async function createReceiver(options: {
   const pushViewerLive = () => {
     if (statusChannel.readyState !== "open") return;
     try {
-      statusChannel.send(JSON.stringify({ type: "viewerLive", live: viewerLive }));
+      statusChannel.send(
+        JSON.stringify({ type: "viewerLive", live: viewerLive }),
+      );
     } catch {
       /* channel closing; nothing we can do, the sender keeps its last value */
     }
@@ -144,7 +150,8 @@ export async function createReceiver(options: {
   statusChannel.addEventListener("message", (event) => {
     try {
       const parsed = JSON.parse(event.data as string);
-      if (parsed?.type === "audioShared") options.onAudioShared?.(Boolean(parsed.on));
+      if (parsed?.type === "audioShared")
+        options.onAudioShared?.(Boolean(parsed.on));
     } catch {
       /* ignore anything that isn't our small JSON status message */
     }
@@ -161,8 +168,12 @@ export async function createReceiver(options: {
   });
   pc.addEventListener("connectionstatechange", () => {
     if (pc.connectionState === "connected") options.onStatus("live");
-    else if (pc.connectionState === "connecting") options.onStatus("connecting");
-    else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+    else if (pc.connectionState === "connecting")
+      options.onStatus("connecting");
+    else if (
+      pc.connectionState === "failed" ||
+      pc.connectionState === "disconnected"
+    ) {
       options.onStatus("failed");
     }
   });
@@ -221,8 +232,12 @@ export async function createSender(options: {
 
   pc.addEventListener("connectionstatechange", () => {
     if (pc.connectionState === "connected") options.onStatus("live");
-    else if (pc.connectionState === "connecting") options.onStatus("connecting");
-    else if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+    else if (pc.connectionState === "connecting")
+      options.onStatus("connecting");
+    else if (
+      pc.connectionState === "failed" ||
+      pc.connectionState === "disconnected"
+    ) {
       options.onStatus("failed");
     }
   });
@@ -235,7 +250,9 @@ export async function createSender(options: {
   const pushAudioShared = () => {
     if (statusChannel?.readyState !== "open") return;
     try {
-      statusChannel.send(JSON.stringify({ type: "audioShared", on: audioShared }));
+      statusChannel.send(
+        JSON.stringify({ type: "audioShared", on: audioShared }),
+      );
     } catch {
       /* channel closing; the receiver keeps its last value */
     }
@@ -248,7 +265,8 @@ export async function createSender(options: {
     event.channel.addEventListener("message", (message) => {
       try {
         const parsed = JSON.parse(message.data as string);
-        if (parsed?.type === "viewerLive") options.onViewerLive?.(Boolean(parsed.live));
+        if (parsed?.type === "viewerLive")
+          options.onViewerLive?.(Boolean(parsed.live));
       } catch {
         /* ignore anything that isn't our small JSON status message */
       }
@@ -272,11 +290,17 @@ export async function createSender(options: {
   // Audio: the remaining transceiver. Force it sendonly so a live audio channel
   // is always negotiated even before the mic is on — that's what lets the mic be
   // toggled over it later with no renegotiation — and attach it now if it's on.
-  const videoTransceiver = pc.getTransceivers().find((t) => t.sender.track?.kind === "video");
-  const audioTransceiver = pc.getTransceivers().find((t) => t !== videoTransceiver);
+  const videoTransceiver = pc
+    .getTransceivers()
+    .find((t) => t.sender.track?.kind === "video");
+  const audioTransceiver = pc
+    .getTransceivers()
+    .find((t) => t !== videoTransceiver);
   if (audioTransceiver) {
     audioTransceiver.direction = "sendonly";
-    await audioTransceiver.sender.replaceTrack(current.getAudioTracks()[0] ?? null);
+    await audioTransceiver.sender.replaceTrack(
+      current.getAudioTracks()[0] ?? null,
+    );
   }
 
   options.onStatus("gathering");
@@ -308,7 +332,9 @@ export async function createSender(options: {
     setAudioEnabled: async (enabled: boolean) => {
       if (!audioTransceiver) return;
       await setStreamAudioEnabled(current, enabled);
-      await audioTransceiver.sender.replaceTrack(current.getAudioTracks()[0] ?? null);
+      await audioTransceiver.sender.replaceTrack(
+        current.getAudioTracks()[0] ?? null,
+      );
       audioShared = enabled;
       pushAudioShared();
     },

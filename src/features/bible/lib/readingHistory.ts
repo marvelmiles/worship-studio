@@ -22,7 +22,11 @@ const MAX_ENTRIES = 50;
  * latest interaction actually had, "Numbers 1:1" when they selected or read
  * aloud that verse, "Numbers 1" when they just opened the chapter.
  */
-function eventKey(bookId: number, chapter: number, verse: number | null): string {
+function eventKey(
+  bookId: number,
+  chapter: number,
+  verse: number | null,
+): string {
   return `${bookId}:${chapter}:${verse === 1 ? 0 : (verse ?? 0)}`;
 }
 
@@ -60,7 +64,12 @@ export function loadReadingHistory(): ReadingEvent[] {
   const last = loadReadingPosition();
   if (last.at) {
     return [
-      { bookId: last.bookId, chapter: last.chapter, verse: last.verse ?? null, at: last.at },
+      {
+        bookId: last.bookId,
+        chapter: last.chapter,
+        verse: last.verse ?? null,
+        at: last.at,
+      },
     ];
   }
   return [];
@@ -75,7 +84,7 @@ export function recordReading(position: {
   try {
     const key = eventKey(position.bookId, position.chapter, verse);
     const history = loadReadingHistory().filter(
-      (e) => eventKey(e.bookId, e.chapter, e.verse) !== key
+      (e) => eventKey(e.bookId, e.chapter, e.verse) !== key,
     );
     history.unshift({
       bookId: position.bookId,
@@ -83,7 +92,10 @@ export function recordReading(position: {
       verse,
       at: new Date().toISOString(),
     });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, MAX_ENTRIES)));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(history.slice(0, MAX_ENTRIES)),
+    );
   } catch {
     /* non-fatal, the dashboard just won't list this read */
   }

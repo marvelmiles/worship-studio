@@ -1,5 +1,6 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getDatabase, type Database } from "firebase/database";
+import { env } from "../../../lib/env";
 
 /**
  * Firebase, used strictly as an in-memory signalling middleman for one-tap
@@ -18,10 +19,10 @@ import { getDatabase, type Database } from "firebase/database";
  */
 
 const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+  apiKey: env.VITE_FIREBASE_API_KEY,
+  projectId: env.VITE_FIREBASE_PROJECT_ID,
+  appId: env.VITE_FIREBASE_APP_ID,
+  databaseURL: env.VITE_FIREBASE_DATABASE_URL,
 };
 
 /** True only when a Firebase project has been wired up via env vars. */
@@ -38,12 +39,14 @@ export function getSignalingDb(): Database | null {
   if (!signalingConfigured) return null;
   if (!db) {
     try {
-      app = app ?? initializeApp({
-        apiKey: config.apiKey,
-        projectId: config.projectId,
-        appId: config.appId,
-        databaseURL: config.databaseURL,
-      });
+      app =
+        app ??
+        initializeApp({
+          apiKey: config.apiKey,
+          projectId: config.projectId,
+          appId: config.appId,
+          databaseURL: config.databaseURL,
+        });
       db = getDatabase(app);
     } catch {
       // Misconfigured project — degrade to the QR / paste pairing.

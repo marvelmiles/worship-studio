@@ -17,7 +17,7 @@ export interface PresentSlice {
     kind: ContentKind,
     id: string,
     startIndex?: number,
-    mode?: PresentationMode
+    mode?: PresentationMode,
   ) => void;
   setPresentationMode: (mode: PresentationMode) => void;
   stopPresent: () => void;
@@ -35,7 +35,8 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
         : kind === "scripture"
           ? Boolean(state.scriptures.find((s) => s.id === id)?.slides?.length)
           : state.media.some((m) => m.id === id && m.kind === kind);
-    if (canPresent) set({ presentation: { kind, id, startIndex }, presentationMode: mode });
+    if (canPresent)
+      set({ presentation: { kind, id, startIndex }, presentationMode: mode });
   },
 
   setPresentationMode: (mode) => set({ presentationMode: mode }),

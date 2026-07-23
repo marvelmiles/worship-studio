@@ -25,8 +25,18 @@ import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { StageButton } from "../../components/ui/Button";
 
-const VIEW_OPTIONS: { value: PresentationView; label: string; hint: string; icon: LucideIcon }[] = [
-  { value: "normal", label: "Normal", hint: "Fit, letterboxed", icon: RectangleHorizontal },
+const VIEW_OPTIONS: {
+  value: PresentationView;
+  label: string;
+  hint: string;
+  icon: LucideIcon;
+}[] = [
+  {
+    value: "normal",
+    label: "Normal",
+    hint: "Fit, letterboxed",
+    icon: RectangleHorizontal,
+  },
   { value: "cover", label: "Cover", hint: "Fill, may crop", icon: Maximize },
   { value: "fill", label: "Fill", hint: "Stretch to screen", icon: Expand },
 ];
@@ -124,7 +134,13 @@ export function PresentationControls({
     >
       <StageButton
         icon={MonitorUp}
-        title={isLive ? "Live: projecting to external display" : isExternal ? "Go Live on external display" : "Go Live / project"}
+        title={
+          isLive
+            ? "Live: projecting to external display"
+            : isExternal
+              ? "Go Live on external display"
+              : "Go Live / project"
+        }
         active={isLive}
         onClick={onGoLive}
       />
@@ -137,7 +153,12 @@ export function PresentationControls({
         }
         onClick={onShrinkToPip}
       />
-      <StageButton icon={paused ? Play : Pause} title={paused ? "Resume (P)" : "Pause (P)"} active={paused} onClick={onTogglePause} />
+      <StageButton
+        icon={paused ? Play : Pause}
+        title={paused ? "Resume (P)" : "Pause (P)"}
+        active={paused}
+        onClick={onTogglePause}
+      />
       {canRead && (
         <StageButton
           icon={reading ? Square : Volume2}
@@ -148,7 +169,12 @@ export function PresentationControls({
       )}
 
       <div ref={viewRef} style={{ position: "relative" }}>
-        <StageButton icon={Scan} title="Screen fit (V)" active={menuOpen} onClick={() => setMenuOpen((o) => !o)} />
+        <StageButton
+          icon={Scan}
+          title="Screen fit (V)"
+          active={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        />
         {menuOpen && (
           <div
             style={{
@@ -158,7 +184,9 @@ export function PresentationControls({
               minWidth: 196,
               padding: 6,
               borderRadius: 12,
-              background: fade(colors.panelSolid, 0.92), backdropFilter: "blur(18px) saturate(150%)", WebkitBackdropFilter: "blur(18px) saturate(150%)",
+              background: fade(colors.panelSolid, 0.92),
+              backdropFilter: "blur(18px) saturate(150%)",
+              WebkitBackdropFilter: "blur(18px) saturate(150%)",
               border: `1px solid ${colors.border}`,
               boxShadow: "0 18px 50px rgba(0,0,0,0.55)",
             }}
@@ -195,22 +223,40 @@ export function PresentationControls({
                     cursor: "pointer",
                     textAlign: "left",
                     border: "none",
-                    background: active ? fade(colors.accent, 0.16) : "transparent",
+                    background: active
+                      ? fade(colors.accent, 0.16)
+                      : "transparent",
                     color: active ? colors.accentSoft : colors.text,
                   }}
                   onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                    if (!active)
+                      e.currentTarget.style.background =
+                        "rgba(255,255,255,0.05)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = "transparent";
+                    if (!active)
+                      e.currentTarget.style.background = "transparent";
                   }}
                 >
                   <option.icon size={16} />
                   <span style={{ flex: 1 }}>
-                    <span style={{ fontFamily: UI, fontSize: 13.5, fontWeight: 600, display: "block" }}>
+                    <span
+                      style={{
+                        fontFamily: UI,
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        display: "block",
+                      }}
+                    >
                       {option.label}
                     </span>
-                    <span style={{ fontFamily: UI, fontSize: 11.5, color: active ? colors.accentSoft : colors.sub }}>
+                    <span
+                      style={{
+                        fontFamily: UI,
+                        fontSize: 11.5,
+                        color: active ? colors.accentSoft : colors.sub,
+                      }}
+                    >
                       {option.hint}
                     </span>
                   </span>
@@ -251,7 +297,12 @@ export function PresentationControls({
         <StageButton icon={ZoomIn} title="Zoom in (+)" onClick={onZoomIn} />
       </span>
 
-      <StageButton icon={Monitor} title="Presenter bar (I)" active={showInfo} onClick={onToggleInfo} />
+      <StageButton
+        icon={Monitor}
+        title="Presenter bar (I)"
+        active={showInfo}
+        onClick={onToggleInfo}
+      />
       <StageButton
         icon={isFullscreen ? Minimize2 : Maximize2}
         title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}

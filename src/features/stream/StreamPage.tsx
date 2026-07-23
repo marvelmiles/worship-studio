@@ -26,15 +26,48 @@ export function StreamPage() {
   if (!window.isSecureContext) {
     return (
       <div className="ws-page">
-        <PageHeader title="Stream" subtitle="Share a camera between devices over your WiFi." />
-        <div style={{ maxWidth: 560, margin: "40px auto 0", background: colors.raise, border: `1px solid ${colors.border}`, borderRadius: 16, padding: 24, textAlign: "center" }}>
-          <ShieldAlert size={30} color={colors.danger} style={{ marginBottom: 12 }} />
-          <div style={{ fontFamily: fonts.display, fontSize: 18, fontWeight: 600, color: colors.text, marginBottom: 8 }}>
+        <PageHeader
+          title="Stream"
+          subtitle="Share a camera between devices over your WiFi."
+        />
+        <div
+          style={{
+            maxWidth: 560,
+            margin: "40px auto 0",
+            background: colors.raise,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 16,
+            padding: 24,
+            textAlign: "center",
+          }}
+        >
+          <ShieldAlert
+            size={30}
+            color={colors.danger}
+            style={{ marginBottom: 12 }}
+          />
+          <div
+            style={{
+              fontFamily: fonts.display,
+              fontSize: 18,
+              fontWeight: 600,
+              color: colors.text,
+              marginBottom: 8,
+            }}
+          >
             Streaming needs a secure connection
           </div>
-          <p style={{ fontFamily: fonts.ui, fontSize: 13.5, color: colors.sub, lineHeight: 1.6, margin: 0 }}>
-            Cameras only open on an <strong>https://</strong> address (or localhost). Open this app
-            over https on both devices and try again.
+          <p
+            style={{
+              fontFamily: fonts.ui,
+              fontSize: 13.5,
+              color: colors.sub,
+              lineHeight: 1.6,
+              margin: 0,
+            }}
+          >
+            Cameras only open on an <strong>https://</strong> address (or
+            localhost). Open this app over https on both devices and try again.
           </p>
         </div>
       </div>
@@ -48,9 +81,19 @@ export function StreamPage() {
         subtitle="Share a camera between devices over your WiFi, then project it on a display."
       />
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 20 }}>
+      <div
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 20 }}
+      >
         {role === "choose" && (
-          <div style={{ maxWidth: 720, margin: "10px auto 0", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
+          <div
+            style={{
+              maxWidth: 720,
+              margin: "10px auto 0",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+              gap: 16,
+            }}
+          >
             <RoleCard
               icon={MonitorSmartphone}
               title="Show a camera here"
@@ -68,7 +111,9 @@ export function StreamPage() {
           </div>
         )}
 
-        {role === "receive" && <ReceiverLobby onBack={() => setRole("choose")} />}
+        {role === "receive" && (
+          <ReceiverLobby onBack={() => setRole("choose")} />
+        )}
         {role === "send" && <SenderLobby onBack={() => setRole("choose")} />}
       </div>
     </div>
@@ -104,12 +149,51 @@ function RoleCard({
         gap: 12,
       }}
     >
-      <span style={{ width: 46, height: 46, borderRadius: 12, display: "grid", placeItems: "center", background: colors.bg, border: `1px solid ${colors.border}`, color: colors.accentSoft }}>
+      <span
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: 12,
+          display: "grid",
+          placeItems: "center",
+          background: colors.bg,
+          border: `1px solid ${colors.border}`,
+          color: colors.accentSoft,
+        }}
+      >
         <Icon size={22} />
       </span>
-      <span style={{ fontFamily: fonts.display, fontSize: 18, fontWeight: 600, color: colors.text }}>{title}</span>
-      <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub, lineHeight: 1.55, flex: 1 }}>{body}</span>
-      <span style={{ fontFamily: fonts.ui, fontSize: 13.5, fontWeight: 700, color: colors.accentSoft }}>{cta} →</span>
+      <span
+        style={{
+          fontFamily: fonts.display,
+          fontSize: 18,
+          fontWeight: 600,
+          color: colors.text,
+        }}
+      >
+        {title}
+      </span>
+      <span
+        style={{
+          fontFamily: fonts.ui,
+          fontSize: 13,
+          color: colors.sub,
+          lineHeight: 1.55,
+          flex: 1,
+        }}
+      >
+        {body}
+      </span>
+      <span
+        style={{
+          fontFamily: fonts.ui,
+          fontSize: 13.5,
+          fontWeight: 700,
+          color: colors.accentSoft,
+        }}
+      >
+        {cta} →
+      </span>
     </button>
   );
 }

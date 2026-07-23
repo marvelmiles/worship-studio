@@ -25,7 +25,13 @@ interface PresenterBarProps {
   onNext: () => void;
 }
 
-function NextPreview({ frame, endLabel }: { frame: StageFrame | null; endLabel: string }) {
+function NextPreview({
+  frame,
+  endLabel,
+}: {
+  frame: StageFrame | null;
+  endLabel: string;
+}) {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   if (!frame) {
@@ -169,7 +175,14 @@ export function PresenterBar({
           >
             {fmtClock(elapsed)}
           </div>
-          <div style={{ fontFamily: UI, fontSize: 12, color: colors.sub, fontVariantNumeric: "tabular-nums" }}>
+          <div
+            style={{
+              fontFamily: UI,
+              fontSize: 12,
+              color: colors.sub,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             {slideIndex + 1} / {total}
           </div>
         </div>

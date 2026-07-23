@@ -9,16 +9,21 @@
  */
 
 interface HighEntropyUAData {
-  getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string; platform?: string }>;
+  getHighEntropyValues?: (
+    hints: string[],
+  ) => Promise<{ model?: string; platform?: string }>;
 }
 
 export async function detectDeviceName(): Promise<string> {
-  const uaData = (navigator as unknown as { userAgentData?: HighEntropyUAData }).userAgentData;
+  const uaData = (navigator as unknown as { userAgentData?: HighEntropyUAData })
+    .userAgentData;
   if (uaData?.getHighEntropyValues) {
     try {
       const hv = await uaData.getHighEntropyValues(["model", "platform"]);
-      if (hv.model && hv.model.trim() && hv.model.trim() !== "K") return hv.model.trim();
-      if (hv.platform && hv.platform.trim()) return platformName(hv.platform.trim());
+      if (hv.model && hv.model.trim() && hv.model.trim() !== "K")
+        return hv.model.trim();
+      if (hv.platform && hv.platform.trim())
+        return platformName(hv.platform.trim());
     } catch {
       /* fall through to UA sniffing */
     }

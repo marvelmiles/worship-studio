@@ -55,9 +55,24 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
   };
 
   return (
-    <div style={{ padding: 12, borderRadius: 11, background: colors.raise, border: `1px solid ${colors.border}`, marginBottom: 12 }}>
+    <div
+      style={{
+        padding: 12,
+        borderRadius: 11,
+        background: colors.raise,
+        border: `1px solid ${colors.border}`,
+        marginBottom: 12,
+      }}
+    >
       <p style={caption}>Presets</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(8,1fr)", gap: 6, marginBottom: 14 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(8,1fr)",
+          gap: 6,
+          marginBottom: 14,
+        }}
+      >
         {PALETTE.map((swatch) => (
           <button
             key={swatch.value}
@@ -75,16 +90,39 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
       </div>
 
       <p style={caption}>Add custom (label required)</p>
-      <TextInput value={label} placeholder="Label (e.g. Soft Cream)" onChange={(e) => setLabel(e.target.value)} />
+      <TextInput
+        value={label}
+        placeholder="Label (e.g. Soft Cream)"
+        onChange={(e) => setLabel(e.target.value)}
+      />
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          margin: "10px 0",
+        }}
+      >
         <input
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          style={{ width: 42, height: 38, borderRadius: 9, border: `1px solid ${colors.border}`, background: "transparent", cursor: "pointer" }}
+          style={{
+            width: 42,
+            height: 38,
+            borderRadius: 9,
+            border: `1px solid ${colors.border}`,
+            background: "transparent",
+            cursor: "pointer",
+          }}
         />
-        <Button variant="ghost" size="sm" disabled={!trimmed} onClick={addColor}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!trimmed}
+          onClick={addColor}
+        >
           <Plus size={14} />
           Add color
         </Button>
@@ -96,13 +134,26 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
           placeholder="#1b1733, rgba(20,20,40,1), linear-gradient(…)"
           onChange={(e) => setCss(e.target.value)}
         />
-        <Button variant="ghost" size="sm" disabled={!trimmed || !css.trim()} onClick={addCss}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={!trimmed || !css.trim()}
+          onClick={addCss}
+        >
           <Check size={14} />
           Add
         </Button>
       </div>
-      <p style={{ fontFamily: UI, fontSize: 11.5, color: colors.dim, margin: "8px 0 0" }}>
-        Accepts any CSS background: hex, rgb / rgba, hsl, or a gradient. Presets already include a name.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 11.5,
+          color: colors.dim,
+          margin: "8px 0 0",
+        }}
+      >
+        Accepts any CSS background: hex, rgb / rgba, hsl, or a gradient. Presets
+        already include a name.
       </p>
     </div>
   );

@@ -28,7 +28,10 @@ export function findSavedDuplicates(
 }
 
 /** True when a saved passage already holds exactly what would be saved. */
-export function hasSameContent(passage: ScripturePassage, options: SavePassageOptions): boolean {
+export function hasSameContent(
+  passage: ScripturePassage,
+  options: SavePassageOptions,
+): boolean {
   return (
     passage.versesPerSlide === (options.versesPerSlide ?? 1) &&
     passage.showVerseNumbers === (options.showVerseNumbers ?? true) &&
@@ -45,7 +48,10 @@ export function hasSameContent(passage: ScripturePassage, options: SavePassageOp
  * First free numbered title for a duplicate copy:
  * "Matthew 1:1-4 (KJV)" → "Matthew 1:1-4 (KJV) (1)", then "(2)", …
  */
-export function nextCopyTitle(baseTitle: string, saved: ScripturePassage[]): string {
+export function nextCopyTitle(
+  baseTitle: string,
+  saved: ScripturePassage[],
+): string {
   const takenTitles = new Set(
     saved.filter((p) => !p.quick && !p.deleted).map((p) => p.title),
   );

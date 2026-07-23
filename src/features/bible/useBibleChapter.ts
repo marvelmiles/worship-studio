@@ -8,8 +8,16 @@ interface ChapterState {
   error: string | null;
 }
 
-export function useBibleChapter(version: BibleVersionId, bookId: number, chapter: number) {
-  const [state, setState] = useState<ChapterState>({ verses: [], loading: true, error: null });
+export function useBibleChapter(
+  version: BibleVersionId,
+  bookId: number,
+  chapter: number,
+) {
+  const [state, setState] = useState<ChapterState>({
+    verses: [],
+    loading: true,
+    error: null,
+  });
   const [attempt, setAttempt] = useState(0);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
@@ -19,10 +27,12 @@ export function useBibleChapter(version: BibleVersionId, bookId: number, chapter
     setState((prev) => ({ ...prev, loading: true, error: null }));
     getChapterVerses(version, bookId, chapter, controller.signal)
       .then((verses) => {
-        if (!controller.signal.aborted) setState({ verses, loading: false, error: null });
+        if (!controller.signal.aborted)
+          setState({ verses, loading: false, error: null });
       })
       .catch((err: Error) => {
-        if (!controller.signal.aborted) setState({ verses: [], loading: false, error: err.message });
+        if (!controller.signal.aborted)
+          setState({ verses: [], loading: false, error: err.message });
       });
     return () => controller.abort();
   }, [version, bookId, chapter, attempt]);

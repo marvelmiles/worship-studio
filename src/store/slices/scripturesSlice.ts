@@ -1,4 +1,9 @@
-import type { BibleVerse, BibleVersionId, PassageRange, ScripturePassage } from "../../types";
+import type {
+  BibleVerse,
+  BibleVersionId,
+  PassageRange,
+  ScripturePassage,
+} from "../../types";
 import { now, uid } from "../../lib/id";
 import { deleteRecord, saveRecord } from "../../lib/storage";
 import { buildScriptureSlides } from "../../features/bible/lib/scriptureSlides";
@@ -28,21 +33,34 @@ export interface ScripturesSlice {
   scriptures: ScripturePassage[];
 
   upsertScripture: (passage: ScripturePassage) => void;
-  saveScripturePassage: (options: SavePassageOptions) => ScripturePassage | null;
-  overwriteScripturePassage: (id: string, options: SavePassageOptions) => ScripturePassage | null;
-  rebuildScriptureSlides: (id: string, changes?: Partial<ScripturePassage>) => void;
+  saveScripturePassage: (
+    options: SavePassageOptions,
+  ) => ScripturePassage | null;
+  overwriteScripturePassage: (
+    id: string,
+    options: SavePassageOptions,
+  ) => ScripturePassage | null;
+  rebuildScriptureSlides: (
+    id: string,
+    changes?: Partial<ScripturePassage>,
+  ) => void;
   trashScripture: (id: string) => void;
   restoreScripture: (id: string) => void;
   deleteScripture: (id: string) => void;
-  presentScriptureSelection: (selection: ScriptureSelection, mode?: PresentationMode) => void;
-  stageScriptureSelection: (selection: ScriptureSelection) => ScripturePassage | null;
+  presentScriptureSelection: (
+    selection: ScriptureSelection,
+    mode?: PresentationMode,
+  ) => void;
+  stageScriptureSelection: (
+    selection: ScriptureSelection,
+  ) => ScripturePassage | null;
 }
 
 function buildPassage(
   options: SavePassageOptions,
   id: string,
   quick: boolean,
-  themeId: string = SCRIPTURE_THEME_ID
+  themeId: string = SCRIPTURE_THEME_ID,
 ): ScripturePassage {
   const versesPerSlide = options.versesPerSlide ?? 1;
   const showVerseNumbers = options.showVerseNumbers ?? true;
@@ -77,7 +95,10 @@ function buildPassage(
   };
 }
 
-export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) => ({
+export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
+  set,
+  get,
+) => ({
   scriptures: [],
 
   upsertScripture: (passage) => {
@@ -150,14 +171,18 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
 
   trashScripture: (id) => {
     const passage = get().scriptures.find((s) => s.id === id);
-    if (passage) get().upsertScripture({ ...passage, deleted: true, updatedAt: now() });
+    if (passage)
+      get().upsertScripture({ ...passage, deleted: true, updatedAt: now() });
   },
   restoreScripture: (id) => {
     const passage = get().scriptures.find((s) => s.id === id);
-    if (passage) get().upsertScripture({ ...passage, deleted: false, updatedAt: now() });
+    if (passage)
+      get().upsertScripture({ ...passage, deleted: false, updatedAt: now() });
   },
   deleteScripture: (id) => {
-    set((state) => ({ scriptures: state.scriptures.filter((s) => s.id !== id) }));
+    set((state) => ({
+      scriptures: state.scriptures.filter((s) => s.id !== id),
+    }));
     void deleteRecord("scriptures", id);
     afterDelete(get);
   },
@@ -170,7 +195,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
       { ...selection, showVerseNumbers: false },
       QUICK_PASSAGE_ID,
       true,
-      scriptureThemeId(get)
+      scriptureThemeId(get),
     );
     get().upsertScripture(passage);
     get().startPresent("scripture", passage.id, 0, mode);
@@ -182,13 +207,15 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (set, get) =
       { ...selection, showVerseNumbers: false },
       QUICK_PASSAGE_ID,
       true,
-      scriptureThemeId(get)
+      scriptureThemeId(get),
     );
     get().upsertScripture(passage);
     return passage;
   },
 });
 
-function scriptureThemeId(get: () => { prefs: { defaultScriptureThemeId: string } }): string {
+function scriptureThemeId(
+  get: () => { prefs: { defaultScriptureThemeId: string } },
+): string {
   return get().prefs.defaultScriptureThemeId || SCRIPTURE_THEME_ID;
 }

@@ -43,7 +43,9 @@ export function ReceiverLobby({ onBack }: { onBack: () => void }) {
   const reset = useCallback(() => setResetNonce((n) => n + 1), []);
 
   if (mode === "auto") {
-    return <AutoReceivePanel onBack={onBack} onUseCode={() => setMode("manual")} />;
+    return (
+      <AutoReceivePanel onBack={onBack} onUseCode={() => setMode("manual")} />
+    );
   }
   return (
     <ManualReceiverPanel
@@ -305,7 +307,6 @@ function ManualReceiverPanel({
   onReset: () => void;
   onUseOneTap?: () => void;
 }) {
-  const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [handle, setHandle] = useState<ReceiverHandle | null>(null);
   const [invite, setInvite] = useState("");
@@ -364,7 +365,10 @@ function ManualReceiverPanel({
   const applyReply = (text: string) => {
     const parsed = decodeSignal(text);
     if (!parsed || parsed.kind !== "answer") {
-      pushToast("That doesn't look like a reply code from the other device.", "error");
+      pushToast(
+        "That doesn't look like a reply code from the other device.",
+        "error",
+      );
       return;
     }
     void handle

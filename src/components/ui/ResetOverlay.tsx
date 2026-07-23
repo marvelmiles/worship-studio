@@ -30,10 +30,25 @@ export function ResetOverlay() {
             animation: "wfSpin 0.9s linear infinite",
           }}
         />
-        <div style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: colors.text }}>
+        <div
+          style={{
+            fontFamily: DISPLAY,
+            fontSize: 22,
+            fontWeight: 600,
+            color: colors.text,
+          }}
+        >
           Resetting WorshipStudio
         </div>
-        <p style={{ fontFamily: UI, fontSize: 14, color: colors.sub, lineHeight: 1.6, marginTop: 10 }}>
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 14,
+            color: colors.sub,
+            lineHeight: 1.6,
+            marginTop: 10,
+          }}
+        >
           Restoring defaults. Please don't reload or close this tab.
         </p>
       </div>

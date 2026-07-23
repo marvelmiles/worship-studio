@@ -13,7 +13,11 @@ import jsQR from "jsqr";
  * large; on a clean phone-to-webcam scan the extra correction isn't needed.
  * Auto type number (0) picks the smallest version that fits.
  */
-export function drawQr(canvas: HTMLCanvasElement, text: string, sizePx: number): void {
+export function drawQr(
+  canvas: HTMLCanvasElement,
+  text: string,
+  sizePx: number,
+): void {
   const qr = qrcode(0, "L");
   // Alphanumeric mode packs ~5.5 bits per character instead of byte mode's 8,
   // producing a lower-density code for the same payload. Safe because the
@@ -40,7 +44,12 @@ export function drawQr(canvas: HTMLCanvasElement, text: string, sizePx: number):
   for (let row = 0; row < count; row++) {
     for (let col = 0; col < count; col++) {
       if (qr.isDark(row, col)) {
-        ctx.fillRect((col + quiet) * scale, (row + quiet) * scale, scale, scale);
+        ctx.fillRect(
+          (col + quiet) * scale,
+          (row + quiet) * scale,
+          scale,
+          scale,
+        );
       }
     }
   }
@@ -49,7 +58,7 @@ export function drawQr(canvas: HTMLCanvasElement, text: string, sizePx: number):
 /** Scans one video frame for a QR code, returning its text or null. */
 export function scanFrame(
   video: HTMLVideoElement,
-  canvas: HTMLCanvasElement
+  canvas: HTMLCanvasElement,
 ): string | null {
   const vw = video.videoWidth;
   const vh = video.videoHeight;
@@ -73,6 +82,8 @@ export function scanFrame(
 
   ctx.drawImage(video, sx, sy, side, side, 0, 0, side, side);
   const image = ctx.getImageData(0, 0, side, side);
-  const found = jsQR(image.data, side, side, { inversionAttempts: "dontInvert" });
+  const found = jsQR(image.data, side, side, {
+    inversionAttempts: "dontInvert",
+  });
   return found?.data ?? null;
 }

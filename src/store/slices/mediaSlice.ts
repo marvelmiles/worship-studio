@@ -43,7 +43,10 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
 
   uploadMedia: async (kind, file, name) => {
     if (!isAcceptedMediaFile(kind, file)) {
-      get().pushToast(`"${file.name}" isn't a supported ${kind} file.`, "error");
+      get().pushToast(
+        `"${file.name}" isn't a supported ${kind} file.`,
+        "error",
+      );
       return "";
     }
     const id = uid();
@@ -82,8 +85,10 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     } catch (err) {
       await deleteFileWithThumb(id).catch(() => {});
       get().pushToast(
-        isQuotaError(err) ? QUOTA_TOAST : `Couldn't save "${file.name}". ${String((err as Error)?.message || "")}`,
-        "error"
+        isQuotaError(err)
+          ? QUOTA_TOAST
+          : `Couldn't save "${file.name}". ${String((err as Error)?.message || "")}`,
+        "error",
       );
       afterWrite(get);
       return "";
@@ -95,7 +100,9 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     const current = get().media.find((m) => m.id === id);
     if (!current) return;
     const next: MediaItem = { ...current, ...changes, id, updatedAt: now() };
-    set((state) => ({ media: state.media.map((m) => (m.id === id ? next : m)) }));
+    set((state) => ({
+      media: state.media.map((m) => (m.id === id ? next : m)),
+    }));
     void saveRecord("media", next);
     afterWrite(get);
   },
@@ -144,7 +151,8 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     if (existing.length > 0) {
       // Removing the background keeps the shared file alive — the media item
       // still owns it (see removeBackground's stillUsed check).
-      for (const background of existing) void get().removeBackground(background.id);
+      for (const background of existing)
+        void get().removeBackground(background.id);
       return false;
     }
     get().useImageAsBackground(id);

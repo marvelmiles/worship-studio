@@ -26,7 +26,16 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
           {title}
         </h1>
         {subtitle && (
-          <p style={{ margin: "4px 0 0", fontFamily: UI, fontSize: 13, color: colors.sub }}>{subtitle}</p>
+          <p
+            style={{
+              margin: "4px 0 0",
+              fontFamily: UI,
+              fontSize: 13,
+              color: colors.sub,
+            }}
+          >
+            {subtitle}
+          </p>
         )}
       </div>
       {actions && <div className="ws-row-wrap">{actions}</div>}

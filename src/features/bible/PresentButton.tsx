@@ -40,7 +40,10 @@ export function PresentButton({
         title={title}
         onPresent={({ pip }) => {
           if (disabled) return;
-          present(typeof selection === "function" ? selection() : selection, pip ? "pip" : "stage");
+          present(
+            typeof selection === "function" ? selection() : selection,
+            pip ? "pip" : "stage",
+          );
         }}
       >
         <Button size={size} variant={variant} title={title} disabled={disabled}>

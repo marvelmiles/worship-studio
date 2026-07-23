@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { GripHorizontal, Maximize2, MonitorOff, MonitorUp, X } from "lucide-react";
+import {
+  GripHorizontal,
+  Maximize2,
+  MonitorOff,
+  MonitorUp,
+  X,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
@@ -8,7 +14,11 @@ import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { AudioSharingPill } from "./AudioSharingPill";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
-import { endStreamSession, setStreamMode, useStreamSession } from "./lib/streamSession";
+import {
+  endStreamSession,
+  setStreamMode,
+  useStreamSession,
+} from "./lib/streamSession";
 
 const WIDTH = 300;
 const MARGIN = 16;
@@ -54,7 +64,10 @@ export function StreamPip() {
       const height = rootRef.current?.offsetHeight ?? 220;
       setPos((p) => ({
         x: Math.min(p.x, Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN)),
-        y: Math.min(p.y, Math.max(MARGIN, window.innerHeight - height - MARGIN)),
+        y: Math.min(
+          p.y,
+          Math.max(MARGIN, window.innerHeight - height - MARGIN),
+        ),
       }));
     };
     window.addEventListener("resize", onResize);
@@ -70,8 +83,14 @@ export function StreamPip() {
     if (!offset) return;
     const height = rootRef.current?.offsetHeight ?? 220;
     setPos({
-      x: Math.max(0, Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx)),
-      y: Math.max(0, Math.min(window.innerHeight - height, e.clientY - offset.dy)),
+      x: Math.max(
+        0,
+        Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx),
+      ),
+      y: Math.max(
+        0,
+        Math.min(window.innerHeight - height, e.clientY - offset.dy),
+      ),
     });
   };
   const endDrag = () => {
@@ -94,7 +113,10 @@ export function StreamPip() {
           : "Projection window opened. Drag it to your display, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
-      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
+      pushToast(
+        "Popup blocked. Allow popups for this site to go live.",
+        "error",
+      );
     }
   };
 
@@ -140,45 +162,118 @@ export function StreamPip() {
           touchAction: "none",
         }}
       >
-        <GripHorizontal size={14} color={colors.dim} style={{ flexShrink: 0 }} />
+        <GripHorizontal
+          size={14}
+          color={colors.dim}
+          style={{ flexShrink: 0 }}
+        />
         <span
           className="ws-ellipsis"
-          style={{ flex: 1, minWidth: 0, fontFamily: fonts.ui, fontSize: 12.5, fontWeight: 700, color: colors.text }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            fontFamily: fonts.ui,
+            fontSize: 12.5,
+            fontWeight: 700,
+            color: colors.text,
+          }}
         >
           {session.deviceName || "Phone camera"}
         </span>
-        <AudioSharingPill available={session.audioShared} muted={audio.muted} size="sm" />
+        <AudioSharingPill
+          available={session.audioShared}
+          muted={audio.muted}
+          size="sm"
+        />
         {isLive && <StreamStatusBadge status="live" size="sm" />}
       </div>
 
       {/* Camera preview. */}
-      <div style={{ position: "relative", aspectRatio: "16 / 9", background: "#000" }}>
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "16 / 9",
+          background: "#000",
+        }}
+      >
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={previewMuted}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
         />
         {(connecting || disconnected) && (
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: disconnected ? "rgba(0,0,0,0.55)" : "transparent", color: "rgba(255,255,255,0.8)", fontFamily: fonts.ui, fontSize: 12 }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              placeItems: "center",
+              background: disconnected ? "rgba(0,0,0,0.55)" : "transparent",
+              color: "rgba(255,255,255,0.8)",
+              fontFamily: fonts.ui,
+              fontSize: 12,
+            }}
+          >
             {disconnected ? "Disconnected" : "Connecting…"}
           </div>
         )}
       </div>
 
       {/* Controls. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 9px", borderTop: `1px solid ${colors.border}` }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          padding: "8px 9px",
+          borderTop: `1px solid ${colors.border}`,
+        }}
+      >
         {isLive ? (
-          <MiniButton icon={MonitorOff} title="End live. Close the external display." danger onClick={handleGoLive} />
+          <MiniButton
+            icon={MonitorOff}
+            title="End live. Close the external display."
+            danger
+            onClick={handleGoLive}
+          />
         ) : (
-          <MiniButton icon={MonitorUp} title="Go live on the external display" onClick={handleGoLive} />
+          <MiniButton
+            icon={MonitorUp}
+            title="Go live on the external display"
+            onClick={handleGoLive}
+          />
         )}
-        <span style={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "center" }}>
-          <StreamStatusBadge status={connectionBadgeStatus(session.status, isLive)} size="sm" />
+        <span
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <StreamStatusBadge
+            status={connectionBadgeStatus(session.status, isLive)}
+            size="sm"
+          />
         </span>
-        <MiniButton icon={Maximize2} title="Maximise to the full stream window" onClick={() => setStreamMode("stage")} />
-        <MiniButton icon={X} title="Stop. Disconnect this device." danger onClick={endStreamSession} />
+        <MiniButton
+          icon={Maximize2}
+          title="Maximise to the full stream window"
+          onClick={() => setStreamMode("stage")}
+        />
+        <MiniButton
+          icon={X}
+          title="Stop. Disconnect this device."
+          danger
+          onClick={endStreamSession}
+        />
       </div>
     </div>
   );

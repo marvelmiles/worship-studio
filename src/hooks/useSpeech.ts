@@ -51,7 +51,7 @@ export function useSpeech() {
         window.speechSynthesis.speak(utterance);
       });
     },
-    []
+    [],
   );
 
   useEffect(() => stop, [stop]);

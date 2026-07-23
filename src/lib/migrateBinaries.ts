@@ -7,7 +7,8 @@ interface LegacyMediaItem extends MediaItem {
   dataUrl?: string;
 }
 
-const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => (await fetch(dataUrl)).blob();
+const dataUrlToBlob = async (dataUrl: string): Promise<Blob> =>
+  (await fetch(dataUrl)).blob();
 
 /**
  * One-time upgrade of records created before blob storage: any media,
@@ -18,8 +19,12 @@ const dataUrlToBlob = async (dataUrl: string): Promise<Blob> => (await fetch(dat
 export async function migrateLegacyBinaries(
   media: MediaItem[],
   backgrounds: Background[],
-  audio: AudioItem[]
-): Promise<{ media: MediaItem[]; backgrounds: Background[]; audio: AudioItem[] }> {
+  audio: AudioItem[],
+): Promise<{
+  media: MediaItem[];
+  backgrounds: Background[];
+  audio: AudioItem[];
+}> {
   const migratedMedia: MediaItem[] = [];
   for (const item of media as LegacyMediaItem[]) {
     if (!item.dataUrl) {
@@ -37,7 +42,11 @@ export async function migrateLegacyBinaries(
           hasThumb = true;
         }
       }
-      const next: MediaItem = { ...item, size: item.size || blob.size, hasThumb };
+      const next: MediaItem = {
+        ...item,
+        size: item.size || blob.size,
+        hasThumb,
+      };
       delete (next as LegacyMediaItem).dataUrl;
       await saveRecord("media", next);
       migratedMedia.push(next);
@@ -57,7 +66,11 @@ export async function migrateLegacyBinaries(
       await putFileBlob(bg.id, blob);
       const probe = await probeImageFile(blob);
       if (probe.thumbnail) await putFileBlob(thumbId(bg.id), probe.thumbnail);
-      const next: Background = { ...bg, blobId: bg.id, size: bg.size || blob.size };
+      const next: Background = {
+        ...bg,
+        blobId: bg.id,
+        size: bg.size || blob.size,
+      };
       delete next.dataUrl;
       await saveRecord("backgrounds", next);
       migratedBackgrounds.push(next);
@@ -75,7 +88,11 @@ export async function migrateLegacyBinaries(
     try {
       const blob = await dataUrlToBlob(item.dataUrl);
       await putFileBlob(item.id, blob);
-      const next: AudioItem = { ...item, blobId: item.id, size: item.size || blob.size };
+      const next: AudioItem = {
+        ...item,
+        blobId: item.id,
+        size: item.size || blob.size,
+      };
       delete next.dataUrl;
       await saveRecord("audio", next);
       migratedAudio.push(next);
@@ -84,5 +101,9 @@ export async function migrateLegacyBinaries(
     }
   }
 
-  return { media: migratedMedia, backgrounds: migratedBackgrounds, audio: migratedAudio };
+  return {
+    media: migratedMedia,
+    backgrounds: migratedBackgrounds,
+    audio: migratedAudio,
+  };
 }

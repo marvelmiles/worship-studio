@@ -36,7 +36,10 @@ export async function deleteFileBlob(id: string): Promise<void> {
 }
 
 export async function deleteFileWithThumb(id: string): Promise<void> {
-  await Promise.all([deleteRecord("files", id), deleteRecord("files", thumbId(id))]);
+  await Promise.all([
+    deleteRecord("files", id),
+    deleteRecord("files", thumbId(id)),
+  ]);
 }
 
 export function isQuotaError(err: unknown): boolean {

@@ -39,7 +39,13 @@ export const createUploadsSlice: SliceCreator<UploadsSlice> = (set, get) => ({
     if (blockWrite(get)) return;
     if (files.length)
       set({
-        pendingUpload: { kind, files, savingIndex: null, savedCount: 0, onComplete },
+        pendingUpload: {
+          kind,
+          files,
+          savingIndex: null,
+          savedCount: 0,
+          onComplete,
+        },
       });
   },
 
@@ -51,11 +57,15 @@ export const createUploadsSlice: SliceCreator<UploadsSlice> = (set, get) => ({
     const savedIds: string[] = [];
     for (let i = 0; i < pending.files.length; i += 1) {
       set({
-        pendingUpload: { ...pending, savingIndex: i, savedCount: savedIds.length },
+        pendingUpload: {
+          ...pending,
+          savingIndex: i,
+          savedCount: savedIds.length,
+        },
       });
       const file = pending.files[i];
       const label = labels[i];
-      let id = "";
+      let id: string;
       if (pending.kind === "background")
         id = await get().uploadBackground(file, label);
       else if (pending.kind === "audio")

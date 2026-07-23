@@ -78,7 +78,10 @@ export function invalidateBlobUrl(id: string): void {
 type Disposer = () => void;
 
 /** Acquires exactly once and guarantees exactly one matching release. */
-function acquireManaged(id: string, onUrl: (url: string | null) => void): Disposer {
+function acquireManaged(
+  id: string,
+  onUrl: (url: string | null) => void,
+): Disposer {
   let disposed = false;
   let settled = false;
   void acquireBlobUrl(id).then((url) => {

@@ -73,7 +73,11 @@ interface CameraIdentity {
 function cameraIdentity(track?: MediaStreamTrack): CameraIdentity {
   if (!track) return {};
   const settings = track.getSettings();
-  return { deviceId: settings.deviceId, label: track.label, facingMode: settings.facingMode };
+  return {
+    deviceId: settings.deviceId,
+    label: track.label,
+    facingMode: settings.facingMode,
+  };
 }
 
 /**
@@ -98,7 +102,9 @@ function facingAttempts(facingMode: FacingMode): MediaStreamConstraints[] {
 }
 
 /** Opens the first of the given constraints that succeeds, or null if none do. */
-async function openFirstCamera(attempts: MediaStreamConstraints[]): Promise<MediaStream | null> {
+async function openFirstCamera(
+  attempts: MediaStreamConstraints[],
+): Promise<MediaStream | null> {
   for (const constraints of attempts) {
     try {
       return await navigator.mediaDevices.getUserMedia(constraints);
@@ -160,7 +166,7 @@ export async function openCameraFacing(
   currentTrack?.stop();
 
   for (const constraints of switchAttempts) {
-    let opened: MediaStream | null = null;
+    let opened: MediaStream;
     try {
       opened = await navigator.mediaDevices.getUserMedia(constraints);
     } catch {
@@ -183,7 +189,9 @@ export async function openCameraFacing(
   const restored = await openFirstCamera(restoreAttempts);
   if (restored) return { stream: restored, switched: false };
 
-  throw new Error("Camera switch failed and the original could not be reopened");
+  throw new Error(
+    "Camera switch failed and the original could not be reopened",
+  );
 }
 
 /**
@@ -210,10 +218,15 @@ const AUDIO_QUALITY: MediaTrackConstraints = {
  * the mic and appends its track; disabling stops and detaches every audio
  * track. The video already flowing is untouched either way.
  */
-export async function setStreamAudioEnabled(stream: MediaStream, enabled: boolean): Promise<void> {
+export async function setStreamAudioEnabled(
+  stream: MediaStream,
+  enabled: boolean,
+): Promise<void> {
   if (enabled) {
     if (stream.getAudioTracks().length > 0) return;
-    const mic = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_QUALITY });
+    const mic = await navigator.mediaDevices.getUserMedia({
+      audio: AUDIO_QUALITY,
+    });
     const track = mic.getAudioTracks()[0];
     if (track) stream.addTrack(track);
     return;

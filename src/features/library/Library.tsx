@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Music, Pencil, Play, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Music, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { colors, CATEGORIES, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -12,7 +12,10 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { KeepOnResetBadge, KeepOnResetToggle } from "../../components/ui/KeepOnResetToggle";
+import {
+  KeepOnResetBadge,
+  KeepOnResetToggle,
+} from "../../components/ui/KeepOnResetToggle";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
@@ -46,7 +49,7 @@ export function Library() {
       base = base.filter((s) =>
         [s.title, s.artist, s.category, s.lyrics]
           .filter(Boolean)
-          .some((f) => (f as string).toLowerCase().includes(term))
+          .some((f) => (f as string).toLowerCase().includes(term)),
       );
     return base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
   }, [songs, query, category, trashView]);
@@ -55,10 +58,17 @@ export function Library() {
     <div className="ws-page">
       <PageHeader
         title={trashView ? "Trash" : "Songs"}
-        subtitle={trashView ? undefined : "Lyrics turned into styled, presentable slides."}
+        subtitle={
+          trashView
+            ? undefined
+            : "Lyrics turned into styled, presentable slides."
+        }
         actions={
           <>
-            <Button variant={trashView ? "primary" : "ghost"} onClick={() => setTrashView(!trashView)}>
+            <Button
+              variant={trashView ? "primary" : "ghost"}
+              onClick={() => setTrashView(!trashView)}
+            >
               <Trash2 size={15} />
               {trashView ? "Songs" : "Trash"}
             </Button>
@@ -74,7 +84,11 @@ export function Library() {
 
       {!trashView && (
         <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
-          <SearchInput value={query} onChange={setQuery} placeholder="Search by title, artist, lyrics…" />
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by title, artist, lyrics…"
+          />
           <PillTabs
             tabs={["All", ...CATEGORIES].map((c) => ({ id: c, label: c }))}
             value={category}
@@ -113,13 +127,19 @@ export function Library() {
       <div className="ws-card-grid">
         {list.map((s) => {
           const first = s.slides?.[0];
-          const theme = themes.find((t) => t.id === s.defaultThemeId) || themes[0];
-          const bg = bgMap[s.defaultBackgroundId || theme.backgroundId] || backgrounds[0];
+          const theme =
+            themes.find((t) => t.id === s.defaultThemeId) || themes[0];
+          const bg =
+            bgMap[s.defaultBackgroundId || theme.backgroundId] ||
+            backgrounds[0];
           return (
             <div key={s.id} className="ws-glass ws-card">
               <div
                 onClick={() => !trashView && navigate(`/songs/${s.id}`)}
-                style={{ cursor: trashView ? "default" : "pointer", position: "relative" }}
+                style={{
+                  cursor: trashView ? "default" : "pointer",
+                  position: "relative",
+                }}
               >
                 {first ? (
                   <SlideCanvas
@@ -127,12 +147,16 @@ export function Library() {
                     bg={bg}
                     radius={0}
                     style={resolveStyle(first, s, theme)}
-                    lineStyles={first.lines.map((_, i) => resolveLineStyle(first, i, s, theme))}
+                    lineStyles={first.lines.map((_, i) =>
+                      resolveLineStyle(first, i, s, theme),
+                    )}
                   />
                 ) : (
                   <BgSwatch bg={bg} style={{ aspectRatio: "16/9" }} />
                 )}
-                <div className="ws-thumb-badge">{s.slides?.length || 0} slides</div>
+                <div className="ws-thumb-badge">
+                  {s.slides?.length || 0} slides
+                </div>
               </div>
               <div className="ws-card-body">
                 <div className="ws-card-title">
@@ -159,11 +183,19 @@ export function Library() {
                 <div className="ws-card-actions">
                   {trashView ? (
                     <>
-                      <Button size="sm" variant="ghost" onClick={() => restoreSong(s.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => restoreSong(s.id)}
+                      >
                         <RotateCcw size={13} />
                         Restore
                       </Button>
-                      <Button size="sm" variant="danger" onClick={() => deleteSong(s.id)}>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => deleteSong(s.id)}
+                      >
                         <Trash2 size={13} />
                         Delete
                       </Button>
@@ -175,14 +207,29 @@ export function Library() {
                           startPresent("song", s.id, 0, pip ? "pip" : "stage")
                         }
                       />
-                      <Button size="sm" variant="ghost" onClick={() => navigate(`/songs/${s.id}`)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/songs/${s.id}`)}
+                      >
                         <Pencil size={13} />
                         Edit
                       </Button>
                       {!s.builtIn && (
-                        <div style={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+                        <div
+                          style={{
+                            marginLeft: "auto",
+                            display: "flex",
+                            gap: 2,
+                          }}
+                        >
                           <KeepOnResetToggle kind="song" item={s} />
-                          <IconButton icon={Trash2} title="Move to trash" danger onClick={() => trashSong(s.id)} />
+                          <IconButton
+                            icon={Trash2}
+                            title="Move to trash"
+                            danger
+                            onClick={() => trashSong(s.id)}
+                          />
                         </div>
                       )}
                     </>

@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Minimize2, MonitorPlay, MonitorX, PictureInPicture2, Volume2, VolumeX, X } from "lucide-react";
+import {
+  Maximize2,
+  Minimize2,
+  MonitorPlay,
+  MonitorX,
+  PictureInPicture2,
+  Volume2,
+  VolumeX,
+  X,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
@@ -97,7 +106,10 @@ export function ProjectionSurface({
           : "Projection window opened. Drag it to your display, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
-      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
+      pushToast(
+        "Popup blocked. Allow popups for this site to go live.",
+        "error",
+      );
     }
   };
 
@@ -140,11 +152,28 @@ export function ProjectionSurface({
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+            flexWrap: "wrap",
+          }}
+        >
           <StreamStatusBadge status={connectionBadgeStatus(status, isLive)} />
           <AudioSharingPill available={audioShared} muted={audio.muted} />
           {deviceName && (
-            <span className="ws-ellipsis" style={{ fontFamily: fonts.ui, fontSize: 13, fontWeight: 600, color: colors.text, minWidth: 0 }}>
+            <span
+              className="ws-ellipsis"
+              style={{
+                fontFamily: fonts.ui,
+                fontSize: 13,
+                fontWeight: 600,
+                color: colors.text,
+                minWidth: 0,
+              }}
+            >
               {deviceName}
             </span>
           )}
@@ -156,7 +185,11 @@ export function ProjectionSurface({
               variant={audio.muted ? "ghost" : "primary"}
               size="sm"
               onClick={audio.toggleMuted}
-              title={audio.muted ? "Unmute the sender's audio" : "Mute the sender's audio"}
+              title={
+                audio.muted
+                  ? "Unmute the sender's audio"
+                  : "Mute the sender's audio"
+              }
             >
               {audio.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
               {audio.muted ? "Unmute audio" : "Mute audio"}
@@ -172,7 +205,12 @@ export function ProjectionSurface({
               Pop out
             </Button>
           )}
-          <Button variant={isLive ? "danger" : "primary"} size="sm" onClick={handleGoLive} disabled={disconnected && !isLive}>
+          <Button
+            variant={isLive ? "danger" : "primary"}
+            size="sm"
+            onClick={handleGoLive}
+            disabled={disconnected && !isLive}
+          >
             {isLive ? <MonitorX size={14} /> : <MonitorPlay size={14} />}
             {isLive ? "End live" : "Go live"}
           </Button>
@@ -184,13 +222,25 @@ export function ProjectionSurface({
       </div>
 
       {/* Video: full width, all remaining height, floored at a usable minimum. */}
-      <div style={{ position: "relative", flex: 1, minHeight: MIN_VIDEO_HEIGHT, background: "#000" }}>
+      <div
+        style={{
+          position: "relative",
+          flex: 1,
+          minHeight: MIN_VIDEO_HEIGHT,
+          background: "#000",
+        }}
+      >
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted={previewMuted}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
         />
         {disconnected && (
           <div
@@ -205,11 +255,26 @@ export function ProjectionSurface({
             }}
           >
             <div>
-              <div style={{ fontFamily: fonts.display, fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 6 }}>
+              <div
+                style={{
+                  fontFamily: fonts.display,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "#fff",
+                  marginBottom: 6,
+                }}
+              >
                 The camera disconnected
               </div>
-              <div style={{ fontFamily: fonts.ui, fontSize: 13.5, color: "rgba(255,255,255,0.7)" }}>
-                Press Stop to close this view, then reconnect from the device list.
+              <div
+                style={{
+                  fontFamily: fonts.ui,
+                  fontSize: 13.5,
+                  color: "rgba(255,255,255,0.7)",
+                }}
+              >
+                Press Stop to close this view, then reconnect from the device
+                list.
               </div>
             </div>
           </div>

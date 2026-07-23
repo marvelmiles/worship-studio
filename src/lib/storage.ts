@@ -70,7 +70,8 @@ function openIDB(): Promise<IDBDatabase | null> {
       req.onupgradeneeded = () => {
         const db = req.result;
         STORES.forEach((s) => {
-          if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: "id" });
+          if (!db.objectStoreNames.contains(s))
+            db.createObjectStore(s, { keyPath: "id" });
         });
       };
       req.onsuccess = () => resolve(req.result);
@@ -112,7 +113,10 @@ function loadSessionIntoMem() {
 function persistSession(store: StoreName) {
   if (SESSION_SKIP.has(store)) return;
   try {
-    sessionStorage.setItem(SESSION_PREFIX + store, JSON.stringify(Array.from(mem[store].values())));
+    sessionStorage.setItem(
+      SESSION_PREFIX + store,
+      JSON.stringify(Array.from(mem[store].values())),
+    );
   } catch {
     /* quota errors are prevented proactively by the storage guard */
   }
@@ -152,7 +156,9 @@ export async function getBackend(): Promise<Backend> {
   return init();
 }
 
-export async function readAllRecords<T extends HasId>(store: StoreName): Promise<T[]> {
+export async function readAllRecords<T extends HasId>(
+  store: StoreName,
+): Promise<T[]> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
@@ -169,7 +175,10 @@ export async function readAllRecords<T extends HasId>(store: StoreName): Promise
   return Array.from(mem[store].values()) as T[];
 }
 
-export async function readRecord<T extends HasId>(store: StoreName, id: string): Promise<T | undefined> {
+export async function readRecord<T extends HasId>(
+  store: StoreName,
+  id: string,
+): Promise<T | undefined> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve) => {
@@ -186,7 +195,10 @@ export async function readRecord<T extends HasId>(store: StoreName, id: string):
   return mem[store].get(id) as T | undefined;
 }
 
-export async function saveRecord<T extends HasId>(store: StoreName, val: T): Promise<void> {
+export async function saveRecord<T extends HasId>(
+  store: StoreName,
+  val: T,
+): Promise<void> {
   try {
     await saveRecordStrict(store, val);
   } catch {
@@ -200,7 +212,10 @@ export async function saveRecord<T extends HasId>(store: StoreName, val: T): Pro
  * IndexedDB the value is NOT kept in the in-memory map, critical for Blobs,
  * which would otherwise pin the whole file in RAM for the session.
  */
-export async function saveRecordStrict<T extends HasId>(store: StoreName, val: T): Promise<void> {
+export async function saveRecordStrict<T extends HasId>(
+  store: StoreName,
+  val: T,
+): Promise<void> {
   const backend = await init();
   if (backend === "indexeddb" && idb) {
     return new Promise((resolve, reject) => {
@@ -208,8 +223,10 @@ export async function saveRecordStrict<T extends HasId>(store: StoreName, val: T
         const tx = idb!.transaction(store, "readwrite");
         tx.objectStore(store).put(val);
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error || new Error("IndexedDB write failed"));
-        tx.onabort = () => reject(tx.error || new Error("IndexedDB transaction aborted"));
+        tx.onerror = () =>
+          reject(tx.error || new Error("IndexedDB write failed"));
+        tx.onabort = () =>
+          reject(tx.error || new Error("IndexedDB transaction aborted"));
       } catch (err) {
         reject(err);
       }
@@ -219,7 +236,10 @@ export async function saveRecordStrict<T extends HasId>(store: StoreName, val: T
   if (backend === "session") persistSession(store);
 }
 
-export async function deleteRecord(store: StoreName, id: string): Promise<void> {
+export async function deleteRecord(
+  store: StoreName,
+  id: string,
+): Promise<void> {
   const backend = await init();
   mem[store].delete(id);
   if (backend === "indexeddb" && idb) {
@@ -302,12 +322,16 @@ export async function estimateQuota(): Promise<QuotaEstimate> {
   const backend = await init();
   if (backend === "indexeddb") {
     try {
-      if (navigator.storage && typeof navigator.storage.estimate === "function") {
+      if (
+        navigator.storage &&
+        typeof navigator.storage.estimate === "function"
+      ) {
         const e = await navigator.storage.estimate();
         // Note: this quota is dynamic, browsers may grow it as the origin
         // stores more data. The meter shows usage as a percentage of it, so
         // levels reflect how close we are to the CURRENT grant, not a fixed max.
-        if (e.quota) return { quota: e.quota, usage: e.usage || 0, fromEstimate: true };
+        if (e.quota)
+          return { quota: e.quota, usage: e.usage || 0, fromEstimate: true };
       }
     } catch {
       /* fall through to nominal */

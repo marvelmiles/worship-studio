@@ -27,7 +27,10 @@ declare global {
 
 let current: MediaStream | null = null;
 
-export const streamLiveWindow = createLiveWindow("/stream-live", STREAM_WINDOW_NAME);
+export const streamLiveWindow = createLiveWindow(
+  "/stream-live",
+  STREAM_WINDOW_NAME,
+);
 
 /** Publishes (or clears) the stream the projection popup should display. */
 export function setLiveStream(stream: MediaStream | null): void {

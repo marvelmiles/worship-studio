@@ -22,8 +22,21 @@ export function ShortcutsModal() {
   const close = useStore((s) => s.closeOverlay);
 
   return (
-    <Modal open={overlay === "shortcuts"} onClose={close} title="Keyboard Shortcuts" width={540}>
-      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
+    <Modal
+      open={overlay === "shortcuts"}
+      onClose={close}
+      title="Keyboard Shortcuts"
+      width={540}
+    >
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: colors.sub,
+          marginTop: 0,
+          lineHeight: 1.6,
+        }}
+      >
         These shortcuts are available while presenting.
       </p>
       {SHORTCUT_GROUPS.map((group) => (
@@ -52,13 +65,27 @@ export function ShortcutsModal() {
                 justifyContent: "space-between",
                 gap: 12,
                 padding: "8px 0",
-                borderBottom: i < group.shortcuts.length - 1 ? `1px solid ${colors.border}` : "none",
+                borderBottom:
+                  i < group.shortcuts.length - 1
+                    ? `1px solid ${colors.border}`
+                    : "none",
               }}
             >
-              <span style={{ fontFamily: UI, fontSize: 13.5, color: colors.text }}>
+              <span
+                style={{ fontFamily: UI, fontSize: 13.5, color: colors.text }}
+              >
                 {shortcut.description}
               </span>
-              <span style={{ display: "flex", gap: 5, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 260 }}>
+              <span
+                style={{
+                  display: "flex",
+                  gap: 5,
+                  flexShrink: 0,
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
+                  maxWidth: 260,
+                }}
+              >
                 {shortcut.keys.map((key) => (
                   <kbd key={key} style={keyStyle}>
                     {key}

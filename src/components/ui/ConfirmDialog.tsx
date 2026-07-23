@@ -38,8 +38,20 @@ export function ConfirmDialog({
       }
     >
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <AlertTriangle size={20} color={colors.danger} style={{ flexShrink: 0, marginTop: 1 }} />
-        <p style={{ fontFamily: UI, fontSize: 13.5, color: colors.text, lineHeight: 1.6, margin: 0 }}>
+        <AlertTriangle
+          size={20}
+          color={colors.danger}
+          style={{ flexShrink: 0, marginTop: 1 }}
+        />
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 13.5,
+            color: colors.text,
+            lineHeight: 1.6,
+            margin: 0,
+          }}
+        >
           {message}
         </p>
       </div>

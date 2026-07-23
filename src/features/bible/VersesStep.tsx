@@ -24,12 +24,35 @@ export function VersesStep({
   onOpenVerse: (verse: number) => void;
   onReadWholeChapter: () => void;
 }) {
-  const { verses, loading, error, retry } = useBibleChapter(version, book.id, chapter);
+  const { verses, loading, error, retry } = useBibleChapter(
+    version,
+    book.id,
+    chapter,
+  );
 
   return (
-    <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 12 }}>
-      <div className="ws-row-wrap" style={{ alignItems: "center", marginBottom: 4 }}>
-        <h2 style={{ fontFamily: DISPLAY, fontSize: 22, fontWeight: 600, color: colors.text, margin: "2px 0" }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        paddingRight: 6,
+        paddingBottom: 12,
+      }}
+    >
+      <div
+        className="ws-row-wrap"
+        style={{ alignItems: "center", marginBottom: 4 }}
+      >
+        <h2
+          style={{
+            fontFamily: DISPLAY,
+            fontSize: 22,
+            fontWeight: 600,
+            color: colors.text,
+            margin: "2px 0",
+          }}
+        >
           {book.name} {chapter}
         </h2>
         <span style={{ flex: 1 }} />
@@ -38,7 +61,14 @@ export function VersesStep({
           Read full chapter
         </Button>
       </div>
-      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, margin: "0 0 16px" }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: colors.sub,
+          margin: "0 0 16px",
+        }}
+      >
         Jump straight to a verse, or read the whole chapter.
       </p>
       {loading && (
@@ -48,7 +78,16 @@ export function VersesStep({
       )}
       {!loading && error && (
         <div style={{ padding: 26, textAlign: "center" }}>
-          <p style={{ fontFamily: UI, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>{error}</p>
+          <p
+            style={{
+              fontFamily: UI,
+              color: colors.sub,
+              marginTop: 0,
+              lineHeight: 1.6,
+            }}
+          >
+            {error}
+          </p>
           <Button variant="primary" onClick={retry}>
             <RotateCcw size={14} />
             Try again
@@ -56,12 +95,20 @@ export function VersesStep({
         </div>
       )}
       {!loading && !error && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(56px,1fr))", gap: 8 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(56px,1fr))",
+            gap: 8,
+          }}
+        >
           {verses.map((verse) => (
             <button
               key={verse.v}
               onClick={() => onOpenVerse(verse.v)}
-              title={verse.t.length > 140 ? `${verse.t.slice(0, 140)}…` : verse.t}
+              title={
+                verse.t.length > 140 ? `${verse.t.slice(0, 140)}…` : verse.t
+              }
               style={tileStyle(false)}
             >
               {verse.v}

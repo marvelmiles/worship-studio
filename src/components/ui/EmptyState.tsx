@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Sparkles } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 
@@ -16,7 +15,14 @@ interface EmptyStateProps {
 }
 
 /** Friendly illustrated placeholder shown wherever a list has nothing in it. */
-export function EmptyState({ icon: Icon, title, message, action, compact, bare }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  message,
+  action,
+  compact,
+  bare,
+}: EmptyStateProps) {
   const { colors, fonts, glass } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -67,22 +73,6 @@ export function EmptyState({ icon: Icon, title, message, action, compact, bare }
         >
           <Icon size={26} />
         </div>
-        <Sparkles
-          size={15}
-          color={colors.accentSoft}
-          style={{ position: "absolute", top: 4, right: 2 }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: 10,
-            left: 2,
-            width: 7,
-            height: 7,
-            borderRadius: "50%",
-            background: fade(colors.accent, 0.55),
-          }}
-        />
       </div>
       <h3
         style={{
@@ -108,7 +98,11 @@ export function EmptyState({ icon: Icon, title, message, action, compact, bare }
         {message}
       </p>
       {action && (
-        <div style={{ marginTop: 18, display: "flex", justifyContent: "center" }}>{action}</div>
+        <div
+          style={{ marginTop: 18, display: "flex", justifyContent: "center" }}
+        >
+          {action}
+        </div>
       )}
     </div>
   );

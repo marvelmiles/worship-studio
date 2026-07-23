@@ -16,7 +16,11 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
-import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import {
+  resolveBackground,
+  resolveLineStyle,
+  resolveStyle,
+} from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
 
@@ -120,8 +124,14 @@ function SortableRow({
   shortcutNum,
   fixedShortcut,
 }: RowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: slide.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: slide.id });
 
   const selected = slide.id === selId;
   const allSlidesMode = doc.shortcutMode === "all-slides";
@@ -184,7 +194,9 @@ function SortableRow({
           slide={slide}
           bg={resolveBackground(slide, doc, theme, bgMap)}
           style={resolveStyle(slide, doc, theme)}
-          lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, doc, theme))}
+          lineStyles={slide.lines.map((_, i) =>
+            resolveLineStyle(slide, i, doc, theme),
+          )}
           showLabel={false}
           radius={7}
         />
@@ -250,7 +262,7 @@ export function SortableSlideList({
 }: SortableSlideListProps) {
   // Small activation distance so a plain click still selects the slide.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -263,13 +275,22 @@ export function SortableSlideList({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext
+        items={slides.map((s) => s.id)}
+        strategy={verticalListSortingStrategy}
+      >
         {slides.map((s, i) => {
           const allSlidesMode = doc.shortcutMode === "all-slides";
           const group = tagGroups?.find((g) => g.firstIndex === i);
           const shortcutNum = allSlidesMode ? i + 1 : group?.shortcutNum;
-          const fixedShortcut = group ? FIXED_SHORTCUT_BY_TYPE[group.type] : undefined;
+          const fixedShortcut = group
+            ? FIXED_SHORTCUT_BY_TYPE[group.type]
+            : undefined;
           return (
             <SortableRow
               key={s.id}

@@ -45,9 +45,13 @@ export function findBook(name: string): BibleBook | null {
   const key = normalize(name);
   if (!key) return null;
   return (
-    BIBLE_BOOKS.find((b) => normalize(b.name) === key || b.aliases.includes(key)) ||
     BIBLE_BOOKS.find(
-      (b) => normalize(b.name).startsWith(key) || b.aliases.some((a) => a.startsWith(key))
+      (b) => normalize(b.name) === key || b.aliases.includes(key),
+    ) ||
+    BIBLE_BOOKS.find(
+      (b) =>
+        normalize(b.name).startsWith(key) ||
+        b.aliases.some((a) => a.startsWith(key)),
     ) ||
     null
   );
@@ -63,7 +67,7 @@ export function parseReference(input: string): ParsedReference | null {
   const match = input
     .trim()
     .match(
-      /^(\d?\s*[a-zA-Z][a-zA-Z\s.]*?)\s*(?:(\d+)(?:\s*[:.]\s*(\d+)(?:\s*[-–—]\s*(\d+))?)?)?$/
+      /^(\d?\s*[a-zA-Z][a-zA-Z\s.]*?)\s*(?:(\d+)(?:\s*[:.]\s*(\d+)(?:\s*[-–—]\s*(\d+))?)?)?$/,
     );
   if (!match) return null;
 
@@ -76,7 +80,8 @@ export function parseReference(input: string): ParsedReference | null {
 
   const verseCount = CHAPTER_VERSE_COUNTS[book.id - 1][chapter - 1];
   const verseStart = rawStart ? parseInt(rawStart, 10) : undefined;
-  if (verseStart !== undefined && (verseStart < 1 || verseStart > verseCount)) return null;
+  if (verseStart !== undefined && (verseStart < 1 || verseStart > verseCount))
+    return null;
 
   let verseEnd = rawEnd ? parseInt(rawEnd, 10) : verseStart;
   if (verseStart !== undefined && verseEnd !== undefined) {
@@ -84,15 +89,25 @@ export function parseReference(input: string): ParsedReference | null {
     // the chapter actually holds instead of failing the whole reference.
     verseEnd = Math.min(Math.max(verseEnd, verseStart), verseCount);
   }
-  return { book, chapter, verseStart, verseEnd, hasChapter: Boolean(rawChapter) };
+  return {
+    book,
+    chapter,
+    verseStart,
+    verseEnd,
+    hasChapter: Boolean(rawChapter),
+  };
 }
 
 export function formatRange(range: PassageRange): string {
   const { bookName, chapter, verseStart, verseEnd } = range;
-  const verses = verseStart === verseEnd ? `${verseStart}` : `${verseStart}-${verseEnd}`;
+  const verses =
+    verseStart === verseEnd ? `${verseStart}` : `${verseStart}-${verseEnd}`;
   return `${bookName} ${chapter}:${verses}`;
 }
 
-export function formatReference(range: PassageRange, version?: BibleVersionId): string {
+export function formatReference(
+  range: PassageRange,
+  version?: BibleVersionId,
+): string {
   return version ? `${formatRange(range)} (${version})` : formatRange(range);
 }

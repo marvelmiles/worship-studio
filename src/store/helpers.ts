@@ -7,8 +7,10 @@ export const BLOCK_MSG =
 export const WARN_MSG =
   "Storage is getting full. Consider deleting unused songs, media, audio or backgrounds so things keep running smoothly.";
 
-export const customBackgrounds = (items: Background[]) => items.filter((b) => !b.builtIn);
-export const customAudio = (items: AudioItem[]) => items.filter((a) => !a.builtIn);
+export const customBackgrounds = (items: Background[]) =>
+  items.filter((b) => !b.builtIn);
+export const customAudio = (items: AudioItem[]) =>
+  items.filter((a) => !a.builtIn);
 
 // Returns true (and alerts) when an additive write must be blocked.
 export function blockWrite(get: Getter): boolean {
@@ -25,7 +27,8 @@ export function afterWrite(get: Getter): void {
     .refreshStorage()
     .then((info) => {
       if (!info) return;
-      if (!info.blocked && info.level !== "ok") get().pushAlert(WARN_MSG, "warning", "storage-warn");
+      if (!info.blocked && info.level !== "ok")
+        get().pushAlert(WARN_MSG, "warning", "storage-warn");
       else if (info.level === "ok") get().clearAlert("storage-warn");
     });
 }
@@ -44,7 +47,7 @@ export function afterDelete(get: Getter): void {
 export function mergeById<T extends { id: string }>(
   existing: T[],
   incoming: T[],
-  importedWins: boolean
+  importedWins: boolean,
 ): T[] {
   const map = new Map<string, T>();
   for (const item of importedWins ? existing : incoming) map.set(item.id, item);
@@ -67,5 +70,8 @@ export function sortBuiltInFirst(themes: Theme[]): Theme[] {
 
 export function ensureBuiltInThemes(themes: Theme[]): Theme[] {
   const present = new Set(themes.map((t) => t.id));
-  return sortBuiltInFirst([...themes, ...THEMES.filter((t) => !present.has(t.id))]);
+  return sortBuiltInFirst([
+    ...themes,
+    ...THEMES.filter((t) => !present.has(t.id)),
+  ]);
 }

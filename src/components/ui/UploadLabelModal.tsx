@@ -41,7 +41,8 @@ function StatusBadge({ status }: { status: RowStatus }) {
   );
   if (status === "saved")
     return box(fade(colors.accent, 0.18), colors.accent, <Check size={15} />);
-  if (status === "saving") return box("transparent", colors.accent, <Spinner size={16} />);
+  if (status === "saving")
+    return box("transparent", colors.accent, <Spinner size={16} />);
   return box("transparent", colors.dim, <Clock size={15} />);
 }
 
@@ -66,7 +67,10 @@ export function UploadLabelModal() {
         : [],
     [files],
   );
-  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
+  useEffect(
+    () => () => previews.forEach((url) => URL.revokeObjectURL(url)),
+    [previews],
+  );
 
   if (!pending) return null;
 
@@ -98,20 +102,41 @@ export function UploadLabelModal() {
           <Button onClick={cancel} disabled={saving}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={() => void commit(labels)} busy={saving}>
+          <Button
+            variant="primary"
+            onClick={() => void commit(labels)}
+            busy={saving}
+          >
             {count > 1 ? `Save ${count} items` : "Save"}
           </Button>
         </>
       }
     >
       {saving && count > 1 ? (
-        <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
-          {pending.savedCount} of {count} uploaded. Please keep this window open.
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 13,
+            color: colors.sub,
+            marginTop: 0,
+            lineHeight: 1.6,
+          }}
+        >
+          {pending.savedCount} of {count} uploaded. Please keep this window
+          open.
         </p>
       ) : (
-        <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
-          Give {count > 1 ? "each upload" : "this upload"} a label to find it easily later. Labels
-          default to the file name.
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 13,
+            color: colors.sub,
+            marginTop: 0,
+            lineHeight: 1.6,
+          }}
+        >
+          Give {count > 1 ? "each upload" : "this upload"} a label to find it
+          easily later. Labels default to the file name.
         </p>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -152,7 +177,11 @@ export function UploadLabelModal() {
                     color: colors.accentSoft,
                   }}
                 >
-                  {pending.kind === "video" ? <Film size={17} /> : <Music size={17} />}
+                  {pending.kind === "video" ? (
+                    <Film size={17} />
+                  ) : (
+                    <Music size={17} />
+                  )}
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { Song } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { Button } from "../../components/ui/Button";
@@ -13,7 +13,12 @@ interface LyricsModalProps {
   onRegenerate: (lyrics: string, maxLines: number) => void;
 }
 
-export function LyricsModal({ open, onClose, song, onRegenerate }: LyricsModalProps) {
+export function LyricsModal({
+  open,
+  onClose,
+  song,
+  onRegenerate,
+}: LyricsModalProps) {
   const [lyrics, setLyrics] = useState(song.lyrics);
   const [maxLines, setMaxLines] = useState(song.maxLines || 6);
 
@@ -39,19 +44,27 @@ export function LyricsModal({ open, onClose, song, onRegenerate }: LyricsModalPr
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button variant="primary" onClick={regenerate}>
-            <Sparkles size={15} />
+            <RefreshCw size={15} />
             Regenerate slides
           </Button>
         </>
       }
     >
-      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: colors.sub,
+          marginTop: 0,
+          lineHeight: 1.6,
+        }}
+      >
         Tags:{" "}
         <code style={{ color: colors.accentSoft }}>
           [verse] [chorus] [bridge] [intro] [outro] [tag] [refrain] [pre-chorus]
         </code>
-        . Repeated sections auto-number (Verse 1, Verse 2). No tags → blank lines become numbered
-        verses. Long sections split automatically.
+        . Repeated sections auto-number (Verse 1, Verse 2). No tags → blank
+        lines become numbered verses. Long sections split automatically.
       </p>
       <textarea
         value={lyrics}
@@ -67,10 +80,23 @@ export function LyricsModal({ open, onClose, song, onRegenerate }: LyricsModalPr
       />
       <div style={{ marginTop: 12 }}>
         <Field label={`Max lines per slide (${maxLines})`}>
-          <Range value={maxLines} min={2} max={10} onChange={(e) => setMaxLines(Number(e.target.value))} />
+          <Range
+            value={maxLines}
+            min={2}
+            max={10}
+            onChange={(e) => setMaxLines(Number(e.target.value))}
+          />
         </Field>
       </div>
-      <p style={{ fontFamily: UI, fontSize: 12, color: colors.danger, opacity: 0.85, margin: 0 }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 12,
+          color: colors.danger,
+          opacity: 0.85,
+          margin: 0,
+        }}
+      >
         Regenerating rebuilds slides from lyrics and resets per-slide overrides.
       </p>
     </Modal>

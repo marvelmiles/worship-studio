@@ -1,5 +1,11 @@
 import { useMemo } from "react";
-import type { ContentKind, MediaItem, Slide, SlideDeckDoc, Theme } from "../../types";
+import type {
+  ContentKind,
+  MediaItem,
+  Slide,
+  SlideDeckDoc,
+  Theme,
+} from "../../types";
 import { useStore } from "../../store/useStore";
 import { sortMediaByRecency } from "../../lib/media";
 
@@ -24,7 +30,10 @@ export interface Deck {
  * scripture passages become text decks; presenting an image navigates the
  * whole image library as a slideshow; a video is a single-slide deck.
  */
-export function useDeck(kind: ContentKind | undefined, id: string | undefined): Deck | null {
+export function useDeck(
+  kind: ContentKind | undefined,
+  id: string | undefined,
+): Deck | null {
   const songs = useStore((s) => s.songs);
   const scriptures = useStore((s) => s.scriptures);
   const media = useStore((s) => s.media);
@@ -35,9 +44,12 @@ export function useDeck(kind: ContentKind | undefined, id: string | undefined): 
 
     if (kind === "song" || kind === "scripture") {
       const doc: SlideDeckDoc | undefined =
-        kind === "song" ? songs.find((s) => s.id === id) : scriptures.find((s) => s.id === id);
+        kind === "song"
+          ? songs.find((s) => s.id === id)
+          : scriptures.find((s) => s.id === id);
       if (!doc) return null;
-      const theme = themes.find((t) => t.id === doc.defaultThemeId) || themes[0];
+      const theme =
+        themes.find((t) => t.id === doc.defaultThemeId) || themes[0];
       return {
         kind,
         id,
@@ -45,12 +57,17 @@ export function useDeck(kind: ContentKind | undefined, id: string | undefined): 
         rev: doc.updatedAt,
         doc,
         theme,
-        slides: (doc.slides || []).map((slide) => ({ kind: "text" as const, slide })),
+        slides: (doc.slides || []).map((slide) => ({
+          kind: "text" as const,
+          slide,
+        })),
       };
     }
 
     if (kind === "image") {
-      const images = media.filter((m) => m.kind === "image").sort(sortMediaByRecency);
+      const images = media
+        .filter((m) => m.kind === "image")
+        .sort(sortMediaByRecency);
       const target = images.find((m) => m.id === id);
       if (!target) return null;
       return {
@@ -76,6 +93,11 @@ export function useDeck(kind: ContentKind | undefined, id: string | undefined): 
 
 /** Index of an item inside the image slideshow deck ordering. */
 export function imageDeckIndex(media: MediaItem[], id: string): number {
-  const images = media.filter((m) => m.kind === "image").sort(sortMediaByRecency);
-  return Math.max(0, images.findIndex((m) => m.id === id));
+  const images = media
+    .filter((m) => m.kind === "image")
+    .sort(sortMediaByRecency);
+  return Math.max(
+    0,
+    images.findIndex((m) => m.id === id),
+  );
 }

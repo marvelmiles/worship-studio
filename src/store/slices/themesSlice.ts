@@ -31,7 +31,8 @@ export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
 
   createTheme: () => {
     if (blockWrite(get)) return null;
-    const base = get().themes.find((t) => t.id === "classic") || get().themes[0];
+    const base =
+      get().themes.find((t) => t.id === "classic") || get().themes[0];
     const theme: Theme = {
       ...base,
       id: uid(),

@@ -39,7 +39,9 @@ export function useBibleSearch(version: BibleVersionId, query: string) {
         searchBibleVerses(version, term, page, controller.signal)
           .then((res) => {
             if (controller.signal.aborted) return;
-            setResults((prev) => (page === 1 ? res.results : [...prev, ...res.results]));
+            setResults((prev) =>
+              page === 1 ? res.results : [...prev, ...res.results],
+            );
             setTotal(res.total);
             setLoading(false);
           })
@@ -49,7 +51,7 @@ export function useBibleSearch(version: BibleVersionId, query: string) {
             setLoading(false);
           });
       },
-      page === 1 ? DEBOUNCE_MS : 0
+      page === 1 ? DEBOUNCE_MS : 0,
     );
     return () => {
       window.clearTimeout(timer);

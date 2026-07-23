@@ -24,13 +24,23 @@ export function Toaster() {
       }}
     >
       {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
+        <ToastItem
+          key={toast.id}
+          toast={toast}
+          onDismiss={() => dismiss(toast.id)}
+        />
       ))}
     </div>
   );
 }
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
+function ToastItem({
+  toast,
+  onDismiss,
+}: {
+  toast: Toast;
+  onDismiss: () => void;
+}) {
   const { colors, fonts, glass, shadows } = useUITheme();
   const UI = fonts.ui;
   useEffect(() => {
@@ -61,7 +71,11 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       }}
     >
       <Icon size={19} color={accent} />
-      <span style={{ flex: 1, fontFamily: UI, fontSize: 13.5, color: colors.text }}>{toast.message}</span>
+      <span
+        style={{ flex: 1, fontFamily: UI, fontSize: 13.5, color: colors.text }}
+      >
+        {toast.message}
+      </span>
       <button
         onClick={onDismiss}
         aria-label="Dismiss"

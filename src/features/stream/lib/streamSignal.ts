@@ -84,11 +84,15 @@ function shrinkSdp(sdp: string): string {
 }
 
 export function encodeSignal(kind: SignalKind, sdp: string): string {
-  const packed = deflateSync(strToU8(KIND_CODE[kind] + shrinkSdp(sdp)), { level: 9 });
+  const packed = deflateSync(strToU8(KIND_CODE[kind] + shrinkSdp(sdp)), {
+    level: 9,
+  });
   return `${PREFIX}${toBase45(packed)}`;
 }
 
-export function decodeSignal(text: string): { kind: SignalKind; sdp: string } | null {
+export function decodeSignal(
+  text: string,
+): { kind: SignalKind; sdp: string } | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith(PREFIX)) return null;
   const bytes = fromBase45(trimmed.slice(PREFIX.length));

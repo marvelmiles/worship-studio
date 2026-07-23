@@ -73,7 +73,11 @@ export function VideoControlsBar({
         title={playback.playing ? "Pause video (Space)" : "Play video (Space)"}
         onClick={onTogglePlaying}
       />
-      <StageButton icon={RotateCcw} title="Restart from trim start" onClick={onRestart} />
+      <StageButton
+        icon={RotateCcw}
+        title="Restart from trim start"
+        onClick={onRestart}
+      />
       <span
         style={{
           fontFamily: UI,

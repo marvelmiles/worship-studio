@@ -14,7 +14,13 @@ import { QrScanner } from "./QrScanner";
  *    no webcam. That paste channel is the internet-based fallback, and it needs
  *    no server of our own.
  */
-export function ShowCode({ value, caption }: { value: string; caption: string }) {
+export function ShowCode({
+  value,
+  caption,
+}: {
+  value: string;
+  caption: string;
+}) {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [copied, setCopied] = useState(false);
@@ -30,9 +36,26 @@ export function ShowCode({ value, caption }: { value: string; caption: string })
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
       <QrCode value={value} />
-      <p style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.sub, textAlign: "center", margin: 0, maxWidth: 320, lineHeight: 1.5 }}>
+      <p
+        style={{
+          fontFamily: fonts.ui,
+          fontSize: 13,
+          color: colors.sub,
+          textAlign: "center",
+          margin: 0,
+          maxWidth: 320,
+          lineHeight: 1.5,
+        }}
+      >
         {caption}
       </p>
       <Button variant="ghost" size="sm" onClick={copy}>
@@ -64,18 +87,33 @@ export function ReadCode({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div className="ws-row" style={{ gap: 6 }}>
-        <Button variant={mode === "scan" ? "primary" : "ghost"} size="sm" onClick={() => setMode("scan")}>
+        <Button
+          variant={mode === "scan" ? "primary" : "ghost"}
+          size="sm"
+          onClick={() => setMode("scan")}
+        >
           <QrIcon size={14} />
           Scan code
         </Button>
-        <Button variant={mode === "paste" ? "primary" : "ghost"} size="sm" onClick={() => setMode("paste")}>
+        <Button
+          variant={mode === "paste" ? "primary" : "ghost"}
+          size="sm"
+          onClick={() => setMode("paste")}
+        >
           <Clipboard size={14} />
           Paste code
         </Button>
       </div>
 
       {mode === "scan" ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
           <QrScanner
             facing={scanFacing}
             onResult={onCode}
@@ -84,7 +122,15 @@ export function ReadCode({
               setMode("paste");
             }}
           />
-          <p style={{ fontFamily: fonts.ui, fontSize: 12.5, color: colors.dim, textAlign: "center", margin: 0 }}>
+          <p
+            style={{
+              fontFamily: fonts.ui,
+              fontSize: 12.5,
+              color: colors.dim,
+              textAlign: "center",
+              margin: 0,
+            }}
+          >
             <Camera size={12} style={{ verticalAlign: -1, marginRight: 4 }} />
             {scanLabel}
           </p>

@@ -1,10 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
+import {
+  openPresentChannel,
+  type PresentState,
+} from "../../lib/presentChannel";
 import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
@@ -13,7 +23,10 @@ import { PresenterPip } from "./PresenterPip";
 import { VideoControlsBar } from "./VideoControlsBar";
 import type { Background, ScripturePassage } from "../../types";
 
-function resolveRootBg(bg: Background | null, blobUrl: string | null): CSSProperties {
+function resolveRootBg(
+  bg: Background | null,
+  blobUrl: string | null,
+): CSSProperties {
   if (!bg) return { background: "#000" };
   if (bg.type === "image") {
     const url = bg.blobId ? blobUrl : bg.dataUrl;
@@ -51,18 +64,26 @@ export function Presentation() {
   // In pip mode the presentation shares the page with the app, so it only
   // claims the keyboard while the floating presenter holds focus.
   const shortcutGate = useCallback(
-    () => mode === "stage" || Boolean(pipRef.current?.contains(document.activeElement)),
-    [mode]
+    () =>
+      mode === "stage" ||
+      Boolean(pipRef.current?.contains(document.activeElement)),
+    [mode],
   );
   const handleToggleLiveFullscreen = () => {
     void toggleLiveFullscreen().then((ok) => {
-      if (!ok) pushToast("Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.");
+      if (!ok)
+        pushToast(
+          "Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.",
+        );
     });
   };
   const fullscreenOverride = useMemo(
-    () => (live ? { isFullscreen: isLiveFullscreen, toggle: handleToggleLiveFullscreen } : undefined),
+    () =>
+      live
+        ? { isFullscreen: isLiveFullscreen, toggle: handleToggleLiveFullscreen }
+        : undefined,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [live, isLiveFullscreen, toggleLiveFullscreen]
+    [live, isLiveFullscreen, toggleLiveFullscreen],
   );
   const p = usePresentation(fullscreenOverride, shortcutGate);
 
@@ -126,7 +147,20 @@ export function Presentation() {
       media: p.isVideoSlide ? p.mediaPlayback : undefined,
     };
     channelRef.current?.postMessage({ type: "state", state: stateRef.current });
-  }, [deckKind, deckId, deckRev, p.slideIndex, p.paused, p.zoom, p.pan.x, p.pan.y, p.pan, p.view, p.isVideoSlide, p.mediaPlayback]);
+  }, [
+    deckKind,
+    deckId,
+    deckRev,
+    p.slideIndex,
+    p.paused,
+    p.zoom,
+    p.pan.x,
+    p.pan.y,
+    p.pan,
+    p.view,
+    p.isVideoSlide,
+    p.mediaPlayback,
+  ]);
 
   useEffect(() => {
     if (!live) return;
@@ -136,7 +170,8 @@ export function Presentation() {
       }
     });
     channelRef.current = channel;
-    if (stateRef.current) channel.postMessage({ type: "state", state: stateRef.current });
+    if (stateRef.current)
+      channel.postMessage({ type: "state", state: stateRef.current });
     return () => {
       channel.close();
       channelRef.current = null;
@@ -157,10 +192,17 @@ export function Presentation() {
     // slide's text begins. Verse-number prefixes and the trailing reference
     // line aren't spoken.
     const startSlideIndex = p.slideIndex;
-    const showRef = Boolean(p.doc && "showReference" in p.doc && (p.doc as ScripturePassage).showReference);
+    const showRef = Boolean(
+      p.doc &&
+      "showReference" in p.doc &&
+      (p.doc as ScripturePassage).showReference,
+    );
     const chunks = p.slides.slice(startSlideIndex).map((s) => {
       if (s.kind !== "text") return "";
-      const lines = showRef && s.slide.lines.length > 1 ? s.slide.lines.slice(0, -1) : s.slide.lines;
+      const lines =
+        showRef && s.slide.lines.length > 1
+          ? s.slide.lines.slice(0, -1)
+          : s.slide.lines;
       return lines.map((line) => line.replace(/^\d+\.\s*/, "")).join("\n");
     });
     speech.speak(chunks, (i) => p.goTo(startSlideIndex + i));
@@ -201,10 +243,13 @@ export function Presentation() {
       pushToast(
         isExtended
           ? "Live on the external display."
-          : "Presentation window opened. Drag it to your projector, then press its fullscreen button."
+          : "Presentation window opened. Drag it to your projector, then press its fullscreen button.",
       );
     } else if (result.reason === "blocked") {
-      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
+      pushToast(
+        "Popup blocked. Allow popups for this site to go live.",
+        "error",
+      );
     }
   };
 
@@ -225,8 +270,11 @@ export function Presentation() {
   };
 
   const currentLabel =
-    p.currentSlide.kind === "text" ? p.currentSlide.slide.label : p.currentSlide.item.name;
-  const notes = p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
+    p.currentSlide.kind === "text"
+      ? p.currentSlide.slide.label
+      : p.currentSlide.item.name;
+  const notes =
+    p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
 
   // The floating presenter replaces the fullscreen stage without unmounting
   // this component, so the slide position, timer and audio all carry over.
@@ -253,7 +301,9 @@ export function Presentation() {
           }}
           onExit={handleExit}
         />
-        {p.audioItem && audioSrc && <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />}
+        {p.audioItem && audioSrc && (
+          <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
+        )}
       </>
     );
   }
@@ -266,7 +316,12 @@ export function Presentation() {
         window.clearTimeout(hideTimer.current);
         if (!hovering.current) setChromeActive(false);
       }}
-      style={{ position: "fixed", inset: 0, zIndex: 150, ...resolveRootBg(p.frame.backdrop, backdropBlobUrl) }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 150,
+        ...resolveRootBg(p.frame.backdrop, backdropBlobUrl),
+      }}
     >
       <Stage
         slideIndex={p.slideIndex}
@@ -344,7 +399,9 @@ export function Presentation() {
         />
       )}
 
-      {p.audioItem && audioSrc && <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />}
+      {p.audioItem && audioSrc && (
+        <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
+      )}
     </div>
   );
 }

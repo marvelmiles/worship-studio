@@ -10,7 +10,11 @@ export interface TagGroup {
 
 /** Fixed Ctrl+letter shortcuts for non-verse section types, these jump to
  * the first slide of that type instead of being part of the verse numbering. */
-export const FIXED_TAG_SHORTCUTS: { letter: string; type: string; label: string }[] = [
+export const FIXED_TAG_SHORTCUTS: {
+  letter: string;
+  type: string;
+  label: string;
+}[] = [
   { letter: "c", type: "chorus", label: "Chorus" },
   { letter: "b", type: "bridge", label: "Bridge" },
   { letter: "o", type: "outro", label: "Outro" },
@@ -20,11 +24,22 @@ export const FIXED_TAG_SHORTCUTS: { letter: string; type: string; label: string 
   { letter: "r", type: "refrain", label: "Refrain" },
 ];
 
-export const FIXED_SHORTCUT_BY_LETTER: Record<string, { type: string; label: string }> =
-  Object.fromEntries(FIXED_TAG_SHORTCUTS.map((f) => [f.letter, { type: f.type, label: f.label }]));
+export const FIXED_SHORTCUT_BY_LETTER: Record<
+  string,
+  { type: string; label: string }
+> = Object.fromEntries(
+  FIXED_TAG_SHORTCUTS.map((f) => [f.letter, { type: f.type, label: f.label }]),
+);
 
-export const FIXED_SHORTCUT_BY_TYPE: Record<string, { letter: string; label: string }> =
-  Object.fromEntries(FIXED_TAG_SHORTCUTS.map((f) => [f.type, { letter: f.letter, label: f.label }]));
+export const FIXED_SHORTCUT_BY_TYPE: Record<
+  string,
+  { letter: string; label: string }
+> = Object.fromEntries(
+  FIXED_TAG_SHORTCUTS.map((f) => [
+    f.type,
+    { letter: f.letter, label: f.label },
+  ]),
+);
 
 /**
  * Strips suffixes added by the parser (" · N/M") and the editor split

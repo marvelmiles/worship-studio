@@ -15,19 +15,29 @@ const blankSlide = (): Slide => ({
  * Slide-deck editing operations shared by every deck-based editor (songs,
  * scripture passages…). `save` persists the patched document.
  */
-export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => void) {
-  const [selectedId, setSelectedId] = useState<string | null>(doc.slides?.[0]?.id ?? null);
+export function useDeckEditor<T extends SlideDeckDoc>(
+  doc: T,
+  save: (doc: T) => void,
+) {
+  const [selectedId, setSelectedId] = useState<string | null>(
+    doc.slides?.[0]?.id ?? null,
+  );
 
   const slides = doc.slides ?? [];
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = slides[selectedIndex] ?? slides[0];
 
-  const patchDoc = (changes: Partial<T>) => save({ ...doc, ...changes, updatedAt: now() });
+  const patchDoc = (changes: Partial<T>) =>
+    save({ ...doc, ...changes, updatedAt: now() });
 
   const setSlides = (next: Slide[]) => patchDoc({ slides: next } as Partial<T>);
 
   const updateSlide = (id: string, changes: Partial<Slide>) =>
-    setSlides(slides.map((slide) => (slide.id === id ? { ...slide, ...changes } : slide)));
+    setSlides(
+      slides.map((slide) =>
+        slide.id === id ? { ...slide, ...changes } : slide,
+      ),
+    );
 
   const updateSlideOverride = (id: string, key: string, value: unknown) => {
     const slide = slides.find((item) => item.id === id);
@@ -38,10 +48,18 @@ export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => 
     updateSlide(id, { overrides });
   };
 
-  const updateLineOverride = (id: string, lineIndex: number, key: string, value: unknown) => {
+  const updateLineOverride = (
+    id: string,
+    lineIndex: number,
+    key: string,
+    value: unknown,
+  ) => {
     const slide = slides.find((item) => item.id === id);
     if (!slide) return;
-    const lineOverrides = { ...(slide.lineOverrides || {}) } as Record<number, Record<string, unknown>>;
+    const lineOverrides = { ...(slide.lineOverrides || {}) } as Record<
+      number,
+      Record<string, unknown>
+    >;
     const line = { ...(lineOverrides[lineIndex] || {}) };
     if (value === "" || value == null) delete line[key];
     else line[key] = value;
@@ -74,7 +92,11 @@ export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => 
   };
 
   const duplicateSlide = (index: number) => {
-    const copy: Slide = { ...slides[index], id: uid(), label: `${slides[index].label} (copy)` };
+    const copy: Slide = {
+      ...slides[index],
+      id: uid(),
+      label: `${slides[index].label} (copy)`,
+    };
     const next = [...slides];
     next.splice(index + 1, 0, copy);
     setSlides(next);
@@ -111,14 +133,18 @@ export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => 
     const first: Slide = {
       ...slide,
       lines: slide.lines.slice(0, mid),
-      lineOverrides: Object.keys(firstOverrides).length ? firstOverrides : undefined,
+      lineOverrides: Object.keys(firstOverrides).length
+        ? firstOverrides
+        : undefined,
     };
     const second: Slide = {
       ...slide,
       id: uid(),
       lines: slide.lines.slice(mid),
       label: `${slide.label} (b)`,
-      lineOverrides: Object.keys(secondOverrides).length ? secondOverrides : undefined,
+      lineOverrides: Object.keys(secondOverrides).length
+        ? secondOverrides
+        : undefined,
     };
     const next = [...slides];
     next.splice(index, 1, first, second);
@@ -130,14 +156,18 @@ export function useDeckEditor<T extends SlideDeckDoc>(doc: T, save: (doc: T) => 
     const a = slides[index];
     const b = slides[index + 1];
     const offset = a.lines.length;
-    const lineOverrides: Record<number, TextStyle> = { ...(a.lineOverrides || {}) };
+    const lineOverrides: Record<number, TextStyle> = {
+      ...(a.lineOverrides || {}),
+    };
     Object.entries(b.lineOverrides || {}).forEach(([i, v]) => {
       lineOverrides[Number(i) + offset] = v;
     });
     const merged: Slide = {
       ...a,
       lines: [...a.lines, ...b.lines],
-      lineOverrides: Object.keys(lineOverrides).length ? lineOverrides : undefined,
+      lineOverrides: Object.keys(lineOverrides).length
+        ? lineOverrides
+        : undefined,
     };
     const next = [...slides];
     next.splice(index, 2, merged);

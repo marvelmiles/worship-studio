@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Film, Image as ImageIcon, ImagePlus, Pencil, Trash2, Upload, Wallpaper } from "lucide-react";
+import {
+  Film,
+  Image as ImageIcon,
+  ImagePlus,
+  Pencil,
+  Trash2,
+  Upload,
+  Wallpaper,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
@@ -35,17 +43,20 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
   image: {
     kind: "image",
     title: "Images",
-    subtitle: "Upload, edit and project images. Presenting one flips through the library like a slideshow.",
+    subtitle:
+      "Upload, edit and project images. Presenting one flips through the library like a slideshow.",
     uploadLabel: "Upload Images",
     accept: "image/*",
     emptyTitle: "No images yet",
-    emptyMessage: "Upload some to present them on screen or use them as slide backgrounds.",
+    emptyMessage:
+      "Upload some to present them on screen or use them as slide backgrounds.",
     emptyIcon: ImageIcon,
   },
   video: {
     kind: "video",
     title: "Videos",
-    subtitle: "Upload, trim and project videos with full playback control while live.",
+    subtitle:
+      "Upload, trim and project videos with full playback control while live.",
     uploadLabel: "Upload Videos",
     accept: "video/*",
     emptyTitle: "No videos yet",
@@ -104,7 +115,8 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
 
   const present = (item: MediaItem, pip = false) => {
     const mode = pip ? "pip" : "stage";
-    if (kind === "image") startPresent("image", item.id, imageDeckIndex(media, item.id), mode);
+    if (kind === "image")
+      startPresent("image", item.id, imageDeckIndex(media, item.id), mode);
     else startPresent("video", item.id, 0, mode);
   };
 
@@ -143,7 +155,11 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
       />
 
       <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
-        <SearchInput value={query} onChange={setQuery} placeholder={`Search ${config.title.toLowerCase()}…`} />
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={`Search ${config.title.toLowerCase()}…`}
+        />
       </div>
 
       {list.length === 0 ? (
@@ -159,7 +175,10 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
             title={config.emptyTitle}
             message={config.emptyMessage}
             action={
-              <Button variant="primary" onClick={() => inputRef.current?.click()}>
+              <Button
+                variant="primary"
+                onClick={() => inputRef.current?.click()}
+              >
                 <ImagePlus size={15} />
                 {config.uploadLabel}
               </Button>
@@ -183,23 +202,34 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                     <>
                       <VideoThumb item={item} />
                       {item.duration !== undefined && (
-                        <div className="ws-thumb-badge">{formatDuration(item.duration)}</div>
+                        <div className="ws-thumb-badge">
+                          {formatDuration(item.duration)}
+                        </div>
                       )}
                     </>
                   )}
                 </LazyMount>
               </div>
               <div className="ws-card-body">
-                <div className="ws-card-title ws-ellipsis" style={{ display: "block" }}>
+                <div
+                  className="ws-card-title ws-ellipsis"
+                  style={{ display: "block" }}
+                >
                   {item.name}
                 </div>
                 <div className="ws-card-sub">
-                  {item.width && item.height ? `${item.width}×${item.height} · ` : ""}
+                  {item.width && item.height
+                    ? `${item.width}×${item.height} · `
+                    : ""}
                   {itemSize(item)}
                 </div>
                 <div className="ws-card-actions">
                   <PresentMenu onPresent={({ pip }) => present(item, pip)} />
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditing(item)}
+                  >
                     <Pencil size={13} />
                     Edit
                   </Button>
@@ -216,7 +246,12 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                     />
                   )}
                   <div style={{ marginLeft: "auto" }}>
-                    <IconButton icon={Trash2} title="Delete" danger onClick={() => setDeleting(item)} />
+                    <IconButton
+                      icon={Trash2}
+                      title="Delete"
+                      danger
+                      onClick={() => setDeleting(item)}
+                    />
                   </div>
                 </div>
               </div>

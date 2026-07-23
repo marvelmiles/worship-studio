@@ -46,15 +46,15 @@ export function SlideCanvas({
   const bgStyle = noBackground
     ? {}
     : bg?.type === "image"
-    ? {
-        backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
-        backgroundColor: "#0a0a0c",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }
-    : bg?.type === "solid"
-    ? { background: bg.color }
-    : { background: bg?.css || "#111" };
+      ? {
+          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
+          backgroundColor: "#0a0a0c",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }
+      : bg?.type === "solid"
+        ? { background: bg.color }
+        : { background: bg?.css || "#111" };
 
   const wantScrim = !noBackground && (scrim ?? bg?.type === "image");
   const lines = slide.lines && slide.lines.length ? slide.lines : [""];
@@ -63,7 +63,9 @@ export function SlideCanvas({
     <div
       style={{
         containerType: "inline-size",
-        ...(fill ? { width: "100%", height: "100%" } : { aspectRatio: "16 / 9" }),
+        ...(fill
+          ? { width: "100%", height: "100%" }
+          : { aspectRatio: "16 / 9" }),
         position: "relative",
         overflow: "hidden",
         borderRadius: radius,
@@ -75,7 +77,8 @@ export function SlideCanvas({
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.25))",
+            background:
+              "linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.25))",
           }}
         />
       )}
@@ -106,7 +109,9 @@ export function SlideCanvas({
                     : undefined
                 }
                 onMouseEnter={interactive ? () => setHoverLine(i) : undefined}
-                onMouseLeave={interactive ? () => setHoverLine(null) : undefined}
+                onMouseLeave={
+                  interactive ? () => setHoverLine(null) : undefined
+                }
                 style={{
                   textAlign: lineStyle.align || "center",
                   color: lineStyle.color,
@@ -124,13 +129,15 @@ export function SlideCanvas({
                   outline: selected
                     ? `0.25cqw solid ${colors.accent}`
                     : hovered
-                    ? `0.25cqw dashed ${fade(colors.accent, 0.55)}`
-                    : interactive
-                    ? "0.25cqw dashed transparent"
-                    : undefined,
+                      ? `0.25cqw dashed ${fade(colors.accent, 0.55)}`
+                      : interactive
+                        ? "0.25cqw dashed transparent"
+                        : undefined,
                   outlineOffset: 2,
                   background: selected ? fade(colors.accent, 0.14) : undefined,
-                  transition: interactive ? "outline-color .15s ease, background .15s ease" : undefined,
+                  transition: interactive
+                    ? "outline-color .15s ease, background .15s ease"
+                    : undefined,
                 }}
               >
                 {ln || "\u00A0"}

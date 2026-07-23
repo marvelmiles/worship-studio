@@ -30,7 +30,8 @@ export function PreviewPanel({
         display: "flex",
         flexDirection: "column",
         padding: 24,
-        background: "radial-gradient(circle at 50% 0%,rgba(255,255,255,0.02),transparent 60%)",
+        background:
+          "radial-gradient(circle at 50% 0%,rgba(255,255,255,0.02),transparent 60%)",
       }}
     >
       <div
@@ -66,13 +67,29 @@ export function PreviewPanel({
         >
           Slide Text
         </span>
-        <p style={{ fontFamily: UI, fontSize: 11.5, color: colors.dim, margin: "4px 0 8px", lineHeight: 1.5 }}>
-          Click a line above to format it on its own: font, size, color, alignment.
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 11.5,
+            color: colors.dim,
+            margin: "4px 0 8px",
+            lineHeight: 1.5,
+          }}
+        >
+          Click a line above to format it on its own: font, size, color,
+          alignment.
         </p>
         <textarea
           value={(slide.lines || []).join("\n")}
           onChange={(e) => onChangeLines(e.target.value.split("\n"))}
-          style={{ ...inputStyle, marginTop: 8, minHeight: 92, lineHeight: 1.7, resize: "vertical", fontSize: 15 }}
+          style={{
+            ...inputStyle,
+            marginTop: 8,
+            minHeight: 92,
+            lineHeight: 1.7,
+            resize: "vertical",
+            fontSize: 15,
+          }}
         />
         <input
           value={slide.label}

@@ -12,7 +12,12 @@ import { useBibleSearch } from "./useBibleSearch";
 import { useBibleChapter } from "./useBibleChapter";
 import { PresentButton } from "./PresentButton";
 import { tileStyle } from "./tileStyle";
-import { parseReference, referenceSpan, type ParsedReference, type VerseSpan } from "./lib/reference";
+import {
+  parseReference,
+  referenceSpan,
+  type ParsedReference,
+  type VerseSpan,
+} from "./lib/reference";
 import { buildScriptureSelection } from "./lib/scriptureSelection";
 import type { ReadingPosition } from "./lib/readingPosition";
 
@@ -36,7 +41,11 @@ export function BooksStep({
   continueLabel: string | null;
   onOpenBook: (bookId: number) => void;
   onContinueReading: () => void;
-  onOpenSearchResult: (bookId: number, chapter: number, span: VerseSpan) => void;
+  onOpenSearchResult: (
+    bookId: number,
+    chapter: number,
+    span: VerseSpan,
+  ) => void;
 }) {
   const [query, setQuery] = useState("");
 
@@ -56,7 +65,9 @@ export function BooksStep({
     const term = query.trim().toLowerCase();
     if (!term) return BIBLE_BOOKS;
     return BIBLE_BOOKS.filter(
-      (b) => b.name.toLowerCase().includes(term) || b.aliases.some((a) => a.startsWith(term))
+      (b) =>
+        b.name.toLowerCase().includes(term) ||
+        b.aliases.some((a) => a.startsWith(term)),
     );
   }, [query, reference]);
 
@@ -66,7 +77,14 @@ export function BooksStep({
   ];
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <div className="ws-row-wrap" style={{ marginBottom: 16 }}>
         <SearchInput
           value={query}
@@ -74,13 +92,25 @@ export function BooksStep({
           placeholder="Search a book, reference or words, like Psalms, Job 2:3-5 or living water"
         />
         {continueLabel && (
-          <Button variant="ghost" onClick={onContinueReading} title="Pick up where you left off">
+          <Button
+            variant="ghost"
+            onClick={onContinueReading}
+            title="Pick up where you left off"
+          >
             <Play size={14} />
             Continue: {continueLabel}
           </Button>
         )}
       </div>
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 6, paddingBottom: 12 }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          paddingRight: 6,
+          paddingBottom: 12,
+        }}
+      >
         {reference && (
           <PassageJump
             reference={reference}
@@ -91,13 +121,20 @@ export function BooksStep({
               onOpenSearchResult(
                 reference.book.id,
                 reference.chapter,
-                referenceSpan(reference)
+                referenceSpan(reference),
               )
             }
           />
         )}
         {matchingBooks.length === 0 && !search.enabled && (
-          <p style={{ fontFamily: UI, color: colors.dim, textAlign: "center", padding: 30 }}>
+          <p
+            style={{
+              fontFamily: UI,
+              color: colors.dim,
+              textAlign: "center",
+              padding: 30,
+            }}
+          >
             No book matches "{query}".
           </p>
         )}
@@ -106,7 +143,10 @@ export function BooksStep({
           if (!books.length) return null;
           return (
             <div key={key} style={{ marginBottom: 20 }}>
-              <div className="ws-section-label" style={{ margin: "6px 0 10px" }}>
+              <div
+                className="ws-section-label"
+                style={{ margin: "6px 0 10px" }}
+              >
                 {query.trim() ? `${label}: matching books` : label}
               </div>
               <div
@@ -131,10 +171,24 @@ export function BooksStep({
                         gap: 3,
                       }}
                     >
-                      <span className="ws-ellipsis" style={{ fontFamily: DISPLAY, fontSize: 15, maxWidth: "100%" }}>
+                      <span
+                        className="ws-ellipsis"
+                        style={{
+                          fontFamily: DISPLAY,
+                          fontSize: 15,
+                          maxWidth: "100%",
+                        }}
+                      >
                         {b.name}
                       </span>
-                      <span style={{ fontFamily: UI, fontSize: 11, fontWeight: 500, color: active ? colors.accentSoft : colors.dim }}>
+                      <span
+                        style={{
+                          fontFamily: UI,
+                          fontSize: 11,
+                          fontWeight: 500,
+                          color: active ? colors.accentSoft : colors.dim,
+                        }}
+                      >
                         {b.chapters} chapter{b.chapters === 1 ? "" : "s"}
                       </span>
                     </button>
@@ -149,7 +203,9 @@ export function BooksStep({
           <div style={{ marginBottom: 20 }}>
             <div className="ws-section-label" style={{ margin: "6px 0 10px" }}>
               Verses matching "{search.term}"
-              {search.total > 0 ? ` (${search.total.toLocaleString()} found)` : ""}
+              {search.total > 0
+                ? ` (${search.total.toLocaleString()} found)`
+                : ""}
             </div>
             {search.loading && search.results.length === 0 && (
               <div style={{ padding: "14px 2px" }}>
@@ -157,15 +213,31 @@ export function BooksStep({
               </div>
             )}
             {search.error && (
-              <p style={{ fontFamily: UI, fontSize: 13, color: colors.danger, padding: "10px 2px" }}>
+              <p
+                style={{
+                  fontFamily: UI,
+                  fontSize: 13,
+                  color: colors.danger,
+                  padding: "10px 2px",
+                }}
+              >
                 {search.error}
               </p>
             )}
-            {!search.loading && !search.error && search.results.length === 0 && (
-              <p style={{ fontFamily: UI, fontSize: 13, color: colors.dim, padding: "10px 2px" }}>
-                No verses in {version} contain "{search.term}".
-              </p>
-            )}
+            {!search.loading &&
+              !search.error &&
+              search.results.length === 0 && (
+                <p
+                  style={{
+                    fontFamily: UI,
+                    fontSize: 13,
+                    color: colors.dim,
+                    padding: "10px 2px",
+                  }}
+                >
+                  No verses in {version} contain "{search.term}".
+                </p>
+              )}
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {search.results.map((result) => {
                 const resultBook = bookById(result.bookId);
@@ -194,8 +266,18 @@ export function BooksStep({
                     }
                     presentTitle={`Present ${resultBook.name} ${result.chapter}:${result.verse}`}
                   >
-                    <span style={{ fontFamily: UI, fontSize: 13.5, lineHeight: 1.55, color: colors.sub }}>
-                      {highlightSearchWords(snippetAroundFirstMatch(result.text, search.term), search.term)}
+                    <span
+                      style={{
+                        fontFamily: UI,
+                        fontSize: 13.5,
+                        lineHeight: 1.55,
+                        color: colors.sub,
+                      }}
+                    >
+                      {highlightSearchWords(
+                        snippetAroundFirstMatch(result.text, search.term),
+                        search.term,
+                      )}
                     </span>
                   </ResultRow>
                 );
@@ -203,8 +285,13 @@ export function BooksStep({
             </div>
             {search.hasMore && (
               <div style={{ marginTop: 12, textAlign: "center" }}>
-                <Button variant="ghost" onClick={search.loadMore} busy={search.loading}>
-                  Load more ({search.results.length} of {search.total.toLocaleString()})
+                <Button
+                  variant="ghost"
+                  onClick={search.loadMore}
+                  busy={search.loading}
+                >
+                  Load more ({search.results.length} of{" "}
+                  {search.total.toLocaleString()})
                 </Button>
               </div>
             )}
@@ -216,9 +303,17 @@ export function BooksStep({
 }
 
 /** "Job 2", "Job 2:3", "Job 2:3-5" — how the parsed reference reads back. */
-function referenceLabel({ book, chapter, verseStart, verseEnd }: ParsedReference): string {
+function referenceLabel({
+  book,
+  chapter,
+  verseStart,
+  verseEnd,
+}: ParsedReference): string {
   if (!verseStart) return `${book.name} ${chapter}`;
-  const verses = !verseEnd || verseEnd === verseStart ? `${verseStart}` : `${verseStart}-${verseEnd}`;
+  const verses =
+    !verseEnd || verseEnd === verseStart
+      ? `${verseStart}`
+      : `${verseStart}-${verseEnd}`;
   return `${book.name} ${chapter}:${verses}`;
 }
 
@@ -274,7 +369,14 @@ function ResultRow({
         background: colors.raise,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
+      >
         <span
           style={{
             fontFamily: emphasis ? fonts.display : fonts.ui,
@@ -287,7 +389,11 @@ function ResultRow({
         </span>
         {meta}
         <span style={{ flex: 1 }} />
-        <PresentButton selection={selection} title={presentTitle} disabled={presentDisabled} />
+        <PresentButton
+          selection={selection}
+          title={presentTitle}
+          disabled={presentDisabled}
+        />
         <ArrowRight size={15} color={colors.dim} style={{ flexShrink: 0 }} />
       </div>
       {children}
@@ -310,7 +416,11 @@ function PassageJump({
   onOpen: () => void;
 }) {
   const { colors, fonts } = useUITheme();
-  const { verses, loading, error } = useBibleChapter(version, reference.book.id, reference.chapter);
+  const { verses, loading, error } = useBibleChapter(
+    version,
+    reference.book.id,
+    reference.chapter,
+  );
 
   const { book, chapter, verseStart, verseEnd } = reference;
   // Verse references preview exactly what was asked for; a chapter-only
@@ -330,7 +440,14 @@ function PassageJump({
         heading={referenceLabel(reference)}
         emphasis
         meta={
-          <span style={{ fontFamily: fonts.ui, fontSize: 11.5, fontWeight: 600, color: colors.dim }}>
+          <span
+            style={{
+              fontFamily: fonts.ui,
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: colors.dim,
+            }}
+          >
             {version}
             {!verseStart && verses.length ? ` · ${verses.length} verses` : ""}
           </span>
@@ -351,9 +468,22 @@ function PassageJump({
         }}
       >
         {loading && <Spinner size={16} />}
-        {error && <span style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.danger }}>{error}</span>}
+        {error && (
+          <span
+            style={{ fontFamily: fonts.ui, fontSize: 13, color: colors.danger }}
+          >
+            {error}
+          </span>
+        )}
         {!loading && !error && (
-          <span style={{ fontFamily: fonts.ui, fontSize: 13.5, lineHeight: 1.55, color: colors.sub }}>
+          <span
+            style={{
+              fontFamily: fonts.ui,
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              color: colors.sub,
+            }}
+          >
             {preview.map((v) => v.t).join(" ")}
           </span>
         )}
@@ -378,15 +508,21 @@ function highlightSearchWords(text: string, term: string) {
       </span>
     ) : (
       part
-    )
+    ),
   );
 }
 
 /** Trims long verse text to a window around the first search match. */
-function snippetAroundFirstMatch(text: string, term: string, span = 180): string {
+function snippetAroundFirstMatch(
+  text: string,
+  term: string,
+  span = 180,
+): string {
   if (text.length <= span) return text;
   const firstWord = term.split(/\s+/).filter(Boolean)[0] || "";
-  const at = firstWord ? text.toLowerCase().indexOf(firstWord.toLowerCase()) : -1;
+  const at = firstWord
+    ? text.toLowerCase().indexOf(firstWord.toLowerCase())
+    : -1;
   if (at <= span / 2) return `${text.slice(0, span)}…`;
   const start = Math.max(0, at - Math.floor(span / 2));
   const end = Math.min(text.length, start + span);

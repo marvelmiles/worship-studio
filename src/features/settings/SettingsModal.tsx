@@ -284,13 +284,18 @@ export function SettingsModal() {
                     fontFamily: DISPLAY,
                     fontSize: 20,
                     fontWeight: 600,
-                    color: storage.level === "critical" ? colors.danger : colors.text,
+                    color:
+                      storage.level === "critical"
+                        ? colors.danger
+                        : colors.text,
                     lineHeight: 1,
                   }}
                 >
                   {Math.min(100, Math.round(storage.pct * 100))}%
                 </div>
-                <div style={{ fontFamily: UI, fontSize: 12, color: colors.sub }}>
+                <div
+                  style={{ fontFamily: UI, fontSize: 12, color: colors.sub }}
+                >
                   {formatBytes(storage.userUsed)} used, about{" "}
                   {formatBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
                   free
@@ -348,7 +353,12 @@ export function SettingsModal() {
           </div>
         )}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Button variant="primary" onClick={runExport} busy={busy === "export"} disabled={busy === "import"}>
+          <Button
+            variant="primary"
+            onClick={runExport}
+            busy={busy === "export"}
+            disabled={busy === "import"}
+          >
             <Download size={15} />
             Export Data
           </Button>
@@ -454,8 +464,8 @@ export function SettingsModal() {
               marginBottom: 0,
             }}
           >
-            Storage is running in memory only, so data won't survive a
-            refresh in this browser.
+            Storage is running in memory only, so data won't survive a refresh
+            in this browser.
           </p>
         )}
 

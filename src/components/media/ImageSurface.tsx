@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 import type { ImageSettings, MediaItem } from "../../types";
-import { buildFilter, buildImageTransform, imageSettingsOf } from "../../lib/media";
+import {
+  buildFilter,
+  buildImageTransform,
+  imageSettingsOf,
+} from "../../lib/media";
 import { useBlobUrl, useThumbUrl } from "../../lib/blobUrls";
 
 interface ImageSurfaceProps {
@@ -18,13 +22,22 @@ interface ImageSurfaceProps {
  * When the rotation swaps axes the image is scaled by the box ratio so
  * "contain" keeps fitting and "cover"/"fill" keep covering.
  */
-export function ImageSurface({ item, settings, variant = "full", style }: ImageSurfaceProps) {
+export function ImageSurface({
+  item,
+  settings,
+  variant = "full",
+  style,
+}: ImageSurfaceProps) {
   const fullUrl = useBlobUrl(variant === "full" ? item.id : null);
   const thumbUrl = useThumbUrl(variant === "thumb" ? item.id : null);
   const src = variant === "thumb" ? thumbUrl : fullUrl;
   const applied = settings ?? imageSettingsOf(item);
   const swapAxes = applied.rotate === 90 || applied.rotate === 270;
-  const ratioScale = swapAxes ? (applied.fit === "contain" ? 9 / 16 : 16 / 9) : 1;
+  const ratioScale = swapAxes
+    ? applied.fit === "contain"
+      ? 9 / 16
+      : 16 / 9
+    : 1;
   const transform = buildImageTransform(applied);
   return (
     <div
@@ -48,7 +61,10 @@ export function ImageSurface({ item, settings, variant = "full", style }: ImageS
             height: "100%",
             objectFit: applied.fit,
             filter: buildFilter(applied),
-            transform: ratioScale !== 1 ? `${transform} scale(${ratioScale})` : transform,
+            transform:
+              ratioScale !== 1
+                ? `${transform} scale(${ratioScale})`
+                : transform,
           }}
         />
       )}
@@ -57,7 +73,8 @@ export function ImageSurface({ item, settings, variant = "full", style }: ImageS
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.25))",
+            background:
+              "linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.25))",
           }}
         />
       )}

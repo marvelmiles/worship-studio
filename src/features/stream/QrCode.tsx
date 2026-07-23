@@ -2,7 +2,13 @@ import { useEffect, useRef } from "react";
 import { drawQr } from "./lib/qr";
 
 /** Renders a handshake string as a scannable QR code on a white tile. */
-export function QrCode({ value, size = 260 }: { value: string; size?: number }) {
+export function QrCode({
+  value,
+  size = 260,
+}: {
+  value: string;
+  size?: number;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -21,7 +27,12 @@ export function QrCode({ value, size = 260 }: { value: string; size?: number }) 
     >
       <canvas
         ref={canvasRef}
-        style={{ width: size, height: size, imageRendering: "pixelated", display: "block" }}
+        style={{
+          width: size,
+          height: size,
+          imageRendering: "pixelated",
+          display: "block",
+        }}
       />
     </div>
   );

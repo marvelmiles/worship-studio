@@ -1,13 +1,106 @@
 import { z } from "zod";
 
+/**
+ * Validation for imported backups. External data is never trusted: every record
+ * is parsed here, and the schemas are shaped so the inferred types line up with
+ * the domain types in `types.ts` (see the `Imported*` exports below). Enum-typed
+ * fields (align, animation, fit…) use `.catch()` so a single malformed value
+ * degrades to a safe default instead of rejecting the whole import, and
+ * `.passthrough()` preserves keys newer than this schema.
+ */
+
+const alignSchema = z.enum(["left", "center", "right"]);
+
+const animationSchema = z
+  .enum([
+    "fade",
+    "crossfade",
+    "dissolve",
+    "zoom",
+    "slide-left",
+    "slide-right",
+    "slide-up",
+    "slide-down",
+  ])
+  .optional()
+  .catch(undefined);
+
+const fitSchema = z.enum(["contain", "cover", "fill"]);
+
+const rotateSchema = z.union([
+  z.literal(0),
+  z.literal(90),
+  z.literal(180),
+  z.literal(270),
+]);
+
+/** Shared shape of the text-style fields (themes, deck documents, slides). */
+const textStyleShape = {
+  fontFamily: z.string().optional(),
+  fontSize: z.number().optional(),
+  fontWeight: z.number().optional(),
+  align: alignSchema.optional().catch(undefined),
+  color: z.string().optional(),
+  lineHeight: z.number().optional(),
+  letterSpacing: z.number().optional(),
+  uppercase: z.boolean().optional(),
+  textShadow: z.string().optional(),
+};
+
+const textStyleSchema = z.object(textStyleShape).passthrough();
+
+const slideOverridesSchema = z
+  .object({
+    ...textStyleShape,
+    backgroundId: z.string().optional(),
+    audioId: z.string().optional(),
+    animation: animationSchema,
+    scrim: z.boolean().optional(),
+  })
+  .passthrough();
+
 const slideSchema = z
   .object({
     id: z.string().optional(),
     type: z.string().optional(),
     label: z.string().optional(),
     lines: z.array(z.string()).optional(),
-    overrides: z.record(z.unknown()).optional(),
+    overrides: slideOverridesSchema.optional(),
     notes: z.string().optional(),
+  })
+  .passthrough();
+
+/** Shared shape of the color-adjustment fields (images and videos). */
+const adjustmentsShape = {
+  brightness: z.number().optional(),
+  contrast: z.number().optional(),
+  saturation: z.number().optional(),
+  grayscale: z.number().optional(),
+  sepia: z.number().optional(),
+  blur: z.number().optional(),
+};
+
+const imageSettingsSchema = z
+  .object({
+    ...adjustmentsShape,
+    rotate: rotateSchema.optional(),
+    flipH: z.boolean().optional(),
+    flipV: z.boolean().optional(),
+    fit: fitSchema.optional(),
+    scrim: z.boolean().optional(),
+  })
+  .passthrough();
+
+const videoSettingsSchema = z
+  .object({
+    ...adjustmentsShape,
+    trimStart: z.number().optional(),
+    trimEnd: z.number().nullable().optional(),
+    volume: z.number().optional(),
+    muted: z.boolean().optional(),
+    loop: z.boolean().optional(),
+    playbackRate: z.number().optional(),
+    fit: fitSchema.optional(),
   })
   .passthrough();
 
@@ -23,10 +116,10 @@ export const songSchema = z
     defaultThemeId: z.string().optional().default("classic"),
     defaultBackgroundId: z.string().optional(),
     defaultAudioId: z.string().nullable().optional(),
-    animation: z.string().optional(),
+    animation: animationSchema,
     autoPlay: z.boolean().optional(),
     slideDurationSeconds: z.number().optional(),
-    style: z.record(z.unknown()).optional(),
+    style: textStyleSchema.optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
     deleted: z.boolean().optional(),
@@ -42,14 +135,14 @@ const themeSchema = z
     fontFamily: z.string(),
     fontWeight: z.number(),
     color: z.string(),
-    align: z.enum(["left", "center", "right"]),
+    align: alignSchema.catch("center"),
     lineHeight: z.number(),
     letterSpacing: z.number(),
     fontSize: z.number(),
     uppercase: z.boolean(),
     textShadow: z.string(),
     backgroundId: z.string(),
-    animation: z.string().optional(),
+    animation: animationSchema,
   })
   .passthrough();
 
@@ -100,8 +193,8 @@ export const scriptureSchema = z
     defaultThemeId: z.string().optional().default("scripture"),
     defaultBackgroundId: z.string().optional(),
     defaultAudioId: z.string().nullable().optional(),
-    animation: z.string().optional(),
-    style: z.record(z.unknown()).optional(),
+    animation: animationSchema,
+    style: textStyleSchema.optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
     deleted: z.boolean().optional(),
@@ -122,8 +215,8 @@ export const mediaSchema = z
     width: z.number().optional(),
     height: z.number().optional(),
     hasThumb: z.boolean().optional(),
-    image: z.record(z.unknown()).optional(),
-    video: z.record(z.unknown()).optional(),
+    image: imageSettingsSchema.optional().catch(undefined),
+    video: videoSettingsSchema.optional().catch(undefined),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
   })
@@ -142,3 +235,11 @@ export const dataFileSchema = z.object({
 });
 
 export type DataFile = z.infer<typeof dataFileSchema>;
+
+export type ImportedSlide = z.infer<typeof slideSchema>;
+export type ImportedSong = z.infer<typeof songSchema>;
+export type ImportedScripture = z.infer<typeof scriptureSchema>;
+export type ImportedMedia = z.infer<typeof mediaSchema>;
+export type ImportedTheme = z.infer<typeof themeSchema>;
+export type ImportedBackground = z.infer<typeof backgroundSchema>;
+export type ImportedAudio = z.infer<typeof audioSchema>;

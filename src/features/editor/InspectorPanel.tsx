@@ -1,7 +1,11 @@
 import { Copy, Trash2, X } from "lucide-react";
 import type { AudioItem, Background, SlideDeckDoc, Theme } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
-import { resolveBackgroundId, resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import {
+  resolveBackgroundId,
+  resolveLineStyle,
+  resolveStyle,
+} from "../../lib/resolve";
 import { Button } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
@@ -32,13 +36,17 @@ export function InspectorPanel({
   onSelectLine,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
-  const lineMode = selectedLine !== null && selectedLine < (slide.lines?.length ?? 0);
+  const lineMode =
+    selectedLine !== null && selectedLine < (slide.lines?.length ?? 0);
   const style = lineMode
     ? resolveLineStyle(slide, selectedLine, doc, theme)
     : resolveStyle(slide, doc, theme);
   const effectiveBackgroundId = resolveBackgroundId(slide, doc, theme);
-  const effectiveBackground = backgrounds.find((bg) => bg.id === effectiveBackgroundId);
-  const hasLineOverrides = lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
+  const effectiveBackground = backgrounds.find(
+    (bg) => bg.id === effectiveBackgroundId,
+  );
+  const hasLineOverrides =
+    lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
 
   // Text style (font/size/color/align/etc.) targets the selected line when in
   // line mode; background/audio/animation/scrim are always slide-level.
@@ -51,7 +59,9 @@ export function InspectorPanel({
 
   return (
     <div style={{ padding: 18 }}>
-      <SectionTitle>{lineMode ? `Line ${selectedLine + 1} Text` : "Text"}</SectionTitle>
+      <SectionTitle>
+        {lineMode ? `Line ${selectedLine + 1} Text` : "Text"}
+      </SectionTitle>
       {lineMode && (
         <div
           style={{
@@ -66,13 +76,17 @@ export function InspectorPanel({
             border: `1px solid ${fade(colors.accent, 0.3)}`,
           }}
         >
-          <span style={{ fontFamily: UI, fontSize: 12, color: colors.accentSoft }}>
+          <span
+            style={{ fontFamily: UI, fontSize: 12, color: colors.accentSoft }}
+          >
             Formatting this line only
           </span>
           <div style={{ display: "flex", gap: 6 }}>
             {hasLineOverrides && (
               <button
-                onClick={() => editor.clearLineOverrides(slide.id, selectedLine)}
+                onClick={() =>
+                  editor.clearLineOverrides(slide.id, selectedLine)
+                }
                 title="Reset this line to the slide's style"
                 style={{
                   fontFamily: UI,
@@ -108,7 +122,10 @@ export function InspectorPanel({
           </div>
         </div>
       )}
-      <StyleControls style={style} onChange={(key, value) => setTextOverride(key, value)} />
+      <StyleControls
+        style={style}
+        onChange={(key, value) => setTextOverride(key, value)}
+      />
 
       <SectionTitle>Background</SectionTitle>
       <BackgroundPicker
@@ -118,7 +135,9 @@ export function InspectorPanel({
         inheritLabel="Use document / theme"
         onSelect={(id) => setOverride("backgroundId", id)}
         onUploaded={(id) => setOverride("backgroundId", id)}
-        onAddColor={(value, name) => setOverride("backgroundId", onAddColor(value, name))}
+        onAddColor={(value, name) =>
+          setOverride("backgroundId", onAddColor(value, name))
+        }
       />
       {effectiveBackground?.type === "image" && (
         <div style={{ marginBottom: 12 }}>
@@ -149,23 +168,46 @@ export function InspectorPanel({
       <SectionTitle>Presenter Notes</SectionTitle>
       <textarea
         value={slide.notes || ""}
-        onChange={(e) => editor.updateSlide(slide.id, { notes: e.target.value })}
+        onChange={(e) =>
+          editor.updateSlide(slide.id, { notes: e.target.value })
+        }
         placeholder="Notes for the presenter (cues, transitions…)"
-        style={{ ...inputStyle, minHeight: 70, resize: "vertical", fontSize: 13 }}
+        style={{
+          ...inputStyle,
+          minHeight: 70,
+          resize: "vertical",
+          fontSize: 13,
+        }}
       />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 14 }}>
-        <Button size="sm" variant="ghost" onClick={() => editor.duplicateSlide(selectedIndex)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => editor.duplicateSlide(selectedIndex)}
+        >
           <Copy size={13} />
           Duplicate
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => editor.splitSlide(selectedIndex)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => editor.splitSlide(selectedIndex)}
+        >
           Split
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => editor.mergeSlideDown(selectedIndex)}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => editor.mergeSlideDown(selectedIndex)}
+        >
           Merge ↓
         </Button>
-        <Button size="sm" variant="danger" onClick={() => editor.removeSlide(selectedIndex)}>
+        <Button
+          size="sm"
+          variant="danger"
+          onClick={() => editor.removeSlide(selectedIndex)}
+        >
           <Trash2 size={13} />
           Delete
         </Button>

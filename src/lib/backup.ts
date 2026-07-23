@@ -1,4 +1,12 @@
-import { strFromU8, strToU8, Unzip, UnzipInflate, Zip, ZipDeflate, ZipPassThrough } from "fflate";
+import {
+  strFromU8,
+  strToU8,
+  Unzip,
+  UnzipInflate,
+  Zip,
+  ZipDeflate,
+  ZipPassThrough,
+} from "fflate";
 import { getFileBlob, putFileBlob } from "./fileStore";
 
 const DATA_ENTRY = "data.json";
@@ -17,13 +25,16 @@ interface WritableSink {
 }
 
 const getSavePicker = (): SaveFilePicker | undefined =>
-  (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker;
+  (window as unknown as { showSaveFilePicker?: SaveFilePicker })
+    .showSaveFilePicker;
 
 export const entryNameFor = (fileId: string): string =>
   `${FILES_PREFIX}${encodeURIComponent(fileId)}`;
 
 const fileIdFromEntry = (name: string): string | null =>
-  name.startsWith(FILES_PREFIX) ? decodeURIComponent(name.slice(FILES_PREFIX.length)) : null;
+  name.startsWith(FILES_PREFIX)
+    ? decodeURIComponent(name.slice(FILES_PREFIX.length))
+    : null;
 
 export async function isZipFile(file: File): Promise<boolean> {
   if (file.size < 4) return false;
@@ -46,7 +57,7 @@ export interface ExportResult {
 export async function exportBackup(
   payload: unknown,
   fileIds: string[],
-  onProgress?: (fraction: number) => void
+  onProgress?: (fraction: number) => void,
 ): Promise<ExportResult> {
   const suggestedName = `worshipstudio-backup-${new Date().toISOString().slice(0, 10)}.zip`;
   const picker = getSavePicker();
@@ -57,11 +68,17 @@ export async function exportBackup(
     try {
       const handle = await picker({
         suggestedName,
-        types: [{ description: "WorshipStudio backup", accept: { "application/zip": [".zip"] } }],
+        types: [
+          {
+            description: "WorshipStudio backup",
+            accept: { "application/zip": [".zip"] },
+          },
+        ],
       });
       sink = await handle.createWritable();
     } catch (err) {
-      if ((err as DOMException)?.name === "AbortError") return { ok: false, cancelled: true };
+      if ((err as DOMException)?.name === "AbortError")
+        return { ok: false, cancelled: true };
       sink = null;
     }
   }
@@ -116,7 +133,9 @@ export async function exportBackup(
   if (sink) {
     await sink.close();
   } else {
-    const blob = new Blob(fallbackChunks as BlobPart[], { type: "application/zip" });
+    const blob = new Blob(fallbackChunks as BlobPart[], {
+      type: "application/zip",
+    });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -199,7 +218,7 @@ export function readBackupPayload(file: File): Promise<unknown | null> {
 export function importBackupFiles(
   file: File,
   acceptId: (id: string) => boolean,
-  onProgress?: (bytesRead: number, totalBytes: number) => void
+  onProgress?: (bytesRead: number, totalBytes: number) => void,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const unzip = new Unzip();
@@ -223,7 +242,7 @@ export function importBackupFiles(
           putQueue = putQueue.then(() =>
             putFileBlob(fileId, blob).catch((putErr: Error) => {
               failed = failed || putErr;
-            })
+            }),
           );
         }
       };

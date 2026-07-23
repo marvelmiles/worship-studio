@@ -4,10 +4,20 @@ import { slideIndexForVerse } from "../bible/lib/scriptureSlides";
 import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
-import { DEFAULT_MEDIA_PLAYBACK, type MediaPlayback } from "../../lib/presentChannel";
+import {
+  DEFAULT_MEDIA_PLAYBACK,
+  type MediaPlayback,
+} from "../../lib/presentChannel";
 import { videoSettingsOf } from "../../lib/media";
-import { resolveAudioId, resolveAutoPlay, resolveSlideDuration } from "../../lib/resolve";
-import { computeTagGroups, FIXED_SHORTCUT_BY_LETTER } from "../../lib/tagGroups";
+import {
+  resolveAudioId,
+  resolveAutoPlay,
+  resolveSlideDuration,
+} from "../../lib/resolve";
+import {
+  computeTagGroups,
+  FIXED_SHORTCUT_BY_LETTER,
+} from "../../lib/tagGroups";
 import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
 import type { VideoSurfaceHandle } from "../../components/media/VideoSurface";
@@ -35,7 +45,7 @@ interface FullscreenOverride {
  */
 export function usePresentation(
   fullscreenOverride?: FullscreenOverride,
-  shortcutGate?: () => boolean
+  shortcutGate?: () => boolean,
 ) {
   const presentation = useStore((s) => s.presentation);
   const audio = useStore((s) => s.audio);
@@ -53,14 +63,16 @@ export function usePresentation(
   const [view, setView] = useState<PresentationView>(prefs.presentationView);
   const [showInfo, setShowInfo] = useState(prefs.showPresenterBar);
   const [elapsed, setElapsed] = useState(0);
-  const [mediaPlayback, setMediaPlayback] = useState<MediaPlayback>(DEFAULT_MEDIA_PLAYBACK);
+  const [mediaPlayback, setMediaPlayback] = useState<MediaPlayback>(
+    DEFAULT_MEDIA_PLAYBACK,
+  );
   const [videoTime, setVideoTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
 
   const videoRef = useRef<VideoSurfaceHandle>(null);
   const textSlides = useMemo(
     () => slides.flatMap((s) => (s.kind === "text" ? [s.slide] : [])),
-    [slides]
+    [slides],
   );
   const tagGroups = useMemo(() => computeTagGroups(textSlides), [textSlides]);
   // Accumulates digit keys pressed while Ctrl is held; flushed on Ctrl keyup.
@@ -69,20 +81,28 @@ export function usePresentation(
   const rootRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const localFullscreen = useFullscreen(rootRef);
-  const isFullscreen = fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
+  const isFullscreen =
+    fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
   const toggleFullscreen = fullscreenOverride?.toggle ?? localFullscreen.toggle;
 
   const currentSlide = slides[slideIndex];
   const next = slides[slideIndex + 1];
-  const frame = deck ? buildStageFrame(deck, currentSlide, bgMap, prefs.transition) : null;
-  const nextFrame = deck && next ? buildStageFrame(deck, next, bgMap, prefs.transition) : null;
+  const frame = deck
+    ? buildStageFrame(deck, currentSlide, bgMap, prefs.transition)
+    : null;
+  const nextFrame =
+    deck && next ? buildStageFrame(deck, next, bgMap, prefs.transition) : null;
 
   const doc = deck?.doc;
   const theme = deck?.theme;
-  const currentTextSlide = currentSlide?.kind === "text" ? currentSlide.slide : undefined;
+  const currentTextSlide =
+    currentSlide?.kind === "text" ? currentSlide.slide : undefined;
   const isVideoSlide = currentSlide?.kind === "video";
-  const currentVideoItem = currentSlide?.kind === "video" ? currentSlide.item : undefined;
-  const videoSettings = currentVideoItem ? videoSettingsOf(currentVideoItem) : undefined;
+  const currentVideoItem =
+    currentSlide?.kind === "video" ? currentSlide.item : undefined;
+  const videoSettings = currentVideoItem
+    ? videoSettingsOf(currentVideoItem)
+    : undefined;
 
   const audioId = doc ? resolveAudioId(currentTextSlide, doc, theme) : null;
   const audioItem = audio.find((a) => a.id === audioId);
@@ -92,21 +112,25 @@ export function usePresentation(
   const go = useCallback(
     (delta: number) => {
       setPaused((isPaused) => {
-        if (!isPaused) setSlideIndex((i) => Math.max(0, Math.min(slides.length - 1, i + delta)));
+        if (!isPaused)
+          setSlideIndex((i) =>
+            Math.max(0, Math.min(slides.length - 1, i + delta)),
+          );
         return isPaused;
       });
     },
-    [slides.length]
+    [slides.length],
   );
 
   const goTo = useCallback(
     (target: number) => {
       setPaused((isPaused) => {
-        if (!isPaused) setSlideIndex(Math.max(0, Math.min(slides.length - 1, target)));
+        if (!isPaused)
+          setSlideIndex(Math.max(0, Math.min(slides.length - 1, target)));
         return isPaused;
       });
     },
-    [slides.length]
+    [slides.length],
   );
 
   const exit = useCallback(() => {
@@ -115,8 +139,14 @@ export function usePresentation(
   }, [stopPresent]);
 
   const togglePause = useCallback(() => setPaused((p) => !p), []);
-  const zoomIn = useCallback(() => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2))), []);
-  const zoomOut = useCallback(() => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2))), []);
+  const zoomIn = useCallback(
+    () => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2))),
+    [],
+  );
+  const zoomOut = useCallback(
+    () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2))),
+    [],
+  );
   const resetZoom = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -128,27 +158,38 @@ export function usePresentation(
       y: Math.max(-limit, Math.min(limit, p.y + dy)),
     }));
   }, []);
-  const setViewMode = useCallback((nextView: PresentationView) => setView(nextView), []);
+  const setViewMode = useCallback(
+    (nextView: PresentationView) => setView(nextView),
+    [],
+  );
   const cycleView = useCallback(
-    () => setView((v) => VIEW_ORDER[(VIEW_ORDER.indexOf(v) + 1) % VIEW_ORDER.length]),
-    []
+    () =>
+      setView(
+        (v) => VIEW_ORDER[(VIEW_ORDER.indexOf(v) + 1) % VIEW_ORDER.length],
+      ),
+    [],
   );
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
   const toggleVideoPlaying = useCallback(
     () => setMediaPlayback((p) => ({ ...p, playing: !p.playing })),
-    []
+    [],
   );
   const toggleVideoMuted = useCallback(
     () => setMediaPlayback((p) => ({ ...p, muted: !p.muted })),
-    []
+    [],
   );
   const setVideoVolume = useCallback(
-    (volume: number) => setMediaPlayback((p) => ({ ...p, volume, muted: false })),
-    []
+    (volume: number) =>
+      setMediaPlayback((p) => ({ ...p, volume, muted: false })),
+    [],
   );
   const seekVideoTo = useCallback((time: number) => {
-    setMediaPlayback((p) => ({ ...p, seekTime: time, seekToken: p.seekToken + 1 }));
+    setMediaPlayback((p) => ({
+      ...p,
+      seekTime: time,
+      seekToken: p.seekToken + 1,
+    }));
     setVideoTime(time);
   }, []);
   const seekVideoBy = useCallback(
@@ -158,7 +199,7 @@ export function usePresentation(
       const current = videoRef.current?.getCurrentTime() ?? videoTime;
       seekVideoTo(Math.max(start, Math.min(end, current + delta)));
     },
-    [seekVideoTo, videoSettings, videoDuration, videoTime]
+    [seekVideoTo, videoSettings, videoDuration, videoTime],
   );
   const restartVideo = useCallback(() => {
     seekVideoTo(videoSettings?.trimStart ?? 0);
@@ -171,7 +212,7 @@ export function usePresentation(
   }, []);
   const onVideoEnded = useCallback(
     () => setMediaPlayback((p) => ({ ...p, playing: false })),
-    []
+    [],
   );
 
   // A fresh video slide always starts playing from its trim point.
@@ -195,7 +236,12 @@ export function usePresentation(
   const ownsKey = useCallback((e: KeyboardEvent): boolean => {
     const el = e.target as HTMLElement | null;
     // Never steal keys from a field the user is typing in.
-    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) {
+    if (
+      el &&
+      (el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable)
+    ) {
       return false;
     }
     return shortcutGateRef.current?.() ?? true;
@@ -212,7 +258,9 @@ export function usePresentation(
         ctrlNumBuffer.current += key;
         return;
       }
-      const fixed = e.ctrlKey ? FIXED_SHORTCUT_BY_LETTER[key.toLowerCase()] : undefined;
+      const fixed = e.ctrlKey
+        ? FIXED_SHORTCUT_BY_LETTER[key.toLowerCase()]
+        : undefined;
       if (fixed) {
         e.preventDefault();
         ctrlNumBuffer.current = "";
@@ -319,7 +367,10 @@ export function usePresentation(
 
   useEffect(() => {
     if (paused) return;
-    const timer = window.setInterval(() => setElapsed((value) => value + 1), 1000);
+    const timer = window.setInterval(
+      () => setElapsed((value) => value + 1),
+      1000,
+    );
     return () => window.clearInterval(timer);
   }, [paused]);
 

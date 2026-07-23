@@ -10,7 +10,9 @@ interface BinaryAsset {
  * resolve their stored Blob to a temporary object URL, bundled defaults keep
  * their inline data.
  */
-export function useAssetUrl(asset: BinaryAsset | undefined | null): string | null {
+export function useAssetUrl(
+  asset: BinaryAsset | undefined | null,
+): string | null {
   const blobUrl = useBlobUrl(asset?.blobId);
   if (!asset) return null;
   if (asset.blobId) return blobUrl;

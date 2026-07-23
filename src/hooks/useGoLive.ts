@@ -17,8 +17,13 @@ export type { GoLiveResult };
  * Defaults to the slide-presentation output; pass another controller (e.g. the
  * camera stream's) to drive a different projected window with the same binding.
  */
-export function useGoLive(controller: LiveWindowController = presentLiveWindow) {
-  const { isLive, isFullscreen } = useSyncExternalStore(controller.subscribe, controller.getState);
+export function useGoLive(
+  controller: LiveWindowController = presentLiveWindow,
+) {
+  const { isLive, isFullscreen } = useSyncExternalStore(
+    controller.subscribe,
+    controller.getState,
+  );
   const [isExtended, setIsExtended] = useState(isExtendedDisplay);
 
   useEffect(() => {
@@ -33,7 +38,10 @@ export function useGoLive(controller: LiveWindowController = presentLiveWindow) 
 
   const goLive = useCallback(() => controller.goLive(), [controller]);
   const endLive = useCallback(() => controller.endLive(), [controller]);
-  const toggleLiveFullscreen = useCallback(() => controller.toggleFullscreen(), [controller]);
+  const toggleLiveFullscreen = useCallback(
+    () => controller.toggleFullscreen(),
+    [controller],
+  );
 
   return {
     isExtended,

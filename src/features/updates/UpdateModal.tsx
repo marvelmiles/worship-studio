@@ -41,7 +41,7 @@ const CHANGES: { title: string; body: string }[] = [
   },
   {
     title: "Update Notifications",
-    body: "WorshipStudio now shows a brief update modal when new features or improvements arrive. Scroll to the bottom and click \"Understood\" to dismiss it; it will not show again unless there is something new.",
+    body: 'WorshipStudio now shows a brief update modal when new features or improvements arrive. Scroll to the bottom and click "Understood" to dismiss it; it will not show again unless there is something new.',
   },
 ];
 
@@ -131,8 +131,17 @@ export function UpdateModal() {
           >
             WorshipStudio Update
           </h2>
-          <p style={{ margin: "6px 0 0", fontSize: 13, color: colors.sub, fontFamily: UI }}>
-            Scroll through the changes below, then click <strong style={{ color: colors.text }}>Understood</strong> to continue.
+          <p
+            style={{
+              margin: "6px 0 0",
+              fontSize: 13,
+              color: colors.sub,
+              fontFamily: UI,
+            }}
+          >
+            Scroll through the changes below, then click{" "}
+            <strong style={{ color: colors.text }}>Understood</strong> to
+            continue.
           </p>
         </div>
 

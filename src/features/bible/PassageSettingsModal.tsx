@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import type { BibleVersionId, ScripturePassage } from "../../types";
-import { BIBLE_BOOKS, BIBLE_VERSIONS, DEFAULT_BIBLE_VERSION, bookById, isBibleVersion } from "../../data/bibleBooks";
+import {
+  BIBLE_BOOKS,
+  BIBLE_VERSIONS,
+  DEFAULT_BIBLE_VERSION,
+  bookById,
+  isBibleVersion,
+} from "../../data/bibleBooks";
 import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { Field, Range, Select, Toggle, SectionTitle } from "../../components/ui/Field";
+import {
+  Field,
+  Range,
+  Select,
+  Toggle,
+  SectionTitle,
+} from "../../components/ui/Field";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
@@ -28,7 +40,12 @@ const GRID = {
   gap: 12,
 } as const;
 
-export function PassageSettingsModal({ open, onClose, passage, editor }: PassageSettingsModalProps) {
+export function PassageSettingsModal({
+  open,
+  onClose,
+  passage,
+  editor,
+}: PassageSettingsModalProps) {
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
@@ -39,14 +56,19 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
   // Passages saved by older releases may carry a translation that is no
   // longer available (copyrighted versions were removed when scripture went
   // fully offline), rebuilding those falls back to the default.
-  const safeVersion = (value: BibleVersionId) => (isBibleVersion(value) ? value : DEFAULT_BIBLE_VERSION);
-  const [version, setVersion] = useState<BibleVersionId>(safeVersion(passage.version));
+  const safeVersion = (value: BibleVersionId) =>
+    isBibleVersion(value) ? value : DEFAULT_BIBLE_VERSION;
+  const [version, setVersion] = useState<BibleVersionId>(
+    safeVersion(passage.version),
+  );
   const [bookId, setBookId] = useState(passage.range.bookId);
   const [chapter, setChapter] = useState(passage.range.chapter);
   const [verseStart, setVerseStart] = useState(passage.range.verseStart);
   const [verseEnd, setVerseEnd] = useState(passage.range.verseEnd);
   const [versesPerSlide, setVersesPerSlide] = useState(passage.versesPerSlide);
-  const [showVerseNumbers, setShowVerseNumbers] = useState(passage.showVerseNumbers);
+  const [showVerseNumbers, setShowVerseNumbers] = useState(
+    passage.showVerseNumbers,
+  );
   const [showReference, setShowReference] = useState(passage.showReference);
   const [rebuilding, setRebuilding] = useState(false);
 
@@ -65,9 +87,11 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
   const book = bookById(bookId);
   const theme = useMemo(
     () => themes.find((t) => t.id === passage.defaultThemeId) || themes[0],
-    [themes, passage.defaultThemeId]
+    [themes, passage.defaultThemeId],
   );
-  const themeAudio = theme.defaultAudioId ? audio.find((a) => a.id === theme.defaultAudioId) : undefined;
+  const themeAudio = theme.defaultAudioId
+    ? audio.find((a) => a.id === theme.defaultAudioId)
+    : undefined;
 
   const rebuild = async () => {
     if (!book) return;
@@ -107,9 +131,17 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
 
   return (
     <Modal open={open} onClose={onClose} title="Passage Settings" width={620}>
-      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, marginTop: 0, lineHeight: 1.6 }}>
-        These settings apply to every slide in this passage. Individual slides can still override
-        them in the inspector.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: colors.sub,
+          marginTop: 0,
+          lineHeight: 1.6,
+        }}
+      >
+        These settings apply to every slide in this passage. Individual slides
+        can still override them in the inspector.
       </p>
 
       <SectionTitle>Passage</SectionTitle>
@@ -124,7 +156,10 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
         <Field label="Book">
           <Select
             value={String(bookId)}
-            options={BIBLE_BOOKS.map((b) => ({ value: String(b.id), label: b.name }))}
+            options={BIBLE_BOOKS.map((b) => ({
+              value: String(b.id),
+              label: b.name,
+            }))}
             onChange={(e) => {
               setBookId(Number(e.target.value));
               setChapter(1);
@@ -134,7 +169,9 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
         <Field label="Chapter">
           <Select
             value={String(chapter)}
-            options={Array.from({ length: book?.chapters || 1 }, (_, i) => String(i + 1))}
+            options={Array.from({ length: book?.chapters || 1 }, (_, i) =>
+              String(i + 1),
+            )}
             onChange={(e) => setChapter(Number(e.target.value))}
           />
         </Field>
@@ -156,19 +193,44 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
 
       <SectionTitle>Slide Format</SectionTitle>
       <Field label={`Verses per slide (${versesPerSlide})`}>
-        <Range value={versesPerSlide} min={1} max={6} onChange={(e) => setVersesPerSlide(Number(e.target.value))} />
+        <Range
+          value={versesPerSlide}
+          min={1}
+          max={6}
+          onChange={(e) => setVersesPerSlide(Number(e.target.value))}
+        />
       </Field>
       <div style={{ marginBottom: 8 }}>
-        <Toggle label="Show verse numbers" checked={showVerseNumbers} onChange={setShowVerseNumbers} />
+        <Toggle
+          label="Show verse numbers"
+          checked={showVerseNumbers}
+          onChange={setShowVerseNumbers}
+        />
       </div>
       <div style={{ marginBottom: 12 }}>
-        <Toggle label="Show reference on each slide" checked={showReference} onChange={setShowReference} />
+        <Toggle
+          label="Show reference on each slide"
+          checked={showReference}
+          onChange={setShowReference}
+        />
       </div>
-      <Button variant="primary" onClick={() => void rebuild()} busy={rebuilding}>
+      <Button
+        variant="primary"
+        onClick={() => void rebuild()}
+        busy={rebuilding}
+      >
         <RefreshCw size={15} />
         Apply & rebuild slides
       </Button>
-      <p style={{ fontFamily: UI, fontSize: 12, color: colors.danger, opacity: 0.85, margin: "10px 0 0" }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 12,
+          color: colors.danger,
+          opacity: 0.85,
+          margin: "10px 0 0",
+        }}
+      >
         Rebuilding refetches the verses and resets per-slide overrides.
       </p>
 
@@ -195,14 +257,20 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
         inheritLabel={`Use theme (${theme.name})`}
         onSelect={(id) => editor.patchDoc({ defaultBackgroundId: id })}
         onUploaded={(id) => editor.patchDoc({ defaultBackgroundId: id })}
-        onAddColor={(value, name) => editor.patchDoc({ defaultBackgroundId: addCustomBackground(value, name) })}
+        onAddColor={(value, name) =>
+          editor.patchDoc({
+            defaultBackgroundId: addCustomBackground(value, name),
+          })
+        }
       />
 
       <SectionTitle>Audio</SectionTitle>
       <AudioPicker
         audio={audio}
         value={passage.defaultAudioId || ""}
-        inheritLabel={themeAudio ? `Use theme audio (${themeAudio.name})` : "None"}
+        inheritLabel={
+          themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
+        }
         onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
         onUploaded={(id) => editor.patchDoc({ defaultAudioId: id })}
       />
@@ -211,7 +279,11 @@ export function PassageSettingsModal({ open, onClose, passage, editor }: Passage
       <AnimationPicker
         value={passage.animation || ""}
         inheritLabel="Use theme / app default"
-        onSelect={(value) => editor.patchDoc({ animation: (value || undefined) as ScripturePassage["animation"] })}
+        onSelect={(value) =>
+          editor.patchDoc({
+            animation: (value || undefined) as ScripturePassage["animation"],
+          })
+        }
       />
     </Modal>
   );

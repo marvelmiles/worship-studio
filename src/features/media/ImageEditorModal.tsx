@@ -1,11 +1,24 @@
 import { useEffect, useState } from "react";
-import { FlipHorizontal2, FlipVertical2, RotateCcw, RotateCw, Save, Undo2 } from "lucide-react";
+import {
+  FlipHorizontal2,
+  FlipVertical2,
+  RotateCcw,
+  RotateCw,
+  Save,
+  Undo2,
+} from "lucide-react";
 import type { ImageSettings, MediaItem } from "../../types";
 import { useStore } from "../../store/useStore";
 import { DEFAULT_IMAGE_SETTINGS, imageSettingsOf } from "../../lib/media";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { Field, Select, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
+import {
+  Field,
+  Select,
+  TextInput,
+  Toggle,
+  SectionTitle,
+} from "../../components/ui/Field";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { AdjustmentControls } from "./AdjustmentControls";
 
@@ -25,7 +38,9 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
   const pushToast = useStore((s) => s.pushToast);
 
   const [name, setName] = useState("");
-  const [settings, setSettings] = useState<ImageSettings>(DEFAULT_IMAGE_SETTINGS);
+  const [settings, setSettings] = useState<ImageSettings>(
+    DEFAULT_IMAGE_SETTINGS,
+  );
 
   useEffect(() => {
     if (item) {
@@ -40,7 +55,10 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
     setSettings((prev) => ({ ...prev, ...changes }));
 
   const rotateBy = (delta: 90 | -90) =>
-    patch({ rotate: (((settings.rotate + delta) % 360) + 360) % 360 as ImageSettings["rotate"] });
+    patch({
+      rotate: ((((settings.rotate + delta) % 360) + 360) %
+        360) as ImageSettings["rotate"],
+    });
 
   const save = () => {
     updateMedia(item.id, { name: name.trim() || item.name, image: settings });
@@ -57,7 +75,10 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="ghost" onClick={() => setSettings(DEFAULT_IMAGE_SETTINGS)}>
+          <Button
+            variant="ghost"
+            onClick={() => setSettings(DEFAULT_IMAGE_SETTINGS)}
+          >
             <Undo2 size={14} />
             Reset all
           </Button>
@@ -113,12 +134,20 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
           Flip V
         </Button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "0 16px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          gap: "0 16px",
+        }}
+      >
         <Field label="Screen fit">
           <Select
             value={settings.fit}
             options={FIT_OPTIONS}
-            onChange={(e) => patch({ fit: e.target.value as ImageSettings["fit"] })}
+            onChange={(e) =>
+              patch({ fit: e.target.value as ImageSettings["fit"] })
+            }
           />
         </Field>
         <div style={{ paddingTop: 24 }}>

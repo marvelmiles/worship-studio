@@ -64,7 +64,10 @@ export interface BroadcastHandle {
  * Announces this device as available in the room and waits to be picked. Throws
  * if signalling isn't configured — callers gate on `signalingConfigured` first.
  */
-export function publishBroadcaster(room: string, name: string): BroadcastHandle {
+export function publishBroadcaster(
+  room: string,
+  name: string,
+): BroadcastHandle {
   const db = getSignalingDb();
   if (!db) throw new Error("Signalling is not configured.");
   const deviceId = crypto.randomUUID();
@@ -105,7 +108,10 @@ export function publishBroadcaster(room: string, name: string): BroadcastHandle 
 /* -------------------------------- Viewer (laptop) ------------------------- */
 
 /** Subscribes to the live list of broadcasting devices in the room. */
-export function watchBroadcasters(room: string, cb: (devices: DeviceEntry[]) => void): () => void {
+export function watchBroadcasters(
+  room: string,
+  cb: (devices: DeviceEntry[]) => void,
+): () => void {
   const db = getSignalingDb();
   if (!db) return () => {};
   return onValue(devicesRef(db, room), (snap) => {
@@ -135,7 +141,7 @@ export function requestStream(
   room: string,
   deviceId: string,
   viewerId: string,
-  offerSdp: string
+  offerSdp: string,
 ): CallHandle {
   const db = getSignalingDb();
   if (!db) throw new Error("Signalling is not configured.");

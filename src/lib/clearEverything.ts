@@ -26,20 +26,25 @@ export default async function clearEverything() {
 
   try {
     if ("databases" in indexedDB) {
-      const databases = await (indexedDB as any).databases();
+      const databases = await (
+        indexedDB as IDBFactory & {
+          databases(): Promise<{ name?: string }[]>;
+        }
+      ).databases();
 
       for (const db of databases) {
-        if (!db.name) continue;
+        const name = db.name;
+        if (!name) continue;
 
         await new Promise<void>((resolve) => {
-          const request = indexedDB.deleteDatabase(db.name);
+          const request = indexedDB.deleteDatabase(name);
 
           request.onsuccess = () => {
             resolve();
           };
 
           request.onerror = () => {
-            console.error(`❌ Failed deleting ${db.name}`);
+            console.error(`❌ Failed deleting ${name}`);
             resolve();
           };
 

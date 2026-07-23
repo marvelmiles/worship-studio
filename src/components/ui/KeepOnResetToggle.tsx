@@ -2,7 +2,12 @@ import { Shield, ShieldCheck } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
-import { MAX_KEPT_ITEMS, canKeep, keptCount, type KeepableKind } from "../../lib/keepOnReset";
+import {
+  MAX_KEPT_ITEMS,
+  canKeep,
+  keptCount,
+  type KeepableKind,
+} from "../../lib/keepOnReset";
 import { Button, IconButton } from "./Button";
 
 /**
@@ -16,7 +21,12 @@ export function KeepOnResetToggle({
   variant = "icon",
 }: {
   kind: KeepableKind;
-  item: { id: string; keepOnReset?: boolean; builtIn?: boolean; deleted?: boolean };
+  item: {
+    id: string;
+    keepOnReset?: boolean;
+    builtIn?: boolean;
+    deleted?: boolean;
+  };
   /** "icon" for dense card rows, "button" for a labelled control in a panel. */
   variant?: "icon" | "button";
 }) {
@@ -62,7 +72,11 @@ export function KeepOnResetToggle({
 }
 
 /** The "KEPT" chip shown on cards, so a kept item reads as kept at a glance. */
-export function KeepOnResetBadge({ item }: { item: { keepOnReset?: boolean; builtIn?: boolean; deleted?: boolean } }) {
+export function KeepOnResetBadge({
+  item,
+}: {
+  item: { keepOnReset?: boolean; builtIn?: boolean; deleted?: boolean };
+}) {
   const { colors, fonts } = useUITheme();
   if (!item.keepOnReset || !canKeep(item)) return null;
   return (

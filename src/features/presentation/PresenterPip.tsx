@@ -67,7 +67,7 @@ export function PresenterPip({
   onStopLive,
   onExit,
 }: PresenterPipProps) {
-  const { colors, fonts, stage } = useUITheme();
+  const { colors, fonts } = useUITheme();
   const [focused, setFocused] = useState(false);
   const [pos, setPos] = useState(() => ({
     x: Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN),
@@ -86,7 +86,10 @@ export function PresenterPip({
       const height = rootRef.current?.offsetHeight ?? 260;
       setPos((p) => ({
         x: Math.min(p.x, Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN)),
-        y: Math.min(p.y, Math.max(MARGIN, window.innerHeight - height - MARGIN)),
+        y: Math.min(
+          p.y,
+          Math.max(MARGIN, window.innerHeight - height - MARGIN),
+        ),
       }));
     };
     window.addEventListener("resize", onResize);
@@ -102,8 +105,14 @@ export function PresenterPip({
     if (!offset) return;
     const height = rootRef.current?.offsetHeight ?? 260;
     setPos({
-      x: Math.max(0, Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx)),
-      y: Math.max(0, Math.min(window.innerHeight - height, e.clientY - offset.dy)),
+      x: Math.max(
+        0,
+        Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx),
+      ),
+      y: Math.max(
+        0,
+        Math.min(window.innerHeight - height, e.clientY - offset.dy),
+      ),
     });
   };
   const endDrag = () => {
@@ -122,7 +131,8 @@ export function PresenterPip({
       onPointerDown={() => rootRef.current?.focus()}
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+          setFocused(false);
       }}
       style={{
         position: "fixed",
@@ -158,7 +168,11 @@ export function PresenterPip({
           touchAction: "none",
         }}
       >
-        <GripHorizontal size={14} color={colors.dim} style={{ flexShrink: 0 }} />
+        <GripHorizontal
+          size={14}
+          color={colors.dim}
+          style={{ flexShrink: 0 }}
+        />
         <span
           className="ws-ellipsis"
           style={{
@@ -189,13 +203,26 @@ export function PresenterPip({
               background: colors.danger,
             }}
           >
-            <span style={{ width: 5, height: 5, borderRadius: 999, background: colors.onAccent }} />
+            <span
+              style={{
+                width: 5,
+                height: 5,
+                borderRadius: 999,
+                background: colors.onAccent,
+              }}
+            />
             LIVE
           </span>
         )}
       </div>
 
-      <div style={{ position: "relative", aspectRatio: "16 / 9", background: "#000" }}>
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "16 / 9",
+          background: "#000",
+        }}
+      >
         {content.kind === "text" && (
           <SlideCanvas
             slide={content.slide}
@@ -207,7 +234,9 @@ export function PresenterPip({
             fill
           />
         )}
-        {content.kind === "image" && <ImageSurface item={content.item} variant="thumb" />}
+        {content.kind === "image" && (
+          <ImageSurface item={content.item} variant="thumb" />
+        )}
         {content.kind === "video" && (
           // Muted: the projected window is the one that plays sound.
           <VideoSurface item={content.item} forceMuted />
@@ -223,14 +252,22 @@ export function PresenterPip({
           borderTop: `1px solid ${colors.border}`,
         }}
       >
-        <MiniButton icon={ChevronLeft} title="Previous slide (←)" onClick={onPrev} />
+        <MiniButton
+          icon={ChevronLeft}
+          title="Previous slide (←)"
+          onClick={onPrev}
+        />
         <MiniButton
           icon={paused ? Play : Pause}
           title={paused ? "Resume (P)" : "Pause (P)"}
           active={paused}
           onClick={onTogglePause}
         />
-        <MiniButton icon={ChevronRight} title="Next slide (→)" onClick={onNext} />
+        <MiniButton
+          icon={ChevronRight}
+          title="Next slide (→)"
+          onClick={onNext}
+        />
         <span
           style={{
             flex: 1,
@@ -255,10 +292,23 @@ export function PresenterPip({
             onClick={onStopLive}
           />
         ) : (
-          <MiniButton icon={MonitorUp} title="Go live on the audience display" onClick={onGoLive} />
+          <MiniButton
+            icon={MonitorUp}
+            title="Go live on the audience display"
+            onClick={onGoLive}
+          />
         )}
-        <MiniButton icon={Maximize2} title="Open the full presentation view" onClick={onOpenStage} />
-        <MiniButton icon={X} title="End presentation (Esc)" danger onClick={onExit} />
+        <MiniButton
+          icon={Maximize2}
+          title="Open the full presentation view"
+          onClick={onOpenStage}
+        />
+        <MiniButton
+          icon={X}
+          title="End presentation (Esc)"
+          danger
+          onClick={onExit}
+        />
       </div>
 
       <div

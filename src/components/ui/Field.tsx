@@ -22,7 +22,13 @@ export const inputStyle: CSSProperties = {
   outline: "none",
 };
 
-export function Field({ label, children }: { label: string; children: ReactNode }) {
+export function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   const { colors: c, fonts } = useUITheme();
   return (
     <label style={{ display: "block", marginBottom: 13 }}>
@@ -99,7 +105,14 @@ interface RangeProps {
   suffix?: string;
 }
 
-export function Range({ value, onChange, min, max, step = 1, suffix = "" }: RangeProps) {
+export function Range({
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  suffix = "",
+}: RangeProps) {
   const { colors: c, controls, fonts } = useUITheme();
   const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
   return (
@@ -153,7 +166,9 @@ export function Toggle({ checked, onChange, label }: ToggleProps) {
         padding: "4px 0",
       }}
     >
-      <span style={{ fontFamily: UI, fontSize: 13.5, color: c.text }}>{label}</span>
+      <span style={{ fontFamily: UI, fontSize: 13.5, color: c.text }}>
+        {label}
+      </span>
       <div
         style={{
           width: 40,

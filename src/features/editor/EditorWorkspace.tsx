@@ -39,16 +39,32 @@ export function EditorWorkspace({ song }: { song: Song }) {
       topBarActions={(compact) =>
         compact ? (
           <>
-            <IconButton icon={Type} title="Edit lyrics" onClick={() => setLyricsOpen(true)} />
-            <IconButton icon={Settings2} title="Song settings" onClick={() => setSettingsOpen(true)} />
+            <IconButton
+              icon={Type}
+              title="Edit lyrics"
+              onClick={() => setLyricsOpen(true)}
+            />
+            <IconButton
+              icon={Settings2}
+              title="Song settings"
+              onClick={() => setSettingsOpen(true)}
+            />
           </>
         ) : (
           <>
-            <Button variant="ghost" size="sm" onClick={() => setLyricsOpen(true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLyricsOpen(true)}
+            >
               <Type size={14} />
               Lyrics
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSettingsOpen(true)}
+            >
               <Settings2 size={14} />
               Song Settings
             </Button>
@@ -56,10 +72,18 @@ export function EditorWorkspace({ song }: { song: Song }) {
         )
       }
       emptyState={
-        <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
+        <div
+          style={{
+            height: "100%",
+            display: "grid",
+            placeItems: "center",
+            padding: 24,
+          }}
+        >
           <div style={{ textAlign: "center", maxWidth: 320 }}>
             <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
-              This song has no slides yet. Add lyrics to generate slides automatically.
+              This song has no slides yet. Add lyrics to generate slides
+              automatically.
             </p>
             <Button variant="primary" onClick={() => setLyricsOpen(true)}>
               <Type size={15} />

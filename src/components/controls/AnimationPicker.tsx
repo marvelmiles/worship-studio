@@ -8,14 +8,23 @@ interface AnimationPickerProps {
   inheritLabel?: string;
 }
 
-export function AnimationPicker({ label = "Animation", value, onSelect, inheritLabel }: AnimationPickerProps) {
+export function AnimationPicker({
+  label = "Animation",
+  value,
+  onSelect,
+  inheritLabel,
+}: AnimationPickerProps) {
   const options = [
     ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
     ...ANIMATION_OPTIONS,
   ];
   return (
     <Field label={label}>
-      <Select value={value} options={options} onChange={(e) => onSelect(e.target.value)} />
+      <Select
+        value={value}
+        options={options}
+        onChange={(e) => onSelect(e.target.value)}
+      />
     </Field>
   );
 }

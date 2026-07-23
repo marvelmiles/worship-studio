@@ -3,11 +3,23 @@ import { Save, TimerReset, Undo2 } from "lucide-react";
 import type { MediaItem, VideoSettings } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { buildFilter, DEFAULT_VIDEO_SETTINGS, formatDuration, videoSettingsOf } from "../../lib/media";
+import {
+  buildFilter,
+  DEFAULT_VIDEO_SETTINGS,
+  formatDuration,
+  videoSettingsOf,
+} from "../../lib/media";
 import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { Field, Range, Select, TextInput, Toggle, SectionTitle } from "../../components/ui/Field";
+import {
+  Field,
+  Range,
+  Select,
+  TextInput,
+  Toggle,
+  SectionTitle,
+} from "../../components/ui/Field";
 import { AdjustmentControls } from "./AdjustmentControls";
 
 interface VideoEditorModalProps {
@@ -33,7 +45,9 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const src = useBlobUrl(item?.id);
   const [name, setName] = useState("");
-  const [settings, setSettings] = useState<VideoSettings>(DEFAULT_VIDEO_SETTINGS);
+  const [settings, setSettings] = useState<VideoSettings>(
+    DEFAULT_VIDEO_SETTINGS,
+  );
 
   useEffect(() => {
     if (item) {
@@ -53,8 +67,13 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
   const save = () => {
     const trimStart = Math.max(0, settings.trimStart);
     const trimEnd =
-      settings.trimEnd !== null && settings.trimEnd > trimStart ? settings.trimEnd : null;
-    updateMedia(item.id, { name: name.trim() || item.name, video: { ...settings, trimStart, trimEnd } });
+      settings.trimEnd !== null && settings.trimEnd > trimStart
+        ? settings.trimEnd
+        : null;
+    updateMedia(item.id, {
+      name: name.trim() || item.name,
+      video: { ...settings, trimStart, trimEnd },
+    });
     pushToast("Video saved.");
     onClose();
   };
@@ -68,7 +87,10 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="ghost" onClick={() => setSettings(DEFAULT_VIDEO_SETTINGS)}>
+          <Button
+            variant="ghost"
+            onClick={() => setSettings(DEFAULT_VIDEO_SETTINGS)}
+          >
             <Undo2 size={14} />
             Reset all
           </Button>
@@ -112,11 +134,26 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
       </div>
 
       <SectionTitle>Trim</SectionTitle>
-      <p style={{ fontFamily: UI, fontSize: 12.5, color: colors.sub, margin: "0 0 12px", lineHeight: 1.5 }}>
-        Playback runs from the trim start to the trim end{duration ? ` (video is ${formatDuration(duration)})` : ""}.
-        Scrub the preview, then capture the playhead.
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 12.5,
+          color: colors.sub,
+          margin: "0 0 12px",
+          lineHeight: 1.5,
+        }}
+      >
+        Playback runs from the trim start to the trim end
+        {duration ? ` (video is ${formatDuration(duration)})` : ""}. Scrub the
+        preview, then capture the playhead.
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
+          gap: 12,
+        }}
+      >
         <Field label={`Start: ${formatDuration(settings.trimStart)}`}>
           <div className="ws-row">
             <TextInput
@@ -124,15 +161,23 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
               min={0}
               step={0.1}
               value={String(settings.trimStart)}
-              onChange={(e) => patch({ trimStart: Math.max(0, Number(e.target.value) || 0) })}
+              onChange={(e) =>
+                patch({ trimStart: Math.max(0, Number(e.target.value) || 0) })
+              }
             />
-            <Button size="sm" variant="ghost" onClick={() => patch({ trimStart: playheadTime() })}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => patch({ trimStart: playheadTime() })}
+            >
               <TimerReset size={13} />
               Playhead
             </Button>
           </div>
         </Field>
-        <Field label={`End: ${settings.trimEnd === null ? "full length" : formatDuration(settings.trimEnd)}`}>
+        <Field
+          label={`End: ${settings.trimEnd === null ? "full length" : formatDuration(settings.trimEnd)}`}
+        >
           <div className="ws-row">
             <TextInput
               type="number"
@@ -141,10 +186,19 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
               value={settings.trimEnd === null ? "" : String(settings.trimEnd)}
               placeholder="Full length"
               onChange={(e) =>
-                patch({ trimEnd: e.target.value === "" ? null : Math.max(0, Number(e.target.value) || 0) })
+                patch({
+                  trimEnd:
+                    e.target.value === ""
+                      ? null
+                      : Math.max(0, Number(e.target.value) || 0),
+                })
               }
             />
-            <Button size="sm" variant="ghost" onClick={() => patch({ trimEnd: playheadTime() })}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => patch({ trimEnd: playheadTime() })}
+            >
               <TimerReset size={13} />
               Playhead
             </Button>
@@ -153,7 +207,13 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
       </div>
 
       <SectionTitle>Playback</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "0 16px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          gap: "0 16px",
+        }}
+      >
         <Field label={`Volume (${settings.volume}%)`}>
           <Range
             value={settings.volume}
@@ -174,16 +234,28 @@ export function VideoEditorModal({ item, onClose }: VideoEditorModalProps) {
           <Select
             value={settings.fit}
             options={FIT_OPTIONS}
-            onChange={(e) => patch({ fit: e.target.value as VideoSettings["fit"] })}
+            onChange={(e) =>
+              patch({ fit: e.target.value as VideoSettings["fit"] })
+            }
           />
         </Field>
       </div>
-      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 4 }}>
+      <div
+        style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 4 }}
+      >
         <div style={{ flex: 1, minWidth: 180 }}>
-          <Toggle label="Muted" checked={settings.muted} onChange={(muted) => patch({ muted })} />
+          <Toggle
+            label="Muted"
+            checked={settings.muted}
+            onChange={(muted) => patch({ muted })}
+          />
         </div>
         <div style={{ flex: 1, minWidth: 180 }}>
-          <Toggle label="Loop" checked={settings.loop} onChange={(loop) => patch({ loop })} />
+          <Toggle
+            label="Loop"
+            checked={settings.loop}
+            onChange={(loop) => patch({ loop })}
+          />
         </div>
       </div>
 

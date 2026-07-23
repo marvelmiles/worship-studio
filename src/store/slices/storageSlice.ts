@@ -1,5 +1,14 @@
-import { estimateQuota, saveRecord, storageState, wipeAllStores } from "../../lib/storage";
-import { APP_RESERVE_IDB, bytesOf, computeStorageInfo } from "../../lib/storageStats";
+import {
+  estimateQuota,
+  saveRecord,
+  storageState,
+  wipeAllStores,
+} from "../../lib/storage";
+import {
+  APP_RESERVE_IDB,
+  bytesOf,
+  computeStorageInfo,
+} from "../../lib/storageStats";
 import type { StorageInfo } from "../../lib/storageStats";
 import { BACKGROUNDS } from "../../data/backgrounds";
 import { THEMES } from "../../data/themes";
@@ -25,7 +34,10 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
     // the recorded file size, never a serialized copy.
     const fileBytes =
       state.media.reduce((n, m) => n + (m.size || 0), 0) +
-      state.backgrounds.reduce((n, b) => n + (b.blobId === b.id ? b.size || 0 : 0), 0) +
+      state.backgrounds.reduce(
+        (n, b) => n + (b.blobId === b.id ? b.size || 0 : 0),
+        0,
+      ) +
       state.audio.reduce((n, a) => n + (a.size || 0), 0);
     const userUsed =
       fileBytes +

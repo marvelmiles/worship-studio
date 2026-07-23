@@ -51,13 +51,20 @@ type Listener = () => void;
 
 export function isExtendedDisplay(): boolean {
   try {
-    return Boolean((window.screen as unknown as { isExtended?: boolean }).isExtended);
+    return Boolean(
+      (window.screen as unknown as { isExtended?: boolean }).isExtended,
+    );
   } catch {
     return false;
   }
 }
 
-function defaultFeatures(left?: number, top?: number, width?: number, height?: number): string {
+function defaultFeatures(
+  left?: number,
+  top?: number,
+  width?: number,
+  height?: number,
+): string {
   return [
     `left=${left ?? window.screen.width}`,
     `top=${top ?? 0}`,
@@ -73,14 +80,16 @@ function defaultFeatures(left?: number, top?: number, width?: number, height?: n
 }
 
 async function placeOnExternalDisplay(opened: Window): Promise<void> {
-  const getScreenDetails = (window as unknown as { getScreenDetails?: () => Promise<ScreenDetails> })
-    .getScreenDetails;
+  const getScreenDetails = (
+    window as unknown as { getScreenDetails?: () => Promise<ScreenDetails> }
+  ).getScreenDetails;
   if (typeof getScreenDetails !== "function") return;
   try {
     const details = await getScreenDetails();
     const external =
-      details.screens.find((s) => s.isInternal === false && s !== details.currentScreen) ||
-      details.screens.find((s) => s !== details.currentScreen);
+      details.screens.find(
+        (s) => s.isInternal === false && s !== details.currentScreen,
+      ) || details.screens.find((s) => s !== details.currentScreen);
     if (!external || opened.closed) return;
     opened.moveTo(external.left, external.top);
     opened.resizeTo(external.width, external.height);
@@ -91,7 +100,10 @@ async function placeOnExternalDisplay(opened: Window): Promise<void> {
 }
 
 /** Creates an independent live-window controller for one output route. */
-export function createLiveWindow(route: string, windowName: string): LiveWindowController {
+export function createLiveWindow(
+  route: string,
+  windowName: string,
+): LiveWindowController {
   let win: Window | null = null;
   let state: LiveWindowState = { isLive: false, isFullscreen: false };
   let closeWatcher: number | undefined;
@@ -99,7 +111,11 @@ export function createLiveWindow(route: string, windowName: string): LiveWindowC
 
   function setState(next: Partial<LiveWindowState>): void {
     const merged = { ...state, ...next };
-    if (merged.isLive === state.isLive && merged.isFullscreen === state.isFullscreen) return;
+    if (
+      merged.isLive === state.isLive &&
+      merged.isFullscreen === state.isFullscreen
+    )
+      return;
     state = merged;
     for (const listener of listeners) listener();
   }
@@ -141,7 +157,9 @@ export function createLiveWindow(route: string, windowName: string): LiveWindowC
     opened.addEventListener("load", () => {
       try {
         opened.document.addEventListener("fullscreenchange", () => {
-          setState({ isFullscreen: Boolean(opened.document.fullscreenElement) });
+          setState({
+            isFullscreen: Boolean(opened.document.fullscreenElement),
+          });
         });
         setState({ isFullscreen: Boolean(opened.document.fullscreenElement) });
       } catch {
@@ -194,7 +212,10 @@ export function createLiveWindow(route: string, windowName: string): LiveWindowC
 
 /** The slide-presentation output. Its API is also re-exported below for the
  *  existing callers that predate the factory. */
-export const presentLiveWindow = createLiveWindow("/present", PRESENT_WINDOW_NAME);
+export const presentLiveWindow = createLiveWindow(
+  "/present",
+  PRESENT_WINDOW_NAME,
+);
 
 export const goLive = presentLiveWindow.goLive;
 export const endLive = presentLiveWindow.endLive;

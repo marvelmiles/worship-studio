@@ -1,6 +1,9 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import type { PresentationMode, ScriptureSelection } from "../../store/useStore";
+import type {
+  PresentationMode,
+  ScriptureSelection,
+} from "../../store/useStore";
 import { useStore } from "../../store/useStore";
 
 /**
@@ -11,15 +14,20 @@ import { useStore } from "../../store/useStore";
  */
 export function usePresentScripture() {
   const navigate = useNavigate();
-  const presentScriptureSelection = useStore((s) => s.presentScriptureSelection);
+  const presentScriptureSelection = useStore(
+    (s) => s.presentScriptureSelection,
+  );
   const stageScriptureSelection = useStore((s) => s.stageScriptureSelection);
 
   const present = useCallback(
-    (selection: ScriptureSelection | null, mode: PresentationMode = "stage") => {
+    (
+      selection: ScriptureSelection | null,
+      mode: PresentationMode = "stage",
+    ) => {
       if (!selection?.verses.length) return;
       presentScriptureSelection(selection, mode);
     },
-    [presentScriptureSelection]
+    [presentScriptureSelection],
   );
 
   const edit = useCallback(
@@ -28,7 +36,7 @@ export function usePresentScripture() {
       const passage = stageScriptureSelection(selection);
       if (passage) navigate(`/scripture/${passage.id}`);
     },
-    [stageScriptureSelection, navigate]
+    [stageScriptureSelection, navigate],
   );
 
   return { present, edit };

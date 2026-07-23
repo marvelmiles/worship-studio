@@ -52,7 +52,10 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       return id;
     } catch (err) {
       await deleteFileWithThumb(id).catch(() => {});
-      get().pushToast(isQuotaError(err) ? QUOTA_TOAST : `Couldn't save "${file.name}".`, "error");
+      get().pushToast(
+        isQuotaError(err) ? QUOTA_TOAST : `Couldn't save "${file.name}".`,
+        "error",
+      );
       afterWrite(get);
       return "";
     }
@@ -68,7 +71,9 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       category: "Custom",
       builtIn: false,
       createdAt: now(),
-      ...(isGradient ? { type: "gradient" as const, css } : { type: "solid" as const, color: css }),
+      ...(isGradient
+        ? { type: "gradient" as const, css }
+        : { type: "solid" as const, color: css }),
     };
     set((state) => ({ backgrounds: [...state.backgrounds, background] }));
     void saveRecord("backgrounds", background);
@@ -79,7 +84,9 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
   removeBackground: async (id) => {
     const background = get().backgrounds.find((b) => b.id === id);
     if (!background || background.builtIn) return;
-    set((state) => ({ backgrounds: state.backgrounds.filter((b) => b.id !== id) }));
+    set((state) => ({
+      backgrounds: state.backgrounds.filter((b) => b.id !== id),
+    }));
     await deleteRecord("backgrounds", id);
     const blobId = background.blobId;
     if (blobId) {
@@ -112,7 +119,10 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       return id;
     } catch (err) {
       await deleteFileBlob(id).catch(() => {});
-      get().pushToast(isQuotaError(err) ? QUOTA_TOAST : `Couldn't save "${file.name}".`, "error");
+      get().pushToast(
+        isQuotaError(err) ? QUOTA_TOAST : `Couldn't save "${file.name}".`,
+        "error",
+      );
       afterWrite(get);
       return "";
     }

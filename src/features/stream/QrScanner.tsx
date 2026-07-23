@@ -18,7 +18,9 @@ export function QrScanner({
 }) {
   const { colors } = useUITheme();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const workCanvas = useRef<HTMLCanvasElement>(document.createElement("canvas"));
+  const workCanvas = useRef<HTMLCanvasElement>(
+    document.createElement("canvas"),
+  );
   const doneRef = useRef(false);
   const [ready, setReady] = useState(false);
 
@@ -56,7 +58,11 @@ export function QrScanner({
       // facingMode stays advisory (no `exact`) so a laptop with only one webcam
       // still opens instead of rejecting.
       .getUserMedia({
-        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: {
+          facingMode: facing,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
         audio: false,
       })
       .then((s) => {
@@ -68,7 +74,11 @@ export function QrScanner({
         setReady(true);
         raf = requestAnimationFrame(tick);
       })
-      .catch(() => onErrorRef.current?.("Couldn't open the camera. Check camera permission and try again."));
+      .catch(() =>
+        onErrorRef.current?.(
+          "Couldn't open the camera. Check camera permission and try again.",
+        ),
+      );
 
     return () => {
       doneRef.current = true;

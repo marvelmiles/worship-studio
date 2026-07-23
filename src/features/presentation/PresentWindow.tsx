@@ -3,7 +3,10 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
-import { openPresentChannel, type PresentState } from "../../lib/presentChannel";
+import {
+  openPresentChannel,
+  type PresentState,
+} from "../../lib/presentChannel";
 import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
 import { Stage } from "./Stage";
@@ -97,7 +100,15 @@ export function PresentWindow() {
     return () => window.clearTimeout(timer);
   }, [state, deck, load]);
 
-  const frame = deck && state ? buildStageFrame(deck, deck.slides[state.slideIndex], bgMap, prefs.transition) : null;
+  const frame =
+    deck && state
+      ? buildStageFrame(
+          deck,
+          deck.slides[state.slideIndex],
+          bgMap,
+          prefs.transition,
+        )
+      : null;
 
   const fullscreenButton = (
     <button
@@ -129,7 +140,11 @@ export function PresentWindow() {
 
   if (!state || !frame) {
     return (
-      <div onPointerMove={wake} onPointerDown={claimFocus} style={{ position: "fixed", inset: 0, background: stage.surface }}>
+      <div
+        onPointerMove={wake}
+        onPointerDown={claimFocus}
+        style={{ position: "fixed", inset: 0, background: stage.surface }}
+      >
         {fullscreenButton}
       </div>
     );

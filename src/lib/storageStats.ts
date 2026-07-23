@@ -47,7 +47,7 @@ export function computeStorageInfo(
   estimate: { quota: number; usage: number; fromEstimate: boolean },
   userUsed: number,
   reserved: number,
-  backend: Backend
+  backend: Backend,
 ): StorageInfo {
   const budget = Math.max(1, estimate.quota - reserved);
   const userMax = budget * CRITICAL_RATIO;
@@ -55,8 +55,14 @@ export function computeStorageInfo(
   const physicalTight =
     estimate.fromEstimate && estimate.quota - estimate.usage < SAFETY_BYTES;
   const blocked = pct >= 1 || physicalTight;
-  const level: StorageInfo["level"] = blocked || pct >= CRITICAL_RATIO ? "critical" : pct >= WARN_RATIO ? "warn" : "ok";
-  const viable = budget >= MIN_VIABLE_BYTES && !(physicalTight && userUsed < SAFETY_BYTES);
+  const level: StorageInfo["level"] =
+    blocked || pct >= CRITICAL_RATIO
+      ? "critical"
+      : pct >= WARN_RATIO
+        ? "warn"
+        : "ok";
+  const viable =
+    budget >= MIN_VIABLE_BYTES && !(physicalTight && userUsed < SAFETY_BYTES);
   return {
     backend,
     quota: estimate.quota,

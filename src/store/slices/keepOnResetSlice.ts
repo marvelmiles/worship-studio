@@ -15,7 +15,10 @@ export interface KeepOnResetSlice {
   toggleKeepOnReset: (kind: KeepableKind, id: string) => void;
 }
 
-export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (_set, get) => ({
+export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (
+  _set,
+  get,
+) => ({
   toggleKeepOnReset: (kind, id) => {
     const state = get();
     const item =
@@ -28,7 +31,7 @@ export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (_set, get
     if (registering && keptCount(state.songs, state.themes) >= MAX_KEPT_ITEMS) {
       state.pushToast(
         `You can keep ${MAX_KEPT_ITEMS} items through a reset. Unkeep one first.`,
-        "error"
+        "error",
       );
       return;
     }
@@ -36,7 +39,7 @@ export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (_set, get
     // `undefined` rather than `false` so un-kept records stay as small as they
     // were before the feature existed.
     const keepOnReset = registering ? true : undefined;
-    let label = "Item";
+    let label: string;
     if (kind === "song") {
       const song = state.songs.find((s) => s.id === id);
       if (!song) return;
@@ -52,7 +55,7 @@ export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (_set, get
     state.pushToast(
       registering
         ? `${label} will survive a reset.`
-        : `${label} will no longer survive a reset.`
+        : `${label} will no longer survive a reset.`,
     );
   },
 });

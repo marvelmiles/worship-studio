@@ -16,7 +16,10 @@ import { createDataSlice } from "./slices/dataSlice";
 export type { StoreState } from "./storeTypes";
 export type { OverlayName } from "./slices/uiSlice";
 export type { PendingUpload, UploadKind } from "./slices/uploadsSlice";
-export type { SavePassageOptions, ScriptureSelection } from "./slices/scripturesSlice";
+export type {
+  SavePassageOptions,
+  ScriptureSelection,
+} from "./slices/scripturesSlice";
 export type { PresentationMode } from "./slices/presentSlice";
 export { QUICK_PASSAGE_ID, SCRIPTURE_THEME_ID } from "./slices/scripturesSlice";
 

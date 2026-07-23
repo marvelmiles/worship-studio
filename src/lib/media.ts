@@ -46,10 +46,14 @@ export const videoSettingsOf = (item: MediaItem): VideoSettings => ({
 
 export function buildFilter(adjustments: MediaAdjustments): string {
   const parts: string[] = [];
-  if (adjustments.brightness !== 100) parts.push(`brightness(${adjustments.brightness}%)`);
-  if (adjustments.contrast !== 100) parts.push(`contrast(${adjustments.contrast}%)`);
-  if (adjustments.saturation !== 100) parts.push(`saturate(${adjustments.saturation}%)`);
-  if (adjustments.grayscale > 0) parts.push(`grayscale(${adjustments.grayscale}%)`);
+  if (adjustments.brightness !== 100)
+    parts.push(`brightness(${adjustments.brightness}%)`);
+  if (adjustments.contrast !== 100)
+    parts.push(`contrast(${adjustments.contrast}%)`);
+  if (adjustments.saturation !== 100)
+    parts.push(`saturate(${adjustments.saturation}%)`);
+  if (adjustments.grayscale > 0)
+    parts.push(`grayscale(${adjustments.grayscale}%)`);
   if (adjustments.sepia > 0) parts.push(`sepia(${adjustments.sepia}%)`);
   if (adjustments.blur > 0) parts.push(`blur(${adjustments.blur}px)`);
   return parts.length ? parts.join(" ") : "none";
@@ -137,7 +141,7 @@ export async function probeImageFile(file: Blob): Promise<ImageProbeResult> {
     if (ctx) {
       ctx.drawImage(bitmap, 0, 0, thumbWidth, thumbHeight);
       thumbnail = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", THUMB_QUALITY)
+        canvas.toBlob(resolve, "image/jpeg", THUMB_QUALITY),
       );
     }
     bitmap.close();
@@ -149,6 +153,9 @@ export async function probeImageFile(file: Blob): Promise<ImageProbeResult> {
   }
 }
 
-export function isAcceptedMediaFile(kind: "image" | "video", file: File): boolean {
+export function isAcceptedMediaFile(
+  kind: "image" | "video",
+  file: File,
+): boolean {
   return file.type.startsWith(`${kind}/`);
 }

@@ -44,11 +44,27 @@ export function DuplicatePassageModal({
         </>
       }
     >
-      <p style={{ fontFamily: UI, fontSize: 13.5, color: colors.text, marginTop: 0, lineHeight: 1.65 }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13.5,
+          color: colors.text,
+          marginTop: 0,
+          lineHeight: 1.65,
+        }}
+      >
         “{existingTitle}” is already in your saved passages, but the saved one
         doesn't match what you're saving now.
       </p>
-      <p style={{ fontFamily: UI, fontSize: 13, color: colors.sub, margin: 0, lineHeight: 1.65 }}>
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 13,
+          color: colors.sub,
+          margin: 0,
+          lineHeight: 1.65,
+        }}
+      >
         Overwrite it with this new content, or keep both; the new one is saved
         as a numbered copy like “{existingTitle} (1)”.
       </p>

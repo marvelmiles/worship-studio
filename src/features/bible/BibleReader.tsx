@@ -15,7 +15,10 @@ import type { BibleVerse, BibleVersionId } from "../../types";
 import { BIBLE_BOOKS, bookById } from "../../data/bibleBooks";
 import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
-import type { SavePassageOptions, ScriptureSelection } from "../../store/useStore";
+import type {
+  SavePassageOptions,
+  ScriptureSelection,
+} from "../../store/useStore";
 import type { ScripturePassage } from "../../types";
 import { useSpeech } from "../../hooks/useSpeech";
 import { Button, IconButton } from "../../components/ui/Button";
@@ -32,7 +35,11 @@ import {
   formatReference,
   type VerseSpan,
 } from "./lib/reference";
-import { findSavedDuplicates, hasSameContent, nextCopyTitle } from "./lib/passageDuplicates";
+import {
+  findSavedDuplicates,
+  hasSameContent,
+  nextCopyTitle,
+} from "./lib/passageDuplicates";
 import { SavePassageModal } from "./SavePassageModal";
 import { DuplicatePassageModal } from "./DuplicatePassageModal";
 
@@ -72,7 +79,9 @@ export function BibleReader({
   const pushToast = useStore((s) => s.pushToast);
   const { present, edit } = usePresentScripture();
   const saveScripturePassage = useStore((s) => s.saveScripturePassage);
-  const overwriteScripturePassage = useStore((s) => s.overwriteScripturePassage);
+  const overwriteScripturePassage = useStore(
+    (s) => s.overwriteScripturePassage,
+  );
   const scriptures = useStore((s) => s.scriptures);
 
   const { verses, loading, error, retry } = useBibleChapter(
@@ -237,9 +246,13 @@ export function BibleReader({
     // chapter-only "John 3" selects the whole chapter.
     const span = referenceSpan(parsed);
     const firstVerse = span.start;
-    const jumpSelection: VerseSelection = { anchor: span.start, focus: span.end };
+    const jumpSelection: VerseSelection = {
+      anchor: span.start,
+      focus: span.end,
+    };
 
-    const stayingInChapter = parsed.book.id === bookId && parsed.chapter === chapter;
+    const stayingInChapter =
+      parsed.book.id === bookId && parsed.chapter === chapter;
     if (stayingInChapter) {
       // Chapter is already rendered, select and scroll right away.
       setSelection(jumpSelection);
@@ -376,7 +389,11 @@ export function BibleReader({
             }}
           />
         </div>
-        <Button variant="ghost" onClick={jumpToReference} title="Go to reference">
+        <Button
+          variant="ghost"
+          onClick={jumpToReference}
+          title="Go to reference"
+        >
           <ArrowRight size={15} />
           Go
         </Button>

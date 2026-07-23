@@ -5,7 +5,8 @@ import { useThumbUrl } from "../../lib/blobUrls";
 /** CSS background value for gradient/solid/legacy-inline backgrounds. */
 export function swatchBackground(bg: Background): string {
   if (bg.type === "solid") return bg.color || "#111";
-  if (bg.type === "image") return bg.dataUrl ? `center/cover url(${bg.dataUrl})` : "#0a0a0c";
+  if (bg.type === "image")
+    return bg.dataUrl ? `center/cover url(${bg.dataUrl})` : "#0a0a0c";
   return bg.css || "#111";
 }
 

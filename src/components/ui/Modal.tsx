@@ -12,7 +12,14 @@ interface ModalProps {
   footer?: ReactNode;
 }
 
-export function Modal({ open, onClose, title, children, width = 520, footer }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  width = 520,
+  footer,
+}: ModalProps) {
   const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
   return (
@@ -55,7 +62,15 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: M
             borderBottom: `1px solid ${colors.border}`,
           }}
         >
-          <h3 style={{ margin: 0, fontFamily: fonts.display, fontSize: 19, fontWeight: 600, color: colors.text }}>
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: fonts.display,
+              fontSize: 19,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          >
             {title}
           </h3>
           <IconButton icon={X} onClick={onClose} title="Close" />

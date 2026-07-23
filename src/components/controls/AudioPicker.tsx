@@ -14,7 +14,13 @@ interface AudioPickerProps {
   onUploaded?: (id: string) => void;
 }
 
-export function AudioPicker({ audio, value, onSelect, inheritLabel, onUploaded }: AudioPickerProps) {
+export function AudioPicker({
+  audio,
+  value,
+  onSelect,
+  inheritLabel,
+  onUploaded,
+}: AudioPickerProps) {
   const beginUpload = useStore((s) => s.beginUpload);
   const inputRef = useRef<HTMLInputElement>(null);
   const selected = audio.find((item) => item.id === value);
@@ -28,14 +34,27 @@ export function AudioPicker({ audio, value, onSelect, inheritLabel, onUploaded }
   return (
     <>
       <Field label="Background Audio">
-        <Select value={value} options={options} onChange={(e) => onSelect(e.target.value)} />
+        <Select
+          value={value}
+          options={options}
+          onChange={(e) => onSelect(e.target.value)}
+        />
       </Field>
       {selected && selectedUrl && (
-        <audio src={selectedUrl} controls loop style={{ width: "100%", height: 34, marginBottom: 12 }} />
+        <audio
+          src={selectedUrl}
+          controls
+          loop
+          style={{ width: "100%", height: 34, marginBottom: 12 }}
+        />
       )}
       {onUploaded && (
         <>
-          <Button variant="ghost" size="sm" onClick={() => inputRef.current?.click()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => inputRef.current?.click()}
+          >
             <Upload size={14} />
             Upload audio
           </Button>
@@ -47,7 +66,12 @@ export function AudioPicker({ audio, value, onSelect, inheritLabel, onUploaded }
             hidden
             onChange={(e) => {
               const files = Array.from(e.target.files || []);
-              if (files.length) beginUpload("audio", files, (ids) => ids[0] && onUploaded(ids[0]));
+              if (files.length)
+                beginUpload(
+                  "audio",
+                  files,
+                  (ids) => ids[0] && onUploaded(ids[0]),
+                );
               e.target.value = "";
             }}
           />

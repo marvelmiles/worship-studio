@@ -40,7 +40,7 @@ export function PresentMenu({
   title,
   children,
 }: PresentMenuProps) {
-  const { colors, fonts } = useUITheme();
+  const { colors } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [open, setOpen] = useState(false);
 
@@ -50,7 +50,10 @@ export function PresentMenu({
     // user gesture, so this cannot be deferred into an effect.
     const result = goLive();
     if (!result.ok && result.reason === "blocked") {
-      pushToast("Popup blocked. Allow popups for this site to go live.", "error");
+      pushToast(
+        "Popup blocked. Allow popups for this site to go live.",
+        "error",
+      );
       return;
     }
     onPresent({ pip: true });
@@ -71,7 +74,12 @@ export function PresentMenu({
       align="start"
       trigger={
         children ?? (
-          <Button size={size} variant={variant} disabled={disabled} title={title ?? "Present"}>
+          <Button
+            size={size}
+            variant={variant}
+            disabled={disabled}
+            title={title ?? "Present"}
+          >
             <Play size={size === "sm" ? 13 : 14} />
             {label}
           </Button>
@@ -124,50 +132,57 @@ function MenuOption({
 }) {
   const { colors, fonts } = useUITheme();
   return (
-      <button
-        role="menuitem"
-        onClick={onClick}
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 10,
-          width: "100%",
-          padding: "10px 11px",
-          borderRadius: 9,
-          cursor: "pointer",
-          textAlign: "left",
-          border: "none",
-          background: "transparent",
-          color: colors.text,
-        }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.background = accent
-            ? fade(colors.accent, 0.14)
-            : "rgba(255,255,255,0.05)")
-        }
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-      >
-        <Icon
-          size={16}
-          color={accent ? colors.accentSoft : colors.sub}
-          style={{ flexShrink: 0, marginTop: 2 }}
-        />
-        <span>
-          <span
-            style={{
-              display: "block",
-              fontFamily: fonts.ui,
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: accent ? colors.accentSoft : colors.text,
-            }}
-          >
-            {optionTitle}
-          </span>
-          <span style={{ fontFamily: fonts.ui, fontSize: 11.5, lineHeight: 1.45, color: colors.sub }}>
-            {description}
-          </span>
+    <button
+      role="menuitem"
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        width: "100%",
+        padding: "10px 11px",
+        borderRadius: 9,
+        cursor: "pointer",
+        textAlign: "left",
+        border: "none",
+        background: "transparent",
+        color: colors.text,
+      }}
+      onMouseEnter={(e) =>
+        (e.currentTarget.style.background = accent
+          ? fade(colors.accent, 0.14)
+          : "rgba(255,255,255,0.05)")
+      }
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      <Icon
+        size={16}
+        color={accent ? colors.accentSoft : colors.sub}
+        style={{ flexShrink: 0, marginTop: 2 }}
+      />
+      <span>
+        <span
+          style={{
+            display: "block",
+            fontFamily: fonts.ui,
+            fontSize: 13.5,
+            fontWeight: 700,
+            color: accent ? colors.accentSoft : colors.text,
+          }}
+        >
+          {optionTitle}
         </span>
-      </button>
+        <span
+          style={{
+            fontFamily: fonts.ui,
+            fontSize: 11.5,
+            lineHeight: 1.45,
+            color: colors.sub,
+          }}
+        >
+          {description}
+        </span>
+      </span>
+    </button>
   );
 }

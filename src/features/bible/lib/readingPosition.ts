@@ -15,17 +15,33 @@ export interface ReadingPosition {
 
 const STORAGE_KEY = "ws:bible-position";
 
-const DEFAULT_POSITION: ReadingPosition = { bookId: 43, chapter: 3, verse: null };
+const DEFAULT_POSITION: ReadingPosition = {
+  bookId: 43,
+  chapter: 3,
+  verse: null,
+};
 
 export function loadReadingPosition(): ReadingPosition {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const position = JSON.parse(stored) as ReadingPosition;
-      if (position.bookId >= 1 && position.bookId <= 66 && position.chapter >= 1) {
-        const verse = typeof position.verse === "number" && position.verse >= 1 ? position.verse : null;
+      if (
+        position.bookId >= 1 &&
+        position.bookId <= 66 &&
+        position.chapter >= 1
+      ) {
+        const verse =
+          typeof position.verse === "number" && position.verse >= 1
+            ? position.verse
+            : null;
         const at = typeof position.at === "string" ? position.at : undefined;
-        return { bookId: position.bookId, chapter: position.chapter, verse, at };
+        return {
+          bookId: position.bookId,
+          chapter: position.chapter,
+          verse,
+          at,
+        };
       }
     }
   } catch {
@@ -36,7 +52,10 @@ export function loadReadingPosition(): ReadingPosition {
 
 export function saveReadingPosition(position: ReadingPosition): void {
   try {
-    const stamped: ReadingPosition = { ...position, at: new Date().toISOString() };
+    const stamped: ReadingPosition = {
+      ...position,
+      at: new Date().toISOString(),
+    };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stamped));
   } catch {
     /* non-fatal, the reader just won't remember its place */

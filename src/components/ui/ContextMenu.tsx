@@ -46,7 +46,10 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     >
       {items.map((it, i) =>
         it.divider ? (
-          <div key={i} style={{ height: 1, background: colors.border, margin: "5px 8px" }} />
+          <div
+            key={i}
+            style={{ height: 1, background: colors.border, margin: "5px 8px" }}
+          />
         ) : (
           <button
             key={i}
@@ -69,12 +72,16 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
               color: it.danger ? colors.danger : colors.text,
               textAlign: "left",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = colors.raise)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = colors.raise)
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "transparent")
+            }
           >
             {it.icon && <it.icon size={15} />} {it.label}
           </button>
-        )
+        ),
       )}
     </div>
   );

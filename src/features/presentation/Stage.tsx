@@ -1,13 +1,21 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { CSSProperties, Ref } from "react";
-import type { AnimationKind, Background, EasingKind, PresentationView } from "../../types";
+import type {
+  AnimationKind,
+  Background,
+  EasingKind,
+  PresentationView,
+} from "../../types";
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { ANIMATION_VARIANTS, buildTransition } from "../../lib/animation";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
-import { VideoSurface, type VideoSurfaceHandle } from "../../components/media/VideoSurface";
+import {
+  VideoSurface,
+  type VideoSurfaceHandle,
+} from "../../components/media/VideoSurface";
 import type { StageContent } from "./stageContent";
 
 interface StageProps {
@@ -29,7 +37,8 @@ interface StageProps {
 
 function viewSize(view: PresentationView): CSSProperties {
   if (view === "fill") return { width: "100vw", height: "100vh" };
-  if (view === "cover") return { width: "max(100vw,177.78vh)", height: "max(100vh,56.25vw)" };
+  if (view === "cover")
+    return { width: "max(100vw,177.78vh)", height: "max(100vh,56.25vw)" };
   return { width: "min(100vw,177.78vh)", height: "min(100vh,56.25vw)" };
 }
 
@@ -44,7 +53,7 @@ function viewSize(view: PresentationView): CSSProperties {
 function backdropLayerStyle(
   background: Background | null,
   blobUrl: string | null,
-  ambientUrl: string | null
+  ambientUrl: string | null,
 ): CSSProperties {
   if (background) return resolveBgStyle(background, blobUrl);
   if (ambientUrl) {
@@ -62,7 +71,10 @@ function backdropLayerStyle(
   return { background: "#000" };
 }
 
-function resolveBgStyle(background: Background | null, blobUrl: string | null): CSSProperties {
+function resolveBgStyle(
+  background: Background | null,
+  blobUrl: string | null,
+): CSSProperties {
   if (!background) return { background: "#000" };
   if (background.type === "image") {
     const url = background.blobId ? blobUrl : background.dataUrl;
@@ -104,7 +116,9 @@ export function Stage({
   const backdropBlobUrl = useBlobUrl(backdrop?.blobId);
   // Image slides have no theme behind them, so the picture itself becomes the
   // ambient backdrop rather than leaving the surrounding area black.
-  const ambientUrl = useBlobUrl(content.kind === "image" ? content.item.id : null);
+  const ambientUrl = useBlobUrl(
+    content.kind === "image" ? content.item.id : null,
+  );
 
   return (
     <div
@@ -187,7 +201,10 @@ export function Stage({
             {content.kind === "image" && (
               // Transparent so a "contain"-fitted picture shows the ambient
               // backdrop in its own letterbox area instead of black.
-              <ImageSurface item={content.item} style={{ background: "transparent" }} />
+              <ImageSurface
+                item={content.item}
+                style={{ background: "transparent" }}
+              />
             )}
             {content.kind === "video" && (
               <VideoSurface

@@ -59,7 +59,8 @@ export const createSongsSlice: SliceCreator<SongsSlice> = (set, get) => ({
 
   trashSong: (id) => {
     const song = get().songs.find((s) => s.id === id);
-    if (song && !song.builtIn) get().upsertSong({ ...song, deleted: true, updatedAt: now() });
+    if (song && !song.builtIn)
+      get().upsertSong({ ...song, deleted: true, updatedAt: now() });
   },
   restoreSong: (id) => {
     const song = get().songs.find((s) => s.id === id);

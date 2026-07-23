@@ -12,14 +12,27 @@ import { slideIndexForVerse } from "./lib/scriptureSlides";
 export function ScriptureEditor() {
   const { passageId } = useParams();
   const navigate = useNavigate();
-  const passage = useStore((s) => s.scriptures.find((item) => item.id === passageId));
+  const passage = useStore((s) =>
+    s.scriptures.find((item) => item.id === passageId),
+  );
 
   if (!passage) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
+      <div
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+        }}
+      >
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>Passage not found</h2>
-          <p style={{ fontFamily: UI, color: colors.sub }}>It may have been deleted.</p>
+          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>
+            Passage not found
+          </h2>
+          <p style={{ fontFamily: UI, color: colors.sub }}>
+            It may have been deleted.
+          </p>
           <Button variant="primary" onClick={() => navigate("/bible")}>
             <ArrowLeft size={15} />
             Back to Bible
@@ -33,7 +46,9 @@ export function ScriptureEditor() {
 }
 
 function ScriptureWorkspace({ passageId }: { passageId: string }) {
-  const current = useStore((s) => s.scriptures.find((item) => item.id === passageId));
+  const current = useStore((s) =>
+    s.scriptures.find((item) => item.id === passageId),
+  );
   const upsertScripture = useStore((s) => s.upsertScripture);
   // Keeps the last known copy so a mid-edit deletion unmounts cleanly instead of crashing.
   const lastRef = useRef(current);
@@ -61,7 +76,8 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
       // While a presentation is already live its own shortcut handling wins.
       if (!buf || !target || useStore.getState().presentation) return;
       const index = slideIndexForVerse(target, parseInt(buf, 10));
-      if (index >= 0 && target.slides?.[index]) startPresent("scripture", target.id, index);
+      if (index >= 0 && target.slides?.[index])
+        startPresent("scripture", target.id, index);
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -81,20 +97,40 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
       backTitle="Back to Bible"
       topBarActions={(compact) =>
         compact ? (
-          <IconButton icon={Settings2} title="Passage settings" onClick={() => setSettingsOpen(true)} />
+          <IconButton
+            icon={Settings2}
+            title="Passage settings"
+            onClick={() => setSettingsOpen(true)}
+          />
         ) : (
-          <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSettingsOpen(true)}
+          >
             <Settings2 size={14} />
             Passage Settings
           </Button>
         )
       }
       emptyState={
-        <div style={{ height: "100%", display: "grid", placeItems: "center", padding: 24 }}>
+        <div
+          style={{
+            height: "100%",
+            display: "grid",
+            placeItems: "center",
+            padding: 24,
+          }}
+        >
           <div style={{ textAlign: "center", maxWidth: 320 }}>
-            <BookOpen size={30} color={colors.dim} style={{ margin: "0 auto 10px" }} />
+            <BookOpen
+              size={30}
+              color={colors.dim}
+              style={{ margin: "0 auto 10px" }}
+            />
             <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
-              This passage has no slides. Open passage settings to rebuild them from the verses.
+              This passage has no slides. Open passage settings to rebuild them
+              from the verses.
             </p>
             <Button variant="primary" onClick={() => setSettingsOpen(true)}>
               <Settings2 size={15} />

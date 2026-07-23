@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, Mail, Sparkles } from "lucide-react";
+import { ChevronDown, Heart, Mail } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
@@ -99,7 +99,7 @@ export function AboutModal() {
           color: colors.accent,
         }}
       >
-        <Sparkles size={14} /> Why WorshipStudio
+        <Heart size={14} /> Why WorshipStudio
       </div>
       <p
         style={{
@@ -198,8 +198,8 @@ export function AboutModal() {
       >
         WorshipStudio includes two Bible translations, both in the{" "}
         <strong style={{ color: colors.text }}>public domain</strong>: the{" "}
-        <strong style={{ color: colors.text }}>King James Version (KJV)</strong> and
-        the{" "}
+        <strong style={{ color: colors.text }}>King James Version (KJV)</strong>{" "}
+        and the{" "}
         <strong style={{ color: colors.text }}>
           American Standard Version (ASV, 1901)
         </strong>

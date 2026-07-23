@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 export type PopoverSide = "bottom" | "top" | "left" | "right";
@@ -23,7 +30,7 @@ function computePlacement(
   trigger: DOMRect,
   panel: { width: number; height: number },
   preferred: PopoverSide,
-  align: PopoverAlign
+  align: PopoverAlign,
 ): Placement {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
@@ -52,14 +59,17 @@ function computePlacement(
       room[flipped] >= needed(flipped)
         ? flipped
         : (Object.keys(room) as PopoverSide[]).reduce((a, b) =>
-            room[a] - needed(a) >= room[b] - needed(b) ? a : b
+            room[a] - needed(a) >= room[b] - needed(b) ? a : b,
           );
   }
 
   let top: number;
   let left: number;
   if (side === "bottom" || side === "top") {
-    top = side === "bottom" ? trigger.bottom + GAP : trigger.top - GAP - panel.height;
+    top =
+      side === "bottom"
+        ? trigger.bottom + GAP
+        : trigger.top - GAP - panel.height;
     left =
       align === "center"
         ? trigger.left + trigger.width / 2 - panel.width / 2
@@ -67,7 +77,8 @@ function computePlacement(
           ? trigger.right - panel.width
           : trigger.left;
   } else {
-    left = side === "right" ? trigger.right + GAP : trigger.left - GAP - panel.width;
+    left =
+      side === "right" ? trigger.right + GAP : trigger.left - GAP - panel.width;
     top =
       align === "center"
         ? trigger.top + trigger.height / 2 - panel.height / 2
@@ -131,8 +142,8 @@ export function Popover({
         anchor.getBoundingClientRect(),
         { width: panel.offsetWidth, height: panel.offsetHeight },
         side,
-        align
-      )
+        align,
+      ),
     );
   }, [side, align]);
 
@@ -161,7 +172,11 @@ export function Popover({
     if (!open) return;
     const onPointerDown = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (anchorRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      if (
+        anchorRef.current?.contains(target) ||
+        panelRef.current?.contains(target)
+      )
+        return;
       onOpenChange(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -225,7 +240,7 @@ export function Popover({
           >
             {children}
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

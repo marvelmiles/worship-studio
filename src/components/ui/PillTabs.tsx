@@ -12,7 +12,11 @@ interface PillTabsProps<T extends string> {
   onChange: (id: T) => void;
 }
 
-export function PillTabs<T extends string>({ tabs, value, onChange }: PillTabsProps<T>) {
+export function PillTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: PillTabsProps<T>) {
   return (
     <div className="ws-row-wrap" style={{ gap: 7 }}>
       {tabs.map((tab) => {
@@ -23,7 +27,11 @@ export function PillTabs<T extends string>({ tabs, value, onChange }: PillTabsPr
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={`ws-pill${active ? " ws-pill-active" : ""}`}
-            style={Icon ? { display: "inline-flex", alignItems: "center", gap: 7 } : undefined}
+            style={
+              Icon
+                ? { display: "inline-flex", alignItems: "center", gap: 7 }
+                : undefined
+            }
           >
             {Icon && <Icon size={14} />}
             {tab.label}

@@ -16,7 +16,11 @@ import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { resolveBackground, resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import {
+  resolveBackground,
+  resolveLineStyle,
+  resolveStyle,
+} from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
 import { Button, IconButton } from "../../components/ui/Button";
 import { PresentMenu } from "../../components/ui/PresentMenu";
@@ -67,10 +71,13 @@ export function DeckWorkspace({
   const startPresent = useStore((s) => s.startPresent);
   const addCustomBackground = useStore((s) => s.addCustomBackground);
 
-  const tagGroups = useMemo(() => computeTagGroups(editor.slides), [editor.slides]);
+  const tagGroups = useMemo(
+    () => computeTagGroups(editor.slides),
+    [editor.slides],
+  );
   const theme = useMemo(
     () => themes.find((t) => t.id === doc.defaultThemeId) || themes[0],
-    [themes, doc.defaultThemeId]
+    [themes, doc.defaultThemeId],
   );
   const bgMap = useBgMap();
 
@@ -80,25 +87,58 @@ export function DeckWorkspace({
 
   const slide = editor.selectedSlide;
   const present = ({ pip }: { pip: boolean }) =>
-    startPresent(kind, doc.id, Math.max(0, editor.selectedIndex), pip ? "pip" : "stage");
+    startPresent(
+      kind,
+      doc.id,
+      Math.max(0, editor.selectedIndex),
+      pip ? "pip" : "stage",
+    );
 
   // A line selection only makes sense for the current slide's current line count.
   useEffect(() => {
-    if (selectedLine !== null && (!slide || selectedLine >= slide.lines.length)) {
+    if (
+      selectedLine !== null &&
+      (!slide || selectedLine >= slide.lines.length)
+    ) {
       setSelectedLine(null);
     }
   }, [slide, selectedLine]);
 
   const menuItems: MenuItem[] = menu
     ? [
-        { label: "Move up", icon: ArrowUp, fn: () => editor.moveSlide(menu.index, -1) },
-        { label: "Move down", icon: ArrowDown, fn: () => editor.moveSlide(menu.index, 1) },
+        {
+          label: "Move up",
+          icon: ArrowUp,
+          fn: () => editor.moveSlide(menu.index, -1),
+        },
+        {
+          label: "Move down",
+          icon: ArrowDown,
+          fn: () => editor.moveSlide(menu.index, 1),
+        },
         { divider: true },
-        { label: "Duplicate", icon: Copy, fn: () => editor.duplicateSlide(menu.index) },
-        { label: "Insert after", icon: CornerDownRight, fn: () => editor.insertSlideAt(menu.index + 1) },
-        { label: "Split", icon: Scissors, fn: () => editor.splitSlide(menu.index) },
+        {
+          label: "Duplicate",
+          icon: Copy,
+          fn: () => editor.duplicateSlide(menu.index),
+        },
+        {
+          label: "Insert after",
+          icon: CornerDownRight,
+          fn: () => editor.insertSlideAt(menu.index + 1),
+        },
+        {
+          label: "Split",
+          icon: Scissors,
+          fn: () => editor.splitSlide(menu.index),
+        },
         { divider: true },
-        { label: "Delete", icon: Trash2, danger: true, fn: () => editor.removeSlide(menu.index) },
+        {
+          label: "Delete",
+          icon: Trash2,
+          danger: true,
+          fn: () => editor.removeSlide(menu.index),
+        },
       ]
     : [];
 
@@ -116,7 +156,13 @@ export function DeckWorkspace({
       bgMap={bgMap}
       onReorder={editor.setSlides}
       onContextMenu={(index, x, y) => setMenu({ index, x, y })}
-      onAdd={() => editor.insertSlideAt(editor.selectedIndex >= 0 ? editor.selectedIndex + 1 : editor.slides.length)}
+      onAdd={() =>
+        editor.insertSlideAt(
+          editor.selectedIndex >= 0
+            ? editor.selectedIndex + 1
+            : editor.slides.length,
+        )
+      }
       tagGroups={tagGroups}
     />
   );
@@ -125,12 +171,16 @@ export function DeckWorkspace({
     <PreviewPanel
       slide={slide}
       style={resolveStyle(slide, doc, theme)}
-      lineStyles={slide.lines.map((_, i) => resolveLineStyle(slide, i, doc, theme))}
+      lineStyles={slide.lines.map((_, i) =>
+        resolveLineStyle(slide, i, doc, theme),
+      )}
       background={resolveBackground(slide, doc, theme, bgMap)}
       onChangeLines={(lines) => {
         const lineOverrides = slide.lineOverrides
           ? Object.fromEntries(
-              Object.entries(slide.lineOverrides).filter(([i]) => Number(i) < lines.length)
+              Object.entries(slide.lineOverrides).filter(
+                ([i]) => Number(i) < lines.length,
+              ),
             )
           : undefined;
         editor.updateSlide(slide.id, { lines, lineOverrides });
@@ -157,7 +207,14 @@ export function DeckWorkspace({
   ) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
       <TopBar
         title={doc.title}
         compact={width < 560}
@@ -186,13 +243,34 @@ export function DeckWorkspace({
             gridTemplateColumns: "292px 1fr 308px",
           }}
         >
-          <div style={{ overflow: "auto", borderRight: `1px solid ${colors.border}` }}>{listPanel}</div>
+          <div
+            style={{
+              overflow: "auto",
+              borderRight: `1px solid ${colors.border}`,
+            }}
+          >
+            {listPanel}
+          </div>
           <div style={{ overflow: "auto" }}>{previewPanel}</div>
-          <div style={{ overflow: "auto", borderLeft: `1px solid ${colors.border}` }}>{inspectorPanel}</div>
+          <div
+            style={{
+              overflow: "auto",
+              borderLeft: `1px solid ${colors.border}`,
+            }}
+          >
+            {inspectorPanel}
+          </div>
         </div>
       )}
 
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems} onClose={() => setMenu(null)} />}
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menuItems}
+          onClose={() => setMenu(null)}
+        />
+      )}
 
       {children}
     </div>
@@ -209,7 +287,15 @@ interface TopBarProps {
   actions: ReactNode;
 }
 
-function TopBar({ title, compact, backTitle, onBack, onTitle, onPresent, actions }: TopBarProps) {
+function TopBar({
+  title,
+  compact,
+  backTitle,
+  onBack,
+  onTitle,
+  onPresent,
+  actions,
+}: TopBarProps) {
   return (
     <div
       style={{
@@ -267,7 +353,9 @@ function TabBar({
     { id: "style", label: "Style" },
   ];
   return (
-    <div style={{ display: "flex", borderBottom: `1px solid ${colors.border}` }}>
+    <div
+      style={{ display: "flex", borderBottom: `1px solid ${colors.border}` }}
+    >
       {tabs.map(({ id, label }) => {
         const active = tab === id;
         const disabled = id === "style" && !hasSlide;
@@ -282,7 +370,11 @@ function TabBar({
               background: "transparent",
               border: "none",
               borderBottom: `2px solid ${active ? colors.accent : "transparent"}`,
-              color: active ? colors.accentSoft : disabled ? colors.dim : colors.sub,
+              color: active
+                ? colors.accentSoft
+                : disabled
+                  ? colors.dim
+                  : colors.sub,
               fontFamily: UI,
               fontWeight: 600,
               fontSize: 13,

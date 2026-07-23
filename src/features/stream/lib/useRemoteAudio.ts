@@ -38,7 +38,9 @@ export function useRemoteAudio(stream: MediaStream | null): RemoteAudio {
 
     const sync = () => {
       const track = stream.getAudioTracks()[0] ?? null;
-      setAvailable(Boolean(track && track.readyState === "live" && !track.muted));
+      setAvailable(
+        Boolean(track && track.readyState === "live" && !track.muted),
+      );
       setMuted(track ? !track.enabled : false);
     };
 

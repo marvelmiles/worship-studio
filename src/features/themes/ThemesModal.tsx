@@ -177,7 +177,12 @@ export function ThemesModal() {
                 flexWrap: "wrap",
               }}
             >
-              <Button variant="primary" size="sm" onClick={saveDraft} disabled={!hasUnsavedChanges}>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={saveDraft}
+                disabled={!hasUnsavedChanges}
+              >
                 <Check size={14} />
                 Save theme
               </Button>
@@ -240,7 +245,9 @@ export function ThemesModal() {
               value={draft.animation || ""}
               inheritLabel="App default"
               onSelect={(value) =>
-                patchDraft({ animation: (value || undefined) as Theme["animation"] })
+                patchDraft({
+                  animation: (value || undefined) as Theme["animation"],
+                })
               }
             />
 
@@ -295,7 +302,11 @@ export function ThemesModal() {
                   marginTop: 10,
                 }}
               >
-                <KeepOnResetToggle kind="theme" item={savedTheme ?? draft} variant="button" />
+                <KeepOnResetToggle
+                  kind="theme"
+                  item={savedTheme ?? draft}
+                  variant="button"
+                />
                 <Button variant="danger" size="sm" onClick={removeSelected}>
                   <Trash2 size={13} />
                   Delete theme

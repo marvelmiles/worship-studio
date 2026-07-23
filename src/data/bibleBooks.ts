@@ -33,7 +33,7 @@ const book = (
   name: string,
   chapters: number,
   testament: "old" | "new",
-  aliases: string[] = []
+  aliases: string[] = [],
 ): BibleBook => ({ id, name, chapters, testament, aliases });
 
 export const BIBLE_BOOKS: BibleBook[] = [
@@ -58,7 +58,13 @@ export const BIBLE_BOOKS: BibleBook[] = [
   book(19, "Psalms", 150, "old", ["psalm", "ps", "psa", "psm", "pss"]),
   book(20, "Proverbs", 31, "old", ["prov", "pro", "prv", "pr"]),
   book(21, "Ecclesiastes", 12, "old", ["eccl", "ecc", "ec", "qoh"]),
-  book(22, "Song of Solomon", 8, "old", ["song", "sos", "so", "canticles", "songofsongs"]),
+  book(22, "Song of Solomon", 8, "old", [
+    "song",
+    "sos",
+    "so",
+    "canticles",
+    "songofsongs",
+  ]),
   book(23, "Isaiah", 66, "old", ["isa", "is"]),
   book(24, "Jeremiah", 52, "old", ["jer", "je", "jr"]),
   book(25, "Lamentations", 5, "old", ["lam", "la"]),

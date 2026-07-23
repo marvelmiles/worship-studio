@@ -22,10 +22,19 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
           }}
         >
           <span>{label}</span>
-          <span style={{ fontVariantNumeric: "tabular-nums" }}>{Math.round(pct)}%</span>
+          <span style={{ fontVariantNumeric: "tabular-nums" }}>
+            {Math.round(pct)}%
+          </span>
         </div>
       )}
-      <div style={{ height: 8, borderRadius: 99, background: controls.track, overflow: "hidden" }}>
+      <div
+        style={{
+          height: 8,
+          borderRadius: 99,
+          background: controls.track,
+          overflow: "hidden",
+        }}
+      >
         <div
           style={{
             height: "100%",
