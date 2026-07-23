@@ -14,9 +14,93 @@ interface EmptyStateProps {
   bare?: boolean;
 }
 
-/** Friendly illustrated placeholder shown wherever a list has nothing in it. */
+interface MissingArtifactProps {
+  icon: LucideIcon;
+  compact?: boolean;
+}
+
+/** A stack of slide frames whose front slot is empty: the product-specific way
+ *  to say an artifact (song, passage, media, theme) belongs here but is missing.
+ *  The faint skeleton bars stand in for the content waiting to be built. */
+function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
+  const { colors, shadows } = useUITheme();
+  const frameW = compact ? 104 : 128;
+  const frameH = compact ? 66 : 80;
+  const iconSize = compact ? 22 : 26;
+
+  const ghostFrame = {
+    position: "absolute" as const,
+    top: 0,
+    left: "50%",
+    width: frameW,
+    height: frameH,
+    marginLeft: -frameW / 2,
+    borderRadius: 14,
+    background: colors.panel,
+    border: `1px solid ${colors.border}`,
+    boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
+  };
+
+  const bar = (width: number) => ({
+    height: 6,
+    width,
+    borderRadius: 99,
+    background: fade(colors.sub, 0.28),
+  });
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: frameW + 40,
+        height: frameH + 30,
+        margin: "0 auto 22px",
+      }}
+    >
+      <div
+        style={{
+          ...ghostFrame,
+          transform: "translate(-16px, 16px) rotate(-8deg)",
+          opacity: 0.55,
+        }}
+      />
+      <div
+        style={{
+          ...ghostFrame,
+          transform: "translate(18px, 11px) rotate(7deg)",
+          opacity: 0.7,
+        }}
+      />
+      <div
+        style={{
+          ...ghostFrame,
+          background: colors.panelSolid,
+          border: `1.5px dashed ${fade(colors.accent, 0.42)}`,
+          boxShadow: shadows.overlay,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 9,
+          opacity: 1,
+        }}
+      >
+        <div style={{ color: colors.accent, display: "grid" }}>
+          <Icon size={iconSize} />
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center" }}>
+          <div style={bar(compact ? 44 : 54)} />
+          <div style={bar(compact ? 28 : 34)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Placeholder shown wherever a list has nothing in it, built around a
+ *  missing-artifact motif so an empty space reads as work waiting to be done. */
 export function EmptyState({
-  icon: Icon,
+  icon,
   title,
   message,
   action,
@@ -34,46 +118,7 @@ export function EmptyState({
         textAlign: "center",
       }}
     >
-      <div
-        style={{
-          position: "relative",
-          width: 104,
-          height: 104,
-          margin: "0 auto 20px",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${fade(colors.accent, 0.16)}, transparent 70%)`,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 10,
-            borderRadius: "50%",
-            border: `1px dashed ${fade(colors.accent, 0.3)}`,
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 26,
-            borderRadius: 24,
-            display: "grid",
-            placeItems: "center",
-            background: colors.panelSolid,
-            border: `1px solid ${colors.borderStrong}`,
-            boxShadow: `0 12px 30px rgba(0,0,0,0.35)`,
-            color: colors.accent,
-          }}
-        >
-          <Icon size={26} />
-        </div>
-      </div>
+      <MissingArtifact icon={icon} compact={compact} />
       <h3
         style={{
           fontFamily: DISPLAY,
