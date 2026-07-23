@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Heart, Mail } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import { SectionTitle } from "../../components/ui/Field";
 
@@ -66,7 +66,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can I install WorshipStudio and use it offline?",
-    a: "Yes. WorshipStudio is a Progressive Web App, so you can install it like a normal app, on desktop, click the Install icon in your browser's address bar; on phones or tablets, use “Add to Home Screen.” Once installed it opens in its own window without browser chrome and runs fully offline, since the app and your library are stored on the device. To back everything up or move to another device, use Export Data in Settings and Import Data on the other end (with options to replace or merge).",
+    a: "Yes. WorshipStudio is a Progressive Web App, so you can install it like a normal app, on desktop, click the Install icon in your browser's address bar; on phones or tablets, use \"Add to Home Screen.\" Once installed it opens in its own window without browser chrome and runs fully offline, since the app and your library are stored on the device. To back everything up or move to another device, use Export Data in Settings and Import Data on the other end (with options to replace or merge).",
   },
   {
     q: "Can I theme everything at once?",
@@ -264,17 +264,6 @@ export function AboutModal() {
         <Mail size={16} />
         {CONTACT_EMAIL}
       </a>
-      <p
-        style={{
-          fontFamily: DISPLAY,
-          fontSize: 13,
-          color: colors.dim,
-          marginTop: 18,
-          marginBottom: 0,
-        }}
-      >
-        Built with care, for the local church. ✝
-      </p>
     </Modal>
   );
 }

@@ -1,4 +1,4 @@
-import { Copy, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, Copy, Trash2, X } from "lucide-react";
 import type { AudioItem, Background, SlideDeckDoc, Theme } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
 import {
@@ -201,7 +201,8 @@ export function InspectorPanel({
           variant="ghost"
           onClick={() => editor.mergeSlideDown(selectedIndex)}
         >
-          Merge ↓
+          <ArrowDownToLine size={13} />
+          Merge
         </Button>
         <Button
           size="sm"

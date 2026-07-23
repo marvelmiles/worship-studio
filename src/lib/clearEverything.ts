@@ -44,7 +44,7 @@ export default async function clearEverything() {
           };
 
           request.onerror = () => {
-            console.error(`❌ Failed deleting ${name}`);
+            console.error(`Failed deleting ${name}`);
             resolve();
           };
 
@@ -69,7 +69,7 @@ export default async function clearEverything() {
       await Promise.all(
         cacheNames.map(async (cache) => {
           await caches.delete(cache);
-          console.log(`✅ Deleted cache: ${cache}`);
+          console.log(`Deleted cache: ${cache}`);
         }),
       );
     }

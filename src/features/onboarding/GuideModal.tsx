@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
+  Cross,
   FileText,
   Film,
   HelpCircle,
@@ -51,7 +52,7 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: WifiOff,
     title: "Install it & use it offline",
-    desc: "WorshipStudio can be installed straight from your browser. Look for Install in the address bar, or “Add to Home Screen” on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.",
+    desc: "WorshipStudio can be installed straight from your browser. Look for Install in the address bar, or \"Add to Home Screen\" on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.",
   },
 ];
 
@@ -298,7 +299,11 @@ export function GuideModal() {
           >
             That's it, create a song from the dashboard or open the library to
             start. You can revisit all of this anytime under About &amp; Help.
-            Welcome aboard. ✝
+            Welcome aboard.
+            <Cross
+              size={13}
+              style={{ display: "inline", verticalAlign: "middle", marginLeft: 5 }}
+            />
           </p>
         </div>
 

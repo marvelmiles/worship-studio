@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MonitorSmartphone, Radio, ShieldAlert } from "lucide-react";
+import { ArrowRight, MonitorSmartphone, Radio, ShieldAlert } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -190,9 +190,13 @@ function RoleCard({
           fontSize: 13.5,
           fontWeight: 700,
           color: colors.accentSoft,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
         }}
       >
-        {cta} →
+        {cta}
+        <ArrowRight size={15} />
       </span>
     </button>
   );

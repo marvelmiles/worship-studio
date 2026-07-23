@@ -53,7 +53,7 @@ export function DuplicatePassageModal({
           lineHeight: 1.65,
         }}
       >
-        “{existingTitle}” is already in your saved passages, but the saved one
+        "{existingTitle}" is already in your saved passages, but the saved one
         doesn't match what you're saving now.
       </p>
       <p
@@ -66,7 +66,7 @@ export function DuplicatePassageModal({
         }}
       >
         Overwrite it with this new content, or keep both; the new one is saved
-        as a numbered copy like “{existingTitle} (1)”.
+        as a numbered copy like "{existingTitle} (1)".
       </p>
     </Modal>
   );

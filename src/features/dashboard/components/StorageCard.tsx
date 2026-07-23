@@ -1,8 +1,7 @@
 import { HardDrive } from "lucide-react";
 import { fade } from "../../../theme/tokens";
 import { useUITheme } from "../../../theme/ThemeProvider";
-import { formatBytes } from "../../../lib/storageStats";
-import type { StorageInfo } from "../../../lib/storageStats";
+import { getStorageLabel, type StorageInfo } from "../../../lib/storageStats";
 
 interface StorageCardProps {
   storage: StorageInfo;
@@ -98,8 +97,7 @@ export function StorageCard({ storage }: StorageCardProps) {
             {Math.min(100, Math.round(storage.pct * 100))}%
           </div>
           <div style={{ fontSize: 11.5, color: colors.dim, marginTop: 4 }}>
-            {formatBytes(storage.userUsed)} used, about{" "}
-            {formatBytes(Math.max(0, storage.userMax - storage.userUsed))} free
+            {getStorageLabel(storage)}
           </div>
         </div>
       </div>

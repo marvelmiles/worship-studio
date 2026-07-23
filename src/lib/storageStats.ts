@@ -43,6 +43,10 @@ export function formatBytes(n: number): string {
   return `${(n / (1024 * MB)).toFixed(2)} GB`;
 }
 
+export const getStorageLabel = (storage: StorageInfo) => {
+  return `${formatBytes(storage.userUsed)} used • ~${formatBytes(Math.max(0, storage.userMax - storage.userUsed))} available`;
+};
+
 export function computeStorageInfo(
   estimate: { quota: number; usage: number; fromEstimate: boolean },
   userUsed: number,

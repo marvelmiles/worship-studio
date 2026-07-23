@@ -16,7 +16,7 @@ import type {
   Prefs,
 } from "../../types";
 import { useStore } from "../../store/useStore";
-import { formatBytes } from "../../lib/storageStats";
+import { getStorageLabel } from "../../lib/storageStats";
 import { MAX_KEPT_ITEMS, keptSongs, keptThemes } from "../../lib/keepOnReset";
 import { fade, mix, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
@@ -296,9 +296,7 @@ export function SettingsModal() {
                 <div
                   style={{ fontFamily: UI, fontSize: 12, color: colors.sub }}
                 >
-                  {formatBytes(storage.userUsed)} used, about{" "}
-                  {formatBytes(Math.max(0, storage.userMax - storage.userUsed))}{" "}
-                  free
+                  {getStorageLabel(storage)}
                 </div>
               </div>
               <div

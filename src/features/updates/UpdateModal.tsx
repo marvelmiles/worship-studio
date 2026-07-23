@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 
 // Set SHOW_UPDATE to true to show the modal on load; bump UPDATE_KEY so
@@ -244,7 +245,20 @@ export function UpdateModal() {
               transition: "background 0.25s, color 0.25s",
             }}
           >
-            {atBottom ? "Understood" : "Scroll to continue ↓"}
+            {atBottom ? (
+              "Understood"
+            ) : (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                Scroll to continue
+                <ChevronDown size={15} />
+              </span>
+            )}
           </button>
         </div>
       </div>
