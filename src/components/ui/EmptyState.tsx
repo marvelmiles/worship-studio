@@ -75,7 +75,6 @@ function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
         style={{
           ...ghostFrame,
           background: colors.panelSolid,
-          border: `1.5px dashed ${fade(colors.accent, 0.42)}`,
           boxShadow: shadows.overlay,
           display: "flex",
           flexDirection: "column",
@@ -88,7 +87,14 @@ function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
         <div style={{ color: colors.accent, display: "grid" }}>
           <Icon size={iconSize} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 5,
+            alignItems: "center",
+          }}
+        >
           <div style={bar(compact ? 44 : 54)} />
           <div style={bar(compact ? 28 : 34)} />
         </div>
