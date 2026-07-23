@@ -61,10 +61,11 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   useDocumentTitle(`${config.title} · WorshipStudio`);
 
   const media = useStore((s) => s.media);
+  const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
   const removeMedia = useStore((s) => s.removeMedia);
   const startPresent = useStore((s) => s.startPresent);
-  const useImageAsBackground = useStore((s) => s.useImageAsBackground);
+  const toggleImageBackground = useStore((s) => s.toggleImageBackground);
   const pushToast = useStore((s) => s.pushToast);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,15 +90,31 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
     return base.sort(sortMediaByRecency);
   }, [media, kind, query]);
 
+  // The image ids currently mirrored as backgrounds, so each card's toggle can
+  // show whether that image is already in use.
+  const backgroundImageIds = useMemo(
+    () =>
+      new Set(
+        backgrounds
+          .map((b) => b.blobId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [backgrounds],
+  );
+
   const present = (item: MediaItem, pip = false) => {
     const mode = pip ? "pip" : "stage";
     if (kind === "image") startPresent("image", item.id, imageDeckIndex(media, item.id), mode);
     else startPresent("video", item.id, 0, mode);
   };
 
-  const asBackground = (item: MediaItem) => {
-    const id = useImageAsBackground(item.id);
-    if (id) pushToast(`Added "${item.name}" to your backgrounds.`);
+  const toggleBackground = (item: MediaItem) => {
+    const nowBackground = toggleImageBackground(item.id);
+    pushToast(
+      nowBackground
+        ? `Added "${item.name}" to your backgrounds.`
+        : `Removed "${item.name}" from your backgrounds.`,
+    );
   };
 
   return (
@@ -187,7 +204,16 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
                     Edit
                   </Button>
                   {item.kind === "image" && (
-                    <IconButton icon={Wallpaper} title="Use as background" onClick={() => asBackground(item)} />
+                    <IconButton
+                      icon={Wallpaper}
+                      active={backgroundImageIds.has(item.id)}
+                      title={
+                        backgroundImageIds.has(item.id)
+                          ? "Remove from backgrounds"
+                          : "Use as background"
+                      }
+                      onClick={() => toggleBackground(item)}
+                    />
                   )}
                   <div style={{ marginLeft: "auto" }}>
                     <IconButton icon={Trash2} title="Delete" danger onClick={() => setDeleting(item)} />

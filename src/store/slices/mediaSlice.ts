@@ -27,6 +27,12 @@ export interface MediaSlice {
   updateMedia: (id: string, changes: Partial<MediaItem>) => void;
   removeMedia: (id: string) => Promise<void>;
   useImageAsBackground: (id: string) => string;
+  /**
+   * Toggles whether an image is one of the reusable backgrounds. Adds it when it
+   * isn't, removes every background sharing its file when it is. Returns the new
+   * state: true if the image is now a background, false if it was removed.
+   */
+  toggleImageBackground: (id: string) => boolean;
 }
 
 const QUOTA_TOAST =
@@ -127,5 +133,21 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     void saveRecord("backgrounds", background);
     afterWrite(get);
     return background.id;
+  },
+
+  toggleImageBackground: (id) => {
+    if (blockWrite(get)) return false;
+    const item = get().media.find((m) => m.id === id && m.kind === "image");
+    if (!item) return false;
+    // An image is "used as a background" when a background references its file.
+    const existing = get().backgrounds.filter((b) => b.blobId === item.id);
+    if (existing.length > 0) {
+      // Removing the background keeps the shared file alive — the media item
+      // still owns it (see removeBackground's stillUsed check).
+      for (const background of existing) void get().removeBackground(background.id);
+      return false;
+    }
+    get().useImageAsBackground(id);
+    return true;
   },
 });
