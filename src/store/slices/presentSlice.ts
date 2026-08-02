@@ -12,6 +12,11 @@ export type PresentationMode = "stage" | "pip";
 export interface PresentSlice {
   presentation: PresentTarget | null;
   presentationMode: PresentationMode;
+  /**
+   * Slide the presentation is currently on, published by the presenter so the
+   * rest of the app (the editor's slide list) can follow along live.
+   */
+  presentationIndex: number;
 
   startPresent: (
     kind: ContentKind,
@@ -20,12 +25,14 @@ export interface PresentSlice {
     mode?: PresentationMode,
   ) => void;
   setPresentationMode: (mode: PresentationMode) => void;
+  setPresentationIndex: (index: number) => void;
   stopPresent: () => void;
 }
 
 export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
   presentation: null,
   presentationMode: "stage",
+  presentationIndex: 0,
 
   startPresent: (kind, id, startIndex = 0, mode = "stage") => {
     const state = get();
@@ -36,15 +43,25 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
           ? Boolean(state.scriptures.find((s) => s.id === id)?.slides?.length)
           : state.media.some((m) => m.id === id && m.kind === kind);
     if (canPresent)
-      set({ presentation: { kind, id, startIndex }, presentationMode: mode });
+      set({
+        presentation: { kind, id, startIndex },
+        presentationMode: mode,
+        presentationIndex: startIndex,
+      });
   },
 
   setPresentationMode: (mode) => set({ presentationMode: mode }),
+
+  setPresentationIndex: (index) => set({ presentationIndex: index }),
 
   stopPresent: () => {
     // Ending the presentation always takes the projected window with it,
     // otherwise the audience keeps seeing a stage nothing is driving.
     endLive();
-    set({ presentation: null, presentationMode: "stage" });
+    set({
+      presentation: null,
+      presentationMode: "stage",
+      presentationIndex: 0,
+    });
   },
 });

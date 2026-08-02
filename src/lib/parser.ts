@@ -32,6 +32,69 @@ interface Section {
   lines: string[];
 }
 
+interface SectionHeader {
+  base: string;
+  num: number | null;
+}
+
+/** `[Chorus]`, `[Verse 2]` — an explicit tag, any name allowed. */
+const BRACKET_HEADER = /^\s*\[([a-zA-Z0-9 -]{1,24})\]\s*$/;
+/** Markdown headings, `# Chorus` / `### Verse 2` — any name allowed. */
+const MARKDOWN_HEADER = /^\s*#{1,6}\s+(.{1,24}?)\s*#*\s*$/;
+/** `**Chorus**`, `_Verse 2_` — a decorated line, known section names only. */
+const EMPHASIS_HEADER =
+  /^\s*(?:\*{1,3}|_{1,3}|~~)\s*([a-zA-Z0-9 -]{1,24}?)\s*(?:\*{1,3}|_{1,3}|~~)\s*:?\s*$/;
+/** `Chorus:`, `Verse 2:` — known section names only. */
+const COLON_HEADER = /^\s*([a-zA-Z][a-zA-Z0-9 -]{0,23}?)\s*:\s*$/;
+/** A bare `Chorus` line on its own — known section names only. */
+const PLAIN_HEADER = /^\s*([a-zA-Z][a-zA-Z0-9 -]{0,23})\s*$/;
+
+/** Markdown thematic break (`---`, `***`, `___`) used as a stanza separator. */
+const HORIZONTAL_RULE = /^\s*([-*_])\s*(?:\1\s*){2,}$/;
+const BLOCK_QUOTE = /^\s*>\s?/;
+
+/**
+ * A stanza number leading its first line: `1.`, `2)`, `(3)`, `4 -`, `IV.`
+ * A delimiter is required so ordinary lyric lines ("I am the Lord", "7 days
+ * a week") are never mistaken for numbering.
+ */
+const STANZA_NUMBER =
+  /^\s*(?:\(\s*(\d{1,3}|[IVXLCDM]{1,7})\s*\)|(\d{1,3}|[IVXLCDM]{1,7})\s*[.)\]:-])\s+\S/;
+
+const ROMAN_VALUES: Record<string, number> = {
+  I: 1,
+  V: 5,
+  X: 10,
+  L: 50,
+  C: 100,
+  D: 500,
+  M: 1000,
+};
+
+function romanToNumber(token: string): number | null {
+  let total = 0;
+  let highest = 0;
+  for (let i = token.length - 1; i >= 0; i--) {
+    const value = ROMAN_VALUES[token[i]];
+    if (!value) return null;
+    total += value < highest ? -value : value;
+    highest = Math.max(highest, value);
+  }
+  return total > 0 ? total : null;
+}
+
+/** The stanza number a line opens with, e.g. "2. Under the shadow" -> 2. */
+function matchStanzaNumber(line: string): number | null {
+  const match = line.match(STANZA_NUMBER);
+  if (!match) return null;
+  const token = match[1] ?? match[2];
+  if (/^\d+$/.test(token)) {
+    const value = parseInt(token, 10);
+    return value > 0 ? value : null;
+  }
+  return romanToNumber(token);
+}
+
 /** Splits a tag's inner text into its base name and an optional trailing
  * number, e.g. "Verse 3" / "Verse-3" / "Verse3" -> { base: "Verse", num: 3 }. */
 function splitTagNumber(raw: string): { base: string; num: number | null } {
@@ -39,6 +102,45 @@ function splitTagNumber(raw: string): { base: string; num: number | null } {
   if (m && m[1].trim()) return { base: m[1].trim(), num: parseInt(m[2], 10) };
   return { base: raw.trim(), num: null };
 }
+
+const isKnownSection = (name: string): boolean =>
+  Boolean(SECTION_MAP[splitTagNumber(name).base.toLowerCase()]);
+
+/**
+ * Recognises every way a section gets marked in the wild: the app's own
+ * `[Verse 2]` tags, Markdown headings, an emphasised or colon-terminated
+ * name, or the bare word on its own line. The looser forms only count when
+ * they name a section the app knows, so a one-word lyric line stays a lyric.
+ */
+function matchSectionHeader(line: string): SectionHeader | null {
+  const explicit = line.match(BRACKET_HEADER) || line.match(MARKDOWN_HEADER);
+  if (explicit) return splitTagNumber(explicit[1]);
+
+  for (const pattern of [EMPHASIS_HEADER, COLON_HEADER, PLAIN_HEADER]) {
+    const match = line.match(pattern);
+    if (match && isKnownSection(match[1])) return splitTagNumber(match[1]);
+  }
+  return null;
+}
+
+function sectionFor(header: SectionHeader): Section {
+  const key = header.base.toLowerCase();
+  const meta = SECTION_MAP[key];
+  return {
+    type: meta ? meta.type : "custom",
+    baseLabel:
+      meta?.label || header.base.charAt(0).toUpperCase() + header.base.slice(1),
+    explicitNum: header.num,
+    lines: [],
+  };
+}
+
+/** Drops Markdown line-level markup that should never reach the screen. */
+const cleanLine = (line: string): string =>
+  line.replace(BLOCK_QUOTE, "").replace(/\s+$/, "");
+
+const isBreak = (line: string): boolean =>
+  line.trim() === "" || HORIZONTAL_RULE.test(line);
 
 /** Split a section's lines into slide chunks. Blank lines are hard breaks. */
 function chunkLines(lines: string[], maxLines: number): string[][] {
@@ -63,10 +165,75 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
   return chunks.length ? chunks : [[]];
 }
 
+/** Tagged lyrics: every section starts at a header line. */
+function buildTaggedSections(lines: string[]): Section[] {
+  const sections: Section[] = [];
+  let current: Section | null = null;
+
+  for (const raw of lines) {
+    const header = matchSectionHeader(raw);
+    if (header) {
+      current = sectionFor(header);
+      sections.push(current);
+      continue;
+    }
+    const line = isBreak(raw) ? "" : cleanLine(raw);
+    if (current) {
+      current.lines.push(line);
+    } else if (line.trim() !== "") {
+      current = {
+        type: "verse",
+        baseLabel: "Verse",
+        explicitNum: null,
+        lines: [line],
+      };
+      sections.push(current);
+    }
+  }
+  return sections;
+}
+
+/**
+ * Untagged lyrics: a blank line or a thematic break starts a new verse, and so
+ * does a numbered stanza opener, which also claims that number as its verse
+ * number. The numbering itself stays in the text, hymn books read that way.
+ */
+function buildStanzaSections(lines: string[]): Section[] {
+  const sections: Section[] = [];
+  let current: Section | null = null;
+  let pendingBreak = true;
+
+  for (const raw of lines) {
+    if (isBreak(raw)) {
+      pendingBreak = true;
+      continue;
+    }
+    const line = cleanLine(raw);
+    const stanzaNumber = matchStanzaNumber(line);
+    if (!current || pendingBreak || stanzaNumber !== null) {
+      current = {
+        type: "verse",
+        baseLabel: "Verse",
+        explicitNum: stanzaNumber,
+        lines: [],
+      };
+      sections.push(current);
+      pendingBreak = false;
+    }
+    // Numbered stanzas are usually hanging-indented under their number; that
+    // indentation is layout, not lyrics.
+    current.lines.push(current.explicitNum !== null ? line.trim() : line);
+  }
+  return sections;
+}
+
 /**
  * Convert raw lyrics into slides.
  * - Recognises [verse], [chorus], [bridge], [intro], [outro], [tag],
  *   [refrain], [pre-chorus] (and custom tags). [solo] is treated as a verse.
+ *   The same sections are recognised as Markdown headings (`## Chorus`), as an
+ *   emphasised or colon-terminated name (`**Chorus**`, `Chorus:`) and as the
+ *   bare word on its own line.
  * - A section label is numbered (Verse 1, Verse 2) only when it repeats.
  * - A tag may include an explicit number, e.g. [Verse 3]. Explicit numbers are
  *   reserved first; sections left without one fill in whatever numbers remain,
@@ -75,63 +242,31 @@ function chunkLines(lines: string[], maxLines: number): string[][] {
  *   Verse 1 still presents Verse 1 first. Other section types keep their own
  *   position, so a Verse/Chorus/Verse/Chorus skeleton is preserved even while
  *   the verses themselves get sorted into place.
- * - Untagged lyrics: blank-line-separated stanzas become numbered verses.
+ * - Untagged lyrics: blank-line-separated stanzas become numbered verses, and
+ *   a stanza opening with `1.`, `(2)` or `IV.` takes that as its verse number
+ *   while keeping the numbering on screen.
+ * - Inline Markdown emphasis (`**bold**`, `*italic*`, `~~strikethrough~~`) is
+ *   left in the text and rendered by the slide canvas.
  * - Long sections are split across slides at `maxLines`.
  */
 export function parseLyrics(text: string, maxLines = 6): Slide[] {
   const normalizedText = (text || "").replace(/\r\n?/g, "\n");
-  const headerPattern = /^\s*\[([a-zA-Z0-9 -]{1,24})\]\s*$/;
-  const hasHeaders = normalizedText
-    .split("\n")
-    .some((l) => headerPattern.test(l));
+  const lines = normalizedText.split("\n");
+  const hasHeaders = lines.some((line) => matchSectionHeader(line) !== null);
 
-  let sections: Section[] = [];
-  if (hasHeaders) {
-    let current: Section | null = null;
-    for (const line of normalizedText.split("\n")) {
-      const m = line.match(headerPattern);
-      if (m) {
-        const { base, num } = splitTagNumber(m[1]);
-        const key = base.toLowerCase();
-        const meta = SECTION_MAP[key];
-        const type = meta ? meta.type : "custom";
-        const label =
-          meta?.label || base.charAt(0).toUpperCase() + base.slice(1);
-        current = { type, baseLabel: label, explicitNum: num, lines: [] };
-        sections.push(current);
-      } else if (current) {
-        current.lines.push(line);
-      } else if (line.trim() !== "") {
-        current = {
-          type: "verse",
-          baseLabel: "Verse",
-          explicitNum: null,
-          lines: [line],
-        };
-        sections.push(current);
-      }
-    }
-  } else {
-    const stanzas = normalizedText
-      .split(/\n\s*\n/)
-      .map((s) => s.split("\n"))
-      .filter((g) => g.some((l) => l.trim() !== ""));
-    sections = stanzas.map((g) => ({
-      type: "verse",
-      baseLabel: "Verse",
-      explicitNum: null,
-      lines: g,
-    }));
-    if (!sections.length && normalizedText.trim())
-      sections = [
-        {
-          type: "verse",
-          baseLabel: "Verse",
-          explicitNum: null,
-          lines: normalizedText.split("\n"),
-        },
-      ];
-  }
+  let sections = hasHeaders
+    ? buildTaggedSections(lines)
+    : buildStanzaSections(lines);
+
+  if (!sections.length && normalizedText.trim())
+    sections = [
+      {
+        type: "verse",
+        baseLabel: "Verse",
+        explicitNum: null,
+        lines: lines.map(cleanLine),
+      },
+    ];
 
   // Resolve each section's final number: explicit numbers (e.g. "Verse 3") are
   // reserved first, then unnumbered sections fill in whatever's left, smallest

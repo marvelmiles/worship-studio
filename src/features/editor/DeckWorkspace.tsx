@@ -27,6 +27,7 @@ import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
 import type { DeckEditor } from "./useDeckEditor";
+import { useFollowPresentation } from "./useFollowPresentation";
 import { SlideListPanel } from "./SlideListPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import { InspectorPanel } from "./InspectorPanel";
@@ -84,6 +85,8 @@ export function DeckWorkspace({
   const [menu, setMenu] = useState<ContextState | null>(null);
   const [tab, setTab] = useState<MobileTab>("edit");
   const [selectedLine, setSelectedLine] = useState<number | null>(null);
+
+  useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
   const slide = editor.selectedSlide;
   const present = ({ pip }: { pip: boolean }) =>

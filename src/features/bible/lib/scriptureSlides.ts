@@ -6,6 +6,7 @@ import type {
   TextStyle,
 } from "../../../types";
 import { uid } from "../../../lib/id";
+import { SCRIPTURE_REFERENCE_FONT_SIZE } from "../../../data/themes";
 import { formatRange, formatReference } from "./reference";
 
 export interface ScriptureSlideOptions {
@@ -22,15 +23,18 @@ export interface ScriptureSlideOptions {
   splitLongVerses?: boolean;
 }
 
-const REFERENCE_LINE_STYLE: TextStyle = { fontSize: 2.6, uppercase: false };
+const REFERENCE_LINE_STYLE: TextStyle = {
+  fontSize: SCRIPTURE_REFERENCE_FONT_SIZE,
+  uppercase: false,
+};
 
 /**
  * Character budget for one slide before splitting kicks in. At the default
- * scripture theme (4.4cqw, ~37 chars per wrapped line) this keeps a slide to
- * roughly five wrapped lines plus the reference, leaving clear space above
+ * scripture size (6.7cqw, ~24 chars per wrapped line) this keeps a slide to
+ * roughly three wrapped lines plus the reference, leaving clear space above
  * and below the text on the stage.
  */
-const MAX_SLIDE_CHARS = 190;
+const MAX_SLIDE_CHARS = 90;
 
 /** Display lines for a chunk of verses, before the reference line is added. */
 function chunkLines(chunk: BibleVerse[], showVerseNumbers: boolean): string[] {

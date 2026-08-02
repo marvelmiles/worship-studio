@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
 import { colors, fade, UI } from "../theme/tokens";
 import { useThumbUrl } from "../lib/blobUrls";
+import { FormattedText } from "./FormattedText";
 
 interface SlideCanvasProps {
   slide: Slide;
@@ -140,7 +141,7 @@ export function SlideCanvas({
                     : undefined,
                 }}
               >
-                {ln || "\u00A0"}
+                {ln ? <FormattedText text={ln} /> : "\u00A0"}
               </div>
             );
           })}

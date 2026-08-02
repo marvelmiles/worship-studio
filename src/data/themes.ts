@@ -1,5 +1,14 @@
 import type { Theme } from "../types";
 
+/**
+ * Presented scripture reads as two sizes: the passage itself, and the
+ * reference line under it naming book, chapter and verse. The reference sits
+ * two steps down the font-size scale so it reads as a caption without
+ * shrinking away from the back of the room.
+ */
+export const SCRIPTURE_PASSAGE_FONT_SIZE = 6.7;
+export const SCRIPTURE_REFERENCE_FONT_SIZE = 6.5;
+
 export const THEMES: Theme[] = [
   {
     id: "classic",
@@ -91,7 +100,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.32,
     letterSpacing: 0.2,
-    fontSize: 4.4,
+    fontSize: SCRIPTURE_PASSAGE_FONT_SIZE,
     uppercase: false,
     textShadow: "0 2px 20px rgba(0,0,0,0.6)",
     backgroundId: "bg-royal",

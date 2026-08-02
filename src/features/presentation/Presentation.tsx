@@ -11,6 +11,7 @@ import { useGoLive } from "../../hooks/useGoLive";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { stripInlineFormatting } from "../../lib/inlineFormat";
 import {
   openPresentChannel,
   type PresentState,
@@ -203,7 +204,9 @@ export function Presentation() {
         showRef && s.slide.lines.length > 1
           ? s.slide.lines.slice(0, -1)
           : s.slide.lines;
-      return lines.map((line) => line.replace(/^\d+\.\s*/, "")).join("\n");
+      return lines
+        .map((line) => stripInlineFormatting(line).replace(/^\d+\.\s*/, ""))
+        .join("\n");
     });
     speech.speak(chunks, (i) => p.goTo(startSlideIndex + i));
   };

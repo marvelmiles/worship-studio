@@ -63,8 +63,20 @@ export function LyricsModal({
         <code style={{ color: colors.accentSoft }}>
           [verse] [chorus] [bridge] [intro] [outro] [tag] [refrain] [pre-chorus]
         </code>
-        . Repeated sections auto-number (Verse 1, Verse 2). No tags → blank
-        lines become numbered verses. Long sections split automatically.
+        , also written as{" "}
+        <code style={{ color: colors.accentSoft }}>## Chorus</code>,{" "}
+        <code style={{ color: colors.accentSoft }}>**Chorus**</code> or{" "}
+        <code style={{ color: colors.accentSoft }}>Chorus:</code>. Repeated
+        sections auto-number (Verse 1, Verse 2). No tags → blank lines become
+        numbered verses, and a stanza opening with{" "}
+        <code style={{ color: colors.accentSoft }}>1.</code>,{" "}
+        <code style={{ color: colors.accentSoft }}>(2)</code> or{" "}
+        <code style={{ color: colors.accentSoft }}>IV.</code> keeps that number.
+        Emphasis carries to the slide:{" "}
+        <code style={{ color: colors.accentSoft }}>**bold**</code>,{" "}
+        <code style={{ color: colors.accentSoft }}>*italic*</code>,{" "}
+        <code style={{ color: colors.accentSoft }}>~~strikethrough~~</code>.
+        Long sections split automatically.
       </p>
       <textarea
         value={lyrics}

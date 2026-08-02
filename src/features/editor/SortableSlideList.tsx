@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -136,9 +137,24 @@ function SortableRow({
   const selected = slide.id === selId;
   const allSlidesMode = doc.shortcutMode === "all-slides";
 
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      rowRef.current = node;
+      setNodeRef(node);
+    },
+    [setNodeRef],
+  );
+
+  // Keeps the active slide visible when something other than a click selects
+  // it, such as the editor following a running presentation.
+  useEffect(() => {
+    if (selected) rowRef.current?.scrollIntoView({ block: "nearest" });
+  }, [selected]);
+
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       onClick={() => setSelId(slide.id)}
       onContextMenu={(e) => {
         e.preventDefault();

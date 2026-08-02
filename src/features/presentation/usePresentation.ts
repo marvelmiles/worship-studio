@@ -51,6 +51,7 @@ export function usePresentation(
   const audio = useStore((s) => s.audio);
   const prefs = useStore((s) => s.prefs);
   const stopPresent = useStore((s) => s.stopPresent);
+  const setPresentationIndex = useStore((s) => s.setPresentationIndex);
 
   const deck = useDeck(presentation?.kind, presentation?.id);
   const slides = useMemo(() => deck?.slides ?? [], [deck]);
@@ -356,6 +357,12 @@ export function usePresentation(
     seekVideoBy,
     ownsKey,
   ]);
+
+  // Publish the live position so the editor's slide list tracks whatever the
+  // operator advances to, from the stage, the floating presenter or a shortcut.
+  useEffect(() => {
+    setPresentationIndex(slideIndex);
+  }, [slideIndex, setPresentationIndex]);
 
   useEffect(() => {
     if (!autoPlay || paused || slides.length < 2) return;

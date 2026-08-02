@@ -5,6 +5,7 @@ import type {
   ScripturePassage,
 } from "../../types";
 import { now, uid } from "../../lib/id";
+import { SCRIPTURE_PASSAGE_FONT_SIZE } from "../../data/themes";
 import { deleteRecord, saveRecord } from "../../lib/storage";
 import { buildScriptureSlides } from "../../features/bible/lib/scriptureSlides";
 import { formatReference } from "../../features/bible/lib/reference";
@@ -87,7 +88,10 @@ function buildPassage(
     defaultThemeId: themeId,
     defaultBackgroundId: "",
     defaultAudioId: null,
-    style: {},
+    // The passage carries its own size so it always sits exactly two steps
+    // above the reference line the slide builder writes, whichever theme the
+    // passage is presented with.
+    style: { fontSize: SCRIPTURE_PASSAGE_FONT_SIZE },
     createdAt: now(),
     updatedAt: now(),
     deleted: false,
@@ -156,6 +160,11 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     const current = get().scriptures.find((s) => s.id === id);
     if (!current) return;
     const next: ScripturePassage = { ...current, ...changes, updatedAt: now() };
+    // Passages saved before the scripture type scale existed pick it up here.
+    next.style = {
+      fontSize: SCRIPTURE_PASSAGE_FONT_SIZE,
+      ...next.style,
+    };
     next.slides = buildScriptureSlides({
       version: next.version,
       range: next.range,
