@@ -26,15 +26,15 @@ export interface Deck {
 }
 
 /**
- * Resolves any presentable target into a uniform deck of slides. Songs and
- * scripture passages become text decks; presenting an image navigates the
+ * Resolves any presentable target into a uniform deck of slides. Manuscripts
+ * and scripture passages become text decks; presenting an image navigates the
  * whole image library as a slideshow; a video is a single-slide deck.
  */
 export function useDeck(
   kind: ContentKind | undefined,
   id: string | undefined,
 ): Deck | null {
-  const songs = useStore((s) => s.songs);
+  const manuscripts = useStore((s) => s.manuscripts);
   const scriptures = useStore((s) => s.scriptures);
   const media = useStore((s) => s.media);
   const themes = useStore((s) => s.themes);
@@ -42,10 +42,10 @@ export function useDeck(
   return useMemo(() => {
     if (!kind || !id) return null;
 
-    if (kind === "song" || kind === "scripture") {
+    if (kind === "manuscript" || kind === "scripture") {
       const doc: SlideDeckDoc | undefined =
-        kind === "song"
-          ? songs.find((s) => s.id === id)
+        kind === "manuscript"
+          ? manuscripts.find((m) => m.id === id)
           : scriptures.find((s) => s.id === id);
       if (!doc) return null;
       const theme =
@@ -88,7 +88,7 @@ export function useDeck(
       rev: item.updatedAt,
       slides: [{ kind: "video" as const, item }],
     };
-  }, [kind, id, songs, scriptures, media, themes]);
+  }, [kind, id, manuscripts, scriptures, media, themes]);
 }
 
 /** Index of an item inside the image slideshow deck ordering. */

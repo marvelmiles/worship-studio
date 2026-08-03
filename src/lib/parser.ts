@@ -1,20 +1,24 @@
 import type { Slide } from "../types";
+import type { Collection } from "../data/collections";
 import { uid } from "./id";
-import { extractSongMetadata } from "./lyrics/metadata";
-import { matchStanzaNumber, usesBareStanzaNumbers } from "./lyrics/numbering";
+import { extractManuscriptMetadata } from "./manuscript/metadata";
+import {
+  matchStanzaNumber,
+  usesBareStanzaNumbers,
+} from "./manuscript/numbering";
 import {
   extractRepeatCount,
   extractSectionReference,
   matchRepeatDirective,
-} from "./lyrics/repeats";
+} from "./manuscript/repeats";
 import {
   canonicalSectionLabel,
   isKnownSection,
   matchSectionHeader,
   sectionMetaFor,
-} from "./lyrics/sections";
+} from "./manuscript/sections";
 
-export { SECTION_MAP } from "./lyrics/sections";
+export { SECTION_MAP } from "./manuscript/sections";
 
 /** Markdown thematic break (`---`, `***`, `___`) used as a stanza separator. */
 const HORIZONTAL_RULE = /^\s*([-*_])\s*(?:\1\s*){2,}$/;
@@ -316,19 +320,26 @@ function noteText(
     : `Repeat ${label}${times}`;
 }
 
-export interface ParsedSong {
+export interface ParsedManuscript {
   title: string | null;
-  artist: string | null;
+  author: string | null;
+  /** Collection implied by a declared heading, e.g. `SERMON: …` -> Sermons. */
+  collection: Collection | null;
   slides: Slide[];
 }
 
 /**
- * Turns a pasted lyric document into a presentable deck.
+ * Turns a pasted document (lyrics, a hymn, a sermon outline) into a
+ * presentable deck.
+ *
+ * A heading that declares the document, `HYMN: Ancient Words`, `SERMON: The
+ * Good Shepherd`, names the manuscript and files it in the matching
+ * collection; it is a label, never a slide line.
  *
  * Sections are recognised however they were written: `[Verse 2]`, `## Chorus`,
  * `**Chorus**`, `Chorus:`, `Chorus: first line`, `Choir- first line`,
  * `(Adlibs)` or a bare `Bridge` on its own line. Performer cues such as
- * `Soloist:` and `Choir:` count as sections too. Untagged lyrics fall back to
+ * `Soloist:` and `Choir:` count as sections too. Untagged text falls back to
  * blank-line stanzas, and a stanza opening with `1.`, `(2)`, `IV.` or, in a
  * document that reads like a numbered hymn, a bare `3`, keeps that number.
  *
@@ -338,10 +349,10 @@ export interface ParsedSong {
  * `Chorus:`) builds no duplicate slide at all: it notes "Repeat slide 4
  * (Chorus)" on the slide the operator is already looking at.
  */
-export function parseSongDocument(text: string, maxLines = 6): ParsedSong {
+export function parseManuscript(text: string, maxLines = 6): ParsedManuscript {
   const normalized = (text || "").replace(/\r\n?/g, "\n");
   const allLines = normalized.split("\n");
-  const metadata = extractSongMetadata(allLines);
+  const metadata = extractManuscriptMetadata(allLines);
   const lines = allLines.slice(metadata.consumed);
 
   const allowBareNumbers = usesBareStanzaNumbers(stanzaOpeners(lines));
@@ -441,10 +452,15 @@ export function parseSongDocument(text: string, maxLines = 6): ParsedSong {
       notes: "",
     });
 
-  return { title: metadata.title, artist: metadata.artist, slides };
+  return {
+    title: metadata.title,
+    author: metadata.author,
+    collection: metadata.collection,
+    slides,
+  };
 }
 
-/** Convert raw lyrics into slides. See `parseSongDocument` for the full rules. */
-export function parseLyrics(text: string, maxLines = 6): Slide[] {
-  return parseSongDocument(text, maxLines).slides;
+/** Convert raw manuscript text into slides. See `parseManuscript` for the rules. */
+export function parseManuscriptSlides(text: string, maxLines = 6): Slide[] {
+  return parseManuscript(text, maxLines).slides;
 }

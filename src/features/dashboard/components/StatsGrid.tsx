@@ -1,9 +1,9 @@
 import {
   BookOpen,
+  FileText,
   Film,
   Image as ImageIcon,
   Layers,
-  Music,
   Palette,
   Volume2,
 } from "lucide-react";
@@ -29,7 +29,12 @@ export function StatsGrid({ counts }: StatsGridProps) {
   const DISPLAY = fonts.display;
 
   const stats: StatCard[] = [
-    { label: "Songs", value: counts.songs, icon: Music, color: charts[0] },
+    {
+      label: "Manuscripts",
+      value: counts.manuscripts,
+      icon: FileText,
+      color: charts[0],
+    },
     {
       label: "Slides",
       value: counts.totalSlides,

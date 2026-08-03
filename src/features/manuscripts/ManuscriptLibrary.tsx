@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Music, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { colors, CATEGORIES, UI } from "../../theme/tokens";
+import { FileText, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { colors, UI } from "../../theme/tokens";
+import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
@@ -19,49 +20,50 @@ import {
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
-export function Library() {
-  useDocumentTitle("Songs · WorshipStudio");
+export function ManuscriptLibrary() {
+  useDocumentTitle("Manuscripts · WorshipStudio");
   const navigate = useNavigate();
-  const songs = useStore((s) => s.songs);
+  const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
-  const createSong = useStore((s) => s.createSong);
-  const trashSong = useStore((s) => s.trashSong);
-  const restoreSong = useStore((s) => s.restoreSong);
-  const deleteSong = useStore((s) => s.deleteSong);
+  const createManuscript = useStore((s) => s.createManuscript);
+  const trashManuscript = useStore((s) => s.trashManuscript);
+  const restoreManuscript = useStore((s) => s.restoreManuscript);
+  const deleteManuscript = useStore((s) => s.deleteManuscript);
   const startPresent = useStore((s) => s.startPresent);
   const bgMap = useBgMap();
 
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
+  const [collection, setCollection] = useState("All");
   const [trashView, setTrashView] = useState(false);
 
   const onNew = () => {
-    const created = createSong();
-    if (created) navigate(`/songs/${created.id}`);
+    const created = createManuscript();
+    if (created) navigate(`/manuscripts/${created.id}`);
   };
 
   const list = useMemo(() => {
-    let base = songs.filter((s) => (trashView ? s.deleted : !s.deleted));
-    if (category !== "All") base = base.filter((s) => s.category === category);
+    let base = manuscripts.filter((m) => (trashView ? m.deleted : !m.deleted));
+    if (collection !== "All")
+      base = base.filter((m) => m.collection === collection);
     const term = query.trim().toLowerCase();
     if (term)
-      base = base.filter((s) =>
-        [s.title, s.artist, s.category, s.lyrics]
+      base = base.filter((m) =>
+        [m.title, m.author, m.collection, m.body]
           .filter(Boolean)
-          .some((f) => (f as string).toLowerCase().includes(term)),
+          .some((field) => (field as string).toLowerCase().includes(term)),
       );
     return base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
-  }, [songs, query, category, trashView]);
+  }, [manuscripts, query, collection, trashView]);
 
   return (
     <div className="ws-page">
       <PageHeader
-        title={trashView ? "Trash" : "Songs"}
+        title={trashView ? "Trash" : "Manuscripts"}
         subtitle={
           trashView
             ? undefined
-            : "Lyrics turned into styled, presentable slides."
+            : "Lyrics, hymns and sermons turned into styled, presentable slides."
         }
         actions={
           <>
@@ -70,12 +72,12 @@ export function Library() {
               onClick={() => setTrashView(!trashView)}
             >
               <Trash2 size={15} />
-              {trashView ? "Songs" : "Trash"}
+              {trashView ? "Manuscripts" : "Trash"}
             </Button>
             {!trashView && (
               <Button variant="primary" onClick={onNew}>
                 <Plus size={16} />
-                New Song
+                New Manuscript
               </Button>
             )}
           </>
@@ -87,12 +89,12 @@ export function Library() {
           <SearchInput
             value={query}
             onChange={setQuery}
-            placeholder="Search by title, artist, lyrics…"
+            placeholder="Search by title, author, text…"
           />
           <PillTabs
-            tabs={["All", ...CATEGORIES].map((c) => ({ id: c, label: c }))}
-            value={category}
-            onChange={setCategory}
+            tabs={["All", ...COLLECTIONS].map((c) => ({ id: c, label: c }))}
+            value={collection}
+            onChange={setCollection}
           />
         </div>
       )}
@@ -102,40 +104,40 @@ export function Library() {
           <EmptyState
             icon={Trash2}
             title="Trash is empty"
-            message="Songs you delete are kept here until you remove them for good."
+            message="Manuscripts you delete are kept here until you remove them for good."
           />
-        ) : query.trim() || category !== "All" ? (
+        ) : query.trim() || collection !== "All" ? (
           <EmptyState
-            icon={Music}
-            title="No songs match"
-            message="Try a different search or switch category."
+            icon={FileText}
+            title="No manuscripts match"
+            message="Try a different search or switch collection."
           />
         ) : (
           <EmptyState
-            icon={Music}
-            title="No songs yet"
-            message="Create your first song and its lyrics will turn into styled slides, ready to present."
+            icon={FileText}
+            title="No manuscripts yet"
+            message="Create your first manuscript and its text will turn into styled slides, ready to present."
             action={
               <Button variant="primary" onClick={onNew}>
                 <Plus size={15} />
-                New Song
+                New Manuscript
               </Button>
             }
           />
         ))}
 
       <div className="ws-card-grid">
-        {list.map((s) => {
-          const first = s.slides?.[0];
+        {list.map((m) => {
+          const first = m.slides?.[0];
           const theme =
-            themes.find((t) => t.id === s.defaultThemeId) || themes[0];
+            themes.find((t) => t.id === m.defaultThemeId) || themes[0];
           const bg =
-            bgMap[s.defaultBackgroundId || theme.backgroundId] ||
+            bgMap[m.defaultBackgroundId || theme.backgroundId] ||
             backgrounds[0];
           return (
-            <div key={s.id} className="ws-glass ws-card">
+            <div key={m.id} className="ws-glass ws-card">
               <div
-                onClick={() => !trashView && navigate(`/songs/${s.id}`)}
+                onClick={() => !trashView && navigate(`/manuscripts/${m.id}`)}
                 style={{
                   cursor: trashView ? "default" : "pointer",
                   position: "relative",
@@ -146,23 +148,23 @@ export function Library() {
                     slide={first}
                     bg={bg}
                     radius={0}
-                    style={resolveStyle(first, s, theme)}
+                    style={resolveStyle(first, m, theme)}
                     lineStyles={first.lines.map((_, i) =>
-                      resolveLineStyle(first, i, s, theme),
+                      resolveLineStyle(first, i, m, theme),
                     )}
                   />
                 ) : (
                   <BgSwatch bg={bg} style={{ aspectRatio: "16/9" }} />
                 )}
                 <div className="ws-thumb-badge">
-                  {s.slides?.length || 0} slides
+                  {m.slides?.length || 0} slides
                 </div>
               </div>
               <div className="ws-card-body">
                 <div className="ws-card-title">
-                  {s.title}
-                  <KeepOnResetBadge item={s} />
-                  {s.builtIn && (
+                  {m.title}
+                  <KeepOnResetBadge item={m} />
+                  {m.builtIn && (
                     <span
                       style={{
                         fontFamily: UI,
@@ -177,8 +179,8 @@ export function Library() {
                   )}
                 </div>
                 <div className="ws-card-sub">
-                  {s.artist || "Unknown"}
-                  {s.category ? ` · ${s.category}` : ""}
+                  {m.author || "Unknown"}
+                  {m.collection ? ` · ${m.collection}` : ""}
                 </div>
                 <div className="ws-card-actions">
                   {trashView ? (
@@ -186,7 +188,7 @@ export function Library() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => restoreSong(s.id)}
+                        onClick={() => restoreManuscript(m.id)}
                       >
                         <RotateCcw size={13} />
                         Restore
@@ -194,7 +196,7 @@ export function Library() {
                       <Button
                         size="sm"
                         variant="danger"
-                        onClick={() => deleteSong(s.id)}
+                        onClick={() => deleteManuscript(m.id)}
                       >
                         <Trash2 size={13} />
                         Delete
@@ -204,18 +206,23 @@ export function Library() {
                     <>
                       <PresentMenu
                         onPresent={({ pip }) =>
-                          startPresent("song", s.id, 0, pip ? "pip" : "stage")
+                          startPresent(
+                            "manuscript",
+                            m.id,
+                            0,
+                            pip ? "pip" : "stage",
+                          )
                         }
                       />
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => navigate(`/songs/${s.id}`)}
+                        onClick={() => navigate(`/manuscripts/${m.id}`)}
                       >
                         <Pencil size={13} />
                         Edit
                       </Button>
-                      {!s.builtIn && (
+                      {!m.builtIn && (
                         <div
                           style={{
                             marginLeft: "auto",
@@ -223,12 +230,12 @@ export function Library() {
                             gap: 2,
                           }}
                         >
-                          <KeepOnResetToggle kind="song" item={s} />
+                          <KeepOnResetToggle kind="manuscript" item={m} />
                           <IconButton
                             icon={Trash2}
                             title="Move to trash"
                             danger
-                            onClick={() => trashSong(s.id)}
+                            onClick={() => trashManuscript(m.id)}
                           />
                         </div>
                       )}

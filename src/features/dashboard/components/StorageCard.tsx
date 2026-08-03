@@ -75,7 +75,7 @@ export function StorageCard({ storage }: StorageCardProps) {
               }}
             >
               {storage.blocked
-                ? "Storage full. Delete songs, audio or backgrounds to continue"
+                ? "Storage full. Delete manuscripts, audio or backgrounds to continue"
                 : storage.level === "critical"
                   ? "Critical: free up space soon"
                   : storage.level === "warn"

@@ -3,7 +3,7 @@ import type { Backend } from "./storage";
 const MB = 1024 * 1024;
 
 // The user's budget must be at least this large for the app to run smoothly
-// (comfortably more than enough for songs + a handful of assets).
+// (comfortably more than enough for manuscripts + a handful of assets).
 export const MIN_VIABLE_BYTES = 4 * MB;
 // Keep this much of the physical quota free as headroom.
 export const SAFETY_BYTES = 2 * MB;

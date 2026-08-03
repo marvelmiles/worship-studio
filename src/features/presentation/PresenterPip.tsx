@@ -45,7 +45,7 @@ interface PresenterPipProps {
 
 /**
  * A small, draggable presenter that floats over the app while a presentation
- * runs, so the operator can keep working (searching the next song, editing a
+ * runs, so the operator can keep working (searching the next manuscript, editing a
  * passage) without dropping what the audience sees.
  *
  * It is focusable: while it holds focus the presentation keyboard shortcuts

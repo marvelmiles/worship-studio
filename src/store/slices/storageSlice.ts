@@ -13,7 +13,7 @@ import type { StorageInfo } from "../../lib/storageStats";
 import { BACKGROUNDS } from "../../data/backgrounds";
 import { THEMES } from "../../data/themes";
 import { DEFAULT_AUDIO } from "../../data/sounds";
-import { seedSongs } from "../../data/seed";
+import { seedManuscripts } from "../../data/seed";
 import type { SliceCreator } from "../storeTypes";
 
 export interface StorageSlice {
@@ -41,7 +41,7 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
       state.audio.reduce((n, a) => n + (a.size || 0), 0);
     const userUsed =
       fileBytes +
-      bytesOf(state.songs.filter((s) => !s.builtIn)) +
+      bytesOf(state.manuscripts.filter((m) => !m.builtIn)) +
       bytesOf(state.scriptures) +
       bytesOf(state.media) +
       bytesOf(state.backgrounds.filter((b) => !b.builtIn)) +
@@ -51,7 +51,7 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
     const reserved =
       backend === "indexeddb"
         ? APP_RESERVE_IDB
-        : bytesOf(state.songs.filter((s) => s.builtIn)) +
+        : bytesOf(state.manuscripts.filter((m) => m.builtIn)) +
           bytesOf(state.themes.filter((t) => t.builtIn)) +
           4096;
     const info = computeStorageInfo(estimate, userUsed, reserved, backend);
@@ -61,12 +61,13 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
 
   freeUpStorage: async () => {
     await wipeAllStores();
-    const songs = seedSongs();
-    for (const song of songs) await saveRecord("songs", song);
+    const manuscripts = seedManuscripts();
+    for (const manuscript of manuscripts)
+      await saveRecord("manuscripts", manuscript);
     for (const theme of THEMES) await saveRecord("themes", theme);
     await saveRecord("prefs", get().prefs);
     set({
-      songs,
+      manuscripts,
       scriptures: [],
       media: [],
       themes: THEMES,

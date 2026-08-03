@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,6 +22,7 @@ import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { useTextFormatting } from "../../hooks/useTextFormatting";
 import {
   resolveBackground,
   resolveLineStyle,
@@ -89,6 +96,30 @@ export function DeckWorkspace({
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
   const slide = editor.selectedSlide;
+
+  // The slide's lines edit as one block of text, so the formatting toolbar can
+  // act on a selection that runs across several of them.
+  const slideText = (slide?.lines ?? []).join("\n");
+  const setSlideText = useCallback(
+    (text: string) => {
+      if (!slide) return;
+      const lines = text.split("\n");
+      const lineOverrides = slide.lineOverrides
+        ? Object.fromEntries(
+            Object.entries(slide.lineOverrides).filter(
+              ([index]) => Number(index) < lines.length,
+            ),
+          )
+        : undefined;
+      editor.updateSlide(slide.id, { lines, lineOverrides });
+    },
+    [slide, editor],
+  );
+  const formatting = useTextFormatting({
+    value: slideText,
+    onChange: setSlideText,
+  });
+
   const present = ({ pip }: { pip: boolean }) =>
     startPresent(
       kind,
@@ -178,16 +209,9 @@ export function DeckWorkspace({
         resolveLineStyle(slide, i, doc, theme),
       )}
       background={resolveBackground(slide, doc, theme, bgMap)}
-      onChangeLines={(lines) => {
-        const lineOverrides = slide.lineOverrides
-          ? Object.fromEntries(
-              Object.entries(slide.lineOverrides).filter(
-                ([i]) => Number(i) < lines.length,
-              ),
-            )
-          : undefined;
-        editor.updateSlide(slide.id, { lines, lineOverrides });
-      }}
+      text={slideText}
+      onChangeText={setSlideText}
+      formatting={formatting}
       onChangeLabel={(label) => editor.updateSlide(slide.id, { label })}
       selectedLine={selectedLine}
       onSelectLine={setSelectedLine}
@@ -206,6 +230,7 @@ export function DeckWorkspace({
       onAddColor={addCustomBackground}
       selectedLine={selectedLine}
       onSelectLine={setSelectedLine}
+      formatting={formatting}
     />
   ) : null;
 

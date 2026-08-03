@@ -1,7 +1,9 @@
 export interface InlineStyle {
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
   strikethrough?: boolean;
+  highlight?: boolean;
 }
 
 export interface FormattedSegment extends InlineStyle {
@@ -24,12 +26,14 @@ const MARKERS: Marker[] = [
   { token: "___", style: { bold: true, italic: true }, wordBoundary: true },
   { token: "**", style: { bold: true }, wordBoundary: false },
   { token: "__", style: { bold: true }, wordBoundary: true },
+  { token: "++", style: { underline: true }, wordBoundary: false },
+  { token: "==", style: { highlight: true }, wordBoundary: false },
   { token: "~~", style: { strikethrough: true }, wordBoundary: false },
   { token: "*", style: { italic: true }, wordBoundary: false },
   { token: "_", style: { italic: true }, wordBoundary: true },
 ];
 
-const ESCAPABLE = new Set(["*", "_", "~", "\\", "[", "]", "#", ">"]);
+const ESCAPABLE = new Set(["*", "_", "~", "+", "=", "\\", "[", "]", "#", ">"]);
 const WORD_CHARACTER = /[\p{L}\p{N}]/u;
 
 const isWordCharacter = (char: string | undefined): boolean =>
@@ -131,7 +135,8 @@ function parseSegments(text: string, active: InlineStyle): FormattedSegment[] {
 /**
  * Splits a line of slide text into styled runs using the Markdown emphasis
  * people already type into lyric documents: `**bold**`, `__bold__`,
- * `*italic*`, `_italic_`, `***bold italic***` and `~~strikethrough~~`.
+ * `*italic*`, `_italic_`, `***bold italic***` and `~~strikethrough~~`, plus
+ * `++underline++` and `==highlight==` for the marks Markdown has no syntax for.
  * A marker that never closes stays on screen as literal text, and any marker
  * can be escaped with a backslash.
  */

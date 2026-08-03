@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { ArrowRight, MonitorSmartphone, Radio, ShieldAlert } from "lucide-react";
+import {
+  ArrowRight,
+  MonitorSmartphone,
+  Radio,
+  ShieldAlert,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";

@@ -20,7 +20,7 @@ interface MissingArtifactProps {
 }
 
 /** A stack of slide frames whose front slot is empty: the product-specific way
- *  to say an artifact (song, passage, media, theme) belongs here but is missing.
+ *  to say an artifact (manuscript, passage, media, theme) belongs here but is missing.
  *  The faint skeleton bars stand in for the content waiting to be built. */
 function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
   const { colors, shadows } = useUITheme();

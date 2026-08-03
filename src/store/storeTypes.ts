@@ -1,6 +1,6 @@
 import type { StateCreator } from "zustand";
 import type { UiSlice } from "./slices/uiSlice";
-import type { SongsSlice } from "./slices/songsSlice";
+import type { ManuscriptsSlice } from "./slices/manuscriptsSlice";
 import type { ScripturesSlice } from "./slices/scripturesSlice";
 import type { MediaSlice } from "./slices/mediaSlice";
 import type { AssetsSlice } from "./slices/assetsSlice";
@@ -13,7 +13,7 @@ import type { KeepOnResetSlice } from "./slices/keepOnResetSlice";
 import type { DataSlice } from "./slices/dataSlice";
 
 export type StoreState = UiSlice &
-  SongsSlice &
+  ManuscriptsSlice &
   ScripturesSlice &
   MediaSlice &
   AssetsSlice &

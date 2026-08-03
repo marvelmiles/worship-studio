@@ -104,13 +104,21 @@ const videoSettingsSchema = z
   })
   .passthrough();
 
-export const songSchema = z
+/**
+ * Backups written before the songs module became manuscripts carry
+ * `artist`/`category`/`lyrics`; both spellings are accepted and reconciled by
+ * the importer.
+ */
+export const manuscriptSchema = z
   .object({
     id: z.string().optional(),
     title: z.string(),
+    author: z.string().optional(),
+    collection: z.string().optional(),
+    body: z.string().optional(),
     artist: z.string().optional(),
     category: z.string().optional(),
-    lyrics: z.string().optional().default(""),
+    lyrics: z.string().optional(),
     slides: z.array(slideSchema).optional(),
     maxLines: z.number().optional(),
     defaultThemeId: z.string().optional().default("classic"),
@@ -225,7 +233,9 @@ export const mediaSchema = z
 export const dataFileSchema = z.object({
   version: z.number().optional(),
   exportedAt: z.string().optional(),
-  songs: z.array(songSchema).optional(),
+  manuscripts: z.array(manuscriptSchema).optional(),
+  /** Pre-rename backups shipped the same records under "songs". */
+  songs: z.array(manuscriptSchema).optional(),
   scriptures: z.array(scriptureSchema).optional(),
   media: z.array(mediaSchema).optional(),
   themes: z.array(themeSchema).optional(),
@@ -237,7 +247,7 @@ export const dataFileSchema = z.object({
 export type DataFile = z.infer<typeof dataFileSchema>;
 
 export type ImportedSlide = z.infer<typeof slideSchema>;
-export type ImportedSong = z.infer<typeof songSchema>;
+export type ImportedManuscript = z.infer<typeof manuscriptSchema>;
 export type ImportedScripture = z.infer<typeof scriptureSchema>;
 export type ImportedMedia = z.infer<typeof mediaSchema>;
 export type ImportedTheme = z.infer<typeof themeSchema>;

@@ -5,16 +5,28 @@ import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
 // Set SHOW_UPDATE to true to show the modal on load; bump UPDATE_KEY so
 // returning users see it again.
 export const SHOW_UPDATE = true;
-const UPDATE_KEY = "ws-update-2026-06-14-r4";
+const UPDATE_KEY = "ws-update-2026-08-03-r5";
 
 const CHANGES: { title: string; body: string }[] = [
   {
-    title: "Per-Song Keyboard Shortcut Mode",
-    body: 'Songs now have a Keyboard Shortcut Mode setting in Song Settings → Keyboard Shortcuts. Choose "Tag first slide only" (default) to assign Ctrl+number shortcuts to the first slide of each section, or "Every slide" to assign a unique number to each individual slide for granular navigation during presentation.',
+    title: "Songs Are Now Manuscripts",
+    body: "The Songs module is now Manuscripts, because it does more than lyrics: Sunday sermons, announcements and any presentation you want built from written text. Your existing library, settings and backups carry over automatically, and old /songs links still work. Two collections join the list: Sermons and General.",
+  },
+  {
+    title: "Word-Style Text Formatting",
+    body: "Highlight any word, phrase or line in the slide text or the manuscript editor and apply bold, italic, underline, strikethrough or highlight from the new formatting toolbar in the Inspector. Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+D and Ctrl+H work while you type, and Clear formatting strips the marks back off.",
+  },
+  {
+    title: "Declared Headings Name the Manuscript",
+    body: "Start pasted text with a line like HYMN: Ancient Words, SONG: … or SERMON: … and that line becomes the manuscript's title and files it in the matching collection, instead of being sung as the first verse.",
+  },
+  {
+    title: "Per-Manuscript Keyboard Shortcut Mode",
+    body: 'Manuscripts have a Keyboard Shortcut Mode setting in Manuscript Settings → Keyboard Shortcuts. Choose "Tag first slide only" (default) to assign Ctrl+number shortcuts to the first slide of each section, or "Every slide" to assign a unique number to each individual slide for granular navigation during presentation.',
   },
   {
     title: "Keyboard Shortcuts: Clearer Ctrl Key",
-    body: 'Keyboard shortcuts in the song slide list now display a bold, raised "Ctrl" key badge so you can instantly see which keys to press. The shortcut for jumping to the first Chorus slide (Ctrl+C) is highlighted.',
+    body: 'Keyboard shortcuts in the slide list now display a bold, raised "Ctrl" key badge so you can instantly see which keys to press. The shortcut for jumping to the first Chorus slide (Ctrl+C) is highlighted.',
   },
   {
     title: "Classic Theme: Larger Default Font",
@@ -26,11 +38,11 @@ const CHANGES: { title: string; body: string }[] = [
   },
   {
     title: "Regenerate Slides Selects the First Slide",
-    body: "After clicking Regenerate Slides from the lyrics editor, the first slide of the newly generated set is now automatically selected so you can immediately start reviewing or editing it.",
+    body: "After clicking Regenerate Slides from the manuscript text editor, the first slide of the newly generated set is now automatically selected so you can immediately start reviewing or editing it.",
   },
   {
     title: "New Slide Inserts After Current Slide",
-    body: "When you add a new slide in the editor, it now inserts immediately after the currently selected slide instead of appending to the end of the list. This makes it much faster to build out a song without having to drag the new slide into position.",
+    body: "When you add a new slide in the editor, it now inserts immediately after the currently selected slide instead of appending to the end of the list. This makes it much faster to build out a manuscript without having to drag the new slide into position.",
   },
   {
     title: "Slide Background Shown in Presentation Mode",

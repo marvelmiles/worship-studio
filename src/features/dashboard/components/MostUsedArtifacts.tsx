@@ -71,7 +71,7 @@ export function MostUsedArtifacts({ mostUsed }: MostUsedArtifactsProps) {
           compact
           icon={Layers}
           title="Nothing used yet"
-          message="This fills in as you build songs with themes, backgrounds and sounds."
+          message="This fills in as you build manuscripts with themes, backgrounds and sounds."
         />
       ) : (
         mostUsedList.map((item, rank) => (

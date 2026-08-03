@@ -3,14 +3,16 @@ import { ArrowLeft } from "lucide-react";
 import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
-import { EditorWorkspace } from "./EditorWorkspace";
+import { ManuscriptWorkspace } from "./ManuscriptWorkspace";
 
-export function Editor() {
-  const { songId } = useParams();
+export function ManuscriptEditor() {
+  const { manuscriptId } = useParams();
   const navigate = useNavigate();
-  const song = useStore((s) => s.songs.find((item) => item.id === songId));
+  const manuscript = useStore((s) =>
+    s.manuscripts.find((item) => item.id === manuscriptId),
+  );
 
-  if (!song) {
+  if (!manuscript) {
     return (
       <div
         style={{
@@ -22,19 +24,19 @@ export function Editor() {
       >
         <div style={{ textAlign: "center" }}>
           <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>
-            Song not found
+            Manuscript not found
           </h2>
           <p style={{ fontFamily: UI, color: colors.sub }}>
             It may have been deleted.
           </p>
-          <Button variant="primary" onClick={() => navigate("/songs")}>
+          <Button variant="primary" onClick={() => navigate("/manuscripts")}>
             <ArrowLeft size={15} />
-            Back to songs
+            Back to manuscripts
           </Button>
         </div>
       </div>
     );
   }
 
-  return <EditorWorkspace key={song.id} song={song} />;
+  return <ManuscriptWorkspace key={manuscript.id} manuscript={manuscript} />;
 }

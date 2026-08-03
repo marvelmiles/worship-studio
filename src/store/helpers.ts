@@ -3,9 +3,9 @@ import { THEMES } from "../data/themes";
 import type { Getter } from "./storeTypes";
 
 export const BLOCK_MSG =
-  "Storage is full. Editing, creating, uploading and auto-save are paused until you free up space. Delete some songs, media, audio or backgrounds.";
+  "Storage is full. Editing, creating, uploading and auto-save are paused until you free up space. Delete some manuscripts, media, audio or backgrounds.";
 export const WARN_MSG =
-  "Storage is getting full. Consider deleting unused songs, media, audio or backgrounds so things keep running smoothly.";
+  "Storage is getting full. Consider deleting unused manuscripts, media, audio or backgrounds so things keep running smoothly.";
 
 export const customBackgrounds = (items: Background[]) =>
   items.filter((b) => !b.builtIn);

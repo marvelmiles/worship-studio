@@ -1,6 +1,6 @@
 # WorshipStudio
 
-WorshipStudio is a church worship presentation studio that runs entirely in the browser. Paste song lyrics and WorshipStudio automatically transforms them into beautifully formatted slides, then projects them full-screen with customizable themes, backgrounds, presenter notes, and full keyboard control. All data is stored locally using IndexedDB, and the app continues to work offline once loaded. Try the live demo at https://worshipstudio.netlify.app/.
+WorshipStudio is a church worship presentation studio that runs entirely in the browser. Paste song lyrics, a hymn or a sermon outline and WorshipStudio automatically transforms them into beautifully formatted slides, then projects them full-screen with customizable themes, backgrounds, presenter notes, and full keyboard control. All data is stored locally using IndexedDB, and the app continues to work offline once loaded. Try the live demo at https://worshipstudio.netlify.app/.
 
 ## Quick start
 
@@ -26,8 +26,8 @@ Then open the URL Vite prints (default http://localhost:5173).
 ## Tech stack
 
 - **Vite + React 18 + TypeScript** — app foundation and tooling.
-- **React Router** — `/` dashboard, `/library`, `/editor/:songId`.
-- **Zustand** — single source of truth for songs, assets, themes, prefs, and
+- **React Router** — `/` dashboard, `/manuscripts`, `/manuscripts/:manuscriptId`.
+- **Zustand** — single source of truth for manuscripts, assets, themes, prefs, and
   storage synchronisation.
 - **@dnd-kit** — drag‑to‑reorder slides in the editor.
 - **Framer Motion** — configurable slide transitions in presentation mode.
@@ -37,7 +37,9 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 ## Features
 
-- **Lyrics → slides engine.** Recognises `[verse] [solo] [chorus] [bridge]
+- **Text → slides engine.** A declared opening line (`HYMN: Ancient Words`,
+  `SONG: …`, `SERMON: …`) names the manuscript and files it in the matching
+  collection instead of becoming a slide. Recognises `[verse] [solo] [chorus] [bridge]
 [intro] [outro] [tag] [refrain] [pre-chorus]` (and custom) tags — `[solo]` is
   treated as a verse. Repeated sections auto‑number (Verse 1, Verse 2). A tag
   can also carry an explicit number (e.g. `[Verse 3]`) — explicit numbers are
@@ -46,16 +48,23 @@ Then open the URL Vite prints (default http://localhost:5173).
   (other section types keep their own position). With no tags, blank‑line‑
   separated stanzas become numbered verses. Long sections split across slides
   at a configurable max‑lines.
-- **Song library.** Create / edit / search (title, artist, lyrics, collection),
-  organise by collection, soft‑delete to Trash with restore or permanent
-  delete.
+- **Manuscript library.** Lyrics, hymns, sermons and general presentation
+  decks in one place. Create / edit / search (title, author, text, collection),
+  organise by collection (Worship, Praise, Hymns, Special Songs, Choir
+  Ministration, Sermons, General), soft‑delete to Trash with restore or
+  permanent delete.
 - **Slide editor.** Per‑slide font family / size / weight / alignment / colour /
-  line‑height / letter‑spacing / uppercase / shadow; per‑slide and per‑song
-  backgrounds; duplicate, split, merge, insert, reorder (drag), and a
-  right‑click context menu.
+  line‑height / letter‑spacing / uppercase / shadow; per‑slide and
+  per‑manuscript backgrounds; duplicate, split, merge, insert, reorder (drag),
+  and a right‑click context menu.
+- **Word‑style text formatting.** Highlight any word, phrase or line and apply
+  bold, italic, underline, strikethrough or highlight from the Inspector
+  toolbar (Ctrl+B / I / U / D / H), or clear the formatting back off. Marks are
+  stored as plain text (`**bold**`, `*italic*`, `++underline++`,
+  `~~strikethrough~~`, `==highlight==`) so they survive copy and paste.
 - **Backgrounds & audio.** A built‑in gradient/solid background gallery plus
   custom image and MP3 uploads, managed in the Asset Library.
-- **Themes.** Five built‑in themes that set the default look per song.
+- **Themes.** Five built‑in themes that set the default look per manuscript.
 - **Presentation mode.** Full‑screen projection, configurable transitions, a
   presenter bar (current slide notes, next‑slide preview, elapsed timer, slide
   counter), black/white screen, pause, and optional looping background audio.
@@ -66,29 +75,29 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 **Navigation**
 
-| Key                        | Action         |
-| -------------------------- | -------------- |
-| → / Space / Page Dn / `L`  | Next slide     |
-| ← / Page Up / `H`          | Previous slide |
-| Home                       | First slide    |
-| End                        | Last slide     |
+| Key                       | Action         |
+| ------------------------- | -------------- |
+| → / Space / Page Dn / `L` | Next slide     |
+| ← / Page Up / `H`         | Previous slide |
+| Home                      | First slide    |
+| End                       | Last slide     |
 
 **Tag navigation** _(numbers are verse‑only; every other section type has a fixed letter shortcut)_
 
 Hold `Ctrl`, type one or more digits, then release `Ctrl` to jump to that verse. Numbers reflect only the order verses appear in the slide list — `[solo]` sections count as verses too. Other section types (Chorus, Bridge, Intro, Outro, Tag, Refrain, Pre‑Chorus) are never numbered; jump to each with its own fixed `Ctrl` + letter shortcut instead.
 
-| Keys                                   | Action                                |
-| --------------------------------------- | -------------------------------------- |
-| `Ctrl` hold + `1`, `2`…  then release   | Jump to **Verse** N                    |
-| `Ctrl` + `C`                            | Jump to first **Chorus** slide         |
-| `Ctrl` + `B`                            | Jump to first **Bridge** slide         |
-| `Ctrl` + `I`                            | Jump to first **Intro** slide          |
-| `Ctrl` + `O`                            | Jump to first **Outro** slide          |
-| `Ctrl` + `P`                            | Jump to first **Pre‑Chorus** slide     |
-| `Ctrl` + `R`                            | Jump to first **Refrain** slide        |
-| `Ctrl` + `T`                            | Jump to first **Tag** slide            |
+| Keys                                 | Action                             |
+| ------------------------------------ | ---------------------------------- |
+| `Ctrl` hold + `1`, `2`… then release | Jump to **Verse** N                |
+| `Ctrl` + `C`                         | Jump to first **Chorus** slide     |
+| `Ctrl` + `B`                         | Jump to first **Bridge** slide     |
+| `Ctrl` + `I`                         | Jump to first **Intro** slide      |
+| `Ctrl` + `O`                         | Jump to first **Outro** slide      |
+| `Ctrl` + `P`                         | Jump to first **Pre‑Chorus** slide |
+| `Ctrl` + `R`                         | Jump to first **Refrain** slide    |
+| `Ctrl` + `T`                         | Jump to first **Tag** slide        |
 
-Example: if your song has Verse 1 → Chorus → Verse 2 → Bridge, `Ctrl+1` jumps to Verse 1, `Ctrl+2` to Verse 2, `Ctrl+C` to the Chorus, and `Ctrl+B` to the Bridge. For a two-digit verse like 12, hold `Ctrl`, type `1` then `2`, then release `Ctrl`.
+Example: if your manuscript has Verse 1 → Chorus → Verse 2 → Bridge, `Ctrl+1` jumps to Verse 1, `Ctrl+2` to Verse 2, `Ctrl+C` to the Chorus, and `Ctrl+B` to the Bridge. For a two-digit verse like 12, hold `Ctrl`, type `1` then `2`, then release `Ctrl`.
 
 In the editor slide list, each verse's first slide shows a small `^N` badge; every other recognised section shows its fixed letter badge (e.g. `^C` for Chorus, `^B` for Bridge) in gold, so you can see which shortcut to use before you start presenting.
 
@@ -96,10 +105,10 @@ In the editor slide list, each verse's first slide shows a small `^N` badge; eve
 
 **Playback**
 
-| Key | Action              |
-| --- | ------------------- |
-| `P` | Pause / resume      |
-| Esc | Exit presentation   |
+| Key | Action            |
+| --- | ----------------- |
+| `P` | Pause / resume    |
+| Esc | Exit presentation |
 
 **View**
 
@@ -118,14 +127,14 @@ In the editor slide list, each verse's first slide shows a small `^N` badge; eve
 src/
   theme/        design tokens (colours, fonts, glass surface)
   lib/          parser, style/bg resolution, IndexedDB storage, zod schema, helpers
-  data/         built-in backgrounds, themes, seed songs
+  data/         built-in backgrounds, themes, collections, seed manuscripts
   store/        Zustand store (state + actions + persistence)
   components/   SlideCanvas + reusable UI primitives (Button, Field, Modal, ContextMenu)
   hooks/        useDocumentTitle
   features/
     dashboard/  Dashboard
-    library/    Library
-    editor/     Editor + SortableSlideList (dnd-kit)
+    manuscripts/ Manuscript library, editor, text + settings modals
+    editor/     Shared deck workspace + SortableSlideList (dnd-kit)
     presentation/ Presentation overlay (Framer Motion)
     assets/     Asset Library modal
   App.tsx       layout shell, routes, global overlays

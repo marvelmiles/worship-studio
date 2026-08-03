@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { StoreState } from "./storeTypes";
 import { createUiSlice } from "./slices/uiSlice";
-import { createSongsSlice } from "./slices/songsSlice";
+import { createManuscriptsSlice } from "./slices/manuscriptsSlice";
 import { createScripturesSlice } from "./slices/scripturesSlice";
 import { createMediaSlice } from "./slices/mediaSlice";
 import { createAssetsSlice } from "./slices/assetsSlice";
@@ -25,7 +25,7 @@ export { QUICK_PASSAGE_ID, SCRIPTURE_THEME_ID } from "./slices/scripturesSlice";
 
 export const useStore = create<StoreState>()((...args) => ({
   ...createUiSlice(...args),
-  ...createSongsSlice(...args),
+  ...createManuscriptsSlice(...args),
   ...createScripturesSlice(...args),
   ...createMediaSlice(...args),
   ...createAssetsSlice(...args),

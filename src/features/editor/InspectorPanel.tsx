@@ -12,6 +12,8 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
+import { FormatToolbar } from "../../components/controls/FormatToolbar";
+import type { TextFormattingController } from "../../hooks/useTextFormatting";
 import type { DeckEditor } from "./useDeckEditor";
 
 interface InspectorPanelProps {
@@ -23,6 +25,7 @@ interface InspectorPanelProps {
   onAddColor: (value: string, name?: string) => string;
   selectedLine: number | null;
   onSelectLine: (index: number | null) => void;
+  formatting: TextFormattingController;
 }
 
 export function InspectorPanel({
@@ -34,6 +37,7 @@ export function InspectorPanel({
   onAddColor,
   selectedLine,
   onSelectLine,
+  formatting,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
   const lineMode =
@@ -126,6 +130,22 @@ export function InspectorPanel({
         style={style}
         onChange={(key, value) => setTextOverride(key, value)}
       />
+
+      <SectionTitle>Formatting</SectionTitle>
+      <FormatToolbar controller={formatting} block />
+      <p
+        style={{
+          fontFamily: UI,
+          fontSize: 11.5,
+          color: colors.dim,
+          margin: "8px 0 0",
+          lineHeight: 1.55,
+        }}
+      >
+        Highlight a word, phrase or whole line in the slide text and apply bold,
+        italic, underline, strikethrough or highlight. Ctrl+B, Ctrl+I and Ctrl+U
+        work while typing.
+      </p>
 
       <SectionTitle>Background</SectionTitle>
       <BackgroundPicker

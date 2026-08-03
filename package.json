@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Church worship presentation studio: songs, offline Bible (public-domain KJV/ASV), images and videos with theming and live projection.",
+  "description": "Church worship presentation studio: manuscripts (lyrics, hymns, sermons), offline Bible (public-domain KJV/ASV), images and videos with theming and live projection.",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

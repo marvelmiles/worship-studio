@@ -142,7 +142,7 @@ export function StorageGate() {
           }}
         >
           "Free up storage" clears WorshipStudio's stored data on this device
-          (songs, custom themes, backgrounds and audio) and restores the
+          (manuscripts, custom themes, backgrounds and audio) and restores the
           defaults.
         </p>
       </div>

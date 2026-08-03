@@ -5,6 +5,8 @@
 // identically regardless of the active backend.
 
 export type StoreName =
+  | "manuscripts"
+  /** Pre-rename manuscripts, read once on load then retired. */
   | "songs"
   | "scriptures"
   | "media"
@@ -20,9 +22,13 @@ interface HasId {
   id: string;
 }
 
+/** The store manuscripts lived in before the module was renamed. */
+export const LEGACY_MANUSCRIPT_STORE: StoreName = "songs";
+
 const DB_NAME = "worshipflow";
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const STORES: StoreName[] = [
+  "manuscripts",
   "songs",
   "scriptures",
   "media",
@@ -48,6 +54,7 @@ export const storageState: { backend: Backend | null; memFallback: boolean } = {
 // Working copy held in memory for every backend; it is the source of truth for
 // the session/memory backends and a write-through cache for IndexedDB.
 const mem: Record<StoreName, Map<string, unknown>> = {
+  manuscripts: new Map(),
   songs: new Map(),
   scriptures: new Map(),
   media: new Map(),

@@ -12,8 +12,8 @@ const blankSlide = (): Slide => ({
 });
 
 /**
- * Slide-deck editing operations shared by every deck-based editor (songs,
- * scripture passages…). `save` persists the patched document.
+ * Slide-deck editing operations shared by every deck-based editor
+ * (manuscripts, scripture passages…). `save` persists the patched document.
  */
 export function useDeckEditor<T extends SlideDeckDoc>(
   doc: T,

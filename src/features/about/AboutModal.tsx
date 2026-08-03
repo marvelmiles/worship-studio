@@ -10,7 +10,7 @@ const CONTACT_EMAIL = "marvellousabidemi2@gmail.com";
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I present to a projector or TV over HDMI?",
-    a: "Connect your computer to the screen with HDMI and set the display to extend (not mirror) your desktop. Open a song, Bible passage, image or video, click Present, then click the Go Live button (the monitor icon) in the on-screen controls. The first time, your browser asks permission to manage windows; allow it. WorshipStudio then projects fullscreen on the external display while you keep the controls and presenter notes on your own screen. If your browser doesn't support multi-screen placement, Go Live simply goes fullscreen on the current screen, which you can drag onto the projector. When projection is active the Go Live button stays highlighted.",
+    a: "Connect your computer to the screen with HDMI and set the display to extend (not mirror) your desktop. Open a manuscript, Bible passage, image or video, click Present, then click the Go Live button (the monitor icon) in the on-screen controls. The first time, your browser asks permission to manage windows; allow it. WorshipStudio then projects fullscreen on the external display while you keep the controls and presenter notes on your own screen. If your browser doesn't support multi-screen placement, Go Live simply goes fullscreen on the current screen, which you can drag onto the projector. When projection is active the Go Live button stays highlighted.",
   },
   {
     q: "How do I present a Bible verse?",
@@ -30,11 +30,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Are my edits saved automatically?",
-    a: "Yes, every change saves itself the moment you make it. Editing lyrics, restyling a slide, reordering, inserting, splitting or deleting slides, and adjusting song or theme settings are all written to your device automatically; there's no Save button to remember. For an external backup or to move your work to another device, use Export Data in Settings.",
+    a: "Yes, every change saves itself the moment you make it. Editing a manuscript's text, restyling a slide, reordering, inserting, splitting or deleting slides, and adjusting manuscript or theme settings are all written to your device automatically; there's no Save button to remember. For an external backup or to move your work to another device, use Export Data in Settings.",
   },
   {
     q: "How do I turn lyrics into slides?",
-    a: "Paste your lyrics into a song and WorshipStudio builds the slides automatically. You can tag sections with [verse] (or [solo], which is treated the same as a verse), [chorus], [bridge], [intro], [outro], [tag], [refrain] or [pre-chorus] for clean labels and auto-numbering, or just separate sections with blank lines. You can also give a tag its own number, like [Verse 3]; it'll keep that number and the verses will be sorted into order automatically even if you typed them out of sequence. Long sections are split for you, and you can set the maximum lines per slide.",
+    a: "Paste lyrics, a hymn or a sermon outline into a manuscript and WorshipStudio builds the slides automatically. Start the text with a line like HYMN: Ancient Words or SERMON: The Good Shepherd and that line names the manuscript and files it in the matching collection instead of becoming a slide. You can tag sections with [verse] (or [solo], which is treated the same as a verse), [chorus], [bridge], [intro], [outro], [tag], [refrain] or [pre-chorus] for clean labels and auto-numbering, or just separate sections with blank lines. You can also give a tag its own number, like [Verse 3]; it'll keep that number and the verses will be sorted into order automatically even if you typed them out of sequence. Long sections are split for you, and you can set the maximum lines per slide. Highlight any word or sentence in the editor and use the formatting toolbar for bold, italic, underline, strikethrough and highlight.",
   },
   {
     q: "Can I split, merge, duplicate, or reorder slides?",
@@ -46,7 +46,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What is a theme? Can I edit or delete it?",
-    a: "A theme is a reusable look you can apply to any song. It bundles the font, text color, size and alignment, the background, the slide animation, and even playback defaults like background audio. Apply a theme from a song's settings and every slide in that song instantly takes on its styling, so you don't have to format slides one at a time, and individual slides can still override anything afterwards. WorshipStudio ships with several built-in themes: you can edit those (change their fonts, colors, background, animation, and so on) but you can't delete them, so there's always a solid starting point. Any theme you create yourself is fully yours; edit or delete it anytime from the Themes panel (the palette icon in the header).",
+    a: "A theme is a reusable look you can apply to any manuscript. It bundles the font, text color, size and alignment, the background, the slide animation, and even playback defaults like background audio. Apply a theme from a manuscript's settings and every slide in it instantly takes on that styling, so you don't have to format slides one at a time, and individual slides can still override anything afterwards. WorshipStudio ships with several built-in themes: you can edit those (change their fonts, colors, background, animation, and so on) but you can't delete them, so there's always a solid starting point. Any theme you create yourself is fully yours; edit or delete it anytime from the Themes panel (the palette icon in the header).",
   },
   {
     q: "Can I use my own colors, gradients, or images?",
@@ -54,11 +54,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can I play background music during worship?",
-    a: "Yes. Attach audio to a whole song, to a theme, or to a single slide, and it plays and loops softly while you present. Four gentle worship pads are built in, and you can upload your own. Background volume lives in Settings.",
+    a: "Yes. Attach audio to a whole manuscript, to a theme, or to a single slide, and it plays and loops softly while you present. Four gentle worship pads are built in, and you can upload your own. Background volume lives in Settings.",
   },
   {
     q: "How does auto-play work?",
-    a: "Turn on Auto-play for a song (or set it on a theme) and choose how many seconds each slide should hold; slides then progress on their own with your chosen animation. With auto-play off, you move through slides manually and each one animates in as you go.",
+    a: "Turn on Auto-play for a manuscript (or set it on a theme) and choose how many seconds each slide should hold; slides then progress on their own with your chosen animation. With auto-play off, you move through slides manually and each one animates in as you go.",
   },
   {
     q: "How do I control the presentation?",
@@ -66,11 +66,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Can I install WorshipStudio and use it offline?",
-    a: "Yes. WorshipStudio is a Progressive Web App, so you can install it like a normal app, on desktop, click the Install icon in your browser's address bar; on phones or tablets, use \"Add to Home Screen.\" Once installed it opens in its own window without browser chrome and runs fully offline, since the app and your library are stored on the device. To back everything up or move to another device, use Export Data in Settings and Import Data on the other end (with options to replace or merge).",
+    a: 'Yes. WorshipStudio is a Progressive Web App, so you can install it like a normal app, on desktop, click the Install icon in your browser\'s address bar; on phones or tablets, use "Add to Home Screen." Once installed it opens in its own window without browser chrome and runs fully offline, since the app and your library are stored on the device. To back everything up or move to another device, use Export Data in Settings and Import Data on the other end (with options to replace or merge).',
   },
   {
     q: "Can I theme everything at once?",
-    a: "Yes. A theme sets the fonts, colors, background, animation, and even playback defaults. Apply a theme to a song and every slide follows it, while individual slides can still override anything in the inspector.",
+    a: "Yes. A theme sets the fonts, colors, background, animation, and even playback defaults. Apply a theme to a manuscript and every slide follows it, while individual slides can still override anything in the inspector.",
   },
 ];
 

@@ -17,7 +17,11 @@ import type {
 } from "../../types";
 import { useStore } from "../../store/useStore";
 import { getStorageLabel } from "../../lib/storageStats";
-import { MAX_KEPT_ITEMS, keptSongs, keptThemes } from "../../lib/keepOnReset";
+import {
+  MAX_KEPT_ITEMS,
+  keptManuscripts,
+  keptThemes,
+} from "../../lib/keepOnReset";
 import { fade, mix, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import {
@@ -81,7 +85,7 @@ export function SettingsModal() {
   const prefs = useStore((s) => s.prefs);
   const savePrefs = useStore((s) => s.savePrefs);
   const themes = useStore((s) => s.themes);
-  const songs = useStore((s) => s.songs);
+  const manuscripts = useStore((s) => s.manuscripts);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const pushToast = useStore((s) => s.pushToast);
@@ -105,13 +109,13 @@ export function SettingsModal() {
   const update = (changes: Partial<Prefs>) =>
     savePrefs({ ...prefs, ...changes });
 
-  /** Titles of the songs and themes registered to survive a reset. */
+  /** Titles of the manuscripts and themes registered to survive a reset. */
   const keptItems = useMemo(
     () => [
-      ...keptSongs(songs).map((s) => s.title),
+      ...keptManuscripts(manuscripts).map((m) => m.title),
       ...keptThemes(themes).map((t) => t.name),
     ],
-    [songs, themes],
+    [manuscripts, themes],
   );
 
   const runExport = async () => {
@@ -198,14 +202,16 @@ export function SettingsModal() {
             lineHeight: 1.6,
           }}
         >
-          Applied to newly created songs and to Bible passages presented or
-          saved from the reader.
+          Applied to newly created manuscripts and to Bible passages presented
+          or saved from the reader.
         </p>
-        <Field label="Songs">
+        <Field label="Manuscripts">
           <Select
-            value={prefs.defaultSongThemeId}
+            value={prefs.defaultManuscriptThemeId}
             options={themes.map((t) => ({ value: t.id, label: t.name }))}
-            onChange={(e) => update({ defaultSongThemeId: e.target.value })}
+            onChange={(e) =>
+              update({ defaultManuscriptThemeId: e.target.value })
+            }
           />
         </Field>
         <Field label="Bible">
@@ -337,10 +343,10 @@ export function SettingsModal() {
             lineHeight: 1.6,
           }}
         >
-          Export everything (songs, scripture passages, images, videos, themes,
-          custom backgrounds, audio and settings) to a single backup file
-          (.zip), then bring it back here on any device. Older JSON backups can
-          still be imported.
+          Export everything (manuscripts, scripture passages, images, videos,
+          themes, custom backgrounds, audio and settings) to a single backup
+          file (.zip), then bring it back here on any device. Older JSON backups
+          can still be imported.
         </p>
         {busy && (
           <div style={{ marginBottom: 14 }}>
@@ -481,7 +487,7 @@ export function SettingsModal() {
           time you opened it.{" "}
           {keptItems.length > 0
             ? `${keptItems.length} of ${MAX_KEPT_ITEMS} "keep on reset" slots are in use, and those items will survive.`
-            : `Songs and custom themes you mark "Keep on reset" (up to ${MAX_KEPT_ITEMS}) survive this.`}
+            : `Manuscripts and custom themes you mark "Keep on reset" (up to ${MAX_KEPT_ITEMS}) survive this.`}
         </p>
         <Button
           variant="danger"
@@ -544,7 +550,8 @@ export function SettingsModal() {
             >
               This permanently deletes{" "}
               <strong>
-                all your songs, custom themes, backgrounds, audio, and settings
+                all your manuscripts, custom themes, backgrounds, audio, and
+                settings
               </strong>
               , and restores the built-in defaults. You'll be treated as a
               first-time user again. This can't be undone, so export a backup

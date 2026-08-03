@@ -35,7 +35,7 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
           compact
           icon={Clock}
           title="No activity yet"
-          message="Create a song, read the Bible or upload media and it will show up here."
+          message="Create a manuscript, read the Bible or upload media and it will show up here."
         />
       )}
       <div style={{ maxHeight: 520, overflowY: "auto" }}>

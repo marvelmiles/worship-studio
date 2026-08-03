@@ -11,9 +11,9 @@ import {
 import { Button, IconButton } from "./Button";
 
 /**
- * Registers a song or custom theme as "keep on reset". Renders nothing for
- * items that can't hold a slot (built-ins and trashed songs come back, or
- * don't come back, regardless).
+ * Registers a manuscript or custom theme as "keep on reset". Renders nothing
+ * for items that can't hold a slot (built-ins and trashed manuscripts come
+ * back, or don't come back, regardless).
  */
 export function KeepOnResetToggle({
   kind,
@@ -30,14 +30,14 @@ export function KeepOnResetToggle({
   /** "icon" for dense card rows, "button" for a labelled control in a panel. */
   variant?: "icon" | "button";
 }) {
-  const songs = useStore((s) => s.songs);
+  const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
   const toggleKeepOnReset = useStore((s) => s.toggleKeepOnReset);
 
   if (!canKeep(item)) return null;
 
   const kept = Boolean(item.keepOnReset);
-  const used = keptCount(songs, themes);
+  const used = keptCount(manuscripts, themes);
   const full = !kept && used >= MAX_KEPT_ITEMS;
   const title = kept
     ? "Kept: survives a reset. Click to stop keeping it."

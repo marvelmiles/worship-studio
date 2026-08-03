@@ -37,8 +37,8 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
   startPresent: (kind, id, startIndex = 0, mode = "stage") => {
     const state = get();
     const canPresent =
-      kind === "song"
-        ? Boolean(state.songs.find((s) => s.id === id)?.slides?.length)
+      kind === "manuscript"
+        ? Boolean(state.manuscripts.find((m) => m.id === id)?.slides?.length)
         : kind === "scripture"
           ? Boolean(state.scriptures.find((s) => s.id === id)?.slides?.length)
           : state.media.some((m) => m.id === id && m.kind === kind);

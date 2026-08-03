@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
+  FileText,
   Film,
   Image as ImageIcon,
-  Music,
   Palette,
   Plus,
   Upload,
@@ -26,18 +26,18 @@ export function QuickActions() {
   const { colors, glass, fills, fonts } = theme;
   const UI = fonts.ui;
   const navigate = useNavigate();
-  const createSong = useStore((s) => s.createSong);
+  const createManuscript = useStore((s) => s.createManuscript);
   const openOverlay = useStore((s) => s.openOverlay);
 
   const onNew = () => {
-    const created = createSong();
-    if (created) navigate(`/songs/${created.id}`);
+    const created = createManuscript();
+    if (created) navigate(`/manuscripts/${created.id}`);
   };
 
   const actions: QuickAction[] = [
     {
-      label: "New Song",
-      sub: "Create a new song",
+      label: "New Manuscript",
+      sub: "Create a new manuscript",
       icon: Plus,
       onClick: onNew,
       primary: true,
@@ -49,10 +49,10 @@ export function QuickActions() {
       onClick: () => navigate("/bible"),
     },
     {
-      label: "Song Library",
-      sub: "View all songs",
-      icon: Music,
-      onClick: () => navigate("/songs"),
+      label: "Manuscripts",
+      sub: "Open the library",
+      icon: FileText,
+      onClick: () => navigate("/manuscripts"),
     },
     {
       label: "Images",

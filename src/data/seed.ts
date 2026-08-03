@@ -1,46 +1,45 @@
-import type { Song } from "../types";
+import type { Manuscript } from "../types";
+import type { Collection } from "./collections";
 import { now, uid } from "../lib/id";
-import { parseLyrics } from "../lib/parser";
+import { parseManuscriptSlides } from "../lib/parser";
 
 interface SeedInput {
   title: string;
-  artist: string;
-  category: string;
+  author: string;
+  collection: Collection;
   themeId: string;
   backgroundId: string;
-  lyrics: string;
+  body: string;
 }
 
-function buildSong(input: SeedInput): Song {
-  const song: Song = {
+function buildManuscript(input: SeedInput): Manuscript {
+  return {
     id: uid(),
     title: input.title,
-    artist: input.artist,
-    category: input.category,
+    author: input.author,
+    collection: input.collection,
     defaultThemeId: input.themeId,
     defaultBackgroundId: input.backgroundId,
     defaultAudioId: null,
-    lyrics: input.lyrics,
+    body: input.body,
     maxLines: 6,
     createdAt: now(),
     updatedAt: now(),
     deleted: false,
     builtIn: true,
     style: {},
-    slides: [],
+    slides: parseManuscriptSlides(input.body, 6),
   };
-  song.slides = parseLyrics(input.lyrics, 6);
-  return song;
 }
 
 const SEED_INPUTS: SeedInput[] = [
   {
     title: "Amazing Grace",
-    artist: "John Newton",
-    category: "Hymns",
+    author: "John Newton",
+    collection: "Hymns",
     themeId: "hymnbook",
     backgroundId: "bg-parchment",
-    lyrics: `[verse]
+    body: `[verse]
 Amazing grace how sweet the sound
 That saved a wretch like me
 I once was lost but now am found
@@ -60,11 +59,11 @@ And grace will lead me home`,
   },
   {
     title: "Blessed Assurance",
-    artist: "Fanny Crosby",
-    category: "Worship",
+    author: "Fanny Crosby",
+    collection: "Worship",
     themeId: "classic",
     backgroundId: "bg-dawn",
-    lyrics: `[verse]
+    body: `[verse]
 Blessed assurance, Jesus is mine
 Oh what a foretaste of glory divine
 Heir of salvation, purchase of God
@@ -76,11 +75,11 @@ Praising my Savior all the day long`,
   },
   {
     title: "Holy, Holy, Holy",
-    artist: "Reginald Heber",
-    category: "Worship",
+    author: "Reginald Heber",
+    collection: "Worship",
     themeId: "dark",
     backgroundId: "bg-rays",
-    lyrics: `[verse]
+    body: `[verse]
 Holy, holy, holy! Lord God Almighty!
 Early in the morning our song shall rise to Thee
 Holy, holy, holy! merciful and mighty!
@@ -88,11 +87,11 @@ God in three Persons, blessed Trinity!`,
   },
   {
     title: "It Is Well With My Soul",
-    artist: "Horatio Spafford",
-    category: "Hymns",
+    author: "Horatio Spafford",
+    collection: "Hymns",
     themeId: "hymnbook",
     backgroundId: "bg-vintage",
-    lyrics: `[verse]
+    body: `[verse]
 When peace like a river attendeth my way
 When sorrows like sea billows roll
 Whatever my lot, Thou hast taught me to say
@@ -104,11 +103,11 @@ It is well, it is well with my soul`,
   },
   {
     title: "Great Is Thy Faithfulness",
-    artist: "Thomas Chisholm",
-    category: "Worship",
+    author: "Thomas Chisholm",
+    collection: "Worship",
     themeId: "classic",
     backgroundId: "bg-heaven",
-    lyrics: `[verse]
+    body: `[verse]
 Great is Thy faithfulness, O God my Father
 There is no shadow of turning with Thee
 Thou changest not, Thy compassions they fail not
@@ -122,11 +121,11 @@ Great is Thy faithfulness, Lord, unto me`,
   },
   {
     title: "Come Thou Fount",
-    artist: "Robert Robinson",
-    category: "Hymns",
+    author: "Robert Robinson",
+    collection: "Hymns",
     themeId: "hymnbook",
     backgroundId: "bg-parchment",
-    lyrics: `[verse]
+    body: `[verse]
 Come Thou Fount of every blessing
 Tune my heart to sing Thy grace
 Streams of mercy never ceasing
@@ -140,11 +139,11 @@ Mount of Thy redeeming love`,
   },
   {
     title: "Crown Him With Many Crowns",
-    artist: "Matthew Bridges",
-    category: "Praise",
+    author: "Matthew Bridges",
+    collection: "Praise",
     themeId: "celebration",
     backgroundId: "bg-celebration",
-    lyrics: `[verse]
+    body: `[verse]
 Crown Him with many crowns
 The Lamb upon His throne
 Hark how the heavenly anthem drowns
@@ -158,11 +157,11 @@ Through all eternity`,
   },
   {
     title: "Doxology",
-    artist: "Thomas Ken",
-    category: "Worship",
+    author: "Thomas Ken",
+    collection: "Worship",
     themeId: "dark",
     backgroundId: "bg-deep",
-    lyrics: `[verse]
+    body: `[verse]
 Praise God from whom all blessings flow
 Praise Him all creatures here below
 Praise Him above ye heavenly host
@@ -170,6 +169,6 @@ Praise Father, Son, and Holy Ghost`,
   },
 ];
 
-export function seedSongs(): Song[] {
-  return SEED_INPUTS.map(buildSong);
+export function seedManuscripts(): Manuscript[] {
+  return SEED_INPUTS.map(buildManuscript);
 }

@@ -30,12 +30,4 @@ export const FONTS = [
   "Georgia",
 ];
 
-export const CATEGORIES = [
-  "Worship",
-  "Praise",
-  "Hymns",
-  "Special Songs",
-  "Choir Ministration",
-];
-
 export const BREAKPOINTS = { mobile: 640, tablet: 1024 } as const;

@@ -17,7 +17,7 @@ export type PresentationView = "normal" | "cover" | "fill";
 export type BgType = "gradient" | "solid" | "image";
 
 /** Every kind of content that can be projected live. */
-export type ContentKind = "song" | "scripture" | "image" | "video";
+export type ContentKind = "manuscript" | "scripture" | "image" | "video";
 
 /** Text appearance shared by themes, deck documents and slides. */
 export interface TextStyle {
@@ -54,7 +54,7 @@ export type ShortcutMode = "all-slides" | "first-slide-per-tag";
 
 /**
  * Common shape of every document that presents a deck of text slides
- * (songs, scripture passages, and any future slide-based module).
+ * (manuscripts, scripture passages, and any future slide-based module).
  */
 export interface SlideDeckDoc {
   id: string;
@@ -77,13 +77,28 @@ export interface SlideDeckDoc {
 }
 
 /** Deck-level appearance overrides (no slide-only keys). */
-export type SongStyle = TextStyle;
+export type ManuscriptStyle = TextStyle;
 
-export interface Song extends SlideDeckDoc {
+/**
+ * Any written document the studio turns into slides: song and hymn lyrics,
+ * Sunday sermons, announcements, and general presentations. `body` holds the
+ * raw text the parser reads; `collection` groups manuscripts in the library.
+ */
+export interface Manuscript extends SlideDeckDoc {
+  author?: string;
+  collection?: string;
+  body: string;
+  maxLines?: number;
+}
+
+/**
+ * Pre-rename manuscript records (module was "songs"). Read on load and by the
+ * backup importer so existing libraries survive the rename.
+ */
+export interface LegacyManuscriptFields {
   artist?: string;
   category?: string;
-  lyrics: string;
-  maxLines?: number;
+  lyrics?: string;
 }
 
 export type BibleVersionId = "KJV" | "ASV";
@@ -231,7 +246,7 @@ export interface Prefs {
   autoHideControls: boolean;
   autoHidePresenterBar: boolean;
   bibleVersion: BibleVersionId;
-  defaultSongThemeId: string;
+  defaultManuscriptThemeId: string;
   defaultScriptureThemeId: string;
   onboarded: boolean;
 }

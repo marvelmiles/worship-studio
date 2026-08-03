@@ -2,19 +2,21 @@ import type {
   AudioItem,
   Background,
   ImportMode,
+  LegacyManuscriptFields,
+  Manuscript,
   MediaItem,
   Prefs,
   ScripturePassage,
   Slide,
-  Song,
   Theme,
 } from "../../types";
 import { BACKGROUNDS } from "../../data/backgrounds";
 import { DEFAULT_BIBLE_VERSION, isBibleVersion } from "../../data/bibleBooks";
 import { THEMES } from "../../data/themes";
 import { DEFAULT_AUDIO } from "../../data/sounds";
-import { seedSongs } from "../../data/seed";
-import { parseLyrics } from "../../lib/parser";
+import { seedManuscripts } from "../../data/seed";
+import { DEFAULT_COLLECTION } from "../../data/collections";
+import { parseManuscriptSlides } from "../../lib/parser";
 import { now, uid } from "../../lib/id";
 import { readFile } from "../../lib/files";
 import {
@@ -24,13 +26,19 @@ import {
 import { dataFileSchema } from "../../lib/schema";
 import type {
   ImportedBackground,
+  ImportedManuscript,
   ImportedMedia,
   ImportedScripture,
   ImportedSlide,
-  ImportedSong,
 } from "../../lib/schema";
-import { readAllRecords, clearStore, saveRecord } from "../../lib/storage";
+import {
+  readAllRecords,
+  clearStore,
+  saveRecord,
+  LEGACY_MANUSCRIPT_STORE,
+} from "../../lib/storage";
 import type { StoreName } from "../../lib/storage";
+import { normalizeStoredManuscript } from "./manuscriptsSlice";
 import { putFileBlob, thumbId } from "../../lib/fileStore";
 import { probeImageFile } from "../../lib/media";
 import { migrateLegacyBinaries } from "../../lib/migrateBinaries";
@@ -50,7 +58,7 @@ import {
   mergeById,
   sortBuiltInFirst,
 } from "../helpers";
-import { DEFAULT_PREFS } from "./prefsSlice";
+import { DEFAULT_PREFS, normalizeStoredPrefs } from "./prefsSlice";
 import type { SliceCreator } from "../storeTypes";
 
 export interface DataSlice {
@@ -86,18 +94,23 @@ function normalizeImportedSlide(slide: ImportedSlide): Slide {
   };
 }
 
-function normalizeImportedSong(entry: ImportedSong): Song {
+function normalizeImportedManuscript(entry: ImportedManuscript): Manuscript {
   const timestamp = now();
+  const { artist, category, lyrics, ...rest } = entry;
+  const body = entry.body ?? lyrics ?? "";
   return {
-    ...entry,
+    ...rest,
     id: entry.id || uid(),
+    body,
+    author: entry.author ?? artist,
+    collection: entry.collection ?? category ?? DEFAULT_COLLECTION,
     createdAt: entry.createdAt ?? timestamp,
     updatedAt: entry.updatedAt ?? timestamp,
     deleted: false,
     slides:
       entry.slides && entry.slides.length
         ? entry.slides.map(normalizeImportedSlide)
-        : parseLyrics(entry.lyrics ?? "", entry.maxLines ?? 6),
+        : parseManuscriptSlides(body, entry.maxLines ?? 6),
   };
 }
 
@@ -183,7 +196,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
   load: async () => {
     const [
-      songs,
+      storedManuscripts,
       scriptures,
       rawMedia,
       rawBackgrounds,
@@ -191,7 +204,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       themes,
       prefsRows,
     ] = await Promise.all([
-      readAllRecords<Song>("songs"),
+      readAllRecords<Manuscript & LegacyManuscriptFields>("manuscripts"),
       readAllRecords<ScripturePassage>("scriptures"),
       readAllRecords<MediaItem>("media"),
       readAllRecords<Background>("backgrounds"),
@@ -206,10 +219,20 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       rawAudio,
     );
 
-    let songList = songs;
-    if (!songList.length) {
-      songList = seedSongs();
-      for (const song of songList) await saveRecord("songs", song);
+    // A library written before the rename still lives in the "songs" store;
+    // it is read once, carried over under the current names, and the old
+    // store is retired so the migration never runs twice.
+    let manuscriptList = storedManuscripts.map(normalizeStoredManuscript);
+    if (!manuscriptList.length) {
+      const legacy = await readAllRecords<Manuscript & LegacyManuscriptFields>(
+        LEGACY_MANUSCRIPT_STORE,
+      );
+      manuscriptList = legacy.length
+        ? legacy.map(normalizeStoredManuscript)
+        : seedManuscripts();
+      for (const manuscript of manuscriptList)
+        await saveRecord("manuscripts", manuscript);
+      if (legacy.length) await clearStore(LEGACY_MANUSCRIPT_STORE);
     }
 
     let themeList = themes;
@@ -219,7 +242,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     }
 
     const prefs = prefsRows[0]
-      ? { ...DEFAULT_PREFS, ...prefsRows[0] }
+      ? { ...DEFAULT_PREFS, ...normalizeStoredPrefs(prefsRows[0]) }
       : DEFAULT_PREFS;
     // Older releases offered copyrighted translations fetched over the
     // network; scripture is now bundled (public domain only), so stored
@@ -231,7 +254,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     void clearStore("bible");
 
     set({
-      songs: songList,
+      manuscripts: manuscriptList,
       scriptures,
       media,
       themes: sortBuiltInFirst(ensureBuiltInThemes(themeList)),
@@ -251,14 +274,21 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
   exportData: async (onProgress) => {
     onProgress?.(0.02);
-    const { songs, scriptures, media, themes, backgrounds, audio, prefs } =
-      get();
+    const {
+      manuscripts,
+      scriptures,
+      media,
+      themes,
+      backgrounds,
+      audio,
+      prefs,
+    } = get();
     const customBg = customBackgrounds(backgrounds);
     const customAud = customAudio(audio);
     const payload = {
-      version: 4,
+      version: 5,
       exportedAt: now(),
-      songs,
+      manuscripts,
       scriptures: scriptures.filter((s) => !s.quick),
       media,
       themes,
@@ -308,12 +338,14 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         };
       }
 
-      let songs = state.songs;
-      if (Array.isArray(data.songs)) {
-        const incoming = data.songs.map(normalizeImportedSong);
-        songs = override
+      // Backups made before the rename carry the same records under "songs".
+      const incomingManuscripts = data.manuscripts ?? data.songs;
+      let manuscripts = state.manuscripts;
+      if (Array.isArray(incomingManuscripts)) {
+        const incoming = incomingManuscripts.map(normalizeImportedManuscript);
+        manuscripts = override
           ? incoming
-          : mergeById(state.songs, incoming, importedWins);
+          : mergeById(state.manuscripts, incoming, importedWins);
       }
 
       let scriptures = state.scriptures.filter((s) => !s.quick);
@@ -366,7 +398,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       if (data.prefs && (override || mode === "merge-imported")) {
         prefs = {
           ...DEFAULT_PREFS,
-          ...(data.prefs as Partial<Prefs>),
+          ...normalizeStoredPrefs(data.prefs as Partial<Prefs>),
           id: "app",
           onboarded: true,
         };
@@ -386,7 +418,8 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
       if (override) {
         await Promise.all([
-          clearStore("songs"),
+          clearStore("manuscripts"),
+          clearStore(LEGACY_MANUSCRIPT_STORE),
           clearStore("scriptures"),
           clearStore("media"),
           clearStore("themes"),
@@ -453,7 +486,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       }
 
       set({
-        songs,
+        manuscripts,
         scriptures,
         media,
         themes,
@@ -463,7 +496,10 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       });
 
       const puts: { store: StoreName; value: { id: string } }[] = [
-        ...songs.map((value) => ({ store: "songs" as StoreName, value })),
+        ...manuscripts.map((value) => ({
+          store: "manuscripts" as StoreName,
+          value,
+        })),
         ...scriptures.map((value) => ({
           store: "scriptures" as StoreName,
           value,
@@ -504,22 +540,24 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
     const startedAt = Date.now();
     let keptTotal = 0;
     try {
-      // Worked out before the stores are cleared: songs and custom themes the
-      // user registered as "keep on reset" carry their own settings over, with
-      // references to anything the reset wipes pointed back at the defaults.
+      // Worked out before the stores are cleared: manuscripts and custom themes
+      // the user registered as "keep on reset" carry their own settings over,
+      // with references to anything the reset wipes pointed at the defaults.
       const survivors = survivingAfterReset({
-        songs: get().songs,
+        manuscripts: get().manuscripts,
         themes: get().themes,
-        seedSongs: seedSongs(),
+        seedManuscripts: seedManuscripts(),
         builtInThemes: THEMES,
         builtInBackgrounds: BACKGROUNDS,
         builtInAudio: DEFAULT_AUDIO,
-        defaultThemeId: DEFAULT_PREFS.defaultSongThemeId,
+        defaultThemeId: DEFAULT_PREFS.defaultManuscriptThemeId,
       });
-      keptTotal = survivors.keptSongs.length + survivors.keptThemes.length;
+      keptTotal =
+        survivors.keptManuscripts.length + survivors.keptThemes.length;
 
       await Promise.all([
-        clearStore("songs"),
+        clearStore("manuscripts"),
+        clearStore(LEGACY_MANUSCRIPT_STORE),
         clearStore("scriptures"),
         clearStore("media"),
         clearStore("themes"),
@@ -529,11 +567,12 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         clearStore("bible"),
         clearStore("files"),
       ]);
-      for (const song of survivors.songs) await saveRecord("songs", song);
+      for (const manuscript of survivors.manuscripts)
+        await saveRecord("manuscripts", manuscript);
       for (const theme of survivors.themes) await saveRecord("themes", theme);
       await saveRecord("prefs", DEFAULT_PREFS);
       set({
-        songs: survivors.songs,
+        manuscripts: survivors.manuscripts,
         scriptures: [],
         media: [],
         themes: survivors.themes,

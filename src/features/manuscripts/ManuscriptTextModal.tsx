@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import type { Song } from "../../types";
+import type { Manuscript } from "../../types";
 import { colors, UI } from "../../theme/tokens";
+import { useTextFormatting } from "../../hooks/useTextFormatting";
 import { Button } from "../../components/ui/Button";
 import { Field, inputStyle, Range } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
+import { FormatToolbar } from "../../components/controls/FormatToolbar";
 
 const helpStyle: React.CSSProperties = {
   fontFamily: UI,
@@ -18,31 +20,32 @@ const Mark = ({ children }: { children: React.ReactNode }) => (
   <code style={{ color: colors.accentSoft }}>{children}</code>
 );
 
-interface LyricsModalProps {
+interface ManuscriptTextModalProps {
   open: boolean;
   onClose: () => void;
-  song: Song;
-  onRegenerate: (lyrics: string, maxLines: number) => void;
+  manuscript: Manuscript;
+  onRegenerate: (body: string, maxLines: number) => void;
 }
 
-export function LyricsModal({
+export function ManuscriptTextModal({
   open,
   onClose,
-  song,
+  manuscript,
   onRegenerate,
-}: LyricsModalProps) {
-  const [lyrics, setLyrics] = useState(song.lyrics);
-  const [maxLines, setMaxLines] = useState(song.maxLines || 6);
+}: ManuscriptTextModalProps) {
+  const [body, setBody] = useState(manuscript.body);
+  const [maxLines, setMaxLines] = useState(manuscript.maxLines || 6);
+  const formatting = useTextFormatting({ value: body, onChange: setBody });
 
   useEffect(() => {
     if (open) {
-      setLyrics(song.lyrics);
-      setMaxLines(song.maxLines || 6);
+      setBody(manuscript.body);
+      setMaxLines(manuscript.maxLines || 6);
     }
-  }, [open, song.lyrics, song.maxLines]);
+  }, [open, manuscript.body, manuscript.maxLines]);
 
   const regenerate = () => {
-    onRegenerate(lyrics, maxLines);
+    onRegenerate(body, maxLines);
     onClose();
   };
 
@@ -50,7 +53,7 @@ export function LyricsModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Edit Lyrics"
+      title="Edit Manuscript Text"
       width={640}
       footer={
         <>
@@ -63,14 +66,16 @@ export function LyricsModal({
       }
     >
       <p style={helpStyle}>
-        Paste the lyrics as they come. Sections are picked up however they are
-        written, <Mark>[Chorus]</Mark>, <Mark>## Chorus</Mark>,{" "}
-        <Mark>**Chorus**</Mark>, <Mark>Chorus:</Mark>,{" "}
+        Paste the text as it comes, lyrics, a hymn or a sermon outline. Open
+        with <Mark>HYMN: Ancient Words</Mark>, <Mark>SONG: …</Mark> or{" "}
+        <Mark>SERMON: …</Mark> and that line names the manuscript and files it
+        in the matching collection instead of becoming a slide. Sections are
+        picked up however they are written, <Mark>[Chorus]</Mark>,{" "}
+        <Mark>## Chorus</Mark>, <Mark>**Chorus**</Mark>, <Mark>Chorus:</Mark>,{" "}
         <Mark>Chorus: first line</Mark> or a bare <Mark>Bridge</Mark>, and so
         are performer cues like <Mark>Soloist:</Mark> and <Mark>Choir:</Mark>.
         Untagged stanzas become verses, keeping any <Mark>1.</Mark>{" "}
-        <Mark>(2)</Mark> <Mark>IV.</Mark> numbering. A heading such as{" "}
-        <Mark>Title — Artist</Mark> on the first line fills in the song details.
+        <Mark>(2)</Mark> <Mark>IV.</Mark> numbering.
       </p>
       <p style={helpStyle}>
         Repeat marks never reach the screen: <Mark>(2x)</Mark> <Mark>/2ce</Mark>{" "}
@@ -78,12 +83,18 @@ export function LyricsModal({
         elsewhere, <Mark>Repeat Chorus (3x)</Mark>, a trailing{" "}
         <Mark>[Refrain]</Mark>, or an empty <Mark>Chorus:</Mark>, adds a
         &ldquo;repeat slide 4&rdquo; note instead of building the slide twice.
-        Emphasis carries through: <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
-        <Mark>~~strikethrough~~</Mark>.
       </p>
+      <div style={{ marginBottom: 8 }}>
+        <FormatToolbar controller={formatting} block />
+      </div>
       <textarea
-        value={lyrics}
-        onChange={(e) => setLyrics(e.target.value)}
+        ref={formatting.bind}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        onSelect={formatting.syncSelection}
+        onKeyUp={formatting.syncSelection}
+        onClick={formatting.syncSelection}
+        onKeyDown={formatting.handleKeyDown}
         style={{
           ...inputStyle,
           minHeight: 320,
@@ -93,6 +104,12 @@ export function LyricsModal({
           fontSize: 13.5,
         }}
       />
+      <p style={{ ...helpStyle, margin: "8px 0 0" }}>
+        Highlight any word or sentence and use the toolbar to format it. The
+        marks are plain text, <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
+        <Mark>++underline++</Mark> <Mark>~~strikethrough~~</Mark>{" "}
+        <Mark>==highlight==</Mark>, so they survive copy and paste.
+      </p>
       <div style={{ marginTop: 12 }}>
         <Field label={`Max lines per slide (${maxLines})`}>
           <Range
@@ -112,7 +129,8 @@ export function LyricsModal({
           margin: 0,
         }}
       >
-        Regenerating rebuilds slides from lyrics and resets per-slide overrides.
+        Regenerating rebuilds slides from this text and resets per-slide
+        overrides.
       </p>
     </Modal>
   );

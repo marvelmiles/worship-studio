@@ -1,5 +1,11 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import { fade } from "./theme/uiTheme";
 import { useUITheme } from "./theme/ThemeProvider";
 import { useStore } from "./store/useStore";
@@ -12,8 +18,8 @@ import { ResetOverlay } from "./components/ui/ResetOverlay";
 import { LoadingArea } from "./components/ui/Spinner";
 import { GuideModal } from "./features/onboarding/GuideModal";
 import { Dashboard } from "./features/dashboard/Dashboard";
-import { Library } from "./features/library/Library";
-import { Editor } from "./features/editor/Editor";
+import { ManuscriptLibrary } from "./features/manuscripts/ManuscriptLibrary";
+import { ManuscriptEditor } from "./features/manuscripts/ManuscriptEditor";
 import { BiblePage } from "./features/bible/BiblePage";
 import { ScriptureEditor } from "./features/bible/ScriptureEditor";
 import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
@@ -29,10 +35,10 @@ import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
 
-/** Old song-editor URLs (bookmarks, history) land on the new /songs/:songId route. */
-function LegacyEditorRedirect() {
-  const { songId } = useParams();
-  return <Navigate to={`/songs/${songId}`} replace />;
+/** Pre-rename editor URLs (bookmarks, history) land on the manuscript route. */
+function LegacyManuscriptRedirect() {
+  const { manuscriptId } = useParams();
+  return <Navigate to={`/manuscripts/${manuscriptId}`} replace />;
 }
 
 export default function App() {
@@ -73,7 +79,7 @@ export default function App() {
           overflowY:
             ["/editor", "/scripture", "/bible"].some((p) =>
               location.pathname.startsWith(p),
-            ) || /^\/songs\/./.test(location.pathname)
+            ) || /^\/(manuscripts|songs)\/./.test(location.pathname)
               ? "hidden"
               : "auto",
         }}
@@ -83,15 +89,32 @@ export default function App() {
         ) : (
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/songs" element={<Library />} />
-            <Route path="/songs/:songId" element={<Editor />} />
-            <Route path="/library" element={<Navigate to="/songs" replace />} />
+            <Route path="/manuscripts" element={<ManuscriptLibrary />} />
+            <Route
+              path="/manuscripts/:manuscriptId"
+              element={<ManuscriptEditor />}
+            />
+            <Route
+              path="/songs"
+              element={<Navigate to="/manuscripts" replace />}
+            />
+            <Route
+              path="/songs/:manuscriptId"
+              element={<LegacyManuscriptRedirect />}
+            />
+            <Route
+              path="/library"
+              element={<Navigate to="/manuscripts" replace />}
+            />
             <Route path="/bible" element={<BiblePage />} />
             <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
             <Route path="/images" element={<ImagesPage />} />
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/stream" element={<StreamPage />} />
-            <Route path="/editor/:songId" element={<LegacyEditorRedirect />} />
+            <Route
+              path="/editor/:manuscriptId"
+              element={<LegacyManuscriptRedirect />}
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}

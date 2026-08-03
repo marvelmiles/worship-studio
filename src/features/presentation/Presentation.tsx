@@ -43,7 +43,7 @@ function resolveRootBg(
 }
 
 const END_LABELS: Record<string, string> = {
-  song: "End of song",
+  manuscript: "End of manuscript",
   scripture: "End of passage",
   image: "End of images",
   video: "End of video",

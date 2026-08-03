@@ -2,15 +2,15 @@ import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
+  FileText,
   Film,
   Image as ImageIcon,
-  Music,
   Palette,
   Volume2,
   Wallpaper,
 } from "lucide-react";
 import type { Background } from "../../types";
-import { CATEGORIES } from "../../theme/tokens";
+import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
@@ -18,7 +18,7 @@ import { greeting, isCreation, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
 
 export interface DashboardCounts {
-  songs: number;
+  manuscripts: number;
   totalSlides: number;
   savedPassages: number;
   imageCount: number;
@@ -27,20 +27,20 @@ export interface DashboardCounts {
   sounds: number;
 }
 
-export interface CategoryUsage {
+export interface CollectionUsage {
   name: string;
   count: number;
 }
 
 /**
  * Gathers everything the dashboard renders: the greeting, the headline counts,
- * the songs-by-category breakdown, the most-used artifacts and the cross-module
- * activity feed. Keeping the derivation here leaves the view components purely
- * presentational.
+ * the manuscripts-by-collection breakdown, the most-used artifacts and the
+ * cross-module activity feed. Keeping the derivation here leaves the view
+ * components purely presentational.
  */
 export function useDashboardData() {
   const navigate = useNavigate();
-  const songs = useStore((s) => s.songs);
+  const manuscripts = useStore((s) => s.manuscripts);
   const scriptures = useStore((s) => s.scriptures);
   const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -56,21 +56,26 @@ export function useDashboardData() {
 
   const greetingText = useMemo(() => greeting(), []);
 
-  const activeSongs = useMemo(() => songs.filter((s) => !s.deleted), [songs]);
-  const totalSlides = activeSongs.reduce(
-    (n, s) => n + (s.slides?.length || 0),
+  const activeManuscripts = useMemo(
+    () => manuscripts.filter((m) => !m.deleted),
+    [manuscripts],
+  );
+  const totalSlides = activeManuscripts.reduce(
+    (total, manuscript) => total + (manuscript.slides?.length || 0),
     0,
   );
 
-  const songsByCategory: CategoryUsage[] = CATEGORIES.map((c) => ({
-    name: c,
-    count: activeSongs.filter((s) => s.category === c).length,
-  }))
-    .filter((x) => x.count > 0)
+  const manuscriptsByCollection: CollectionUsage[] = COLLECTIONS.map(
+    (name) => ({
+      name,
+      count: activeManuscripts.filter((m) => m.collection === name).length,
+    }),
+  )
+    .filter((usage) => usage.count > 0)
     .sort((a, b) => b.count - a.count);
-  const largestCategoryCount = Math.max(
+  const largestCollectionCount = Math.max(
     1,
-    ...songsByCategory.map((x) => x.count),
+    ...manuscriptsByCollection.map((usage) => usage.count),
   );
 
   const backgroundById = useMemo(() => {
@@ -83,13 +88,13 @@ export function useDashboardData() {
     const themeUse: Record<string, number> = {};
     const bgUse: Record<string, number> = {};
     const soundUse: Record<string, number> = {};
-    for (const s of activeSongs) {
-      if (s.defaultThemeId)
-        themeUse[s.defaultThemeId] = (themeUse[s.defaultThemeId] || 0) + 1;
-      if (s.defaultBackgroundId)
-        bgUse[s.defaultBackgroundId] = (bgUse[s.defaultBackgroundId] || 0) + 1;
-      if (s.defaultAudioId)
-        soundUse[s.defaultAudioId] = (soundUse[s.defaultAudioId] || 0) + 1;
+    for (const m of activeManuscripts) {
+      if (m.defaultThemeId)
+        themeUse[m.defaultThemeId] = (themeUse[m.defaultThemeId] || 0) + 1;
+      if (m.defaultBackgroundId)
+        bgUse[m.defaultBackgroundId] = (bgUse[m.defaultBackgroundId] || 0) + 1;
+      if (m.defaultAudioId)
+        soundUse[m.defaultAudioId] = (soundUse[m.defaultAudioId] || 0) + 1;
     }
     return {
       theme: rank(themeUse).map(([id, count]) => {
@@ -110,19 +115,19 @@ export function useDashboardData() {
         return { id, count, name: a?.name || "Unknown" };
       }),
     };
-  }, [activeSongs, themes, audio, backgroundById]);
+  }, [activeManuscripts, themes, audio, backgroundById]);
 
   const activities = useMemo<Activity[]>(() => {
     const list: Activity[] = [];
 
-    for (const s of activeSongs) {
+    for (const m of activeManuscripts) {
       list.push({
-        key: `song:${s.id}`,
-        title: s.title,
-        detail: `Song · ${isCreation(s.createdAt, s.updatedAt) ? "created" : "edited"}`,
-        at: s.updatedAt,
-        icon: Music,
-        open: () => navigate(`/songs/${s.id}`),
+        key: `manuscript:${m.id}`,
+        title: m.title,
+        detail: `Manuscript · ${isCreation(m.createdAt, m.updatedAt) ? "created" : "edited"}`,
+        at: m.updatedAt,
+        icon: FileText,
+        open: () => navigate(`/manuscripts/${m.id}`),
       });
     }
 
@@ -211,7 +216,7 @@ export function useDashboardData() {
 
     return list.sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 15);
   }, [
-    activeSongs,
+    activeManuscripts,
     scriptures,
     media,
     audio,
@@ -222,7 +227,7 @@ export function useDashboardData() {
   ]);
 
   const counts: DashboardCounts = {
-    songs: activeSongs.length,
+    manuscripts: activeManuscripts.length,
     totalSlides,
     savedPassages: scriptures.filter((s) => !s.quick && !s.deleted).length,
     imageCount: media.filter((m) => m.kind === "image").length,
@@ -234,8 +239,8 @@ export function useDashboardData() {
   return {
     greeting: greetingText,
     counts,
-    songsByCategory,
-    largestCategoryCount,
+    manuscriptsByCollection,
+    largestCollectionCount,
     mostUsed,
     activities,
     storage,

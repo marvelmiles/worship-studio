@@ -32,7 +32,7 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: BookOpen,
     title: "Project scripture in seconds",
-    desc: "Open the Bible tab, pick a version (KJV or ASV), click verses to select them, and hit Present, or save the passage as styled slides you can edit like any song. The full text is built in, so the whole Bible works offline.",
+    desc: "Open the Bible tab, pick a version (KJV or ASV), click verses to select them, and hit Present, or save the passage as styled slides you can edit like any manuscript. The full text is built in, so the whole Bible works offline.",
   },
   {
     icon: Film,
@@ -42,17 +42,17 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: MonitorUp,
     title: "Present over HDMI",
-    desc: "Connect a projector or TV, click Present, then Go Live to project fullscreen on that screen while you keep the controls and notes on yours. Songs, scripture, images and videos all go live the same way.",
+    desc: "Connect a projector or TV, click Present, then Go Live to project fullscreen on that screen while you keep the controls and notes on yours. Manuscripts, scripture, images and videos all go live the same way.",
   },
   {
     icon: Palette,
     title: "Themes do the styling for you",
-    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a song's settings and every slide in that song instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own from the palette icon; change a theme and the songs using it update to match. Any individual slide can still override the look in the inspector.",
+    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a manuscript's settings and every slide in it instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own from the palette icon; change a theme and the manuscripts using it update to match. Any individual slide can still override the look in the inspector.",
   },
   {
     icon: WifiOff,
     title: "Install it & use it offline",
-    desc: "WorshipStudio can be installed straight from your browser. Look for Install in the address bar, or \"Add to Home Screen\" on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.",
+    desc: 'WorshipStudio can be installed straight from your browser. Look for Install in the address bar, or "Add to Home Screen" on mobile. It then opens in its own window and runs fully offline; your whole library is saved on the device. Back up or move to another device with Export / Import in Settings.',
   },
 ];
 
@@ -179,8 +179,8 @@ export function GuideModal() {
             }}
           >
             WorshipStudio is a light, distraction-free studio for presenting
-            songs, scripture, images and videos reliably. Here are a few things
-            worth knowing before you start.
+            manuscripts, scripture, images and videos reliably. Here are a few
+            things worth knowing before you start.
           </p>
 
           {TIPS.map((tip) => (
@@ -297,12 +297,16 @@ export function GuideModal() {
               margin: "20px 0 0",
             }}
           >
-            That's it, create a song from the dashboard or open the library to
-            start. You can revisit all of this anytime under About &amp; Help.
-            Welcome aboard.
+            That's it, create a manuscript from the dashboard or open the
+            library to start. You can revisit all of this anytime under About
+            &amp; Help. Welcome aboard.
             <Cross
               size={13}
-              style={{ display: "inline", verticalAlign: "middle", marginLeft: 5 }}
+              style={{
+                display: "inline",
+                verticalAlign: "middle",
+                marginLeft: 5,
+              }}
             />
           </p>
         </div>

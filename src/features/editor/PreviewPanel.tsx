@@ -2,13 +2,18 @@ import type { Background, ResolvedStyle, Slide } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { inputStyle } from "../../components/ui/Field";
+import { FormatToolbar } from "../../components/controls/FormatToolbar";
+import type { TextFormattingController } from "../../hooks/useTextFormatting";
 
 interface PreviewPanelProps {
   slide: Slide;
   style: ResolvedStyle;
   lineStyles?: ResolvedStyle[];
   background: Background;
-  onChangeLines: (lines: string[]) => void;
+  /** The slide's lines as one editable block. */
+  text: string;
+  onChangeText: (text: string) => void;
+  formatting: TextFormattingController;
   onChangeLabel: (label: string) => void;
   selectedLine: number | null;
   onSelectLine: (index: number | null) => void;
@@ -19,7 +24,9 @@ export function PreviewPanel({
   style,
   lineStyles,
   background,
-  onChangeLines,
+  text,
+  onChangeText,
+  formatting,
   onChangeLabel,
   selectedLine,
   onSelectLine,
@@ -76,12 +83,18 @@ export function PreviewPanel({
             lineHeight: 1.5,
           }}
         >
-          Click a line above to format it on its own: font, size, color,
-          alignment.
+          Highlight words below and use the toolbar to format them. Click a line
+          on the slide to restyle that whole line: font, size, color, alignment.
         </p>
+        <FormatToolbar controller={formatting} block />
         <textarea
-          value={(slide.lines || []).join("\n")}
-          onChange={(e) => onChangeLines(e.target.value.split("\n"))}
+          ref={formatting.bind}
+          value={text}
+          onChange={(e) => onChangeText(e.target.value)}
+          onSelect={formatting.syncSelection}
+          onKeyUp={formatting.syncSelection}
+          onClick={formatting.syncSelection}
+          onKeyDown={formatting.handleKeyDown}
           style={{
             ...inputStyle,
             marginTop: 8,

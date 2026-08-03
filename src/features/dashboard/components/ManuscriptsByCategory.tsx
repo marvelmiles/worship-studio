@@ -1,15 +1,18 @@
-import { Music } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { rankBarStyle } from "../utils";
-import type { CategoryUsage } from "../useDashboardData";
+import type { CollectionUsage } from "../useDashboardData";
 
-interface SongsByCategoryProps {
-  data: CategoryUsage[];
+interface ManuscriptsByCategoryProps {
+  data: CollectionUsage[];
   largest: number;
 }
 
-export function SongsByCategory({ data, largest }: SongsByCategoryProps) {
+export function ManuscriptsByCategory({
+  data,
+  largest,
+}: ManuscriptsByCategoryProps) {
   const { colors, glass, controls, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -24,15 +27,15 @@ export function SongsByCategory({ data, largest }: SongsByCategoryProps) {
           color: colors.text,
         }}
       >
-        Songs by Category
+        Manuscripts by Collection
       </h3>
       {data.length === 0 && (
         <EmptyState
           bare
           compact
-          icon={Music}
-          title="No categories yet"
-          message="Give your songs a category and the breakdown appears here."
+          icon={FileText}
+          title="No collections yet"
+          message="Put your manuscripts in a collection and the breakdown appears here."
         />
       )}
       {data.map((c, rank) => (

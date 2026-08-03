@@ -82,7 +82,7 @@ export interface UITheme {
   fills: {
     /** Horizontal accent fill for progress / usage bars. */
     accentBar: string;
-    /** Large hero CTA card fill (dashboard "New Song"). */
+    /** Large hero CTA card fill (dashboard "New Manuscript"). */
     ctaCard: string;
     successBar: string;
     dangerBar: string;

@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   BookOpen,
+  FileText,
   Film,
   HelpCircle,
   Image as ImageIcon,
   Keyboard,
   LayoutDashboard,
-  Music,
   Palette,
   Radio,
   Settings,
@@ -20,7 +20,7 @@ import { IconButton } from "../ui/Button";
 
 const NAV: [string, string, LucideIcon][] = [
   ["/", "Dashboard", LayoutDashboard],
-  ["/songs", "Songs", Music],
+  ["/manuscripts", "Manuscripts", FileText],
   ["/bible", "Bible", BookOpen],
   ["/images", "Images", ImageIcon],
   ["/videos", "Videos", Film],

@@ -1,20 +1,20 @@
-import type { AudioItem, Background, Song, Theme } from "../types";
+import type { AudioItem, Background, Manuscript, Theme } from "../types";
 
 /**
- * "Keep on reset": songs and custom themes the user registers to survive
+ * "Keep on reset": manuscripts and custom themes the user registers to survive
  * "Reset App to Defaults". Everything else goes back to first-run state.
  *
  * A kept item keeps its own configuration exactly as it was. What it *points
  * at* can't always be kept, though: a reset wipes custom backgrounds, audio
- * and uploaded files. So a kept song that used a theme which also survived
- * still uses it, and one whose theme was wiped falls back to the default song
- * theme. The same applies to backgrounds and audio.
+ * and uploaded files. So a kept manuscript that used a theme which also
+ * survived still uses it, and one whose theme was wiped falls back to the
+ * default manuscript theme. The same applies to backgrounds and audio.
  */
 
-/** Songs and custom themes share one budget. */
+/** Manuscripts and custom themes share one budget. */
 export const MAX_KEPT_ITEMS = 5;
 
-export type KeepableKind = "song" | "theme";
+export type KeepableKind = "manuscript" | "theme";
 
 interface Keepable {
   keepOnReset?: boolean;
@@ -23,8 +23,8 @@ interface Keepable {
 }
 
 /**
- * Built-in songs and themes are restored by a reset anyway, and trashed songs
- * aren't worth a slot, so neither can hold one.
+ * Built-in manuscripts and themes are restored by a reset anyway, and trashed
+ * manuscripts aren't worth a slot, so neither can hold one.
  */
 export const canKeep = (item: Keepable): boolean =>
   !item.builtIn && !item.deleted;
@@ -32,35 +32,39 @@ export const canKeep = (item: Keepable): boolean =>
 export const isKept = (item: Keepable): boolean =>
   Boolean(item.keepOnReset) && canKeep(item);
 
-export const keptSongs = (songs: Song[]): Song[] => songs.filter(isKept);
+export const keptManuscripts = (manuscripts: Manuscript[]): Manuscript[] =>
+  manuscripts.filter(isKept);
 export const keptThemes = (themes: Theme[]): Theme[] => themes.filter(isKept);
 
 /** How many of the five slots are in use, across both kinds. */
-export const keptCount = (songs: Song[], themes: Theme[]): number =>
-  keptSongs(songs).length + keptThemes(themes).length;
+export const keptCount = (manuscripts: Manuscript[], themes: Theme[]): number =>
+  keptManuscripts(manuscripts).length + keptThemes(themes).length;
 
-export const keptSlotsLeft = (songs: Song[], themes: Theme[]): number =>
-  Math.max(0, MAX_KEPT_ITEMS - keptCount(songs, themes));
+export const keptSlotsLeft = (
+  manuscripts: Manuscript[],
+  themes: Theme[],
+): number => Math.max(0, MAX_KEPT_ITEMS - keptCount(manuscripts, themes));
 
 /**
- * Repoints a kept song at things that still exist after the reset. Anything
- * that survived is left alone, so a kept song paired with a kept theme keeps
- * that pairing; a reference to something wiped falls back to the default.
+ * Repoints a kept manuscript at things that still exist after the reset.
+ * Anything that survived is left alone, so a kept manuscript paired with a kept
+ * theme keeps that pairing; a reference to something wiped falls back to the
+ * default.
  */
-export function rehomeKeptSong(
-  song: Song,
+export function rehomeKeptManuscript(
+  manuscript: Manuscript,
   surviving: {
     themeIds: Set<string>;
     backgroundIds: Set<string>;
     audioIds: Set<string>;
     defaultThemeId: string;
   },
-): Song {
-  const themeOk = surviving.themeIds.has(song.defaultThemeId);
-  const slides = song.slides.map((slide) => {
+): Manuscript {
+  const themeOk = surviving.themeIds.has(manuscript.defaultThemeId);
+  const slides = manuscript.slides.map((slide) => {
     const { backgroundId, audioId } = slide.overrides;
     // Slide-level overrides pointing at wiped assets are dropped rather than
-    // redirected: the slide falls back to whatever the song/theme provides.
+    // redirected: the slide falls back to what the manuscript/theme provides.
     const staleBackground =
       backgroundId && !surviving.backgroundIds.has(backgroundId);
     const staleAudio = audioId && !surviving.audioIds.has(audioId);
@@ -72,16 +76,19 @@ export function rehomeKeptSong(
   });
 
   return {
-    ...song,
-    defaultThemeId: themeOk ? song.defaultThemeId : surviving.defaultThemeId,
+    ...manuscript,
+    defaultThemeId: themeOk
+      ? manuscript.defaultThemeId
+      : surviving.defaultThemeId,
     defaultBackgroundId:
-      song.defaultBackgroundId &&
-      surviving.backgroundIds.has(song.defaultBackgroundId)
-        ? song.defaultBackgroundId
+      manuscript.defaultBackgroundId &&
+      surviving.backgroundIds.has(manuscript.defaultBackgroundId)
+        ? manuscript.defaultBackgroundId
         : "",
     defaultAudioId:
-      song.defaultAudioId && surviving.audioIds.has(song.defaultAudioId)
-        ? song.defaultAudioId
+      manuscript.defaultAudioId &&
+      surviving.audioIds.has(manuscript.defaultAudioId)
+        ? manuscript.defaultAudioId
         : null,
     slides,
   };
@@ -109,23 +116,28 @@ export function rehomeKeptTheme(
 }
 
 /**
- * Works out the songs and themes a reset should end up with: the built-in
+ * Works out the manuscripts and themes a reset should end up with: the built-in
  * defaults, plus every kept item repointed at what survived alongside it.
  */
 export function survivingAfterReset(options: {
-  songs: Song[];
+  manuscripts: Manuscript[];
   themes: Theme[];
-  seedSongs: Song[];
+  seedManuscripts: Manuscript[];
   builtInThemes: Theme[];
   builtInBackgrounds: Background[];
   builtInAudio: AudioItem[];
   defaultThemeId: string;
-}): { songs: Song[]; themes: Theme[]; keptSongs: Song[]; keptThemes: Theme[] } {
+}): {
+  manuscripts: Manuscript[];
+  themes: Theme[];
+  keptManuscripts: Manuscript[];
+  keptThemes: Theme[];
+} {
   // The UI stops at five, but an imported backup can carry records marked by
   // someone else, so the cap is enforced here too. Themes take precedence: a
-  // kept song paired with a kept theme should keep that pairing.
+  // kept manuscript paired with a kept theme should keep that pairing.
   const keptThemeList = keptThemes(options.themes).slice(0, MAX_KEPT_ITEMS);
-  const songBudget = Math.max(0, MAX_KEPT_ITEMS - keptThemeList.length);
+  const manuscriptBudget = Math.max(0, MAX_KEPT_ITEMS - keptThemeList.length);
   const themes = [...options.builtInThemes, ...keptThemeList];
 
   const backgroundIds = new Set(options.builtInBackgrounds.map((b) => b.id));
@@ -135,8 +147,8 @@ export function survivingAfterReset(options: {
     options.builtInThemes[0]?.backgroundId ||
     options.builtInBackgrounds[0]?.id ||
     "";
-  // The fallback theme must itself be surviving, or kept songs would point at
-  // nothing; a missing default lands on the first built-in theme.
+  // The fallback theme must itself be surviving, or kept manuscripts would
+  // point at nothing; a missing default lands on the first built-in theme.
   const defaultThemeId = themeIds.has(options.defaultThemeId)
     ? options.defaultThemeId
     : options.builtInThemes[0]?.id || "";
@@ -144,10 +156,10 @@ export function survivingAfterReset(options: {
   const rehomedThemes = keptThemeList.map((theme) =>
     rehomeKeptTheme(theme, { backgroundIds, audioIds, defaultBackgroundId }),
   );
-  const rehomedSongs = keptSongs(options.songs)
-    .slice(0, songBudget)
-    .map((song) =>
-      rehomeKeptSong(song, {
+  const rehomedManuscripts = keptManuscripts(options.manuscripts)
+    .slice(0, manuscriptBudget)
+    .map((manuscript) =>
+      rehomeKeptManuscript(manuscript, {
         themeIds,
         backgroundIds,
         audioIds,
@@ -156,9 +168,9 @@ export function survivingAfterReset(options: {
     );
 
   return {
-    songs: [...rehomedSongs, ...options.seedSongs],
+    manuscripts: [...rehomedManuscripts, ...options.seedManuscripts],
     themes: [...options.builtInThemes, ...rehomedThemes],
-    keptSongs: rehomedSongs,
+    keptManuscripts: rehomedManuscripts,
     keptThemes: rehomedThemes,
   };
 }

@@ -5,7 +5,7 @@ import { StatsGrid } from "./components/StatsGrid";
 import { StorageCard } from "./components/StorageCard";
 import { QuickActions } from "./components/QuickActions";
 import { RecentActivities } from "./components/RecentActivities";
-import { SongsByCategory } from "./components/SongsByCategory";
+import { ManuscriptsByCategory } from "./components/ManuscriptsByCategory";
 import { MostUsedArtifacts } from "./components/MostUsedArtifacts";
 
 export function Dashboard() {
@@ -13,8 +13,8 @@ export function Dashboard() {
   const {
     greeting,
     counts,
-    songsByCategory,
-    largestCategoryCount,
+    manuscriptsByCollection,
+    largestCollectionCount,
     mostUsed,
     activities,
     storage,
@@ -53,9 +53,9 @@ export function Dashboard() {
         <RecentActivities activities={activities} />
 
         <div style={{ display: "grid", gap: 16 }}>
-          <SongsByCategory
-            data={songsByCategory}
-            largest={largestCategoryCount}
+          <ManuscriptsByCategory
+            data={manuscriptsByCollection}
+            largest={largestCollectionCount}
           />
           <MostUsedArtifacts mostUsed={mostUsed} />
         </div>
