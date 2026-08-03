@@ -1,4 +1,7 @@
 import { stripInlineFormatting } from "./inlineFormat";
+import { prefixLength } from "./lists";
+import { resolveRange } from "./textRange";
+import type { EditResult } from "./inlineEdit";
 
 /**
  * Word-processor style formatting for the plain-text editors. The document
@@ -56,45 +59,7 @@ export const INLINE_FORMAT_NAMES = Object.keys(
   INLINE_FORMATS,
 ) as InlineFormatName[];
 
-export interface FormattingResult {
-  text: string;
-  selectionStart: number;
-  selectionEnd: number;
-}
-
-interface TextRange {
-  start: number;
-  end: number;
-}
-
-const WORD_CHARACTER = /[\p{L}\p{N}'’-]/u;
-
-/** The word the caret sits in or beside, the way a word processor selects it. */
-function wordAround(text: string, index: number): TextRange | null {
-  let start = index;
-  let end = index;
-  while (start > 0 && WORD_CHARACTER.test(text[start - 1])) start -= 1;
-  while (end < text.length && WORD_CHARACTER.test(text[end])) end += 1;
-  return end > start ? { start, end } : null;
-}
-
-/**
- * The range a command should act on: a selection with its whitespace edges
- * given back, or the word under a collapsed caret.
- */
-function resolveRange(
-  text: string,
-  selectionStart: number,
-  selectionEnd: number,
-): TextRange | null {
-  if (selectionStart === selectionEnd) return wordAround(text, selectionStart);
-
-  let start = selectionStart;
-  let end = selectionEnd;
-  while (start < end && /\s/.test(text[start])) start += 1;
-  while (end > start && /\s/.test(text[end - 1])) end -= 1;
-  return end > start ? { start, end } : null;
-}
+export type FormattingResult = EditResult;
 
 interface SplitLine {
   lead: string;
@@ -102,8 +67,9 @@ interface SplitLine {
   trail: string;
 }
 
+/** A list marker belongs to the line, not to the words, so marks go around it. */
 function splitLine(line: string): SplitLine {
-  const lead = line.match(/^\s*/)?.[0] ?? "";
+  const lead = line.slice(0, prefixLength(line));
   const trail = line.slice(lead.length).match(/\s*$/)?.[0] ?? "";
   return {
     lead,

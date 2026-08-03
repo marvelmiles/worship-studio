@@ -2,6 +2,7 @@ import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Align, ResolvedStyle, TextStyle } from "../../types";
 import { fade, colors, FONTS } from "../../theme/tokens";
+import { TEXT_SHADOW_PRESET } from "../../lib/inlineStyle";
 import { Field, Range, Select, TextInput, Toggle } from "../ui/Field";
 
 interface StyleControlsProps {
@@ -126,10 +127,7 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
           label="Text shadow"
           checked={style.textShadow !== "none"}
           onChange={(checked) =>
-            onChange(
-              "textShadow",
-              checked ? "0 2px 22px rgba(0,0,0,0.55)" : "none",
-            )
+            onChange("textShadow", checked ? TEXT_SHADOW_PRESET : "none")
           }
         />
       </div>

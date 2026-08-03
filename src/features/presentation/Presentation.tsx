@@ -12,6 +12,7 @@ import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { stripInlineFormatting } from "../../lib/inlineFormat";
+import { stripListMarker } from "../../lib/lists";
 import {
   openPresentChannel,
   type PresentState,
@@ -205,7 +206,7 @@ export function Presentation() {
           ? s.slide.lines.slice(0, -1)
           : s.slide.lines;
       return lines
-        .map((line) => stripInlineFormatting(line).replace(/^\d+\.\s*/, ""))
+        .map((line) => stripInlineFormatting(stripListMarker(line)))
         .join("\n");
     });
     speech.speak(chunks, (i) => p.goTo(startSlideIndex + i));

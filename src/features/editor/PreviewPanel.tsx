@@ -83,8 +83,10 @@ export function PreviewPanel({
             lineHeight: 1.5,
           }}
         >
-          Highlight words below and use the toolbar to format them. Click a line
-          on the slide to restyle that whole line: font, size, color, alignment.
+          Highlight words below and use the toolbar to format them, or the
+          inspector to change their font, size, colour and case. Tab and
+          Shift+Tab move a point in and out, Enter carries the list on. Click a
+          line on the slide to restyle that whole line instead.
         </p>
         <FormatToolbar controller={formatting} block />
         <textarea

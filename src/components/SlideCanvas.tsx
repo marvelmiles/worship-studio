@@ -1,8 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
 import { colors, fade, UI } from "../theme/tokens";
 import { useThumbUrl } from "../lib/blobUrls";
+import { analyzeLines, listMarkerLabel } from "../lib/lists";
 import { FormattedText } from "./FormattedText";
+
+/** One indent level, in the same container-query unit the text is sized in. */
+const INDENT_STEP_CQW = 3.2;
+
+const FLEX_ALIGN = {
+  left: "flex-start",
+  center: "center",
+  right: "flex-end",
+} as const;
 
 interface SlideCanvasProps {
   slide: Slide;
@@ -58,7 +68,11 @@ export function SlideCanvas({
         : { background: bg?.css || "#111" };
 
   const wantScrim = !noBackground && (scrim ?? bg?.type === "image");
-  const lines = slide.lines && slide.lines.length ? slide.lines : [""];
+  const lines = useMemo(
+    () => (slide.lines && slide.lines.length ? slide.lines : [""]),
+    [slide.lines],
+  );
+  const items = useMemo(() => analyzeLines(lines), [lines]);
 
   return (
     <div
@@ -94,10 +108,11 @@ export function SlideCanvas({
         }}
       >
         <div style={{ width: "100%" }}>
-          {lines.map((ln, i) => {
+          {items.map((item, i) => {
             const lineStyle = lineStyles?.[i] ?? style;
             const selected = selectedLine === i;
             const hovered = interactive && hoverLine === i && !selected;
+            const align = lineStyle.align || "center";
             return (
               <div
                 key={i}
@@ -114,7 +129,7 @@ export function SlideCanvas({
                   interactive ? () => setHoverLine(null) : undefined
                 }
                 style={{
-                  textAlign: lineStyle.align || "center",
+                  textAlign: align,
                   color: lineStyle.color,
                   fontFamily: `'${lineStyle.fontFamily}', serif`,
                   fontWeight: lineStyle.fontWeight,
@@ -127,6 +142,9 @@ export function SlideCanvas({
                   borderRadius: 6,
                   padding: interactive ? "0.3cqw 0.6cqw" : undefined,
                   margin: interactive ? "-0.3cqw -0.6cqw" : undefined,
+                  paddingInlineStart: item.level
+                    ? `${item.level * INDENT_STEP_CQW + (interactive ? 0.6 : 0)}cqw`
+                    : undefined,
                   outline: selected
                     ? `0.25cqw solid ${colors.accent}`
                     : hovered
@@ -141,7 +159,46 @@ export function SlideCanvas({
                     : undefined,
                 }}
               >
-                {ln ? <FormattedText text={ln} /> : "\u00A0"}
+                {item.kind ? (
+                  <span
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: "0.9cqw",
+                      justifyContent: FLEX_ALIGN[align],
+                      textAlign: "start",
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{
+                        flex: "none",
+                        minWidth: "2.6cqw",
+                        textAlign: "end",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {listMarkerLabel(item.kind, item.index, item.level)}
+                    </span>
+                    <span>
+                      {item.content ? (
+                        <FormattedText
+                          text={item.content}
+                          baseWeight={lineStyle.fontWeight}
+                        />
+                      ) : (
+                        "\u00A0"
+                      )}
+                    </span>
+                  </span>
+                ) : item.content ? (
+                  <FormattedText
+                    text={item.content}
+                    baseWeight={lineStyle.fontWeight}
+                  />
+                ) : (
+                  "\u00A0"
+                )}
               </div>
             );
           })}

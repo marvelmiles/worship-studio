@@ -108,7 +108,10 @@ export function ManuscriptTextModal({
         Highlight any word or sentence and use the toolbar to format it. The
         marks are plain text, <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
         <Mark>++underline++</Mark> <Mark>~~strikethrough~~</Mark>{" "}
-        <Mark>==highlight==</Mark>, so they survive copy and paste.
+        <Mark>==highlight==</Mark>, so they survive copy and paste. Lists are
+        plain text too, <Mark>- point</Mark> <Mark>1. point</Mark>{" "}
+        <Mark>a. point</Mark> <Mark>i. point</Mark>, and Tab and Shift+Tab move
+        a point in and out to build sub-points.
       </p>
       <div style={{ marginTop: 12 }}>
         <Field label={`Max lines per slide (${maxLines})`}>

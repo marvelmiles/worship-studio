@@ -48,9 +48,11 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     updateSlide(id, { overrides });
   };
 
-  const updateLineOverride = (
+  /** One patch for every line at once: a loop over the single-line form would
+   *  read stale slides and only the last change would survive. */
+  const updateLineOverrides = (
     id: string,
-    lineIndex: number,
+    lineIndexes: number[],
     key: string,
     value: unknown,
   ) => {
@@ -60,13 +62,22 @@ export function useDeckEditor<T extends SlideDeckDoc>(
       number,
       Record<string, unknown>
     >;
-    const line = { ...(lineOverrides[lineIndex] || {}) };
-    if (value === "" || value == null) delete line[key];
-    else line[key] = value;
-    if (Object.keys(line).length) lineOverrides[lineIndex] = line;
-    else delete lineOverrides[lineIndex];
+    for (const lineIndex of lineIndexes) {
+      const line = { ...(lineOverrides[lineIndex] || {}) };
+      if (value === "" || value == null) delete line[key];
+      else line[key] = value;
+      if (Object.keys(line).length) lineOverrides[lineIndex] = line;
+      else delete lineOverrides[lineIndex];
+    }
     updateSlide(id, { lineOverrides });
   };
+
+  const updateLineOverride = (
+    id: string,
+    lineIndex: number,
+    key: string,
+    value: unknown,
+  ) => updateLineOverrides(id, [lineIndex], key, value);
 
   const clearLineOverrides = (id: string, lineIndex: number) => {
     const slide = slides.find((item) => item.id === id);
@@ -192,6 +203,7 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     updateSlide,
     updateSlideOverride,
     updateLineOverride,
+    updateLineOverrides,
     clearLineOverrides,
     updateDocStyle,
     moveSlide,

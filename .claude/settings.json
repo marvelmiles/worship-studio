@@ -10,7 +10,10 @@
       "Bash(awk -F: '{print $1}')",
       "Bash(mkdir -p src/features/manuscripts)",
       "Bash(rmdir src/features/library)",
-      "Bash(npx prettier *)"
+      "Bash(npx prettier *)",
+      "PowerShell(npx tsc --noEmit -p tsconfig.json)",
+      "PowerShell(npx eslint src --format json 2>$null | ConvertFrom-Json | ForEach-Object { $_ } | Where-Object { $_.errorCount -gt 0 } | Select-Object filePath, errorCount)",
+      "PowerShell(npm run build 2>&1)"
     ]
   }
 }
