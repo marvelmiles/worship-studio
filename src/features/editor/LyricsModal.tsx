@@ -6,6 +6,18 @@ import { Button } from "../../components/ui/Button";
 import { Field, inputStyle, Range } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
 
+const helpStyle: React.CSSProperties = {
+  fontFamily: UI,
+  fontSize: 12.5,
+  color: colors.sub,
+  margin: "0 0 10px",
+  lineHeight: 1.65,
+};
+
+const Mark = ({ children }: { children: React.ReactNode }) => (
+  <code style={{ color: colors.accentSoft }}>{children}</code>
+);
+
 interface LyricsModalProps {
   open: boolean;
   onClose: () => void;
@@ -50,33 +62,24 @@ export function LyricsModal({
         </>
       }
     >
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 13,
-          color: colors.sub,
-          marginTop: 0,
-          lineHeight: 1.6,
-        }}
-      >
-        Tags:{" "}
-        <code style={{ color: colors.accentSoft }}>
-          [verse] [chorus] [bridge] [intro] [outro] [tag] [refrain] [pre-chorus]
-        </code>
-        , also written as{" "}
-        <code style={{ color: colors.accentSoft }}>## Chorus</code>,{" "}
-        <code style={{ color: colors.accentSoft }}>**Chorus**</code> or{" "}
-        <code style={{ color: colors.accentSoft }}>Chorus:</code>. Repeated
-        sections auto-number (Verse 1, Verse 2). No tags → blank lines become
-        numbered verses, and a stanza opening with{" "}
-        <code style={{ color: colors.accentSoft }}>1.</code>,{" "}
-        <code style={{ color: colors.accentSoft }}>(2)</code> or{" "}
-        <code style={{ color: colors.accentSoft }}>IV.</code> keeps that number.
-        Emphasis carries to the slide:{" "}
-        <code style={{ color: colors.accentSoft }}>**bold**</code>,{" "}
-        <code style={{ color: colors.accentSoft }}>*italic*</code>,{" "}
-        <code style={{ color: colors.accentSoft }}>~~strikethrough~~</code>.
-        Long sections split automatically.
+      <p style={helpStyle}>
+        Paste the lyrics as they come. Sections are picked up however they are
+        written, <Mark>[Chorus]</Mark>, <Mark>## Chorus</Mark>,{" "}
+        <Mark>**Chorus**</Mark>, <Mark>Chorus:</Mark>,{" "}
+        <Mark>Chorus: first line</Mark> or a bare <Mark>Bridge</Mark>, and so
+        are performer cues like <Mark>Soloist:</Mark> and <Mark>Choir:</Mark>.
+        Untagged stanzas become verses, keeping any <Mark>1.</Mark>{" "}
+        <Mark>(2)</Mark> <Mark>IV.</Mark> numbering. A heading such as{" "}
+        <Mark>Title — Artist</Mark> on the first line fills in the song details.
+      </p>
+      <p style={helpStyle}>
+        Repeat marks never reach the screen: <Mark>(2x)</Mark> <Mark>/2ce</Mark>{" "}
+        <Mark>[4x]</Mark> move into the presenter notes, and a cue pointing
+        elsewhere, <Mark>Repeat Chorus (3x)</Mark>, a trailing{" "}
+        <Mark>[Refrain]</Mark>, or an empty <Mark>Chorus:</Mark>, adds a
+        &ldquo;repeat slide 4&rdquo; note instead of building the slide twice.
+        Emphasis carries through: <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
+        <Mark>~~strikethrough~~</Mark>.
       </p>
       <textarea
         value={lyrics}

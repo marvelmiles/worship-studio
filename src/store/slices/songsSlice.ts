@@ -5,6 +5,12 @@ import { deleteRecord, saveRecord } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
+export const UNTITLED_SONG = "Untitled Song";
+
+/** True while a song still carries the name it was created with. */
+export const isUntitledSong = (title: string): boolean =>
+  !title.trim() || title.trim() === UNTITLED_SONG;
+
 export interface SongsSlice {
   songs: Song[];
 
@@ -36,7 +42,7 @@ export const createSongsSlice: SliceCreator<SongsSlice> = (set, get) => ({
     const lyrics = "[verse]\nType your lyrics here";
     const song: Song = {
       id: uid(),
-      title: "Untitled Song",
+      title: UNTITLED_SONG,
       artist: "",
       category: "Worship",
       defaultThemeId: get().prefs.defaultSongThemeId || "classic",

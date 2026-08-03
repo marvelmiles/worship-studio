@@ -8,7 +8,8 @@ import { useDeckEditor } from "./useDeckEditor";
 import { DeckWorkspace } from "./DeckWorkspace";
 import { LyricsModal } from "./LyricsModal";
 import { SongSettingsModal } from "./SongSettingsModal";
-import { parseLyrics } from "../../lib/parser";
+import { parseSongDocument } from "../../lib/parser";
+import { isUntitledSong } from "../../store/slices/songsSlice";
 
 export function EditorWorkspace({ song }: { song: Song }) {
   const upsertSong = useStore((s) => s.upsertSong);
@@ -23,9 +24,14 @@ export function EditorWorkspace({ song }: { song: Song }) {
 
   const theme = themes.find((t) => t.id === song.defaultThemeId) || themes[0];
 
+  // A heading the writer left at the top of the lyrics fills in the song's
+  // details, but never overwrites a name the user has already given it.
   const regenerateFromLyrics = (lyrics: string, maxLines: number) => {
-    const slides = parseLyrics(lyrics, maxLines);
-    editor.patchDoc({ lyrics, maxLines, slides });
+    const { title, artist, slides } = parseSongDocument(lyrics, maxLines);
+    const changes: Partial<Song> = { lyrics, maxLines, slides };
+    if (title && isUntitledSong(song.title)) changes.title = title;
+    if (artist && !song.artist?.trim()) changes.artist = artist;
+    editor.patchDoc(changes);
     editor.setSelectedId(slides[0]?.id ?? null);
   };
 

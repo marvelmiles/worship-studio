@@ -8,6 +8,7 @@ import {
   MonitorUp,
   Pause,
   Play,
+  StickyNote,
   X,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -23,6 +24,8 @@ const MARGIN = 16;
 interface PresenterPipProps {
   title: string;
   currentLabel: string;
+  /** Presenter notes for the current slide, shown only when there are any. */
+  notes?: string;
   frame: StageFrame;
   slideIndex: number;
   total: number;
@@ -53,6 +56,7 @@ interface PresenterPipProps {
 export function PresenterPip({
   title,
   currentLabel,
+  notes,
   frame,
   slideIndex,
   total,
@@ -242,6 +246,41 @@ export function PresenterPip({
           <VideoSurface item={content.item} forceMuted />
         )}
       </div>
+
+      {notes && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 7,
+            padding: "8px 10px",
+            borderTop: `1px solid ${colors.border}`,
+            background: fade(colors.accent, 0.09),
+          }}
+        >
+          <StickyNote
+            size={13}
+            color={colors.accentSoft}
+            style={{ flexShrink: 0, marginTop: 1 }}
+          />
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              maxHeight: 66,
+              overflowY: "auto",
+              fontFamily: fonts.ui,
+              fontSize: 11.5,
+              fontWeight: 500,
+              lineHeight: 1.45,
+              color: colors.text,
+              whiteSpace: "pre-line",
+            }}
+          >
+            {notes}
+          </div>
+        </div>
+      )}
 
       <div
         style={{

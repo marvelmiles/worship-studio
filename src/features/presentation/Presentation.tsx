@@ -287,6 +287,7 @@ export function Presentation() {
         <PresenterPip
           title={deck.title}
           currentLabel={currentLabel}
+          notes={notes}
           frame={p.frame}
           slideIndex={p.slideIndex}
           total={p.slides.length}
