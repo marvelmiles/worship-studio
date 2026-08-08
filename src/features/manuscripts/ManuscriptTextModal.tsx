@@ -6,7 +6,6 @@ import { useTextFormatting } from "../../hooks/useTextFormatting";
 import { Button } from "../../components/ui/Button";
 import { Field, inputStyle, Range } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
-import { FormatToolbar } from "../../components/controls/FormatToolbar";
 
 const helpStyle: React.CSSProperties = {
   fontFamily: UI,
@@ -84,9 +83,6 @@ export function ManuscriptTextModal({
         <Mark>[Refrain]</Mark>, or an empty <Mark>Chorus:</Mark>, adds a
         &ldquo;repeat slide 4&rdquo; note instead of building the slide twice.
       </p>
-      <div style={{ marginBottom: 8 }}>
-        <FormatToolbar controller={formatting} block />
-      </div>
       <textarea
         ref={formatting.bind}
         value={body}
@@ -105,13 +101,13 @@ export function ManuscriptTextModal({
         }}
       />
       <p style={{ ...helpStyle, margin: "8px 0 0" }}>
-        Highlight any word or sentence and use the toolbar to format it. The
-        marks are plain text, <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
+        Emphasis is plain text here, <Mark>**bold**</Mark> <Mark>*italic*</Mark>{" "}
         <Mark>++underline++</Mark> <Mark>~~strikethrough~~</Mark>{" "}
-        <Mark>==highlight==</Mark>, so they survive copy and paste. Lists are
-        plain text too, <Mark>- point</Mark> <Mark>1. point</Mark>{" "}
-        <Mark>a. point</Mark> <Mark>i. point</Mark>, and Tab and Shift+Tab move
-        a point in and out to build sub-points.
+        <Mark>==highlight==</Mark>, and so are lists, <Mark>- point</Mark>{" "}
+        <Mark>1. point</Mark> <Mark>a. point</Mark> <Mark>i. point</Mark>. Tab
+        and Shift+Tab move a point in and out to build sub-points. Once the
+        slides are built, format them by highlighting the words on the slide
+        itself.
       </p>
       <div style={{ marginTop: 12 }}>
         <Field label={`Max lines per slide (${maxLines})`}>

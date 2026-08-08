@@ -232,7 +232,11 @@ export function InspectorPanel({
       <textarea
         value={slide.notes || ""}
         onChange={(e) =>
-          editor.updateSlide(slide.id, { notes: e.target.value })
+          editor.updateSlide(
+            slide.id,
+            { notes: e.target.value },
+            { coalesceKey: `notes:${slide.id}` },
+          )
         }
         placeholder="Notes for the presenter (cues, transitions…)"
         style={{

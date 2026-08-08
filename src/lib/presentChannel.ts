@@ -1,4 +1,4 @@
-import type { ContentKind, PresentationView } from "../types";
+import type { ContentKind, PresentationView, SlideDeckDoc } from "../types";
 
 export const PRESENT_CHANNEL_NAME = "worship-studio-present";
 export const PRESENT_WINDOW_NAME = "worship-studio-live-output";
@@ -18,6 +18,11 @@ export interface PresentState {
   id: string;
   /** Last-updated stamp of the presented doc so the popup can spot stale data. */
   rev?: string;
+  /**
+   * The text deck being projected, sent whole so the popup shows exactly what
+   * the operator applied even when the library has not been given it yet.
+   */
+  doc?: SlideDeckDoc;
   slideIndex: number;
   paused: boolean;
   zoom: number;

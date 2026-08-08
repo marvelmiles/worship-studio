@@ -27,8 +27,10 @@ export function ManuscriptWorkspace({
   const [textOpen, setTextOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const theme =
-    themes.find((t) => t.id === manuscript.defaultThemeId) || themes[0];
+  // Everything below edits the draft the workspace is holding, not the stored
+  // record: the library only sees it once the user saves.
+  const draft = editor.doc;
+  const theme = themes.find((t) => t.id === draft.defaultThemeId) || themes[0];
 
   // A heading the writer left at the top of the text fills in the manuscript's
   // details, but never overwrites what the user has already set themselves.
@@ -38,11 +40,11 @@ export function ManuscriptWorkspace({
       maxLines,
     );
     const changes: Partial<Manuscript> = { body, maxLines, slides };
-    if (title && isUntitledManuscript(manuscript.title)) changes.title = title;
-    if (author && !manuscript.author?.trim()) changes.author = author;
+    if (title && isUntitledManuscript(draft.title)) changes.title = title;
+    if (author && !draft.author?.trim()) changes.author = author;
     if (
       collection &&
-      (!manuscript.collection || manuscript.collection === DEFAULT_COLLECTION)
+      (!draft.collection || draft.collection === DEFAULT_COLLECTION)
     )
       changes.collection = collection;
     editor.patchDoc(changes);
@@ -51,7 +53,7 @@ export function ManuscriptWorkspace({
 
   return (
     <DeckWorkspace
-      doc={manuscript}
+      doc={draft}
       kind="manuscript"
       editor={editor}
       backTo="/manuscripts"
@@ -112,13 +114,13 @@ export function ManuscriptWorkspace({
       <ManuscriptTextModal
         open={textOpen}
         onClose={() => setTextOpen(false)}
-        manuscript={manuscript}
+        manuscript={draft}
         onRegenerate={regenerateFromBody}
       />
       <ManuscriptSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        manuscript={manuscript}
+        manuscript={draft}
         theme={theme}
         themes={themes}
         backgrounds={backgrounds}

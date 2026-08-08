@@ -6,9 +6,13 @@ import {
   ArrowDown,
   Copy,
   CornerDownRight,
+  MonitorUp,
   Play,
+  Redo2,
+  Save,
   Scissors,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import type { ContentKind, SlideDeckDoc } from "../../types";
 import { colors, DISPLAY, UI } from "../../theme/tokens";
@@ -17,6 +21,11 @@ import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
+import type { TextChangeMeta } from "../../hooks/useTextFormatting";
+import {
+  useUnsavedChanges,
+  UNSAVED_CHANGES_MESSAGE,
+} from "../../hooks/useUnsavedChanges";
 import {
   resolveBackground,
   resolveLineStyle,
@@ -27,6 +36,7 @@ import { Button, IconButton } from "../../components/ui/Button";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import type { DeckEditor } from "./useDeckEditor";
 import { useFollowPresentation } from "./useFollowPresentation";
 import { SlideListPanel } from "./SlideListPanel";
@@ -71,7 +81,10 @@ export function DeckWorkspace({
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
   const startPresent = useStore((s) => s.startPresent);
+  const updatePresentation = useStore((s) => s.updatePresentation);
+  const presentation = useStore((s) => s.presentation);
   const addCustomBackground = useStore((s) => s.addCustomBackground);
+  const pushToast = useStore((s) => s.pushToast);
 
   const tagGroups = useMemo(
     () => computeTagGroups(editor.slides),
@@ -87,31 +100,38 @@ export function DeckWorkspace({
   const [tab, setTab] = useState<MobileTab>("edit");
   const [lineScope, setLineScope] = useState(false);
 
+  const leaveGuard = useUnsavedChanges(editor.dirty, navigate);
+
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
   const slide = editor.selectedSlide;
+  const slideId = slide?.id ?? null;
+  // True whether the presentation is projected or previewing on this screen.
+  const isPresentingThisDoc =
+    presentation?.kind === kind && presentation.id === doc.id;
 
   // The slide's lines edit as one block of text, so the formatting toolbar can
   // act on a selection that runs across several of them.
   const slideText = (slide?.lines ?? []).join("\n");
-  const setSlideText = useCallback(
-    (text: string) => {
-      if (!slide) return;
-      const lines = text.split("\n");
-      const lineOverrides = slide.lineOverrides
-        ? Object.fromEntries(
-            Object.entries(slide.lineOverrides).filter(
-              ([index]) => Number(index) < lines.length,
-            ),
-          )
-        : undefined;
-      editor.updateSlide(slide.id, { lines, lineOverrides });
+  const { setSlideText } = editor;
+  const onSlideTextChange = useCallback(
+    (text: string, meta: TextChangeMeta) => {
+      if (!slideId) return;
+      // A run of typing and a slider being dragged each fold into one step; a
+      // formatting command is its own, so one undo takes exactly it back.
+      const group = meta.coalesceKey ?? (meta.typing ? "typing" : null);
+      setSlideText(slideId, text, {
+        caret: meta.caret,
+        coalesceKey: group ? `text:${slideId}:${group}` : undefined,
+      });
     },
-    [slide, editor],
+    [slideId, setSlideText],
   );
+
   const formatting = useTextFormatting({
     value: slideText,
-    onChange: setSlideText,
+    onChange: onSlideTextChange,
+    history: editor.history,
   });
 
   // Line-scoped styling follows the caret, so the inspector always acts on the
@@ -122,13 +142,27 @@ export function DeckWorkspace({
       ? Math.min(formatting.lines.first, lineCount - 1)
       : null;
 
-  const present = ({ pip }: { pip: boolean }) =>
+  // Presenting from the editor shows what the operator is looking at, saved or
+  // not: the run starts from the library copy, then the draft is pushed onto it.
+  const present = ({ pip }: { pip: boolean }) => {
     startPresent(
       kind,
       doc.id,
       Math.max(0, editor.selectedIndex),
       pip ? "pip" : "stage",
     );
+    updatePresentation(kind, doc);
+  };
+
+  // A refused save (storage full) raises its own alert from the store, so the
+  // editor stays dirty and says nothing rather than claiming it wrote.
+  const handleSave = () => {
+    if (editor.save()) pushToast("Changes saved.");
+  };
+
+  const handleUpdatePresentation = () => {
+    if (updatePresentation(kind, doc)) pushToast("Presentation updated.");
+  };
 
   const menuItems: MenuItem[] = menu
     ? [
@@ -203,7 +237,13 @@ export function DeckWorkspace({
       background={resolveBackground(slide, doc, theme, bgMap)}
       text={slideText}
       formatting={formatting}
-      onChangeLabel={(label) => editor.updateSlide(slide.id, { label })}
+      onChangeLabel={(label) =>
+        editor.updateSlide(
+          slide.id,
+          { label },
+          { coalesceKey: `label:${slide.id}` },
+        )
+      }
       selectedLine={selectedLine}
     />
   ) : (
@@ -237,10 +277,21 @@ export function DeckWorkspace({
         title={doc.title}
         compact={width < 560}
         backTitle={backTitle}
-        onBack={() => navigate(backTo)}
-        onTitle={(title) => editor.patchDoc({ title })}
+        onBack={() => leaveGuard.confirm(() => navigate(backTo))}
+        onTitle={(title) =>
+          editor.patchDoc({ title }, { coalesceKey: "title" })
+        }
         onPresent={present}
         actions={topBarActions(width < 560)}
+        dirty={editor.dirty}
+        canUndo={editor.canUndo}
+        canRedo={editor.canRedo}
+        onUndo={formatting.undo}
+        onRedo={formatting.redo}
+        onSave={handleSave}
+        onUpdatePresentation={
+          isPresentingThisDoc ? handleUpdatePresentation : undefined
+        }
       />
 
       {stacked ? (
@@ -290,6 +341,15 @@ export function DeckWorkspace({
         />
       )}
 
+      <ConfirmDialog
+        open={leaveGuard.prompting}
+        title="Unsaved changes"
+        message={UNSAVED_CHANGES_MESSAGE}
+        confirmLabel="Leave without saving"
+        onConfirm={leaveGuard.discard}
+        onCancel={leaveGuard.cancel}
+      />
+
       {children}
     </div>
   );
@@ -303,6 +363,14 @@ interface TopBarProps {
   onTitle: (title: string) => void;
   onPresent: (options: { pip: boolean }) => void;
   actions: ReactNode;
+  dirty: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onSave: () => void;
+  /** Only set while this document is the one being presented. */
+  onUpdatePresentation?: () => void;
 }
 
 function TopBar({
@@ -313,6 +381,13 @@ function TopBar({
   onTitle,
   onPresent,
   actions,
+  dirty,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onSave,
+  onUpdatePresentation,
 }: TopBarProps) {
   return (
     <div
@@ -341,7 +416,51 @@ function TopBar({
           color: colors.text,
         }}
       />
+      <IconButton
+        icon={Undo2}
+        title="Undo (Ctrl+Z)"
+        disabled={!canUndo}
+        onClick={onUndo}
+      />
+      <IconButton
+        icon={Redo2}
+        title="Redo (Ctrl+Y)"
+        disabled={!canRedo}
+        onClick={onRedo}
+      />
       {actions}
+      {onUpdatePresentation &&
+        (compact ? (
+          <IconButton
+            icon={MonitorUp}
+            title="Update presentation"
+            onClick={onUpdatePresentation}
+          />
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onUpdatePresentation}>
+            <MonitorUp size={14} />
+            Update presentation
+          </Button>
+        ))}
+      {compact ? (
+        <IconButton
+          icon={Save}
+          title={dirty ? "Save changes" : "No changes to save"}
+          disabled={!dirty}
+          active={dirty}
+          onClick={onSave}
+        />
+      ) : (
+        <Button
+          variant={dirty ? "primary" : "ghost"}
+          size="sm"
+          disabled={!dirty}
+          onClick={onSave}
+        >
+          <Save size={14} />
+          {dirty ? "Save" : "Saved"}
+        </Button>
+      )}
       <PresentMenu onPresent={onPresent} title="Present">
         {compact ? (
           <IconButton icon={Play} title="Present" active />

@@ -38,7 +38,8 @@ export function normalizeStoredManuscript(
 export interface ManuscriptsSlice {
   manuscripts: Manuscript[];
 
-  upsertManuscript: (manuscript: Manuscript) => void;
+  /** False when storage is full and the write was refused. */
+  upsertManuscript: (manuscript: Manuscript) => boolean;
   createManuscript: () => Manuscript | null;
   trashManuscript: (id: string) => void;
   restoreManuscript: (id: string) => void;
@@ -52,7 +53,7 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
   manuscripts: [],
 
   upsertManuscript: (manuscript) => {
-    if (blockWrite(get)) return;
+    if (blockWrite(get)) return false;
     set((state) => {
       const exists = state.manuscripts.some((m) => m.id === manuscript.id);
       const manuscripts = exists
@@ -64,6 +65,7 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
     });
     void saveRecord("manuscripts", manuscript);
     afterWrite(get);
+    return true;
   },
 
   createManuscript: () => {

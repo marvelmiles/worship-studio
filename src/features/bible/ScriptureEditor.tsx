@@ -88,9 +88,11 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
   }, [startPresent]);
   if (!passage) return null;
 
+  const draft = editor.doc;
+
   return (
     <DeckWorkspace
-      doc={passage}
+      doc={draft}
       kind="scripture"
       editor={editor}
       backTo="/bible"
@@ -143,7 +145,7 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
       <PassageSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        passage={passage}
+        passage={draft}
         editor={editor}
       />
     </DeckWorkspace>

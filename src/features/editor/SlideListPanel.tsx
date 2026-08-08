@@ -31,13 +31,18 @@ export function SlideListPanel({
   tagGroups,
 }: SlideListPanelProps) {
   return (
-    <div style={{ padding: 14 }}>
+    <div style={{ paddingBottom: 14 }}>
       <div
         style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 2,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 12,
+          padding: "14px 14px 10px",
+          background: colors.bg,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
         <span
@@ -54,17 +59,19 @@ export function SlideListPanel({
         </span>
         <IconButton icon={Plus} title="Add slide" onClick={onAdd} />
       </div>
-      <SortableSlideList
-        slides={slides}
-        selId={selectedId}
-        setSelId={setSelectedId}
-        doc={doc}
-        theme={theme}
-        bgMap={bgMap}
-        onReorder={onReorder}
-        onContextMenu={onContextMenu}
-        tagGroups={tagGroups}
-      />
+      <div style={{ padding: "12px 14px 0" }}>
+        <SortableSlideList
+          slides={slides}
+          selId={selectedId}
+          setSelId={setSelectedId}
+          doc={doc}
+          theme={theme}
+          bgMap={bgMap}
+          onReorder={onReorder}
+          onContextMenu={onContextMenu}
+          tagGroups={tagGroups}
+        />
+      </div>
     </div>
   );
 }

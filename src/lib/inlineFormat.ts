@@ -16,6 +16,9 @@ export interface InlineStyle {
   highlight?: boolean;
 }
 
+/** The emphasis marks a run can carry, each one a toggle. */
+export type InlineMarkName = keyof InlineStyle;
+
 export interface FormattedSegment extends InlineStyle {
   text: string;
   /** Character-level style from a `[[…]]` span, see lib/inlineStyle.ts. */

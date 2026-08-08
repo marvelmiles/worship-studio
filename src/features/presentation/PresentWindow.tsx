@@ -79,15 +79,16 @@ export function PresentWindow() {
     }
   };
 
-  const deck = useDeck(state?.kind, state?.id);
+  const deck = useDeck(state?.kind, state?.id, state?.doc);
   const bgMap = useBgMap();
 
   // This window loads its store once on open; content created or edited after
   // that would be missing here, so reload from storage when the operator's
-  // broadcast references something newer than our copy. The key resets after a
-  // moment so a reload that raced the operator's write gets retried.
+  // broadcast references something newer than our copy. A text deck arrives
+  // whole in the broadcast and is never stale. The key resets after a moment so
+  // a reload that raced the operator's write gets retried.
   useEffect(() => {
-    if (!state) return;
+    if (!state || state.doc) return;
     const stale = !deck || (state.rev && deck.rev !== state.rev);
     if (!stale) return;
     const key = `${state.kind}:${state.id}:${state.rev || ""}`;

@@ -39,6 +39,31 @@ export type TextCommand = (
   selectionEnd: number,
 ) => EditResult | null;
 
+/** What a command tells its owner about the edit it just made. */
+export interface TextChangeMeta {
+  /** Caret before the edit, which is where an undo should put it back. */
+  caret: TextRange;
+  /** True for a run of ordinary typing, which undoes as one step. */
+  typing: boolean;
+  /**
+   * Set by commands that fire repeatedly for one gesture, a slider drag above
+   * all. Consecutive edits sharing a key belong in a single undo step.
+   */
+  coalesceKey?: string;
+}
+
+/**
+ * An undo stack owned outside this hook, used when the text is one part of a
+ * larger document whose history has to cover the rest of it too. Both steps
+ * return the caret to restore, or null when the step was not a text edit.
+ */
+export interface EditHistory {
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: (caret: TextRange | null) => TextRange | null;
+  redo: (caret: TextRange | null) => TextRange | null;
+}
+
 export interface TextFormattingController {
   /** Attach the surface the toolbar should format, as a ref or a custom host. */
   bind: (target: HTMLTextAreaElement | FormattingHost | null) => void;
@@ -60,7 +85,13 @@ export interface TextFormattingController {
   indent: () => void;
   outdent: () => void;
   /** Runs any text command against the bound surface, carrying the caret over. */
-  runCommand: (command: TextCommand, focus?: boolean) => boolean;
+  runCommand: (
+    command: TextCommand,
+    focus?: boolean,
+    coalesceKey?: string,
+  ) => boolean;
+  canUndo: boolean;
+  canRedo: boolean;
   undo: () => void;
   redo: () => void;
   /** Wire to the surface's selection events so button states follow the caret. */
@@ -71,7 +102,9 @@ export interface TextFormattingController {
 
 interface Options {
   value: string;
-  onChange: (next: string) => void;
+  onChange: (next: string, meta: TextChangeMeta) => void;
+  /** Hands undo and redo to the document's own history instead of keeping one here. */
+  history?: EditHistory;
 }
 
 interface Snapshot {
@@ -115,6 +148,7 @@ const isTextArea = (
 export function useTextFormatting({
   value,
   onChange,
+  history,
 }: Options): TextFormattingController {
   const hostRef = useRef<FormattingHost | null>(null);
   const pendingRef = useRef<(TextRange & { focus: boolean }) | null>(null);
@@ -125,6 +159,20 @@ export function useTextFormatting({
   const writtenRef = useRef(value);
   const [ready, setReady] = useState(false);
   const [selection, setSelection] = useState<TextRange>({ start: 0, end: 0 });
+  /** Depth of the stacks kept here, so the toolbar re-renders when they move. */
+  const [ownDepth, setOwnDepth] = useState({ past: 0, future: 0 });
+
+  const syncOwnDepth = useCallback(
+    () =>
+      setOwnDepth((current) => {
+        const past = pastRef.current.length;
+        const future = futureRef.current.length;
+        return current.past === past && current.future === future
+          ? current
+          : { past, future };
+      }),
+    [],
+  );
 
   const bind = useCallback(
     (target: HTMLTextAreaElement | FormattingHost | null) => {
@@ -158,26 +206,28 @@ export function useTextFormatting({
   }, [value]);
 
   // Text that arrived from anywhere but a command, a switch to another slide
-  // above all, starts a new history: there is nothing here left to undo.
+  // above all, starts a new history: there is nothing here left to undo. A
+  // document that owns its own history keeps it across those switches instead.
   useEffect(() => {
-    if (value === writtenRef.current) return;
+    if (history || value === writtenRef.current) return;
     writtenRef.current = value;
     pastRef.current = [];
     futureRef.current = [];
     typingRef.current = { at: 0, active: false };
-  }, [value]);
+    syncOwnDepth();
+  }, [value, history, syncOwnDepth]);
 
   const write = useCallback(
-    (snapshot: Snapshot, focus: boolean) => {
+    (snapshot: Snapshot, focus: boolean, meta: TextChangeMeta) => {
       writtenRef.current = snapshot.text;
       pendingRef.current = { ...snapshot.selection, focus };
-      onChange(snapshot.text);
+      onChange(snapshot.text, meta);
     },
     [onChange],
   );
 
   const run = useCallback(
-    (command: TextCommand, focus = true) => {
+    (command: TextCommand, focus = true, coalesceKey?: string) => {
       const host = hostRef.current;
       if (!host) return false;
       // The surface is the authority on the caret: it survives a toolbar click
@@ -189,16 +239,20 @@ export function useTextFormatting({
 
       const typing = Math.abs(result.text.length - current.length) === 1;
       const at = Date.now();
-      const coalesce =
-        typing &&
-        typingRef.current.active &&
-        at - typingRef.current.at < COALESCE_MS;
-      if (!coalesce) {
-        pastRef.current.push({ text: current, selection: { start, end } });
-        if (pastRef.current.length > HISTORY_LIMIT) pastRef.current.shift();
+
+      if (!history) {
+        const coalesce =
+          typing &&
+          typingRef.current.active &&
+          at - typingRef.current.at < COALESCE_MS;
+        if (!coalesce) {
+          pastRef.current.push({ text: current, selection: { start, end } });
+          if (pastRef.current.length > HISTORY_LIMIT) pastRef.current.shift();
+        }
+        typingRef.current = { at, active: typing };
+        futureRef.current = [];
+        syncOwnDepth();
       }
-      typingRef.current = { at, active: typing };
-      futureRef.current = [];
 
       write(
         {
@@ -206,10 +260,11 @@ export function useTextFormatting({
           selection: { start: result.selectionStart, end: result.selectionEnd },
         },
         focus,
+        { caret: { start, end }, typing, coalesceKey },
       );
       return true;
     },
-    [write],
+    [write, history, syncOwnDepth],
   );
 
   const step = useCallback(
@@ -217,22 +272,38 @@ export function useTextFormatting({
       const host = hostRef.current;
       const previous = from.pop();
       if (!host || !previous) return;
-      to.push({ text: host.getValue(), selection: host.getSelection() });
+      const caret = host.getSelection();
+      to.push({ text: host.getValue(), selection: caret });
       typingRef.current = { at: 0, active: false };
-      write(previous, true);
+      syncOwnDepth();
+      write(previous, true, { caret, typing: false });
     },
-    [write],
+    [write, syncOwnDepth],
   );
 
-  const undo = useCallback(
-    () => step(pastRef.current, futureRef.current),
-    [step],
-  );
+  /** Restores the caret the document's history handed back, once React catches up. */
+  const restore = useCallback((caret: TextRange | null) => {
+    if (caret) pendingRef.current = { ...caret, focus: true };
+  }, []);
 
-  const redo = useCallback(
-    () => step(futureRef.current, pastRef.current),
-    [step],
-  );
+  const undo = useCallback(() => {
+    if (history) {
+      restore(history.undo(hostRef.current?.getSelection() ?? null));
+      return;
+    }
+    step(pastRef.current, futureRef.current);
+  }, [history, restore, step]);
+
+  const redo = useCallback(() => {
+    if (history) {
+      restore(history.redo(hostRef.current?.getSelection() ?? null));
+      return;
+    }
+    step(futureRef.current, pastRef.current);
+  }, [history, restore, step]);
+
+  const canUndo = history ? history.canUndo : ownDepth.past > 0;
+  const canRedo = history ? history.canRedo : ownDepth.future > 0;
 
   const toggle = useCallback(
     (name: InlineFormatName) =>
@@ -249,6 +320,7 @@ export function useTextFormatting({
       void run(
         (text, start, end) => applyInlineStyle(text, start, end, key, value_),
         false,
+        `style:${key}`,
       ),
     [run],
   );
@@ -309,7 +381,7 @@ export function useTextFormatting({
         const redoing = key === "y" || event.shiftKey;
         // With nothing of our own to step back through, a surface that keeps
         // its own history (a textarea) is left to use it.
-        if (!(redoing ? futureRef.current : pastRef.current).length) return;
+        if (!(redoing ? canRedo : canUndo)) return;
         event.preventDefault();
         if (redoing) redo();
         else undo();
@@ -320,7 +392,7 @@ export function useTextFormatting({
       event.preventDefault();
       toggle(name);
     },
-    [run, toggle, undo, redo],
+    [run, toggle, undo, redo, canUndo, canRedo],
   );
 
   return {
@@ -338,6 +410,8 @@ export function useTextFormatting({
     indent,
     outdent,
     runCommand: run,
+    canUndo,
+    canRedo,
     undo,
     redo,
     syncSelection,

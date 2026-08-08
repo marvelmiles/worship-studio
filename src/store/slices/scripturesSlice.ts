@@ -33,7 +33,8 @@ export interface SavePassageOptions extends ScriptureSelection {
 export interface ScripturesSlice {
   scriptures: ScripturePassage[];
 
-  upsertScripture: (passage: ScripturePassage) => void;
+  /** False when storage is full and the write was refused. */
+  upsertScripture: (passage: ScripturePassage) => boolean;
   saveScripturePassage: (
     options: SavePassageOptions,
   ) => ScripturePassage | null;
@@ -106,7 +107,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
   scriptures: [],
 
   upsertScripture: (passage) => {
-    if (blockWrite(get)) return;
+    if (blockWrite(get)) return false;
     set((state) => {
       const exists = state.scriptures.some((s) => s.id === passage.id);
       const scriptures = exists
@@ -116,6 +117,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     });
     void saveRecord("scriptures", passage);
     afterWrite(get);
+    return true;
   },
 
   saveScripturePassage: (options) => {
