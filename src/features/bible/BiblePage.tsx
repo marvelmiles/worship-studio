@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -82,6 +82,7 @@ export function BiblePage() {
   // Deep-links (e.g. dashboard activities) jump straight into the reader at a
   // given position, focusing its verse, or verse 1 for a whole-chapter read.
   const location = useLocation();
+  const navigate = useNavigate();
   const readTarget = (
     location.state as {
       read?: { bookId: number; chapter: number; verse: number | null };
@@ -96,8 +97,10 @@ export function BiblePage() {
     });
     setFocusVerse(readTarget.verse ?? 1);
     setStep("read");
-    window.history.replaceState({}, "");
-  }, [readTarget]);
+    // Dropped through the router rather than history directly, so the entry
+    // keeps the bookkeeping Back and Forward rely on.
+    navigate(location.pathname, { replace: true, state: null });
+  }, [readTarget, navigate, location.pathname]);
 
   const book = bookById(readingPosition.bookId);
   const savedCount = scriptures.filter((s) => !s.quick && !s.deleted).length;

@@ -100,7 +100,7 @@ export function DeckWorkspace({
   const [tab, setTab] = useState<MobileTab>("edit");
   const [lineScope, setLineScope] = useState(false);
 
-  const leaveGuard = useUnsavedChanges(editor.dirty, navigate);
+  const leaveGuard = useUnsavedChanges(editor.dirty);
 
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
@@ -279,7 +279,7 @@ export function DeckWorkspace({
         title={doc.title}
         compact={width < 560}
         backTitle={backTitle}
-        onBack={() => leaveGuard.confirm(() => navigate(backTo))}
+        onBack={() => navigate(backTo)}
         onTitle={(title) =>
           editor.patchDoc({ title }, { coalesceKey: "title" })
         }

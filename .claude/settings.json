@@ -29,7 +29,11 @@
       "Bash(sed -i 's#import { BackgroundImageEditorModal } from \"../../features/media/BackgroundImageEditorModal\";#import { BackgroundImageEditorModal } from \"../media/BackgroundImageEditorModal\";#' src/components/controls/BackgroundPicker.tsx)",
       "Bash(sed -i 's#import { ImageEditorModal } from \"./ImageEditorModal\";#import { ImageEditorModal } from \"../../components/media/ImageEditorModal\";#' src/features/media/MediaLibraryPage.tsx)",
       "Bash(sed -i 's#import { AdjustmentControls } from \"./AdjustmentControls\";#import { AdjustmentControls } from \"../../components/media/AdjustmentControls\";#' src/features/media/VideoEditorModal.tsx)",
-      "Bash(echo \"---exit $?\")"
+      "Bash(echo \"---exit $?\")",
+      "Bash(node -p \"require\\('./node_modules/react-router-dom/package.json'\\).version\")",
+      "Bash(node \"C:\\\\Users\\\\MARVEL~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Marvellous-Documents-app-worship-studio\\\\29b92da4-7e12-43fa-8c2c-170e0a13e995\\\\scratchpad\\\\router-check.mjs\")",
+      "Bash(cp \"C:\\\\Users\\\\MARVEL~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Marvellous-Documents-app-worship-studio\\\\29b92da4-7e12-43fa-8c2c-170e0a13e995\\\\scratchpad\\\\router-check.mjs\" ./router-check.mjs)",
+      "Bash(node ./router-check.mjs)"
     ]
   }
 }

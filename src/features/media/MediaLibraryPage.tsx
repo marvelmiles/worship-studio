@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Film,
   Image as ImageIcon,
@@ -91,14 +91,17 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const [deleting, setDeleting] = useState<MediaItem | null>(null);
 
   // Deep-links (e.g. dashboard activities) land here with the item to open.
+  // The state is dropped through the router rather than history directly, so
+  // the entry keeps the bookkeeping Back and Forward rely on.
   const location = useLocation();
+  const navigate = useNavigate();
   const openId = (location.state as { openId?: string } | null)?.openId;
   useEffect(() => {
     if (!openId) return;
     const item = media.find((m) => m.id === openId && m.kind === kind);
     if (item) setEditing(item);
-    window.history.replaceState({}, "");
-  }, [openId, media, kind]);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [openId, media, kind, navigate, location.pathname]);
 
   const list = useMemo(() => {
     let base = media.filter((m) => m.kind === kind);

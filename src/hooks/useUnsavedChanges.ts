@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useBlocker } from "react-router-dom";
+import type { BlockerFunction } from "react-router-dom";
 
 export const UNSAVED_CHANGES_MESSAGE =
   "You have unsaved changes. If you leave this page they will be lost.";
@@ -6,74 +8,36 @@ export const UNSAVED_CHANGES_MESSAGE =
 export interface UnsavedChangesGuard {
   /** True while a confirmation is waiting on the user. */
   prompting: boolean;
-  /**
-   * Runs `action`, or holds it back and asks first while there are unsaved
-   * changes. Wrap anything that takes the user off the editor.
-   */
-  confirm: (action: () => void) => void;
-  /** Goes ahead with the held-back action, changes and all. */
+  /** Goes ahead with the held-back navigation, changes and all. */
   discard: () => void;
-  /** Drops the held-back action and stays put. */
+  /** Drops the held-back navigation and stays put. */
   cancel: () => void;
 }
-
-/** True for a plain left click the browser would treat as following the link. */
-const isPlainClick = (event: MouseEvent): boolean =>
-  !event.defaultPrevented &&
-  event.button === 0 &&
-  !event.metaKey &&
-  !event.ctrlKey &&
-  !event.shiftKey &&
-  !event.altKey;
-
-const currentPath = (): string =>
-  `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
 /**
  * Keeps unsaved work from disappearing silently.
  *
- * Closing the tab, reloading it and leaving the site go through the browser's
- * own `beforeunload` dialog. A link inside the app never reaches the browser at
- * all, so those clicks are caught here and asked about with the app's own
- * dialog; `confirm` wraps anything else that navigates, such as a Back button.
+ * Everything that moves between screens goes through the router, so a single
+ * blocker covers links, the editor's own Back button and the browser's Back and
+ * Forward buttons alike: the navigation is held, the caller shows the app's
+ * dialog, and `discard`/`cancel` decide it. Closing the tab, reloading it and
+ * leaving the site never reach the router, so those stay with the browser's own
+ * `beforeunload` dialog.
  */
-export function useUnsavedChanges(
-  dirty: boolean,
-  navigate: (path: string) => void,
-): UnsavedChangesGuard {
-  const [prompting, setPrompting] = useState(false);
-  const pendingRef = useRef<(() => void) | null>(null);
-  const dirtyRef = useRef(dirty);
-  dirtyRef.current = dirty;
-  const navigateRef = useRef(navigate);
-  navigateRef.current = navigate;
+export function useUnsavedChanges(dirty: boolean): UnsavedChangesGuard {
+  const shouldBlock = useCallback<BlockerFunction>(
+    ({ currentLocation, nextLocation }) =>
+      dirty && currentLocation.pathname !== nextLocation.pathname,
+    [dirty],
+  );
+  const blocker = useBlocker(shouldBlock);
 
+  // A held navigation outlives the reason to hold it when the draft stops being
+  // dirty (an undo back to the saved text, say). Letting it through keeps the
+  // blocker from stranding the user on a screen they asked to leave.
   useEffect(() => {
-    if (!dirty) return;
-    // Capture phase, so the link is stopped before the router acts on it.
-    const onClick = (event: MouseEvent) => {
-      if (!isPlainClick(event)) return;
-      const target = event.target;
-      const anchor =
-        target instanceof Element ? target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement)) return;
-      if (anchor.target && anchor.target !== "_self") return;
-      if (anchor.hasAttribute("download")) return;
-
-      const url = new URL(anchor.href, window.location.href);
-      // Leaving the site entirely is the browser's dialog to show.
-      if (url.origin !== window.location.origin) return;
-      const path = `${url.pathname}${url.search}${url.hash}`;
-      if (path === currentPath()) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      pendingRef.current = () => navigateRef.current(path);
-      setPrompting(true);
-    };
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
-  }, [dirty]);
+    if (!dirty && blocker.state === "blocked") blocker.proceed();
+  }, [dirty, blocker]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -88,26 +52,8 @@ export function useUnsavedChanges(
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
 
-  const confirm = useCallback((action: () => void) => {
-    if (!dirtyRef.current) {
-      action();
-      return;
-    }
-    pendingRef.current = action;
-    setPrompting(true);
-  }, []);
+  const discard = useCallback(() => blocker.proceed?.(), [blocker]);
+  const cancel = useCallback(() => blocker.reset?.(), [blocker]);
 
-  const discard = useCallback(() => {
-    const action = pendingRef.current;
-    pendingRef.current = null;
-    setPrompting(false);
-    action?.();
-  }, []);
-
-  const cancel = useCallback(() => {
-    pendingRef.current = null;
-    setPrompting(false);
-  }, []);
-
-  return { prompting, confirm, discard, cancel };
+  return { prompting: blocker.state === "blocked", discard, cancel };
 }

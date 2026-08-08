@@ -6,7 +6,7 @@ import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import {
-  resolveBackgroundImage,
+  resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -29,7 +29,6 @@ export function ManuscriptLibrary() {
   const navigate = useNavigate();
   const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
-  const backgrounds = useStore((s) => s.backgrounds);
   const createManuscript = useStore((s) => s.createManuscript);
   const trashManuscript = useStore((s) => s.trashManuscript);
   const restoreManuscript = useStore((s) => s.restoreManuscript);
@@ -135,10 +134,15 @@ export function ManuscriptLibrary() {
           const first = m.slides?.[0];
           const theme =
             themes.find((t) => t.id === m.defaultThemeId) || themes[0];
-          const bg =
-            bgMap[m.defaultBackgroundId || theme.backgroundId] ||
-            backgrounds[0];
-          const bgImage = resolveBackgroundImage(first, m, bg);
+          // The cover shows the first slide as it will be projected, so the
+          // background follows that slide's own choice before the manuscript's
+          // and the theme's.
+          const { background, image } = resolveBackgroundView(
+            first,
+            m,
+            theme,
+            bgMap,
+          );
           return (
             <div key={m.id} className="ws-glass ws-card">
               <div
@@ -151,8 +155,8 @@ export function ManuscriptLibrary() {
                 {first ? (
                   <SlideCanvas
                     slide={first}
-                    bg={bg}
-                    bgImage={bgImage}
+                    bg={background}
+                    bgImage={image}
                     radius={0}
                     style={resolveStyle(first, m, theme)}
                     lineStyles={first.lines.map((_, i) =>
@@ -161,8 +165,8 @@ export function ManuscriptLibrary() {
                   />
                 ) : (
                   <BgSwatch
-                    bg={bg}
-                    settings={bgImage}
+                    bg={background}
+                    settings={image}
                     style={{ aspectRatio: "16/9" }}
                   />
                 )}
