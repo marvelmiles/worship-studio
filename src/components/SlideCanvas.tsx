@@ -1,7 +1,9 @@
 import { useMemo } from "react";
-import type { Background, ResolvedStyle, Slide } from "../types";
+import type { Background, ImageSettings, ResolvedStyle, Slide } from "../types";
 import { colors, fade, UI } from "../theme/tokens";
-import { useThumbUrl } from "../lib/blobUrls";
+import { backgroundImageSettings, isImageBackground } from "../lib/media";
+import { BackgroundSurface } from "./media/BackgroundSurface";
+import { SCRIM_GRADIENT } from "./media/ImageLayer";
 import { lineContentOffsets } from "../lib/inlineDocument";
 import { analyzeLines, listMarkerLabel } from "../lib/lists";
 import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
@@ -20,6 +22,8 @@ interface SlideCanvasProps {
   slide: Slide;
   style: ResolvedStyle;
   bg: Background;
+  /** Picture settings for this usage of `bg`; defaults to the asset library's own. */
+  bgImage?: ImageSettings | null;
   showLabel?: boolean;
   scrim?: boolean;
   radius?: number;
@@ -47,6 +51,7 @@ export function SlideCanvas({
   slide,
   style,
   bg,
+  bgImage,
   showLabel,
   scrim,
   radius = 14,
@@ -57,22 +62,23 @@ export function SlideCanvas({
   editing,
 }: SlideCanvasProps) {
   const editable = Boolean(editing);
-  const bgBlobUrl = useThumbUrl(noBackground ? null : bg?.blobId);
-  const bgImageUrl = bg?.blobId ? bgBlobUrl : bg?.dataUrl;
-  const bgStyle = noBackground
-    ? {}
-    : bg?.type === "image"
-      ? {
-          backgroundImage: bgImageUrl ? `url(${bgImageUrl})` : undefined,
-          backgroundColor: "#0a0a0c",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }
+  const paintsPicture = !noBackground && isImageBackground(bg);
+  // Callers that resolved the settings pass them in; the rest fall back to the
+  // asset's own, with the legacy per-slide darken toggle layered on top.
+  const pictureSettings = paintsPicture
+    ? (bgImage ?? {
+        ...backgroundImageSettings(bg),
+        ...(scrim === undefined ? {} : { scrim }),
+      })
+    : null;
+  const bgStyle =
+    noBackground || paintsPicture
+      ? {}
       : bg?.type === "solid"
         ? { background: bg.color }
         : { background: bg?.css || "#111" };
 
-  const wantScrim = !noBackground && (scrim ?? bg?.type === "image");
+  const wantScrim = !noBackground && !paintsPicture && scrim === true;
   const lines = useMemo(
     () => (slide.lines && slide.lines.length ? slide.lines : [""]),
     [slide.lines],
@@ -96,14 +102,16 @@ export function SlideCanvas({
         ...bgStyle,
       }}
     >
+      {pictureSettings && (
+        <BackgroundSurface
+          background={bg}
+          settings={pictureSettings}
+          variant="thumb"
+        />
+      )}
       {wantScrim && (
         <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(0deg,rgba(0,0,0,0.55),rgba(0,0,0,0.25))",
-          }}
+          style={{ position: "absolute", inset: 0, background: SCRIM_GRADIENT }}
         />
       )}
       <div

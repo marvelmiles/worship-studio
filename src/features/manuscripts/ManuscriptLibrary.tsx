@@ -5,7 +5,11 @@ import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
-import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import {
+  resolveBackgroundImage,
+  resolveLineStyle,
+  resolveStyle,
+} from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { Button, IconButton } from "../../components/ui/Button";
@@ -134,6 +138,7 @@ export function ManuscriptLibrary() {
           const bg =
             bgMap[m.defaultBackgroundId || theme.backgroundId] ||
             backgrounds[0];
+          const bgImage = resolveBackgroundImage(first, m, bg);
           return (
             <div key={m.id} className="ws-glass ws-card">
               <div
@@ -147,6 +152,7 @@ export function ManuscriptLibrary() {
                   <SlideCanvas
                     slide={first}
                     bg={bg}
+                    bgImage={bgImage}
                     radius={0}
                     style={resolveStyle(first, m, theme)}
                     lineStyles={first.lines.map((_, i) =>
@@ -154,7 +160,11 @@ export function ManuscriptLibrary() {
                     )}
                   />
                 ) : (
-                  <BgSwatch bg={bg} style={{ aspectRatio: "16/9" }} />
+                  <BgSwatch
+                    bg={bg}
+                    settings={bgImage}
+                    style={{ aspectRatio: "16/9" }}
+                  />
                 )}
                 <div className="ws-thumb-badge">
                   {m.slides?.length || 0} slides

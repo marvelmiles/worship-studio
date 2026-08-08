@@ -9,6 +9,7 @@ import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS, DEFAULT_COLLECTION } from "../../data/collections";
 import {
   resolveAutoPlay,
+  resolveBackgroundImage,
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
@@ -63,6 +64,12 @@ export function ManuscriptSettingsModal({
   const themeAudio = theme.defaultAudioId
     ? audio.find((a) => a.id === theme.defaultAudioId)
     : undefined;
+  const effectiveBackground = backgrounds.find(
+    (bg) => bg.id === (manuscript.defaultBackgroundId || theme.backgroundId),
+  );
+  const backgroundImage = effectiveBackground
+    ? resolveBackgroundImage(undefined, manuscript, effectiveBackground)
+    : null;
 
   return (
     <Modal
@@ -125,11 +132,26 @@ export function ManuscriptSettingsModal({
         value={manuscript.defaultBackgroundId || ""}
         highlightId={manuscript.defaultBackgroundId || theme.backgroundId}
         inheritLabel={`Use theme (${theme.name})`}
-        onSelect={(id) => onPatchManuscript({ defaultBackgroundId: id })}
-        onUploaded={(id) => onPatchManuscript({ defaultBackgroundId: id })}
+        onSelect={(id, image) =>
+          onPatchManuscript({
+            defaultBackgroundId: id,
+            defaultBackgroundImage: image,
+          })
+        }
+        onUploaded={(id, image) =>
+          onPatchManuscript({
+            defaultBackgroundId: id,
+            defaultBackgroundImage: image,
+          })
+        }
         onAddColor={(value, name) =>
           onPatchManuscript({ defaultBackgroundId: onAddColor(value, name) })
         }
+        imageSettings={backgroundImage}
+        onImageSettingsChange={(settings) =>
+          onPatchManuscript({ defaultBackgroundImage: settings })
+        }
+        usageLabel="this manuscript"
       />
 
       <SectionTitle>Audio</SectionTitle>

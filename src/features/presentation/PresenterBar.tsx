@@ -62,6 +62,7 @@ function NextPreview({
           style={content.style}
           lineStyles={content.lineStyles}
           bg={content.background}
+          bgImage={content.backgroundImage}
           radius={7}
         />
       ) : (

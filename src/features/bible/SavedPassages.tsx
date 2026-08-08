@@ -4,7 +4,7 @@ import { BookOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
 import {
-  resolveBackground,
+  resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -73,6 +73,12 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
             const first = passage.slides?.[0];
             const theme =
               themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
+            const background = resolveBackgroundView(
+              first,
+              passage,
+              theme,
+              bgMap,
+            );
             return (
               <div key={passage.id} className="ws-glass ws-card">
                 <div
@@ -87,7 +93,8 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
                   {first && (
                     <SlideCanvas
                       slide={first}
-                      bg={resolveBackground(first, passage, theme, bgMap)}
+                      bg={background.background}
+                      bgImage={background.image}
                       radius={0}
                       style={resolveStyle(first, passage, theme)}
                       lineStyles={first.lines.map((_, i) =>

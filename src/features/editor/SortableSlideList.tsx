@@ -18,7 +18,7 @@ import { GripVertical } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
 import {
-  resolveBackground,
+  resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -152,6 +152,8 @@ function SortableRow({
     if (selected) rowRef.current?.scrollIntoView({ block: "nearest" });
   }, [selected]);
 
+  const background = resolveBackgroundView(slide, doc, theme, bgMap);
+
   return (
     <div
       ref={setRefs}
@@ -208,7 +210,8 @@ function SortableRow({
       <div style={{ flex: 1, minWidth: 0 }}>
         <SlideCanvas
           slide={slide}
-          bg={resolveBackground(slide, doc, theme, bgMap)}
+          bg={background.background}
+          bgImage={background.image}
           style={resolveStyle(slide, doc, theme)}
           lineStyles={slide.lines.map((_, i) =>
             resolveLineStyle(slide, i, doc, theme),

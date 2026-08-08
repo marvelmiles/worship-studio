@@ -1,4 +1,9 @@
-import type { Background, ResolvedStyle, Slide } from "../../types";
+import type {
+  Background,
+  ImageSettings,
+  ResolvedStyle,
+  Slide,
+} from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { inputStyle } from "../../components/ui/Field";
@@ -11,6 +16,8 @@ interface PreviewPanelProps {
   style: ResolvedStyle;
   lineStyles?: ResolvedStyle[];
   background: Background;
+  /** This slide's picture settings for `background`. */
+  backgroundImage: ImageSettings | null;
   /** The slide's lines as one editable block. */
   text: string;
   formatting: TextFormattingController;
@@ -24,6 +31,7 @@ export function PreviewPanel({
   style,
   lineStyles,
   background,
+  backgroundImage,
   text,
   formatting,
   onChangeLabel,
@@ -53,10 +61,10 @@ export function PreviewPanel({
         <SlideCanvas
           slide={slide}
           bg={background}
+          bgImage={backgroundImage}
           style={style}
           lineStyles={lineStyles}
           showLabel
-          scrim={slide.overrides?.scrim}
           selectedLine={selectedLine}
           editing={editing}
         />

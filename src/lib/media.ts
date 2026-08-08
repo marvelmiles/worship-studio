@@ -1,4 +1,5 @@
 import type {
+  Background,
   ImageSettings,
   MediaAdjustments,
   MediaItem,
@@ -34,10 +35,45 @@ export const DEFAULT_VIDEO_SETTINGS: VideoSettings = {
   fit: "contain",
 };
 
+/**
+ * Backgrounds start where they have always been painted: covering the slide,
+ * with the darken overlay on for legibility.
+ */
+export const DEFAULT_BACKGROUND_IMAGE_SETTINGS: ImageSettings = {
+  ...DEFAULT_ADJUSTMENTS,
+  rotate: 0,
+  flipH: false,
+  flipV: false,
+  fit: "cover",
+  scrim: true,
+};
+
 export const imageSettingsOf = (item: MediaItem): ImageSettings => ({
   ...DEFAULT_IMAGE_SETTINGS,
   ...(item.image || {}),
 });
+
+export const isImageBackground = (background?: Background): boolean =>
+  background?.type === "image";
+
+export const backgroundImageSettings = (
+  background?: Background,
+): ImageSettings => ({
+  ...DEFAULT_BACKGROUND_IMAGE_SETTINGS,
+  ...(background?.image || {}),
+});
+
+/**
+ * The settings a new usage of a background starts from. Copying them at the
+ * moment the picture is chosen is what keeps a later edit in the asset library
+ * out of the documents that already use it.
+ */
+export const snapshotBackgroundImage = (
+  background?: Background,
+): ImageSettings | undefined =>
+  isImageBackground(background)
+    ? backgroundImageSettings(background)
+    : undefined;
 
 export const videoSettingsOf = (item: MediaItem): VideoSettings => ({
   ...DEFAULT_VIDEO_SETTINGS,

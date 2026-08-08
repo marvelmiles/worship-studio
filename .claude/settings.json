@@ -24,7 +24,12 @@
       "Bash(grep -E \"^C:\\\\\\\\\\\\\\\\|refs$|exhaustive-deps$|no-unused|set-state-in-effect$\")",
       "Bash(node node_modules/.pnpm/esbuild@0.21.5/node_modules/esbuild/bin/esbuild --version)",
       "Bash(git --no-pager diff --stat)",
-      "Bash(grep -v \"ms$\")"
+      "Bash(grep -v \"ms$\")",
+      "Bash(grep -rn \"from \\\\\"\\\\.\\\\./\\\\.\\\\./features\\\\|from \\\\\"\\\\.\\\\./features\" src/components)",
+      "Bash(sed -i 's#import { BackgroundImageEditorModal } from \"../../features/media/BackgroundImageEditorModal\";#import { BackgroundImageEditorModal } from \"../media/BackgroundImageEditorModal\";#' src/components/controls/BackgroundPicker.tsx)",
+      "Bash(sed -i 's#import { ImageEditorModal } from \"./ImageEditorModal\";#import { ImageEditorModal } from \"../../components/media/ImageEditorModal\";#' src/features/media/MediaLibraryPage.tsx)",
+      "Bash(sed -i 's#import { AdjustmentControls } from \"./AdjustmentControls\";#import { AdjustmentControls } from \"../../components/media/AdjustmentControls\";#' src/features/media/VideoEditorModal.tsx)",
+      "Bash(echo \"---exit $?\")"
     ]
   }
 }

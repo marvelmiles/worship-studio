@@ -3,21 +3,37 @@ import {
   Image as ImageIcon,
   Music,
   Palette,
+  Pencil,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { AudioItem } from "../../types";
+import type { AudioItem, Background } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
+import { isImageBackground } from "../../lib/media";
 import { Button, IconButton } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
+import { BackgroundImageEditorModal } from "../../components/media/BackgroundImageEditorModal";
 
 type Tab = "backgrounds" | "audio";
+
+const OVERLAY_BUTTON = {
+  width: 24,
+  height: 24,
+  borderRadius: 7,
+  background: "rgba(0,0,0,0.6)",
+  border: "none",
+  color: "#fff",
+  cursor: "pointer",
+  display: "grid",
+  placeItems: "center",
+  padding: 0,
+} as const;
 
 function AudioRow({
   item,
@@ -92,6 +108,7 @@ export function AssetsModal() {
   const audioInput = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<Tab>("backgrounds");
   const [showColor, setShowColor] = useState(false);
+  const [editing, setEditing] = useState<Background | null>(null);
 
   // Deep-links (e.g. dashboard activities) open the modal on a specific tab.
   useEffect(() => {
@@ -207,28 +224,36 @@ export function AssetsModal() {
                     <span style={{ color: colors.dim }}> · default</span>
                   )}
                 </div>
-                {!bg.builtIn && (
-                  <button
-                    onClick={() => removeBackground(bg.id)}
-                    aria-label="Remove"
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      right: 6,
-                      width: 24,
-                      height: 24,
-                      borderRadius: 7,
-                      background: "rgba(0,0,0,0.6)",
-                      border: "none",
-                      color: "#fff",
-                      cursor: "pointer",
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 6,
+                    right: 6,
+                    display: "flex",
+                    gap: 5,
+                  }}
+                >
+                  {isImageBackground(bg) && !bg.builtIn && (
+                    <button
+                      onClick={() => setEditing(bg)}
+                      aria-label={`Edit ${bg.name}`}
+                      title="Edit image"
+                      style={OVERLAY_BUTTON}
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  )}
+                  {!bg.builtIn && (
+                    <button
+                      onClick={() => removeBackground(bg.id)}
+                      aria-label={`Remove ${bg.name}`}
+                      title="Remove"
+                      style={OVERLAY_BUTTON}
+                    >
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -261,6 +286,14 @@ export function AssetsModal() {
             ))}
           </div>
         </>
+      )}
+
+      {editing && (
+        <BackgroundImageEditorModal
+          key={editing.id}
+          background={editing}
+          onClose={() => setEditing(null)}
+        />
       )}
     </Modal>
   );

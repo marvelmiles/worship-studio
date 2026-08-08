@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   FlipHorizontal2,
   FlipVertical2,
@@ -7,9 +7,9 @@ import {
   Save,
   Undo2,
 } from "lucide-react";
-import type { ImageSettings, MediaItem } from "../../types";
-import { useStore } from "../../store/useStore";
-import { DEFAULT_IMAGE_SETTINGS, imageSettingsOf } from "../../lib/media";
+import type { ImageSettings } from "../../types";
+import { colors, UI } from "../../theme/tokens";
+import { useBlobUrl } from "../../lib/blobUrls";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import {
@@ -19,11 +19,24 @@ import {
   Toggle,
   SectionTitle,
 } from "../../components/ui/Field";
-import { ImageSurface } from "../../components/media/ImageSurface";
+import { ImageLayer } from "../../components/media/ImageLayer";
 import { AdjustmentControls } from "./AdjustmentControls";
 
 interface ImageEditorModalProps {
-  item: MediaItem | null;
+  title: string;
+  /** Says which copy of the picture the changes land on. */
+  note?: string;
+  /** File to preview, resolved to an object URL while the editor is open. */
+  blobId?: string | null;
+  /** Used when the picture has no stored file (bundled and legacy inline data). */
+  fallbackSrc?: string | null;
+  alt: string;
+  /** Omit to hide the name field. */
+  initialName?: string;
+  initialSettings: ImageSettings;
+  /** What "Reset all" goes back to. */
+  defaults: ImageSettings;
+  onSave: (settings: ImageSettings, name: string) => void;
   onClose: () => void;
 }
 
@@ -33,23 +46,27 @@ const FIT_OPTIONS = [
   { value: "fill", label: "Fill (stretch)" },
 ];
 
-export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
-  const updateMedia = useStore((s) => s.updateMedia);
-  const pushToast = useStore((s) => s.pushToast);
-
-  const [name, setName] = useState("");
-  const [settings, setSettings] = useState<ImageSettings>(
-    DEFAULT_IMAGE_SETTINGS,
-  );
-
-  useEffect(() => {
-    if (item) {
-      setName(item.name);
-      setSettings(imageSettingsOf(item));
-    }
-  }, [item]);
-
-  if (!item) return null;
+/**
+ * Edits one picture. The caller owns where the result is written, so the same
+ * editor serves the media library, the asset library and a single slide,
+ * manuscript or passage. Mount it keyed by the picture being edited: the draft
+ * lives for as long as the editor is open.
+ */
+export function ImageEditorModal({
+  title,
+  note,
+  blobId,
+  fallbackSrc,
+  alt,
+  initialName,
+  initialSettings,
+  defaults,
+  onSave,
+  onClose,
+}: ImageEditorModalProps) {
+  const [name, setName] = useState(initialName ?? "");
+  const [settings, setSettings] = useState<ImageSettings>(initialSettings);
+  const blobUrl = useBlobUrl(blobId ?? null);
 
   const patch = (changes: Partial<ImageSettings>) =>
     setSettings((prev) => ({ ...prev, ...changes }));
@@ -61,8 +78,7 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
     });
 
   const save = () => {
-    updateMedia(item.id, { name: name.trim() || item.name, image: settings });
-    pushToast("Image saved.");
+    onSave(settings, name.trim());
     onClose();
   };
 
@@ -70,15 +86,12 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
     <Modal
       open
       onClose={onClose}
-      title="Edit Image"
+      title={title}
       width={760}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button
-            variant="ghost"
-            onClick={() => setSettings(DEFAULT_IMAGE_SETTINGS)}
-          >
+          <Button variant="ghost" onClick={() => setSettings(defaults)}>
             <Undo2 size={14} />
             Reset all
           </Button>
@@ -89,6 +102,20 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
         </>
       }
     >
+      {note && (
+        <p
+          style={{
+            fontFamily: UI,
+            fontSize: 12.5,
+            color: colors.sub,
+            margin: "0 0 14px",
+            lineHeight: 1.55,
+          }}
+        >
+          {note}
+        </p>
+      )}
+
       <div
         style={{
           position: "relative",
@@ -98,14 +125,20 @@ export function ImageEditorModal({ item, onClose }: ImageEditorModalProps) {
           border: "1px solid rgba(255,255,255,0.1)",
         }}
       >
-        <ImageSurface item={item} settings={settings} />
+        <ImageLayer
+          src={blobUrl ?? fallbackSrc ?? null}
+          alt={alt}
+          settings={settings}
+        />
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <Field label="Name">
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-      </div>
+      {initialName !== undefined && (
+        <div style={{ marginTop: 16 }}>
+          <Field label="Name">
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+        </div>
+      )}
 
       <SectionTitle>Transform</SectionTitle>
       <div className="ws-row-wrap" style={{ marginBottom: 12 }}>

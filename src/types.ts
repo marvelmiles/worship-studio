@@ -36,7 +36,14 @@ export interface SlideOverrides extends TextStyle {
   backgroundId?: string;
   audioId?: string;
   animation?: AnimationKind;
+  /** Legacy darken toggle, superseded by `backgroundImage.scrim` and still read for slides saved before it. */
   scrim?: boolean;
+  /**
+   * This slide's own copy of the background picture's settings, taken when the
+   * picture was chosen. Editing it never reaches the asset library or any other
+   * slide.
+   */
+  backgroundImage?: ImageSettings;
 }
 
 export interface Slide {
@@ -62,6 +69,8 @@ export interface SlideDeckDoc {
   slides: Slide[];
   defaultThemeId: string;
   defaultBackgroundId?: string;
+  /** This document's own copy of `defaultBackgroundId`'s picture settings. */
+  defaultBackgroundImage?: ImageSettings;
   defaultAudioId?: string | null;
   animation?: AnimationKind;
   autoPlay?: boolean;
@@ -215,6 +224,11 @@ export interface Background {
   dataUrl?: string;
   /** Points into the "files" store; resolved to an object URL on demand. */
   blobId?: string;
+  /**
+   * Library-level picture settings for image backgrounds. They seed every new
+   * usage of the background; documents already using it keep their own copy.
+   */
+  image?: ImageSettings;
   size?: number;
   light?: boolean;
   builtIn?: boolean;

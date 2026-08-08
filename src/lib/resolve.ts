@@ -1,12 +1,14 @@
 import type {
   AnimationKind,
   Background,
+  ImageSettings,
   ResolvedStyle,
   Slide,
   SlideDeckDoc,
   Theme,
 } from "../types";
 import { BACKGROUNDS } from "../data/backgrounds";
+import { backgroundImageSettings, isImageBackground } from "./media";
 
 const TEXT_KEYS = [
   "fontFamily",
@@ -93,6 +95,55 @@ export function resolveBackground(
 ): Background {
   const id = resolveBackgroundId(slide, doc, theme);
   return bgMap[id] || bgMap[theme.backgroundId] || BACKGROUNDS[0];
+}
+
+/**
+ * Effective picture settings for a background, or null when it isn't an image.
+ *
+ * Layered the same way text style is: the asset library's own settings first,
+ * then the copy held by the document, then the copy held by the slide. A layer
+ * that points at a different picture is skipped, so settings never leak onto a
+ * background the layer never chose.
+ */
+export function resolveBackgroundImage(
+  slide: Slide | undefined,
+  doc: SlideDeckDoc | undefined,
+  background: Background,
+): ImageSettings | null {
+  if (!isImageBackground(background)) return null;
+  let settings = backgroundImageSettings(background);
+
+  const docBackgroundId = doc?.defaultBackgroundId;
+  if (
+    doc?.defaultBackgroundImage &&
+    (!docBackgroundId || docBackgroundId === background.id)
+  )
+    settings = { ...settings, ...doc.defaultBackgroundImage };
+
+  const slideBackgroundId = slide?.overrides?.backgroundId;
+  if (!slideBackgroundId || slideBackgroundId === background.id) {
+    if (slide?.overrides?.scrim !== undefined)
+      settings = { ...settings, scrim: slide.overrides.scrim };
+    if (slide?.overrides?.backgroundImage)
+      settings = { ...settings, ...slide.overrides.backgroundImage };
+  }
+  return settings;
+}
+
+/** A background together with the picture settings that apply to this usage. */
+export interface ResolvedBackground {
+  background: Background;
+  image: ImageSettings | null;
+}
+
+export function resolveBackgroundView(
+  slide: Slide | undefined,
+  doc: SlideDeckDoc | undefined,
+  theme: Theme,
+  bgMap: Record<string, Background>,
+): ResolvedBackground {
+  const background = resolveBackground(slide, doc, theme, bgMap);
+  return { background, image: resolveBackgroundImage(slide, doc, background) };
 }
 
 export function resolveAnimation(

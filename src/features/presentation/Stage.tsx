@@ -10,7 +10,9 @@ import type {
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { ANIMATION_VARIANTS, buildTransition } from "../../lib/animation";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { isImageBackground } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
+import { BackgroundSurface } from "../../components/media/BackgroundSurface";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import {
   VideoSurface,
@@ -48,14 +50,14 @@ function viewSize(view: PresentationView): CSSProperties {
  * ultrawides) the canvas is letterboxed. This layer paints the area around it
  * edge to edge so the audience never sees bare black bars: the theme
  * background for text slides, and a blurred, cover-scaled copy of the picture
- * for image slides.
+ * for image slides. Picture backgrounds are painted by a BackgroundSurface on
+ * top of this layer, so their own settings apply.
  */
 function backdropLayerStyle(
   background: Background | null,
-  blobUrl: string | null,
   ambientUrl: string | null,
 ): CSSProperties {
-  if (background) return resolveBgStyle(background, blobUrl);
+  if (background) return resolveBgStyle(background);
   if (ambientUrl) {
     return {
       backgroundImage: `url(${ambientUrl})`,
@@ -71,20 +73,9 @@ function backdropLayerStyle(
   return { background: "#000" };
 }
 
-function resolveBgStyle(
-  background: Background | null,
-  blobUrl: string | null,
-): CSSProperties {
+function resolveBgStyle(background: Background | null): CSSProperties {
   if (!background) return { background: "#000" };
-  if (background.type === "image") {
-    const url = background.blobId ? blobUrl : background.dataUrl;
-    return {
-      backgroundImage: url ? `url(${url})` : undefined,
-      backgroundColor: "#000",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    };
-  }
+  if (background.type === "image") return { background: "#000" };
   if (background.type === "solid") return { background: background.color };
   return { background: background.css || "#000" };
 }
@@ -113,7 +104,8 @@ export function Stage({
   const [grabbing, setGrabbing] = useState(false);
 
   const backdrop = content.kind === "text" ? content.background : null;
-  const backdropBlobUrl = useBlobUrl(backdrop?.blobId);
+  const backdropImage =
+    content.kind === "text" ? content.backgroundImage : null;
   // Image slides have no theme behind them, so the picture itself becomes the
   // ambient backdrop rather than leaving the surrounding area black.
   const ambientUrl = useBlobUrl(
@@ -159,9 +151,16 @@ export function Stage({
           position: "absolute",
           inset: 0,
           pointerEvents: "none",
-          ...backdropLayerStyle(backdrop, backdropBlobUrl, ambientUrl),
+          ...backdropLayerStyle(backdrop, ambientUrl),
         }}
-      />
+      >
+        {isImageBackground(backdrop ?? undefined) && (
+          <BackgroundSurface
+            background={backdrop ?? undefined}
+            settings={backdropImage}
+          />
+        )}
+      </div>
 
       <AnimatePresence initial={false}>
         <motion.div
@@ -192,7 +191,6 @@ export function Stage({
                 style={content.style}
                 lineStyles={content.lineStyles}
                 bg={content.background}
-                scrim={content.slide.overrides?.scrim}
                 radius={0}
                 fill
                 noBackground

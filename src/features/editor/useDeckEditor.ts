@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { Slide, SlideDeckDoc, TextStyle } from "../../types";
+import type {
+  Slide,
+  SlideDeckDoc,
+  SlideOverrides,
+  TextStyle,
+} from "../../types";
 import { now, uid } from "../../lib/id";
 import type { EditHistory } from "../../hooks/useTextFormatting";
 import type { TextRange } from "../../lib/textRange";
@@ -152,6 +157,29 @@ export function useDeckEditor<T extends SlideDeckDoc>(
       else overrides[key] = value;
       // Dragging a slider fires continuously; the whole drag is one undo step.
       updateSlide(id, { overrides }, { coalesceKey: `override:${id}:${key}` });
+    },
+    [updateSlide],
+  );
+
+  /**
+   * Several override keys in one undo step. Choosing a background writes the
+   * picture settings that come with it, and both belong to the same step.
+   */
+  const patchSlideOverrides = useCallback(
+    (id: string, changes: Partial<SlideOverrides>) => {
+      const slide = (latest.current.doc.slides ?? []).find(
+        (item) => item.id === id,
+      );
+      if (!slide) return;
+      const overrides = { ...(slide.overrides || {}) } as Record<
+        string,
+        unknown
+      >;
+      for (const [key, value] of Object.entries(changes)) {
+        if (value === "" || value == null) delete overrides[key];
+        else overrides[key] = value;
+      }
+      updateSlide(id, { overrides });
     },
     [updateSlide],
   );
@@ -418,6 +446,7 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     updateSlide,
     setSlideText,
     updateSlideOverride,
+    patchSlideOverrides,
     updateLineOverride,
     updateLineOverrides,
     clearLineOverrides,

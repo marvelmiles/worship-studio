@@ -20,7 +20,7 @@ import {
   Toggle,
   SectionTitle,
 } from "../../components/ui/Field";
-import { AdjustmentControls } from "./AdjustmentControls";
+import { AdjustmentControls } from "../../components/media/AdjustmentControls";
 
 interface VideoEditorModalProps {
   item: MediaItem | null;

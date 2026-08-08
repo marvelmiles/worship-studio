@@ -27,7 +27,7 @@ import {
   UNSAVED_CHANGES_MESSAGE,
 } from "../../hooks/useUnsavedChanges";
 import {
-  resolveBackground,
+  resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -106,6 +106,7 @@ export function DeckWorkspace({
 
   const slide = editor.selectedSlide;
   const slideId = slide?.id ?? null;
+  const previewBackground = resolveBackgroundView(slide, doc, theme, bgMap);
   // True whether the presentation is projected or previewing on this screen.
   const isPresentingThisDoc =
     presentation?.kind === kind && presentation.id === doc.id;
@@ -234,7 +235,8 @@ export function DeckWorkspace({
       lineStyles={slide.lines.map((_, i) =>
         resolveLineStyle(slide, i, doc, theme),
       )}
-      background={resolveBackground(slide, doc, theme, bgMap)}
+      background={previewBackground.background}
+      backgroundImage={previewBackground.image}
       text={slideText}
       formatting={formatting}
       onChangeLabel={(label) =>

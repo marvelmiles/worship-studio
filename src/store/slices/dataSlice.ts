@@ -1,6 +1,7 @@
 import type {
   AudioItem,
   Background,
+  ImageSettings,
   ImportMode,
   LegacyManuscriptFields,
   Manuscript,
@@ -20,6 +21,7 @@ import { parseManuscriptSlides } from "../../lib/parser";
 import { now, uid } from "../../lib/id";
 import { readFile } from "../../lib/files";
 import {
+  DEFAULT_BACKGROUND_IMAGE_SETTINGS,
   DEFAULT_IMAGE_SETTINGS,
   DEFAULT_VIDEO_SETTINGS,
 } from "../../lib/media";
@@ -81,15 +83,28 @@ interface MaybeLegacyBinary {
   dataUrl?: string;
 }
 
+/** Completes the picture settings an import may only have partially written. */
+function normalizeImportedBackgroundImage(
+  settings: Partial<ImageSettings> | undefined,
+): ImageSettings | undefined {
+  return settings
+    ? { ...DEFAULT_BACKGROUND_IMAGE_SETTINGS, ...settings }
+    : undefined;
+}
+
 /** Fills in every required Slide field a loosely-validated import may omit. */
 function normalizeImportedSlide(slide: ImportedSlide): Slide {
+  const { backgroundImage, ...overrides } = slide.overrides ?? {};
   return {
     ...slide,
     id: slide.id || uid(),
     type: slide.type ?? "verse",
     label: slide.label ?? "",
     lines: slide.lines ?? [],
-    overrides: slide.overrides ?? {},
+    overrides: {
+      ...overrides,
+      backgroundImage: normalizeImportedBackgroundImage(backgroundImage),
+    },
     notes: slide.notes ?? "",
   };
 }
@@ -102,6 +117,9 @@ function normalizeImportedManuscript(entry: ImportedManuscript): Manuscript {
     ...rest,
     id: entry.id || uid(),
     body,
+    defaultBackgroundImage: normalizeImportedBackgroundImage(
+      entry.defaultBackgroundImage,
+    ),
     author: entry.author ?? artist,
     collection: entry.collection ?? category ?? DEFAULT_COLLECTION,
     createdAt: entry.createdAt ?? timestamp,
@@ -121,6 +139,9 @@ function normalizeImportedScripture(
   return {
     ...entry,
     id: entry.id || uid(),
+    defaultBackgroundImage: normalizeImportedBackgroundImage(
+      entry.defaultBackgroundImage,
+    ),
     version: isBibleVersion(entry.version)
       ? entry.version
       : DEFAULT_BIBLE_VERSION,
@@ -156,7 +177,11 @@ function normalizeImportedMedia(entry: ImportedMedia): MediaItem {
 
 /** Custom backgrounds carry a required category; imports may leave it blank. */
 function normalizeImportedBackground(entry: ImportedBackground): Background {
-  return { ...entry, category: entry.category ?? "Custom" };
+  return {
+    ...entry,
+    category: entry.category ?? "Custom",
+    image: normalizeImportedBackgroundImage(entry.image),
+  };
 }
 
 /**

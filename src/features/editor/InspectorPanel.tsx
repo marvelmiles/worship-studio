@@ -3,6 +3,7 @@ import { ArrowDownToLine, Copy, Trash2 } from "lucide-react";
 import type {
   AudioItem,
   Background,
+  ImageSettings,
   SlideDeckDoc,
   TextStyle,
   Theme,
@@ -10,6 +11,7 @@ import type {
 import { fade, colors, UI } from "../../theme/tokens";
 import {
   resolveBackgroundId,
+  resolveBackgroundImage,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -78,6 +80,9 @@ export function InspectorPanel({
   const effectiveBackground = backgrounds.find(
     (bg) => bg.id === effectiveBackgroundId,
   );
+  const backgroundImage = effectiveBackground
+    ? resolveBackgroundImage(slide, doc, effectiveBackground)
+    : null;
   const hasLineOverrides =
     lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
 
@@ -108,6 +113,17 @@ export function InspectorPanel({
   };
   const setOverride = (key: string, value: unknown) =>
     editor.updateSlideOverride(slide.id, key, value);
+
+  /**
+   * Picture settings belong to this slide alone: they are written next to the
+   * background choice, and the legacy standalone darken flag is folded in so
+   * only one of them can be in force.
+   */
+  const setBackgroundImage = (settings: ImageSettings) =>
+    editor.patchSlideOverrides(slide.id, {
+      backgroundImage: settings,
+      scrim: undefined,
+    });
 
   const selectionLabel =
     formatting.lines.first === formatting.lines.last
@@ -196,18 +212,35 @@ export function InspectorPanel({
         value={slide.overrides?.backgroundId || ""}
         highlightId={effectiveBackgroundId}
         inheritLabel="Use document / theme"
-        onSelect={(id) => setOverride("backgroundId", id)}
-        onUploaded={(id) => setOverride("backgroundId", id)}
+        onSelect={(id, image) =>
+          editor.patchSlideOverrides(slide.id, {
+            backgroundId: id,
+            backgroundImage: image,
+            scrim: undefined,
+          })
+        }
+        onUploaded={(id, image) =>
+          editor.patchSlideOverrides(slide.id, {
+            backgroundId: id,
+            backgroundImage: image,
+            scrim: undefined,
+          })
+        }
         onAddColor={(value, name) =>
           setOverride("backgroundId", onAddColor(value, name))
         }
+        imageSettings={backgroundImage}
+        onImageSettingsChange={setBackgroundImage}
+        usageLabel="this slide"
       />
-      {effectiveBackground?.type === "image" && (
+      {backgroundImage && (
         <div style={{ marginBottom: 12 }}>
           <Toggle
             label="Darken overlay (legibility)"
-            checked={slide.overrides?.scrim ?? true}
-            onChange={(checked) => setOverride("scrim", checked)}
+            checked={backgroundImage.scrim}
+            onChange={(scrim) =>
+              setBackgroundImage({ ...backgroundImage, scrim })
+            }
           />
         </div>
       )}

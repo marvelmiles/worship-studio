@@ -1,13 +1,14 @@
 import type {
   AnimationKind,
   Background,
+  ImageSettings,
   MediaItem,
   ResolvedStyle,
   Slide,
 } from "../../types";
 import {
   resolveAnimation,
-  resolveBackground,
+  resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -20,6 +21,8 @@ export type StageContent =
       style: ResolvedStyle;
       lineStyles: ResolvedStyle[];
       background: Background;
+      /** This slide's picture settings, null unless the background is an image. */
+      backgroundImage: ImageSettings | null;
     }
   | { kind: "image"; item: MediaItem }
   | { kind: "video"; item: MediaItem };
@@ -43,6 +46,7 @@ export function buildStageFrame(
     const { doc, theme } = deck;
     if (!theme) return null;
     const slide = deckSlide.slide;
+    const background = resolveBackgroundView(slide, doc, theme, bgMap);
     return {
       content: {
         kind: "text",
@@ -51,10 +55,11 @@ export function buildStageFrame(
         lineStyles: slide.lines.map((_, i) =>
           resolveLineStyle(slide, i, doc, theme),
         ),
-        background: resolveBackground(slide, doc, theme, bgMap),
+        background: background.background,
+        backgroundImage: background.image,
       },
       animation: resolveAnimation(slide, doc, theme, fallbackAnimation),
-      backdrop: resolveBackground(slide, doc, theme, bgMap),
+      backdrop: background.background,
     };
   }
 

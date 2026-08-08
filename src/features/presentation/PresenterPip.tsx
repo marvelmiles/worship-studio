@@ -233,7 +233,7 @@ export function PresenterPip({
             style={content.style}
             lineStyles={content.lineStyles}
             bg={content.background}
-            scrim={content.slide.overrides?.scrim}
+            bgImage={content.backgroundImage}
             radius={0}
             fill
           />

@@ -19,6 +19,8 @@ export interface AssetsSlice {
 
   uploadBackground: (file: File, name?: string) => Promise<string>;
   addCustomBackground: (value: string, name?: string) => string;
+  /** Library-level edit; documents already using the background keep their own copy. */
+  updateBackground: (id: string, changes: Partial<Background>) => void;
   removeBackground: (id: string) => Promise<void>;
   uploadAudio: (file: File, name?: string) => Promise<string>;
   removeAudio: (id: string) => Promise<void>;
@@ -79,6 +81,18 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
     void saveRecord("backgrounds", background);
     afterWrite(get);
     return background.id;
+  },
+
+  updateBackground: (id, changes) => {
+    if (blockWrite(get)) return;
+    const current = get().backgrounds.find((b) => b.id === id);
+    if (!current || current.builtIn) return;
+    const next: Background = { ...current, ...changes, id };
+    set((state) => ({
+      backgrounds: state.backgrounds.map((b) => (b.id === id ? next : b)),
+    }));
+    void saveRecord("backgrounds", next);
+    afterWrite(get);
   },
 
   removeBackground: async (id) => {

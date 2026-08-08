@@ -23,7 +23,7 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
-import { resolveStyle } from "../../lib/resolve";
+import { resolveBackgroundImage, resolveStyle } from "../../lib/resolve";
 import { getChapterVerses } from "./lib/offlineBible";
 import type { DeckEditor } from "../editor/useDeckEditor";
 
@@ -92,6 +92,12 @@ export function PassageSettingsModal({
   const themeAudio = theme.defaultAudioId
     ? audio.find((a) => a.id === theme.defaultAudioId)
     : undefined;
+  const effectiveBackground = backgrounds.find(
+    (bg) => bg.id === (passage.defaultBackgroundId || theme.backgroundId),
+  );
+  const backgroundImage = effectiveBackground
+    ? resolveBackgroundImage(undefined, passage, effectiveBackground)
+    : null;
 
   const rebuild = async () => {
     if (!book) return;
@@ -255,13 +261,28 @@ export function PassageSettingsModal({
         value={passage.defaultBackgroundId || ""}
         highlightId={passage.defaultBackgroundId || theme.backgroundId}
         inheritLabel={`Use theme (${theme.name})`}
-        onSelect={(id) => editor.patchDoc({ defaultBackgroundId: id })}
-        onUploaded={(id) => editor.patchDoc({ defaultBackgroundId: id })}
+        onSelect={(id, image) =>
+          editor.patchDoc({
+            defaultBackgroundId: id,
+            defaultBackgroundImage: image,
+          })
+        }
+        onUploaded={(id, image) =>
+          editor.patchDoc({
+            defaultBackgroundId: id,
+            defaultBackgroundImage: image,
+          })
+        }
         onAddColor={(value, name) =>
           editor.patchDoc({
             defaultBackgroundId: addCustomBackground(value, name),
           })
         }
+        imageSettings={backgroundImage}
+        onImageSettingsChange={(settings) =>
+          editor.patchDoc({ defaultBackgroundImage: settings })
+        }
+        usageLabel="this passage"
       />
 
       <SectionTitle>Audio</SectionTitle>

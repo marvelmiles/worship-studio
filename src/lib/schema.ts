@@ -49,27 +49,6 @@ const textStyleShape = {
 
 const textStyleSchema = z.object(textStyleShape).passthrough();
 
-const slideOverridesSchema = z
-  .object({
-    ...textStyleShape,
-    backgroundId: z.string().optional(),
-    audioId: z.string().optional(),
-    animation: animationSchema,
-    scrim: z.boolean().optional(),
-  })
-  .passthrough();
-
-const slideSchema = z
-  .object({
-    id: z.string().optional(),
-    type: z.string().optional(),
-    label: z.string().optional(),
-    lines: z.array(z.string()).optional(),
-    overrides: slideOverridesSchema.optional(),
-    notes: z.string().optional(),
-  })
-  .passthrough();
-
 /** Shared shape of the color-adjustment fields (images and videos). */
 const adjustmentsShape = {
   brightness: z.number().optional(),
@@ -88,6 +67,28 @@ const imageSettingsSchema = z
     flipV: z.boolean().optional(),
     fit: fitSchema.optional(),
     scrim: z.boolean().optional(),
+  })
+  .passthrough();
+
+const slideOverridesSchema = z
+  .object({
+    ...textStyleShape,
+    backgroundId: z.string().optional(),
+    audioId: z.string().optional(),
+    animation: animationSchema,
+    scrim: z.boolean().optional(),
+    backgroundImage: imageSettingsSchema.optional().catch(undefined),
+  })
+  .passthrough();
+
+const slideSchema = z
+  .object({
+    id: z.string().optional(),
+    type: z.string().optional(),
+    label: z.string().optional(),
+    lines: z.array(z.string()).optional(),
+    overrides: slideOverridesSchema.optional(),
+    notes: z.string().optional(),
   })
   .passthrough();
 
@@ -123,6 +124,7 @@ export const manuscriptSchema = z
     maxLines: z.number().optional(),
     defaultThemeId: z.string().optional().default("classic"),
     defaultBackgroundId: z.string().optional(),
+    defaultBackgroundImage: imageSettingsSchema.optional().catch(undefined),
     defaultAudioId: z.string().nullable().optional(),
     animation: animationSchema,
     autoPlay: z.boolean().optional(),
@@ -164,6 +166,7 @@ const backgroundSchema = z
     color: z.string().optional(),
     dataUrl: z.string().optional(),
     blobId: z.string().optional(),
+    image: imageSettingsSchema.optional().catch(undefined),
     size: z.number().optional(),
     light: z.boolean().optional(),
     builtIn: z.boolean().optional(),
@@ -200,6 +203,7 @@ export const scriptureSchema = z
     slides: z.array(slideSchema).optional(),
     defaultThemeId: z.string().optional().default("scripture"),
     defaultBackgroundId: z.string().optional(),
+    defaultBackgroundImage: imageSettingsSchema.optional().catch(undefined),
     defaultAudioId: z.string().nullable().optional(),
     animation: animationSchema,
     style: textStyleSchema.optional(),

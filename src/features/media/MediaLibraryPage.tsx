@@ -14,7 +14,12 @@ import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { formatBytes } from "../../lib/storageStats";
-import { formatDuration, sortMediaByRecency } from "../../lib/media";
+import {
+  DEFAULT_IMAGE_SETTINGS,
+  formatDuration,
+  imageSettingsOf,
+  sortMediaByRecency,
+} from "../../lib/media";
 import { imageDeckIndex } from "../presentation/useDeck";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -25,7 +30,7 @@ import { Button, IconButton } from "../../components/ui/Button";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
-import { ImageEditorModal } from "./ImageEditorModal";
+import { ImageEditorModal } from "../../components/media/ImageEditorModal";
 import { VideoEditorModal } from "./VideoEditorModal";
 
 interface MediaPageConfig {
@@ -75,6 +80,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
   const removeMedia = useStore((s) => s.removeMedia);
+  const updateMedia = useStore((s) => s.updateMedia);
   const startPresent = useStore((s) => s.startPresent);
   const toggleImageBackground = useStore((s) => s.toggleImageBackground);
   const pushToast = useStore((s) => s.pushToast);
@@ -260,11 +266,28 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
         </div>
       )}
 
-      {kind === "image" ? (
-        <ImageEditorModal item={editing} onClose={() => setEditing(null)} />
-      ) : (
-        <VideoEditorModal item={editing} onClose={() => setEditing(null)} />
-      )}
+      {editing &&
+        (kind === "image" ? (
+          <ImageEditorModal
+            key={editing.id}
+            title="Edit Image"
+            blobId={editing.id}
+            alt={editing.name}
+            initialName={editing.name}
+            initialSettings={imageSettingsOf(editing)}
+            defaults={DEFAULT_IMAGE_SETTINGS}
+            onSave={(settings, name) => {
+              updateMedia(editing.id, {
+                name: name || editing.name,
+                image: settings,
+              });
+              pushToast("Image saved.");
+            }}
+            onClose={() => setEditing(null)}
+          />
+        ) : (
+          <VideoEditorModal item={editing} onClose={() => setEditing(null)} />
+        ))}
 
       <ConfirmDialog
         open={Boolean(deleting)}

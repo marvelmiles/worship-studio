@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { IconButton } from "./Button";
@@ -22,7 +23,10 @@ export function Modal({
 }: ModalProps) {
   const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
-  return (
+  // Portalled: a modal opened from inside another one (editing a background
+  // picture from the asset library, say) would otherwise be trapped by the
+  // blurred panel around it, which is a containing block for fixed children.
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -90,6 +94,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
