@@ -57,11 +57,16 @@ Then open the URL Vite prints (default http://localhost:5173).
   line‑height / letter‑spacing / uppercase / shadow; per‑slide and
   per‑manuscript backgrounds; duplicate, split, merge, insert, reorder (drag),
   and a right‑click context menu.
+- **Write on the slide itself.** The slide in the editor is the text area:
+  type, paste and edit straight onto it and every change is already what the
+  room will see, with no separate box to keep in step.
 - **Word‑style text formatting.** Highlight any word, phrase or line and apply
-  bold, italic, underline, strikethrough or highlight from the Inspector
-  toolbar (Ctrl+B / I / U / D / H), or clear the formatting back off. Marks are
-  stored as plain text (`**bold**`, `*italic*`, `++underline++`,
-  `~~strikethrough~~`, `==highlight==`) so they survive copy and paste.
+  bold, italic, underline, strikethrough or highlight from the toolbar that
+  pops up over the selection or from the Inspector (Ctrl+B / I / U / D / H),
+  or clear the formatting back off. Marks render as formatting rather than as
+  symbols, and are stored as plain text (`**bold**`, `*italic*`,
+  `++underline++`, `~~strikethrough~~`, `==highlight==`) so they survive copy
+  and paste. Ctrl+Z / Ctrl+Y step through the edits.
 - **Backgrounds & audio.** A built‑in gradient/solid background gallery plus
   custom image and MP3 uploads, managed in the Asset Library.
 - **Themes.** Five built‑in themes that set the default look per manuscript.
@@ -130,7 +135,7 @@ src/
   data/         built-in backgrounds, themes, collections, seed manuscripts
   store/        Zustand store (state + actions + persistence)
   components/   SlideCanvas + reusable UI primitives (Button, Field, Modal, ContextMenu)
-  hooks/        useDocumentTitle
+  hooks/        slide text editing (useTextFormatting, useSlideTextEditor), useDocumentTitle
   features/
     dashboard/  Dashboard
     manuscripts/ Manuscript library, editor, text + settings modals

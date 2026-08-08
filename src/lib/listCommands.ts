@@ -5,6 +5,7 @@ import {
   INDENT_UNIT,
   MAX_LIST_LEVEL,
   prefixLength,
+  remapColumn,
   renumber,
 } from "./lists";
 import type { ListKind, ListLine } from "./lists";
@@ -40,24 +41,14 @@ const toOffset = (lines: string[], caret: Caret): number =>
   lineStarts(lines)[caret.line] +
   clamp(caret.column, 0, lines[caret.line].length);
 
-/**
- * Follows a caret through a rewrite. It keeps its place in the line's text,
- * so a caret three words in stays three words in however the marker changed.
- */
+/** Follows a caret through a rewrite that only changed the line prefixes. */
 function remapCaret(before: string[], after: string[], offset: number): number {
   const caret = toCaret(before, offset);
   const line = Math.min(caret.line, after.length - 1);
-  const oldPrefix = prefixLength(before[caret.line]);
-  const newPrefix = prefixLength(after[line]);
-  const column =
-    caret.column <= oldPrefix
-      ? newPrefix
-      : clamp(
-          caret.column - oldPrefix + newPrefix,
-          newPrefix,
-          after[line].length,
-        );
-  return toOffset(after, { line, column });
+  return toOffset(after, {
+    line,
+    column: remapColumn(before[caret.line], after[line], caret.column),
+  });
 }
 
 function rewrite(

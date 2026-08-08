@@ -199,6 +199,24 @@ export function prefixLength(line: string): number {
   return line.length - (marker ? marker.content.length : rest.length);
 }
 
+/**
+ * Follows a column through a rewrite that only changed the line's prefix, so a
+ * caret three words in stays three words in however the marker changed.
+ */
+export function remapColumn(
+  before: string,
+  after: string,
+  column: number,
+): number {
+  const oldPrefix = prefixLength(before);
+  const newPrefix = prefixLength(after);
+  if (column <= oldPrefix) return newPrefix;
+  return Math.min(
+    Math.max(column - oldPrefix + newPrefix, newPrefix),
+    after.length,
+  );
+}
+
 /** The line's own text, with any indent and list marker taken off. */
 export function stripListMarker(line: string): string {
   const { rest } = splitIndent(line);

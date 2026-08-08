@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Background, ResolvedStyle, Slide } from "../types";
 import { colors, fade, UI } from "../theme/tokens";
 import { useThumbUrl } from "../lib/blobUrls";
+import { lineContentOffsets } from "../lib/inlineDocument";
 import { analyzeLines, listMarkerLabel } from "../lib/lists";
+import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
 import { FormattedText } from "./FormattedText";
 
 /** One indent level, in the same container-query unit the text is sized in. */
@@ -25,10 +27,10 @@ interface SlideCanvasProps {
   noBackground?: boolean;
   /** Per-line resolved style, same length/order as `slide.lines`. Falls back to `style` per line when absent. */
   lineStyles?: ResolvedStyle[];
-  /** Index of the line currently being formatted. Enables click-to-select when provided. */
+  /** Index of the line the inspector is styling, outlined so the scope is visible. */
   selectedLine?: number | null;
-  /** Called with a line index on click (toggling off if already selected), or `null` when clicking elsewhere on the slide. */
-  onLineClick?: (index: number | null) => void;
+  /** Makes the slide's text the editable surface, see hooks/useSlideTextEditor. */
+  editing?: SlideTextEditing;
 }
 
 /**
@@ -36,6 +38,10 @@ interface SlideCanvasProps {
  * so the same slide scales perfectly from a tiny thumbnail to a fullscreen
  * projection without any per-context font math. When `fill` is set the slide
  * fills its container instead of enforcing the 16:9 aspect ratio.
+ *
+ * With `editing` attached the text block itself becomes the editor: the caret
+ * sits in the real slide, so what the writer types is already what the room
+ * will see.
  */
 export function SlideCanvas({
   slide,
@@ -48,10 +54,9 @@ export function SlideCanvas({
   noBackground,
   lineStyles,
   selectedLine,
-  onLineClick,
+  editing,
 }: SlideCanvasProps) {
-  const [hoverLine, setHoverLine] = useState<number | null>(null);
-  const interactive = Boolean(onLineClick);
+  const editable = Boolean(editing);
   const bgBlobUrl = useThumbUrl(noBackground ? null : bg?.blobId);
   const bgImageUrl = bg?.blobId ? bgBlobUrl : bg?.dataUrl;
   const bgStyle = noBackground
@@ -73,6 +78,10 @@ export function SlideCanvas({
     [slide.lines],
   );
   const items = useMemo(() => analyzeLines(lines), [lines]);
+  const sourceOffsets = useMemo(
+    () => (editable ? lineContentOffsets(lines) : null),
+    [editable, lines],
+  );
 
   return (
     <div
@@ -98,36 +107,43 @@ export function SlideCanvas({
         />
       )}
       <div
-        onClick={interactive ? () => onLineClick!(null) : undefined}
+        ref={editing?.ref}
+        contentEditable={editable || undefined}
+        suppressContentEditableWarning={editable}
+        spellCheck={editable ? false : undefined}
+        role={editable ? "textbox" : undefined}
+        aria-multiline={editable || undefined}
+        aria-label={editable ? "Slide text" : undefined}
+        onKeyDown={editing?.onKeyDown}
         style={{
           position: "absolute",
           inset: 0,
           display: "flex",
           alignItems: "center",
           padding: "7cqw 9cqw",
+          outline: "none",
+          cursor: editable ? "text" : undefined,
         }}
       >
         <div style={{ width: "100%" }}>
           {items.map((item, i) => {
             const lineStyle = lineStyles?.[i] ?? style;
             const selected = selectedLine === i;
-            const hovered = interactive && hoverLine === i && !selected;
             const align = lineStyle.align || "center";
+            const marked = editable || selectedLine != null;
+            const content =
+              sourceOffsets || item.content ? (
+                <FormattedText
+                  text={item.content}
+                  baseWeight={lineStyle.fontWeight}
+                  sourceBase={sourceOffsets?.[i]}
+                />
+              ) : (
+                "\u00A0"
+              );
             return (
               <div
                 key={i}
-                onClick={
-                  interactive
-                    ? (e) => {
-                        e.stopPropagation();
-                        onLineClick!(selected ? null : i);
-                      }
-                    : undefined
-                }
-                onMouseEnter={interactive ? () => setHoverLine(i) : undefined}
-                onMouseLeave={
-                  interactive ? () => setHoverLine(null) : undefined
-                }
                 style={{
                   textAlign: align,
                   color: lineStyle.color,
@@ -138,23 +154,21 @@ export function SlideCanvas({
                   letterSpacing: `${lineStyle.letterSpacing || 0}cqw`,
                   textShadow: lineStyle.textShadow,
                   textTransform: lineStyle.uppercase ? "uppercase" : "none",
-                  cursor: interactive ? "pointer" : undefined,
+                  whiteSpace: editable ? "pre-wrap" : undefined,
                   borderRadius: 6,
-                  padding: interactive ? "0.3cqw 0.6cqw" : undefined,
-                  margin: interactive ? "-0.3cqw -0.6cqw" : undefined,
+                  padding: marked ? "0.3cqw 0.6cqw" : undefined,
+                  margin: marked ? "-0.3cqw -0.6cqw" : undefined,
                   paddingInlineStart: item.level
-                    ? `${item.level * INDENT_STEP_CQW + (interactive ? 0.6 : 0)}cqw`
+                    ? `${item.level * INDENT_STEP_CQW + (marked ? 0.6 : 0)}cqw`
                     : undefined,
                   outline: selected
                     ? `0.25cqw solid ${colors.accent}`
-                    : hovered
-                      ? `0.25cqw dashed ${fade(colors.accent, 0.55)}`
-                      : interactive
-                        ? "0.25cqw dashed transparent"
-                        : undefined,
+                    : marked
+                      ? "0.25cqw dashed transparent"
+                      : undefined,
                   outlineOffset: 2,
                   background: selected ? fade(colors.accent, 0.14) : undefined,
-                  transition: interactive
+                  transition: marked
                     ? "outline-color .15s ease, background .15s ease"
                     : undefined,
                 }}
@@ -171,33 +185,21 @@ export function SlideCanvas({
                   >
                     <span
                       aria-hidden
+                      contentEditable={false}
                       style={{
                         flex: "none",
                         minWidth: "2.6cqw",
                         textAlign: "end",
                         fontVariantNumeric: "tabular-nums",
+                        userSelect: editable ? "none" : undefined,
                       }}
                     >
                       {listMarkerLabel(item.kind, item.index, item.level)}
                     </span>
-                    <span>
-                      {item.content ? (
-                        <FormattedText
-                          text={item.content}
-                          baseWeight={lineStyle.fontWeight}
-                        />
-                      ) : (
-                        "\u00A0"
-                      )}
-                    </span>
+                    <span>{content}</span>
                   </span>
-                ) : item.content ? (
-                  <FormattedText
-                    text={item.content}
-                    baseWeight={lineStyle.fontWeight}
-                  />
                 ) : (
-                  "\u00A0"
+                  content
                 )}
               </div>
             );

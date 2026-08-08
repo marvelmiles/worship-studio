@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import type { CSSProperties } from "react";
-import { parseInlineFormatting } from "../lib/inlineFormat";
+import {
+  parseInlineFormatting,
+  parseInlineSegments,
+} from "../lib/inlineFormat";
 import type { FormattedSegment } from "../lib/inlineFormat";
 import type { InlineTextStyle } from "../lib/inlineStyle";
 
@@ -8,6 +11,12 @@ interface FormattedTextProps {
   text: string;
   /** The weight the surrounding line is set in, which bold has to beat. */
   baseWeight?: number;
+  /**
+   * Offset of `text` in the document. Set it to paint every run with the slice
+   * of source it came from, which is how an editable surface maps a caret back
+   * onto the raw text (see lib/richTextDom.ts).
+   */
+  sourceBase?: number;
 }
 
 const isStyled = (segment: FormattedSegment): boolean =>
@@ -74,16 +83,52 @@ function styleOf(segment: FormattedSegment, baseWeight: number): CSSProperties {
  * Markdown emphasis writers already type, and the font, size, colour and case
  * a highlighted phrase was given from the inspector.
  */
-export function FormattedText({ text, baseWeight = 400 }: FormattedTextProps) {
-  const segments = useMemo(() => parseInlineFormatting(text), [text]);
+export function FormattedText({
+  text,
+  baseWeight = 400,
+  sourceBase,
+}: FormattedTextProps) {
+  const merged = useMemo(
+    () => (sourceBase === undefined ? parseInlineFormatting(text) : []),
+    [text, sourceBase],
+  );
+  const sourced = useMemo(
+    () => (sourceBase === undefined ? [] : parseInlineSegments(text)),
+    [text, sourceBase],
+  );
+
+  if (sourceBase !== undefined) {
+    // An empty line still needs something to click into, so it gets a run of
+    // its own with no source behind it.
+    if (!sourced.length)
+      return (
+        <span data-src-start={sourceBase} data-src-end={sourceBase}>
+          {"\u00A0"}
+        </span>
+      );
+    return (
+      <>
+        {sourced.map((segment, index) => (
+          <span
+            key={index}
+            data-src-start={sourceBase + segment.sourceStart}
+            data-src-end={sourceBase + segment.sourceEnd}
+            style={styleOf(segment, baseWeight)}
+          >
+            {segment.text}
+          </span>
+        ))}
+      </>
+    );
+  }
 
   // Still rebuilt from the segments so escaped markers lose their backslash.
-  if (!segments.some(isStyled))
-    return <>{segments.map((segment) => segment.text).join("")}</>;
+  if (!merged.some(isStyled))
+    return <>{merged.map((segment) => segment.text).join("")}</>;
 
   return (
     <>
-      {segments.map((segment, index) => (
+      {merged.map((segment, index) => (
         <span key={index} style={styleOf(segment, baseWeight)}>
           {segment.text}
         </span>

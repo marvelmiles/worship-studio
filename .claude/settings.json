@@ -13,7 +13,14 @@
       "Bash(npx prettier *)",
       "PowerShell(npx tsc --noEmit -p tsconfig.json)",
       "PowerShell(npx eslint src --format json 2>$null | ConvertFrom-Json | ForEach-Object { $_ } | Where-Object { $_.errorCount -gt 0 } | Select-Object filePath, errorCount)",
-      "PowerShell(npm run build 2>&1)"
+      "PowerShell(npm run build 2>&1)",
+      "PowerShell($c = Get-Content -Raw \"src\\\\components\\\\SlideCanvas.tsx\"; $i = $c.IndexOf\\('\\) : \\('\\); [int[]][char[]]$c.Substring\\($i, 30\\) -join ',')",
+      "PowerShell(npx eslint src --max-warnings=0)",
+      "PowerShell(npx eslint src/lib/inlineDocument.ts src/lib/richTextDom.ts src/lib/placement.ts src/hooks/useSlideTextEditor.ts src/hooks/useTextFormatting.ts src/components/SlideCanvas.tsx src/components/controls/SelectionFormatToolbar.tsx src/features/editor/PreviewPanel.tsx src/features/editor/DeckWorkspace.tsx src/features/editor/InspectorPanel.tsx src/components/FormattedText.tsx)",
+      "PowerShell(npx prettier --write \"src/lib/inlineDocument.ts\" \"src/lib/richTextDom.ts\" \"src/hooks/useSlideTextEditor.ts\" \"src/features/editor/InspectorPanel.tsx\" \"src/lib/lists.ts\")",
+      "PowerShell(\\(Get-ChildItem node_modules -Directory\\).Count; \\(Get-ChildItem \"node_modules\\\\.bin\" -ErrorAction SilentlyContinue | Select-Object -First 30\\).Name)",
+      "PowerShell(npx prettier --write \"src/hooks/useTextFormatting.ts\" \"src/hooks/useSlideTextEditor.ts\")",
+      "PowerShell(\\(Get-ChildItem node_modules -Directory\\).Name -join \", \")"
     ]
   }
 }

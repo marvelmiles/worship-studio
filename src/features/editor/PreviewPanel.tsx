@@ -2,7 +2,8 @@ import type { Background, ResolvedStyle, Slide } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { inputStyle } from "../../components/ui/Field";
-import { FormatToolbar } from "../../components/controls/FormatToolbar";
+import { SelectionFormatToolbar } from "../../components/controls/SelectionFormatToolbar";
+import { useSlideTextEditor } from "../../hooks/useSlideTextEditor";
 import type { TextFormattingController } from "../../hooks/useTextFormatting";
 
 interface PreviewPanelProps {
@@ -12,11 +13,10 @@ interface PreviewPanelProps {
   background: Background;
   /** The slide's lines as one editable block. */
   text: string;
-  onChangeText: (text: string) => void;
   formatting: TextFormattingController;
   onChangeLabel: (label: string) => void;
+  /** Line the inspector is scoped to, outlined on the slide. */
   selectedLine: number | null;
-  onSelectLine: (index: number | null) => void;
 }
 
 export function PreviewPanel({
@@ -25,12 +25,12 @@ export function PreviewPanel({
   lineStyles,
   background,
   text,
-  onChangeText,
   formatting,
   onChangeLabel,
   selectedLine,
-  onSelectLine,
 }: PreviewPanelProps) {
+  const editing = useSlideTextEditor({ text, formatting });
+
   return (
     <div
       style={{
@@ -58,59 +58,34 @@ export function PreviewPanel({
           showLabel
           scrim={slide.overrides?.scrim}
           selectedLine={selectedLine}
-          onLineClick={onSelectLine}
+          editing={editing}
         />
       </div>
+
+      <SelectionFormatToolbar
+        controller={formatting}
+        rect={editing.selectionRect}
+      />
+
       <div style={{ maxWidth: 820, margin: "18px auto 0", width: "100%" }}>
-        <span
-          style={{
-            fontFamily: UI,
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            textTransform: "uppercase",
-            color: colors.dim,
-          }}
-        >
-          Slide Text
-        </span>
         <p
           style={{
             fontFamily: UI,
             fontSize: 11.5,
             color: colors.dim,
-            margin: "4px 0 8px",
+            margin: "0 0 8px",
             lineHeight: 1.5,
           }}
         >
-          Highlight words below and use the toolbar to format them, or the
-          inspector to change their font, size, colour and case. Tab and
-          Shift+Tab move a point in and out, Enter carries the list on. Click a
-          line on the slide to restyle that whole line instead.
+          Type straight onto the slide. Highlight a word or phrase for the
+          formatting toolbar, or restyle it from the inspector. Tab and
+          Shift+Tab move a point in and out, Enter carries the list on.
         </p>
-        <FormatToolbar controller={formatting} block />
-        <textarea
-          ref={formatting.bind}
-          value={text}
-          onChange={(e) => onChangeText(e.target.value)}
-          onSelect={formatting.syncSelection}
-          onKeyUp={formatting.syncSelection}
-          onClick={formatting.syncSelection}
-          onKeyDown={formatting.handleKeyDown}
-          style={{
-            ...inputStyle,
-            marginTop: 8,
-            minHeight: 92,
-            lineHeight: 1.7,
-            resize: "vertical",
-            fontSize: 15,
-          }}
-        />
         <input
           value={slide.label}
           onChange={(e) => onChangeLabel(e.target.value)}
           placeholder="Slide label"
-          style={{ ...inputStyle, marginTop: 8, fontSize: 13 }}
+          style={{ ...inputStyle, fontSize: 13 }}
         />
       </div>
     </div>

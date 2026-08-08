@@ -7,91 +7,10 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { computePlacement, PLACEMENT_EDGE } from "../../lib/placement";
+import type { Placement, PopoverAlign, PopoverSide } from "../../lib/placement";
 
-export type PopoverSide = "bottom" | "top" | "left" | "right";
-export type PopoverAlign = "start" | "center" | "end";
-
-const GAP = 6;
-/** Keeps the panel from touching the very edge of the window. */
-const EDGE = 8;
-
-interface Placement {
-  top: number;
-  left: number;
-  side: PopoverSide;
-}
-
-/**
- * Positions `panel` against `trigger` in viewport coordinates, flipping to the
- * opposite side when the preferred one doesn't fit and sliding along the cross
- * axis to stay on screen. Returns the winning position.
- */
-function computePlacement(
-  trigger: DOMRect,
-  panel: { width: number; height: number },
-  preferred: PopoverSide,
-  align: PopoverAlign,
-): Placement {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  const room: Record<PopoverSide, number> = {
-    bottom: vh - trigger.bottom - GAP,
-    top: trigger.top - GAP,
-    right: vw - trigger.right - GAP,
-    left: trigger.left - GAP,
-  };
-  const needed = (s: PopoverSide) =>
-    s === "top" || s === "bottom" ? panel.height : panel.width;
-
-  // Prefer the requested side, then its opposite, then whichever has the most
-  // room. That last step is what saves a panel taller than either gap.
-  const opposite: Record<PopoverSide, PopoverSide> = {
-    bottom: "top",
-    top: "bottom",
-    left: "right",
-    right: "left",
-  };
-  let side = preferred;
-  if (room[preferred] < needed(preferred)) {
-    const flipped = opposite[preferred];
-    side =
-      room[flipped] >= needed(flipped)
-        ? flipped
-        : (Object.keys(room) as PopoverSide[]).reduce((a, b) =>
-            room[a] - needed(a) >= room[b] - needed(b) ? a : b,
-          );
-  }
-
-  let top: number;
-  let left: number;
-  if (side === "bottom" || side === "top") {
-    top =
-      side === "bottom"
-        ? trigger.bottom + GAP
-        : trigger.top - GAP - panel.height;
-    left =
-      align === "center"
-        ? trigger.left + trigger.width / 2 - panel.width / 2
-        : align === "end"
-          ? trigger.right - panel.width
-          : trigger.left;
-  } else {
-    left =
-      side === "right" ? trigger.right + GAP : trigger.left - GAP - panel.width;
-    top =
-      align === "center"
-        ? trigger.top + trigger.height / 2 - panel.height / 2
-        : align === "end"
-          ? trigger.bottom - panel.height
-          : trigger.top;
-  }
-
-  // Final clamp so a panel bigger than the remaining room still stays visible.
-  left = Math.max(EDGE, Math.min(left, vw - panel.width - EDGE));
-  top = Math.max(EDGE, Math.min(top, vh - panel.height - EDGE));
-  return { top, left, side };
-}
+export type { PopoverAlign, PopoverSide };
 
 interface PopoverProps {
   open: boolean;
@@ -234,7 +153,7 @@ export function Popover({
               zIndex: 400,
               // Hidden until measured, so it never paints mid-flight.
               visibility: placement ? "visible" : "hidden",
-              maxHeight: `calc(100vh - ${EDGE * 2}px)`,
+              maxHeight: `calc(100vh - ${PLACEMENT_EDGE * 2}px)`,
               overflowY: "auto",
             }}
           >

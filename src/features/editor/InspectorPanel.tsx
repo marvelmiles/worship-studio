@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ArrowDownToLine, Copy, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, Copy, Trash2 } from "lucide-react";
 import type {
   AudioItem,
   Background,
@@ -16,6 +16,7 @@ import {
 import { isInlineStyleKey } from "../../lib/inlineStyle";
 import { Button } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
+import { PillTabs } from "../../components/ui/PillTabs";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
@@ -31,10 +32,13 @@ interface InspectorPanelProps {
   backgrounds: Background[];
   audio: AudioItem[];
   onAddColor: (value: string, name?: string) => string;
+  /** The line styling is scoped to, or null while the whole slide is the scope. */
   selectedLine: number | null;
-  onSelectLine: (index: number | null) => void;
+  onScopeToLine: (scoped: boolean) => void;
   formatting: TextFormattingController;
 }
+
+type StyleScope = "slide" | "line";
 
 export function InspectorPanel({
   editor,
@@ -44,7 +48,7 @@ export function InspectorPanel({
   audio,
   onAddColor,
   selectedLine,
-  onSelectLine,
+  onScopeToLine,
   formatting,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
@@ -52,6 +56,10 @@ export function InspectorPanel({
   const selectionMode = formatting.hasSelection;
   const lineMode =
     !selectionMode && selectedLine !== null && selectedLine < lineCount;
+  const caretLine = Math.min(
+    formatting.lines.first,
+    Math.max(0, lineCount - 1),
+  );
 
   // Highlighted text is styled character by character, so the panel shows the
   // style of the first line it covers with the selection's own style on top.
@@ -121,64 +129,42 @@ export function InspectorPanel({
           {selectionLabel.toLowerCase()}.
         </ScopeBanner>
       )}
-      {lineMode && (
+      {!selectionMode && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             gap: 8,
-            marginBottom: 10,
-            padding: "7px 9px",
-            borderRadius: 9,
-            background: fade(colors.accent, 0.1),
-            border: `1px solid ${fade(colors.accent, 0.3)}`,
+            marginBottom: 12,
           }}
         >
-          <span
-            style={{ fontFamily: UI, fontSize: 12, color: colors.accentSoft }}
-          >
-            Formatting this line only
-          </span>
-          <div style={{ display: "flex", gap: 6 }}>
-            {hasLineOverrides && (
-              <button
-                onClick={() =>
-                  editor.clearLineOverrides(slide.id, selectedLine)
-                }
-                title="Reset this line to the slide's style"
-                style={{
-                  fontFamily: UI,
-                  fontSize: 11.5,
-                  color: colors.sub,
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  padding: 0,
-                }}
-              >
-                Reset
-              </button>
-            )}
+          <PillTabs<StyleScope>
+            tabs={[
+              { id: "slide", label: "Whole slide" },
+              { id: "line", label: `Line ${caretLine + 1}` },
+            ]}
+            value={lineMode ? "line" : "slide"}
+            onChange={(scope) => onScopeToLine(scope === "line")}
+          />
+          {lineMode && hasLineOverrides && (
             <button
-              onClick={() => onSelectLine(null)}
-              title="Done. Back to slide style"
+              onClick={() => editor.clearLineOverrides(slide.id, selectedLine)}
+              title="Reset this line to the slide's style"
               style={{
-                display: "grid",
-                placeItems: "center",
-                width: 20,
-                height: 20,
-                borderRadius: 6,
+                fontFamily: UI,
+                fontSize: 11.5,
                 color: colors.sub,
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
+                textDecoration: "underline",
+                padding: 0,
               }}
             >
-              <X size={14} />
+              Reset line
             </button>
-          </div>
+          )}
         </div>
       )}
       <StyleControls
@@ -197,10 +183,11 @@ export function InspectorPanel({
           lineHeight: 1.55,
         }}
       >
-        Highlight a word, phrase or whole line in the slide text, then apply
-        emphasis, turn it into a bulleted, numbered, lettered or roman-numeral
-        list, or change its font, size and colour above. Ctrl+B, Ctrl+I and
-        Ctrl+U work while typing, and Tab and Shift+Tab move a point in and out.
+        Write straight onto the slide. Highlight a word, phrase or whole line
+        there, then apply emphasis, turn it into a bulleted, numbered, lettered
+        or roman-numeral list, or change its font, size and colour above.
+        Ctrl+B, Ctrl+I and Ctrl+U work while typing, and Tab and Shift+Tab move
+        a point in and out.
       </p>
 
       <SectionTitle>Background</SectionTitle>

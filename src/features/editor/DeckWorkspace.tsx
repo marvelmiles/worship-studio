@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -91,7 +85,7 @@ export function DeckWorkspace({
 
   const [menu, setMenu] = useState<ContextState | null>(null);
   const [tab, setTab] = useState<MobileTab>("edit");
-  const [selectedLine, setSelectedLine] = useState<number | null>(null);
+  const [lineScope, setLineScope] = useState(false);
 
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
@@ -120,6 +114,14 @@ export function DeckWorkspace({
     onChange: setSlideText,
   });
 
+  // Line-scoped styling follows the caret, so the inspector always acts on the
+  // line being written rather than on one picked earlier and left behind.
+  const lineCount = slide?.lines.length ?? 0;
+  const selectedLine =
+    lineScope && lineCount
+      ? Math.min(formatting.lines.first, lineCount - 1)
+      : null;
+
   const present = ({ pip }: { pip: boolean }) =>
     startPresent(
       kind,
@@ -127,16 +129,6 @@ export function DeckWorkspace({
       Math.max(0, editor.selectedIndex),
       pip ? "pip" : "stage",
     );
-
-  // A line selection only makes sense for the current slide's current line count.
-  useEffect(() => {
-    if (
-      selectedLine !== null &&
-      (!slide || selectedLine >= slide.lines.length)
-    ) {
-      setSelectedLine(null);
-    }
-  }, [slide, selectedLine]);
 
   const menuItems: MenuItem[] = menu
     ? [
@@ -182,7 +174,7 @@ export function DeckWorkspace({
       selectedId={editor.selectedId}
       setSelectedId={(id) => {
         editor.setSelectedId(id);
-        setSelectedLine(null);
+        setLineScope(false);
         if (stacked) setTab("edit");
       }}
       doc={doc}
@@ -210,11 +202,9 @@ export function DeckWorkspace({
       )}
       background={resolveBackground(slide, doc, theme, bgMap)}
       text={slideText}
-      onChangeText={setSlideText}
       formatting={formatting}
       onChangeLabel={(label) => editor.updateSlide(slide.id, { label })}
       selectedLine={selectedLine}
-      onSelectLine={setSelectedLine}
     />
   ) : (
     emptyState
@@ -229,7 +219,7 @@ export function DeckWorkspace({
       audio={audio}
       onAddColor={addCustomBackground}
       selectedLine={selectedLine}
-      onSelectLine={setSelectedLine}
+      onScopeToLine={setLineScope}
       formatting={formatting}
     />
   ) : null;
