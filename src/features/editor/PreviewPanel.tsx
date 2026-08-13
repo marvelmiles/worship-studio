@@ -10,6 +10,8 @@ import { inputStyle } from "../../components/ui/Field";
 import { SelectionFormatToolbar } from "../../components/controls/SelectionFormatToolbar";
 import { useSlideTextEditor } from "../../hooks/useSlideTextEditor";
 import type { TextFormattingController } from "../../hooks/useTextFormatting";
+import { SlideMediaOverlay } from "./SlideMediaOverlay";
+import type { SlideMediaEditing } from "./SlideMediaOverlay";
 
 interface PreviewPanelProps {
   slide: Slide;
@@ -24,6 +26,8 @@ interface PreviewPanelProps {
   onChangeLabel: (label: string) => void;
   /** Line the inspector is scoped to, outlined on the slide. */
   selectedLine: number | null;
+  /** Selection and drag handling for the pictures and clips on this slide. */
+  mediaEditing: SlideMediaEditing;
 }
 
 export function PreviewPanel({
@@ -36,8 +40,10 @@ export function PreviewPanel({
   formatting,
   onChangeLabel,
   selectedLine,
+  mediaEditing,
 }: PreviewPanelProps) {
   const editing = useSlideTextEditor({ text, formatting });
+  const media = slide.media ?? [];
 
   return (
     <div
@@ -50,6 +56,7 @@ export function PreviewPanel({
       }}
     >
       <div
+        onPointerDown={() => mediaEditing.onSelect(null)}
         style={{
           width: "100%",
           maxWidth: 820,
@@ -67,6 +74,11 @@ export function PreviewPanel({
           showLabel
           selectedLine={selectedLine}
           editing={editing}
+          overlay={
+            media.length ? (
+              <SlideMediaOverlay media={media} {...mediaEditing} />
+            ) : null
+          }
         />
       </div>
 
@@ -87,7 +99,9 @@ export function PreviewPanel({
         >
           Type straight onto the slide. Highlight a word or phrase for the
           formatting toolbar, or restyle it from the inspector. Tab and
-          Shift+Tab move a point in and out, Enter carries the list on.
+          Shift+Tab move a point in and out, Enter carries the list on. Pictures
+          and clips added from the inspector drag anywhere on the slide, resize
+          from their corners and nudge with the arrow keys.
         </p>
         <input
           value={slide.label}

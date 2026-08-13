@@ -18,6 +18,8 @@ import { DEFAULT_AUDIO } from "../../data/sounds";
 import { seedManuscripts } from "../../data/seed";
 import { DEFAULT_COLLECTION } from "../../data/collections";
 import { parseManuscriptSlides } from "../../lib/parser";
+import { resolveManuscriptFormat } from "../../lib/manuscript/format";
+import { normalizeSlideMedia } from "../../lib/slideMedia";
 import { now, uid } from "../../lib/id";
 import { readFile } from "../../lib/files";
 import {
@@ -105,6 +107,7 @@ function normalizeImportedSlide(slide: ImportedSlide): Slide {
       ...overrides,
       backgroundImage: normalizeImportedBackgroundImage(backgroundImage),
     },
+    media: slide.media?.map(normalizeSlideMedia),
     notes: slide.notes ?? "",
   };
 }
@@ -128,7 +131,13 @@ function normalizeImportedManuscript(entry: ImportedManuscript): Manuscript {
     slides:
       entry.slides && entry.slides.length
         ? entry.slides.map(normalizeImportedSlide)
-        : parseManuscriptSlides(body, entry.maxLines ?? 6),
+        : parseManuscriptSlides(body, {
+            maxLines: entry.maxLines ?? 6,
+            format: resolveManuscriptFormat({
+              format: entry.format,
+              collection: entry.collection ?? category,
+            }),
+          }),
   };
 }
 

@@ -81,17 +81,6 @@ const slideOverridesSchema = z
   })
   .passthrough();
 
-const slideSchema = z
-  .object({
-    id: z.string().optional(),
-    type: z.string().optional(),
-    label: z.string().optional(),
-    lines: z.array(z.string()).optional(),
-    overrides: slideOverridesSchema.optional(),
-    notes: z.string().optional(),
-  })
-  .passthrough();
-
 const videoSettingsSchema = z
   .object({
     ...adjustmentsShape,
@@ -102,6 +91,38 @@ const videoSettingsSchema = z
     loop: z.boolean().optional(),
     playbackRate: z.number().optional(),
     fit: fitSchema.optional(),
+  })
+  .passthrough();
+
+const slideMediaSchema = z
+  .object({
+    id: z.string().optional(),
+    kind: z.enum(["image", "video"]),
+    mediaId: z.string(),
+    frame: z
+      .object({
+        x: z.number(),
+        y: z.number(),
+        width: z.number(),
+        height: z.number(),
+      })
+      .optional(),
+    radius: z.number().optional(),
+    opacity: z.number().optional(),
+    image: imageSettingsSchema.optional().catch(undefined),
+    video: videoSettingsSchema.optional().catch(undefined),
+  })
+  .passthrough();
+
+const slideSchema = z
+  .object({
+    id: z.string().optional(),
+    type: z.string().optional(),
+    label: z.string().optional(),
+    lines: z.array(z.string()).optional(),
+    overrides: slideOverridesSchema.optional(),
+    media: z.array(slideMediaSchema).optional().catch(undefined),
+    notes: z.string().optional(),
   })
   .passthrough();
 
@@ -122,6 +143,7 @@ export const manuscriptSchema = z
     lyrics: z.string().optional(),
     slides: z.array(slideSchema).optional(),
     maxLines: z.number().optional(),
+    format: z.enum(["song", "sermon"]).optional().catch(undefined),
     defaultThemeId: z.string().optional().default("classic"),
     defaultBackgroundId: z.string().optional(),
     defaultBackgroundImage: imageSettingsSchema.optional().catch(undefined),

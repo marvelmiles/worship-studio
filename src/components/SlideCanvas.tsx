@@ -1,8 +1,10 @@
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import type { Background, ImageSettings, ResolvedStyle, Slide } from "../types";
 import { colors, fade, UI } from "../theme/tokens";
 import { backgroundImageSettings, isImageBackground } from "../lib/media";
 import { BackgroundSurface } from "./media/BackgroundSurface";
+import { SlideMediaLayers } from "./media/SlideMediaLayers";
 import { SCRIM_GRADIENT } from "./media/ImageLayer";
 import { lineContentOffsets } from "../lib/inlineDocument";
 import { analyzeLines, listMarkerLabel } from "../lib/lists";
@@ -35,6 +37,10 @@ interface SlideCanvasProps {
   selectedLine?: number | null;
   /** Makes the slide's text the editable surface, see hooks/useSlideTextEditor. */
   editing?: SlideTextEditing;
+  /** True on the projector, where placed clips play instead of holding a frame. */
+  live?: boolean;
+  /** Drawn over the slide, above the placed media (the editor's drag surface). */
+  overlay?: ReactNode;
 }
 
 /**
@@ -46,6 +52,10 @@ interface SlideCanvasProps {
  * With `editing` attached the text block itself becomes the editor: the caret
  * sits in the real slide, so what the writer types is already what the room
  * will see.
+ *
+ * Pictures and clips placed on the slide are painted over the text in the order
+ * they are stacked; `overlay` is where the editor hangs its drag surface for
+ * them, so this component stays free of any editing behaviour.
  */
 export function SlideCanvas({
   slide,
@@ -60,6 +70,8 @@ export function SlideCanvas({
   lineStyles,
   selectedLine,
   editing,
+  live,
+  overlay,
 }: SlideCanvasProps) {
   const editable = Boolean(editing);
   const paintsPicture = !noBackground && isImageBackground(bg);
@@ -214,6 +226,10 @@ export function SlideCanvas({
           })}
         </div>
       </div>
+      {slide.media && slide.media.length > 0 && (
+        <SlideMediaLayers media={slide.media} live={live} />
+      )}
+      {overlay}
       {showLabel && slide.label && (
         <div
           style={{

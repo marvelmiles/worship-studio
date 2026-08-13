@@ -194,6 +194,7 @@ export function Stage({
                 radius={0}
                 fill
                 noBackground
+                live
               />
             )}
             {content.kind === "image" && (

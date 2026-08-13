@@ -46,6 +46,37 @@ export interface SlideOverrides extends TextStyle {
   backgroundImage?: ImageSettings;
 }
 
+/**
+ * Where a picture or clip sits on the slide, in percentages of the slide box so
+ * the placement survives every size the slide is painted at (thumbnail,
+ * editor, projector).
+ */
+export interface SlideMediaFrame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * A picture or clip placed on a slide, PowerPoint style: it owns its position,
+ * its stacking order (the array index) and its own copy of the media settings,
+ * so moving or recolouring it never reaches the media library.
+ */
+export interface SlideMedia {
+  id: string;
+  kind: MediaKind;
+  /** The media-library item that owns the file. */
+  mediaId: string;
+  frame: SlideMediaFrame;
+  /** Corner rounding, in percent of the slide width. */
+  radius?: number;
+  /** 0–100. */
+  opacity?: number;
+  image?: ImageSettings;
+  video?: VideoSettings;
+}
+
 export interface Slide {
   id: string;
   type: string;
@@ -54,6 +85,8 @@ export interface Slide {
   overrides: SlideOverrides;
   /** Per-line style overrides, keyed by line index. Layered on top of `overrides`. */
   lineOverrides?: Record<number, TextStyle>;
+  /** Pictures and clips placed on the slide, painted in array order. */
+  media?: SlideMedia[];
   notes: string;
 }
 
@@ -89,6 +122,14 @@ export interface SlideDeckDoc {
 export type ManuscriptStyle = TextStyle;
 
 /**
+ * How the parser lays a manuscript out. "song" keeps one lyric per line the way
+ * a hymn is projected; "sermon" builds paragraph blocks the way a message reads
+ * on the page. Unset means "whatever the collection implies", see
+ * lib/manuscript/format.ts.
+ */
+export type ManuscriptFormat = "song" | "sermon";
+
+/**
  * Any written document the studio turns into slides: song and hymn lyrics,
  * Sunday sermons, announcements, and general presentations. `body` holds the
  * raw text the parser reads; `collection` groups manuscripts in the library.
@@ -98,6 +139,7 @@ export interface Manuscript extends SlideDeckDoc {
   collection?: string;
   body: string;
   maxLines?: number;
+  format?: ManuscriptFormat;
 }
 
 /**

@@ -25,6 +25,7 @@ import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
 import { FormatToolbar } from "../../components/controls/FormatToolbar";
 import type { TextFormattingController } from "../../hooks/useTextFormatting";
+import { SlideMediaPanel } from "./SlideMediaPanel";
 import type { DeckEditor } from "./useDeckEditor";
 
 interface InspectorPanelProps {
@@ -38,6 +39,9 @@ interface InspectorPanelProps {
   selectedLine: number | null;
   onScopeToLine: (scoped: boolean) => void;
   formatting: TextFormattingController;
+  /** The picture or clip being worked on, shared with the slide's drag surface. */
+  selectedMediaId: string | null;
+  onSelectMedia: (id: string | null) => void;
 }
 
 type StyleScope = "slide" | "line";
@@ -52,6 +56,8 @@ export function InspectorPanel({
   selectedLine,
   onScopeToLine,
   formatting,
+  selectedMediaId,
+  onSelectMedia,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
   const lineCount = slide.lines?.length ?? 0;
@@ -244,6 +250,14 @@ export function InspectorPanel({
           />
         </div>
       )}
+
+      <SectionTitle>Images &amp; Videos</SectionTitle>
+      <SlideMediaPanel
+        slide={slide}
+        editor={editor}
+        selectedId={selectedMediaId}
+        onSelect={onSelectMedia}
+      />
 
       <SectionTitle>Audio</SectionTitle>
       <AudioPicker

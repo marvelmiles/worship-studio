@@ -28,7 +28,7 @@ function buildManuscript(input: SeedInput): Manuscript {
     deleted: false,
     builtIn: true,
     style: {},
-    slides: parseManuscriptSlides(input.body, 6),
+    slides: parseManuscriptSlides(input.body, { maxLines: 6 }),
   };
 }
 

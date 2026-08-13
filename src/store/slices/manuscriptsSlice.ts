@@ -88,7 +88,7 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
       deleted: false,
       builtIn: false,
       style: {},
-      slides: parseManuscriptSlides(body, 6),
+      slides: parseManuscriptSlides(body, { maxLines: 6 }),
     };
     get().upsertManuscript(manuscript);
     return manuscript;

@@ -1,7 +1,9 @@
-import type { Slide } from "../types";
+import type { ManuscriptFormat, Slide } from "../types";
 import type { Collection } from "../data/collections";
 import { uid } from "./id";
+import { defaultFormatForCollection } from "./manuscript/format";
 import { extractManuscriptMetadata } from "./manuscript/metadata";
+import { buildSermonSlides } from "./manuscript/sermon";
 import {
   matchStanzaNumber,
   usesBareStanzaNumbers,
@@ -328,9 +330,36 @@ export interface ParsedManuscript {
   slides: Slide[];
 }
 
+export interface ParseManuscriptOptions {
+  /** Lines per slide for songs, roughly rendered lines per slide for sermons. */
+  maxLines?: number;
+  /**
+   * How the text is laid out. Left unset, a declared heading decides (a pasted
+   * `SERMON:` reads as prose), and anything else is sung line by line.
+   */
+  format?: ManuscriptFormat;
+}
+
+export const DEFAULT_MAX_LINES = 6;
+
+const emptySlide = (): Slide => ({
+  id: uid(),
+  type: "verse",
+  label: "Slide 1",
+  lines: ["(empty)"],
+  overrides: {},
+  notes: "",
+});
+
 /**
  * Turns a pasted document (lyrics, a hymn, a sermon outline) into a
  * presentable deck.
+ *
+ * The `format` option picks the layout. "song", the default, is everything
+ * described below: one lyric per line, stanza by stanza. "sermon" hands the
+ * body to lib/manuscript/sermon.ts instead, which reads it as prose and builds
+ * paragraph blocks under their headings, opening on a title slide carrying the
+ * topic, the text and the preacher.
  *
  * A heading that declares the document, `HYMN: Ancient Words`, `SERMON: The
  * Good Shepherd`, names the manuscript and files it in the matching
@@ -349,11 +378,35 @@ export interface ParsedManuscript {
  * `Chorus:`) builds no duplicate slide at all: it notes "Repeat slide 4
  * (Chorus)" on the slide the operator is already looking at.
  */
-export function parseManuscript(text: string, maxLines = 6): ParsedManuscript {
+export function parseManuscript(
+  text: string,
+  options: ParseManuscriptOptions = {},
+): ParsedManuscript {
+  const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
   const normalized = (text || "").replace(/\r\n?/g, "\n");
   const allLines = normalized.split("\n");
   const metadata = extractManuscriptMetadata(allLines);
   const lines = allLines.slice(metadata.consumed);
+
+  const format =
+    options.format ??
+    (metadata.collection
+      ? defaultFormatForCollection(metadata.collection)
+      : "song");
+
+  if (format === "sermon") {
+    const sermon = buildSermonSlides(lines, {
+      maxLines,
+      title: metadata.title,
+      author: metadata.author,
+    });
+    return {
+      title: metadata.title ?? sermon.title,
+      author: metadata.author ?? sermon.author,
+      collection: metadata.collection,
+      slides: sermon.slides.length ? sermon.slides : [emptySlide()],
+    };
+  }
 
   const allowBareNumbers = usesBareStanzaNumbers(stanzaOpeners(lines));
   let sections = compactSections(
@@ -442,15 +495,7 @@ export function parseManuscript(text: string, maxLines = 6): ParsedManuscript {
     slides[index].notes = notes.join("\n");
   });
 
-  if (!slides.length)
-    slides.push({
-      id: uid(),
-      type: "verse",
-      label: "Slide 1",
-      lines: ["(empty)"],
-      overrides: {},
-      notes: "",
-    });
+  if (!slides.length) slides.push(emptySlide());
 
   return {
     title: metadata.title,
@@ -461,6 +506,9 @@ export function parseManuscript(text: string, maxLines = 6): ParsedManuscript {
 }
 
 /** Convert raw manuscript text into slides. See `parseManuscript` for the rules. */
-export function parseManuscriptSlides(text: string, maxLines = 6): Slide[] {
-  return parseManuscript(text, maxLines).slides;
+export function parseManuscriptSlides(
+  text: string,
+  options: ParseManuscriptOptions = {},
+): Slide[] {
+  return parseManuscript(text, options).slides;
 }

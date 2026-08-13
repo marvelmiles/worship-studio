@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -42,6 +48,7 @@ import { useFollowPresentation } from "./useFollowPresentation";
 import { SlideListPanel } from "./SlideListPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import { InspectorPanel } from "./InspectorPanel";
+import type { SlideMediaEditing } from "./SlideMediaOverlay";
 
 type MobileTab = "slides" | "edit" | "style";
 
@@ -99,13 +106,19 @@ export function DeckWorkspace({
   const [menu, setMenu] = useState<ContextState | null>(null);
   const [tab, setTab] = useState<MobileTab>("edit");
   const [lineScope, setLineScope] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
 
   const leaveGuard = useUnsavedChanges(editor.dirty);
 
-  useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
-
   const slide = editor.selectedSlide;
   const slideId = slide?.id ?? null;
+
+  // A placement belongs to the slide it sits on, so moving off it drops the
+  // selection rather than leaving the inspector editing something unseen.
+  useEffect(() => setSelectedMediaId(null), [slideId]);
+
+  useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
+
   const previewBackground = resolveBackgroundView(slide, doc, theme, bgMap);
   // True whether the presentation is projected or previewing on this screen.
   const isPresentingThisDoc =
@@ -228,9 +241,39 @@ export function DeckWorkspace({
     />
   );
 
+  const mediaEditing: SlideMediaEditing = {
+    selectedId: selectedMediaId,
+    onSelect: setSelectedMediaId,
+    onFrameChange: (mediaId, frame, gesture) => {
+      if (!slideId) return;
+      // One drag is one undo step, the way a slider drag is.
+      editor.updateSlideMedia(
+        slideId,
+        mediaId,
+        { frame },
+        { coalesceKey: `media:${slideId}:${mediaId}:${gesture}` },
+      );
+    },
+    onDuplicate: (mediaId) => {
+      if (!slideId) return;
+      const copyId = editor.duplicateSlideMedia(slideId, mediaId);
+      if (copyId) setSelectedMediaId(copyId);
+    },
+    onDelete: (mediaId) => {
+      if (!slideId) return;
+      editor.removeSlideMedia(slideId, mediaId);
+      setSelectedMediaId(null);
+    },
+    onReorder: (mediaId, direction) => {
+      if (!slideId) return;
+      editor.reorderSlideMedia(slideId, mediaId, direction);
+    },
+  };
+
   const previewPanel = slide ? (
     <PreviewPanel
       slide={slide}
+      mediaEditing={mediaEditing}
       style={resolveStyle(slide, doc, theme)}
       lineStyles={slide.lines.map((_, i) =>
         resolveLineStyle(slide, i, doc, theme),
@@ -263,6 +306,8 @@ export function DeckWorkspace({
       selectedLine={selectedLine}
       onScopeToLine={setLineScope}
       formatting={formatting}
+      selectedMediaId={selectedMediaId}
+      onSelectMedia={setSelectedMediaId}
     />
   ) : null;
 

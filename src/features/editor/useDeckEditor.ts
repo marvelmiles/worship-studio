@@ -2,10 +2,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type {
   Slide,
   SlideDeckDoc,
+  SlideMedia,
   SlideOverrides,
   TextStyle,
 } from "../../types";
 import { now, uid } from "../../lib/id";
+import { clampFrame } from "../../lib/slideMedia";
 import type { EditHistory } from "../../hooks/useTextFormatting";
 import type { TextRange } from "../../lib/textRange";
 
@@ -22,6 +24,8 @@ const blankSlide = (): Slide => ({
 const HISTORY_LIMIT = 200;
 /** Keystrokes this close together undo as one step, the way Word groups them. */
 const COALESCE_MS = 600;
+/** Percent of the slide a duplicated picture is nudged by, so it stays visible. */
+const DUPLICATE_OFFSET = 3;
 
 /** Everything an undo has to put back, the caret included. */
 interface HistoryEntry<T> {
@@ -229,6 +233,93 @@ export function useDeckEditor<T extends SlideDeckDoc>(
       updateSlide(id, { lineOverrides });
     },
     [updateSlide],
+  );
+
+  const slideMediaOf = useCallback((id: string): SlideMedia[] | null => {
+    const slide = (latest.current.doc.slides ?? []).find(
+      (item) => item.id === id,
+    );
+    return slide ? (slide.media ?? []) : null;
+  }, []);
+
+  const addSlideMedia = useCallback(
+    (id: string, media: SlideMedia) => {
+      const current = slideMediaOf(id);
+      if (!current) return;
+      updateSlide(id, { media: [...current, media] });
+    },
+    [slideMediaOf, updateSlide],
+  );
+
+  /**
+   * Patches one placed picture or clip. Dragging and resizing fire continuously,
+   * so callers pass a coalesce key to fold the whole gesture into one undo step.
+   */
+  const updateSlideMedia = useCallback(
+    (
+      id: string,
+      mediaId: string,
+      changes: Partial<SlideMedia>,
+      options?: EditOptions,
+    ) => {
+      const current = slideMediaOf(id);
+      if (!current) return;
+      updateSlide(
+        id,
+        {
+          media: current.map((item) =>
+            item.id === mediaId ? { ...item, ...changes } : item,
+          ),
+        },
+        options,
+      );
+    },
+    [slideMediaOf, updateSlide],
+  );
+
+  const removeSlideMedia = useCallback(
+    (id: string, mediaId: string) => {
+      const current = slideMediaOf(id);
+      if (!current) return;
+      updateSlide(id, { media: current.filter((item) => item.id !== mediaId) });
+    },
+    [slideMediaOf, updateSlide],
+  );
+
+  /** Copies a placement, offset a little so the copy is visible under the cursor. */
+  const duplicateSlideMedia = useCallback(
+    (id: string, mediaId: string): string | null => {
+      const current = slideMediaOf(id);
+      const source = current?.find((item) => item.id === mediaId);
+      if (!current || !source) return null;
+      const copy: SlideMedia = {
+        ...source,
+        id: uid(),
+        frame: clampFrame({
+          ...source.frame,
+          x: source.frame.x + DUPLICATE_OFFSET,
+          y: source.frame.y + DUPLICATE_OFFSET,
+        }),
+      };
+      updateSlide(id, { media: [...current, copy] });
+      return copy.id;
+    },
+    [slideMediaOf, updateSlide],
+  );
+
+  /** Moves a placement through the stack; the last entry is painted on top. */
+  const reorderSlideMedia = useCallback(
+    (id: string, mediaId: string, direction: number) => {
+      const current = slideMediaOf(id);
+      if (!current) return;
+      const index = current.findIndex((item) => item.id === mediaId);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= current.length) return;
+      const media = [...current];
+      [media[index], media[target]] = [media[target], media[index]];
+      updateSlide(id, { media });
+    },
+    [slideMediaOf, updateSlide],
   );
 
   const updateDocStyle = useCallback(
@@ -450,6 +541,11 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     updateLineOverride,
     updateLineOverrides,
     clearLineOverrides,
+    addSlideMedia,
+    updateSlideMedia,
+    removeSlideMedia,
+    duplicateSlideMedia,
+    reorderSlideMedia,
     updateDocStyle,
     moveSlide,
     duplicateSlide,

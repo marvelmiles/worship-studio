@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Settings2, Type } from "lucide-react";
-import type { Manuscript } from "../../types";
+import type { Manuscript, ManuscriptFormat } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { DEFAULT_COLLECTION } from "../../data/collections";
 import { useStore } from "../../store/useStore";
@@ -34,12 +34,16 @@ export function ManuscriptWorkspace({
 
   // A heading the writer left at the top of the text fills in the manuscript's
   // details, but never overwrites what the user has already set themselves.
-  const regenerateFromBody = (body: string, maxLines: number) => {
-    const { title, author, collection, slides } = parseManuscript(
-      body,
+  const regenerateFromBody = (
+    body: string,
+    maxLines: number,
+    format: ManuscriptFormat,
+  ) => {
+    const { title, author, collection, slides } = parseManuscript(body, {
       maxLines,
-    );
-    const changes: Partial<Manuscript> = { body, maxLines, slides };
+      format,
+    });
+    const changes: Partial<Manuscript> = { body, maxLines, format, slides };
     if (title && isUntitledManuscript(draft.title)) changes.title = title;
     if (author && !draft.author?.trim()) changes.author = author;
     if (
