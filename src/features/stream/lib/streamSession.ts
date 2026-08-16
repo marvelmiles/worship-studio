@@ -3,6 +3,7 @@ import { useStore } from "../../../store/useStore";
 import { createReceiver, type PeerStatus, type ReceiverHandle } from "./peer";
 import { requestStream, type CallHandle, type DeviceEntry } from "./signaling";
 import { streamLiveWindow, setLiveStream } from "./streamLive";
+import { clearStreamOverlays } from "./streamOverlayStore";
 
 /**
  * Owns the laptop's live camera connection for the whole app, the way
@@ -75,7 +76,15 @@ export function setSessionViewerLive(live: boolean): void {
   handle?.setViewerLive(live);
 }
 
-/** Tears down the connection and any projection, without touching `state`. */
+/**
+ * Tears down the connection and any projection, without touching `state`.
+ *
+ * The overlays go with it. They are staged against one broadcast — this
+ * passage, at this place on this camera's frame — and carrying them into the
+ * next connection would put the last service's lower third back on screen the
+ * moment a camera reconnects, which is exactly the accident the whole draft
+ * mechanism exists to prevent.
+ */
 function teardown(): void {
   void call?.close().catch(() => {});
   handle?.close();
@@ -84,6 +93,7 @@ function teardown(): void {
   answered = false;
   if (streamLiveWindow.getState().isLive) streamLiveWindow.endLive();
   setLiveStream(null);
+  clearStreamOverlays();
 }
 
 /** Ends the session — closes the projection, the PiP and the connection. */

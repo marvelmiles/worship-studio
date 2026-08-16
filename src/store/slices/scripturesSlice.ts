@@ -28,6 +28,25 @@ export interface SavePassageOptions extends ScriptureSelection {
   showReference?: boolean;
   /** Explicit title, e.g. a numbered copy like "Matthew 1:1-4 (KJV) (1)". */
   title?: string;
+  /**
+   * Break a verse too long for one slide into several. Defaults to on for
+   * quick passages, whose verses-per-slide is never tuned by hand. Surfaces
+   * that re-break the text themselves turn it off, so each slide stays one
+   * whole verse with a reference of its own.
+   */
+  splitLongVerses?: boolean;
+}
+
+/** How a quick passage is created for a caller that owns its document. */
+export interface StageSelectionOptions {
+  /**
+   * Document id to write. Defaults to the single quick-present slot, which the
+   * next quick present overwrites. Callers that need a passage to outlive the
+   * next one — a broadcast overlay, say — pass an id of their own and are
+   * responsible for deleting it.
+   */
+  id?: string;
+  splitLongVerses?: boolean;
 }
 
 export interface ScripturesSlice {
@@ -55,6 +74,7 @@ export interface ScripturesSlice {
   ) => void;
   stageScriptureSelection: (
     selection: ScriptureSelection,
+    options?: StageSelectionOptions,
   ) => ScripturePassage | null;
 }
 
@@ -84,7 +104,7 @@ function buildPassage(
       versesPerSlide,
       showVerseNumbers,
       showReference,
-      splitLongVerses: quick,
+      splitLongVerses: options.splitLongVerses ?? quick,
     }),
     defaultThemeId: themeId,
     defaultBackgroundId: "",
@@ -212,11 +232,15 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     get().startPresent("scripture", passage.id, 0, mode);
   },
 
-  stageScriptureSelection: (selection) => {
+  stageScriptureSelection: (selection, options = {}) => {
     if (blockWrite(get)) return null;
     const passage = buildPassage(
-      { ...selection, showVerseNumbers: false },
-      QUICK_PASSAGE_ID,
+      {
+        ...selection,
+        showVerseNumbers: false,
+        splitLongVerses: options.splitLongVerses,
+      },
+      options.id ?? QUICK_PASSAGE_ID,
       true,
       scriptureThemeId(get),
     );

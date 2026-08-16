@@ -5,7 +5,7 @@ import type {
   SlideElement,
   SlideElementRef,
 } from "../editor/SlideElementOverlay";
-import { isOnAir, isVisible } from "./lib/streamOverlay";
+import { editedOverlay, isOnAir, isVisible } from "./lib/streamOverlay";
 import type { StreamOverlay, StreamOverlayKind } from "./lib/streamOverlay";
 import {
   duplicateStreamOverlay,
@@ -40,9 +40,13 @@ export function StreamOverlayEditor({
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }) {
-  // Handles follow what is actually drawn. A hidden element has nothing under
-  // its box to grab, so it leaves the surface until the eye brings it back.
-  const drawn = useMemo(() => overlays.filter(isVisible), [overlays]);
+  // Handles follow what is actually drawn: the arranging surface paints staged
+  // edits, so the box under a handle is the edited one. A hidden element has
+  // nothing to grab, so it leaves the surface until the eye brings it back.
+  const drawn = useMemo(
+    () => overlays.filter(isVisible).map(editedOverlay),
+    [overlays],
+  );
 
   const elements = useMemo<SlideElement<StreamOverlayKind>[]>(
     () =>

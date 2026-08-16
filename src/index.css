@@ -267,34 +267,47 @@ input[type="range"].ws-slider::-moz-range-progress {
 }
 
 /*
- * The announcement marquee laid over a live broadcast. The track is padded by a
- * full container width so the text starts off-screen to the right, then travels
- * exactly its own length: one pass carries it from just outside one edge to just
- * outside the other, whatever the text or the band measures.
+ * The announcement marquee laid over a live broadcast. The track holds two
+ * identical copies of the text and slides by exactly half its own width, so the
+ * second copy arrives where the first began and the loop never shows a seam or
+ * an empty pause. The duration is set per band from measured widths, which is
+ * what keeps the scrolling speed the same however long the announcement is
+ * (see StreamOverlayLayers).
  */
 @keyframes wfMarquee {
   from {
     transform: translateX(0);
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(-50%);
   }
 }
 
 .ws-marquee-track {
-  display: inline-block;
+  display: flex;
+  flex: none;
+  width: max-content;
   white-space: nowrap;
-  padding-left: 100%;
   will-change: transform;
   animation-name: wfMarquee;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
 
+.ws-marquee-copy {
+  flex: none;
+  /* Trailing space before the text comes round again. Padding on each copy
+     keeps the two halves identical, which the -50% travel relies on. */
+  padding-right: 6cqh;
+  /* A short announcement would otherwise leave both copies inside the band at
+     once and scroll a visible gap across it. Holding every copy to at least the
+     band's own width means the travel always covers the band. */
+  min-width: 100cqw;
+}
+
 /* Scrolling text is a motion trigger, so it holds still when asked to. */
 @media (prefers-reduced-motion: reduce) {
   .ws-marquee-track {
     animation: none;
-    padding-left: 0;
   }
 }

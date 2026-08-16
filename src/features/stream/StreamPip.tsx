@@ -213,10 +213,13 @@ export function StreamPip() {
             display: "block",
           }}
         />
-        {/* The same overlays the projector is showing, at PiP scale: the
-            operator can see what the room sees while working elsewhere in the
-            app. Clips stay silent here; the projection carries the sound. */}
-        <StreamOverlayLayers overlays={overlays} live muted />
+        {/* The overlays at PiP scale, so the operator can see the broadcast
+            while working elsewhere in the app. This is their own copy, not the
+            room's, so it also shows the changes they have staged but not
+            applied — otherwise adjusting a live element from the Stream page
+            would have nothing to look at. Clips stay silent here; the
+            projection carries the sound. */}
+        <StreamOverlayLayers overlays={overlays} live muted preview />
         {(connecting || disconnected) && (
           <div
             style={{

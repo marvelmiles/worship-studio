@@ -1,7 +1,7 @@
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Align, ResolvedStyle, TextStyle } from "../../types";
-import { fade, colors, FONTS } from "../../theme/tokens";
+import { fade, colors, FONTS, FONT_WEIGHT_OPTIONS } from "../../theme/tokens";
 import { TEXT_SHADOW_PRESET } from "../../lib/inlineStyle";
 import { Field, Range, Select, TextInput, Toggle } from "../ui/Field";
 
@@ -9,14 +9,6 @@ interface StyleControlsProps {
   style: ResolvedStyle;
   onChange: (key: keyof TextStyle, value: unknown) => void;
 }
-
-const WEIGHT_OPTIONS = [
-  { value: "300", label: "Light" },
-  { value: "400", label: "Regular" },
-  { value: "600", label: "Semibold" },
-  { value: "700", label: "Bold" },
-  { value: "800", label: "Black" },
-];
 
 const ALIGNMENTS: [Align, LucideIcon][] = [
   ["left", AlignLeft],
@@ -46,7 +38,7 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
       <Field label="Weight">
         <Select
           value={String(style.fontWeight)}
-          options={WEIGHT_OPTIONS}
+          options={FONT_WEIGHT_OPTIONS}
           onChange={(e) => onChange("fontWeight", Number(e.target.value))}
         />
       </Field>

@@ -1,14 +1,17 @@
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
-import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
-import { DEFAULT_MEDIA_PLAYBACK } from "../../lib/presentChannel";
+import { videoSettingsOf } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
-import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoSurface } from "../../components/media/VideoSurface";
 import { useDeck } from "../presentation/useDeck";
 import { buildStageFrame } from "../presentation/stageContent";
+import { OverlayPicture } from "./OverlayPicture";
+import { OverlayTextBlock } from "./OverlayTextBlock";
+import { reportOverlayVideoProgress } from "./lib/overlayVideoProgress";
 import {
+  editedOverlay,
   isMarquee,
   isMediaKind,
   isOnAir,
@@ -42,6 +45,15 @@ interface StreamOverlayLayersProps {
    * layer above (see StreamOverlayEditor).
    */
   showDrafts?: boolean;
+  /**
+   * Draw live overlays with the edits the operator has staged but not applied.
+   *
+   * Set on the operator's own copies of the broadcast — the stage monitor and
+   * the floating PiP — so what they are adjusting is visible as they adjust it.
+   * Never set on the projection window, which is the room's copy and must keep
+   * showing the last applied version until Apply now is pressed.
+   */
+  preview?: boolean;
 }
 
 /**
@@ -50,8 +62,8 @@ interface StreamOverlayLayersProps {
  * Deliberately presentational and shared by all four surfaces — the full-screen
  * stage, the floating PiP, the projection popup and the operator's drag surface.
  * Because every frame is in percentages and the content renders through the same
- * SlideCanvas/ImageSurface/VideoSurface primitives the projector uses, an
- * overlay placed on a 300px PiP lands in exactly the same spot on a projector.
+ * primitives the projector uses, an overlay placed on a 300px PiP lands in
+ * exactly the same spot on a projector.
  *
  * Nothing here knows about editing: the operator's drag handles are a separate
  * layer above (see StreamOverlayEditor), which is what keeps the projected
@@ -62,14 +74,17 @@ export function StreamOverlayLayers({
   live,
   muted,
   showDrafts,
+  preview,
 }: StreamOverlayLayersProps) {
   // Hidden wins over everything: an element the operator has switched off is
   // drawn nowhere. Of the rest, a broadcast output takes only what is on air,
   // while the arranging surface also takes the drafts.
-  const visible = overlays.filter(
-    (overlay) =>
-      isVisible(overlay) && (isOnAir(overlay) || Boolean(showDrafts)),
-  );
+  const visible = overlays
+    .filter(
+      (overlay) =>
+        isVisible(overlay) && (isOnAir(overlay) || Boolean(showDrafts)),
+    )
+    .map((overlay) => (preview ? editedOverlay(overlay) : overlay));
   if (visible.length === 0) return null;
 
   return (
@@ -118,18 +133,23 @@ function ContentLayer(props: {
   live?: boolean;
   muted?: boolean;
 }) {
-  return isMediaKind(props.overlay.kind) ? (
-    <MediaOverlayLayer {...props} />
+  const { overlay } = props;
+  if (isMediaKind(overlay.kind)) return <MediaOverlayLayer {...props} />;
+  return overlay.layout === "block" ? (
+    <OverlayTextBlock overlay={overlay} />
   ) : (
-    <DeckOverlayLayer overlay={props.overlay} live={props.live} />
+    <DeckOverlayLayer overlay={overlay} live={props.live} />
   );
 }
 
 /**
- * A passage or manuscript in its box, resolved through the very same
- * useDeck/buildStageFrame pipeline the projector uses, so the theme, the
+ * A passage or manuscript shown as the projector would show it, resolved
+ * through the very same useDeck/buildStageFrame pipeline, so the theme, the
  * background settings and the per-line styling land exactly as they would on a
  * full-screen slide.
+ *
+ * The alternative to the broadcast's own block layout (see OverlayTextBlock),
+ * for the case where the document's design is the point rather than the words.
  */
 function DeckOverlayLayer({
   overlay,
@@ -141,14 +161,11 @@ function DeckOverlayLayer({
   const prefs = useStore((s) => s.prefs);
   const bgMap = useBgMap();
   const deck = useDeck(overlay.kind, overlay.contentId);
-  const frame = deck
-    ? buildStageFrame(
-        deck,
-        deck.slides[overlay.slideIndex],
-        bgMap,
-        prefs.transition,
-      )
-    : null;
+  const slide = deck?.slides[Math.max(0, overlay.slideIndex)];
+  const frame =
+    deck && slide
+      ? buildStageFrame(deck, slide, bgMap, prefs.transition)
+      : null;
 
   if (frame?.content.kind !== "text") return null;
   const { content } = frame;
@@ -172,8 +189,8 @@ function DeckOverlayLayer({
 }
 
 /**
- * A picture or clip in its box, looked up straight from the media library
- * rather than through useDeck.
+ * A picture or clip in its box, looked up straight from the library that holds
+ * it rather than through useDeck.
  *
  * useDeck deliberately turns "present this picture" into a slideshow over the
  * whole picture library, which is right for the projector's next/previous keys
@@ -192,61 +209,127 @@ function MediaOverlayLayer({
   muted?: boolean;
 }) {
   const media = useStore((s) => s.media);
-  const item = media.find(
-    (entry) => entry.id === overlay.contentId && entry.kind === overlay.kind,
-  );
 
-  if (!item) return null;
-  if (item.kind === "image") {
-    return <ImageSurface item={item} style={{ background: "transparent" }} />;
+  if (overlay.kind === "image") {
+    return (
+      <OverlayPicture
+        image={{ id: overlay.contentId, source: overlay.source }}
+      />
+    );
   }
+
+  const item = media.find(
+    (entry) => entry.id === overlay.contentId && entry.kind === "video",
+  );
+  if (!item) return null;
+
+  const { video } = overlay;
   return (
     <VideoSurface
       item={item}
-      playback={{ ...DEFAULT_MEDIA_PLAYBACK, playing: Boolean(live) }}
+      // The operator's controls win over whatever the library stored, so a clip
+      // slowed down or set looping for the broadcast stays that way here
+      // without the media library being edited mid-service.
+      settings={{
+        ...videoSettingsOf(item),
+        playbackRate: video.rate,
+        loop: video.loop,
+        volume: video.volume,
+        muted: video.muted,
+      }}
+      playback={{
+        playing: video.playing && Boolean(live),
+        muted: video.muted,
+        volume: video.volume,
+        seekTime: video.seekTime,
+        seekToken: video.seekToken,
+      }}
       forceMuted={muted}
+      onTimeUpdate={(time, duration) =>
+        reportOverlayVideoProgress(overlay.id, time, duration)
+      }
     />
   );
 }
 
 /**
- * A scrolling announcement band. The text is sized against the band's own height
- * rather than the broadcast's width, so an operator dragging the band taller
- * gets bigger words instead of the same words in more empty space.
+ * A scrolling announcement band.
  *
- * The travel is one full pass of the track's own length, so the duration the
- * operator sets is the time from entering one edge to leaving the other whatever
- * the announcement's length. A negative delay starts it already in motion, so a
- * band added mid-service doesn't open with a blank pause.
+ * The track carries two copies of the text and travels exactly one copy's
+ * width, so the moment the first copy leaves the band the second is where it
+ * started: an unbroken loop rather than a pass followed by a wait.
+ *
+ * Speed is held as the time a word takes to cross the band, not as the time for
+ * one pass, so a two-word notice and a full paragraph scroll at the same pace.
+ * Turning that into a CSS duration needs the two widths the browser only knows
+ * once it has laid the text out, which is what the measuring below is for.
  */
 function MarqueeLayer({ overlay }: { overlay: MarqueeOverlay }) {
-  const { fonts, stage } = useUITheme();
+  const bandRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLSpanElement>(null);
+  const [duration, setDuration] = useState(0);
+  const { style, text, crossSeconds, fontScale } = overlay;
+
+  useEffect(() => {
+    const band = bandRef.current;
+    const copy = copyRef.current;
+    if (!band || !copy) return;
+
+    const measure = () => {
+      const bandWidth = band.clientWidth;
+      const copyWidth = copy.offsetWidth;
+      if (bandWidth <= 0 || copyWidth <= 0) return;
+      // One band width per crossSeconds is the speed; the track has to cover a
+      // whole copy, so it takes that many band widths' worth of time.
+      setDuration((copyWidth / bandWidth) * crossSeconds);
+    };
+
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(band);
+    observer.observe(copy);
+    return () => observer.disconnect();
+  }, [text, crossSeconds, fontScale, style.fontFamily, style.fontWeight]);
+
   return (
     <div
+      ref={bandRef}
       style={{
+        position: "relative",
         width: "100%",
         height: "100%",
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
-        background: stage.overlay,
-        color: stage.text,
-        fontFamily: fonts.display,
-        fontSize: "52cqh",
-        fontWeight: 600,
-        lineHeight: 1,
-        borderTop: `1px solid ${stage.border}`,
+        background: style.background,
       }}
     >
-      <span
+      {style.backgroundImage && (
+        <OverlayPicture image={style.backgroundImage} fit="cover" />
+      )}
+      <div
         className="ws-marquee-track"
         style={{
-          animationDuration: `${overlay.durationSeconds}s`,
-          animationDelay: `-${overlay.durationSeconds / 4}s`,
+          position: "relative",
+          color: style.textColor,
+          fontFamily: `'${style.fontFamily}', sans-serif`,
+          fontSize: `${fontScale}cqh`,
+          fontWeight: style.fontWeight,
+          lineHeight: 1.1,
+          animationDuration: duration > 0 ? `${duration}s` : undefined,
+          // Nothing measured yet: hold still rather than flash past at whatever
+          // the default duration would be.
+          animationPlayState: duration > 0 ? "running" : "paused",
         }}
       >
-        {overlay.text}
-      </span>
+        <span ref={copyRef} className="ws-marquee-copy">
+          {text}
+        </span>
+        <span className="ws-marquee-copy" aria-hidden>
+          {text}
+        </span>
+      </div>
     </div>
   );
 }

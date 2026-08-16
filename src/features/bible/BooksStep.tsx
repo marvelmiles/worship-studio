@@ -11,8 +11,10 @@ import { Spinner } from "../../components/ui/Spinner";
 import { useBibleSearch } from "./useBibleSearch";
 import { useBibleChapter } from "./useBibleChapter";
 import { PresentButton } from "./PresentButton";
+import { VerseSnippet } from "./VerseSnippet";
 import { tileStyle } from "./tileStyle";
 import {
+  formatParsedReference,
   parseReference,
   referenceSpan,
   type ParsedReference,
@@ -274,10 +276,7 @@ export function BooksStep({
                         color: colors.sub,
                       }}
                     >
-                      {highlightSearchWords(
-                        snippetAroundFirstMatch(result.text, search.term),
-                        search.term,
-                      )}
+                      <VerseSnippet text={result.text} term={search.term} />
                     </span>
                   </ResultRow>
                 );
@@ -300,21 +299,6 @@ export function BooksStep({
       </div>
     </div>
   );
-}
-
-/** "Job 2", "Job 2:3", "Job 2:3-5" — how the parsed reference reads back. */
-function referenceLabel({
-  book,
-  chapter,
-  verseStart,
-  verseEnd,
-}: ParsedReference): string {
-  if (!verseStart) return `${book.name} ${chapter}`;
-  const verses =
-    !verseEnd || verseEnd === verseStart
-      ? `${verseStart}`
-      : `${verseStart}-${verseEnd}`;
-  return `${book.name} ${chapter}:${verses}`;
 }
 
 /**
@@ -436,8 +420,8 @@ function PassageJump({
       </div>
       <ResultRow
         onOpen={onOpen}
-        title={`Open ${referenceLabel(reference)}`}
-        heading={referenceLabel(reference)}
+        title={`Open ${formatParsedReference(reference)}`}
+        heading={formatParsedReference(reference)}
         emphasis
         meta={
           <span
@@ -452,7 +436,7 @@ function PassageJump({
             {!verseStart && verses.length ? ` · ${verses.length} verses` : ""}
           </span>
         }
-        presentTitle={`Present ${referenceLabel(reference)}`}
+        presentTitle={`Present ${formatParsedReference(reference)}`}
         presentDisabled={loading || Boolean(error) || !preview.length}
         // "Job 2:3-5" presents those verses; "Job 2" presents the whole chapter.
         selection={() => {
@@ -490,41 +474,4 @@ function PassageJump({
       </ResultRow>
     </div>
   );
-}
-
-/** Escapes regex metacharacters so search words can be matched literally. */
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-/** Highlights the search words inside a verse snippet. */
-function highlightSearchWords(text: string, term: string) {
-  const words = term.split(/\s+/).filter(Boolean).map(escapeRegExp);
-  if (!words.length) return text;
-  const splitter = new RegExp(`(${words.join("|")})`, "gi");
-  const isMatch = new RegExp(`^(?:${words.join("|")})$`, "i");
-  return text.split(splitter).map((part, i) =>
-    isMatch.test(part) ? (
-      <span key={i} style={{ color: colors.accentSoft, fontWeight: 700 }}>
-        {part}
-      </span>
-    ) : (
-      part
-    ),
-  );
-}
-
-/** Trims long verse text to a window around the first search match. */
-function snippetAroundFirstMatch(
-  text: string,
-  term: string,
-  span = 180,
-): string {
-  if (text.length <= span) return text;
-  const firstWord = term.split(/\s+/).filter(Boolean)[0] || "";
-  const at = firstWord
-    ? text.toLowerCase().indexOf(firstWord.toLowerCase())
-    : -1;
-  if (at <= span / 2) return `${text.slice(0, span)}…`;
-  const start = Math.max(0, at - Math.floor(span / 2));
-  const end = Math.min(text.length, start + span);
-  return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }

@@ -190,7 +190,8 @@ function BroadcastOverlaysSection() {
       >
         Elements you add are staged first, so nothing reaches the broadcast
         until you show it. Maximise the floating window to drag them into place,
-        then put them on air when they are ready.
+        then put them on air when they are ready. Changes to something already
+        on air wait for Apply now, unless you switch that element to auto sync.
       </p>
       <StreamOverlayPanel
         overlays={overlays}

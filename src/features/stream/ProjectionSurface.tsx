@@ -287,6 +287,7 @@ export function ProjectionSurface({
             live
             muted={isLive}
             showDrafts={overlaysOpen}
+            preview={overlaysOpen}
           />
           {overlaysOpen && (
             <StreamOverlayEditor

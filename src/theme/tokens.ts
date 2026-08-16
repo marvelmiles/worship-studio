@@ -19,6 +19,15 @@ export const glass = studioTheme.glass;
 export const UI = studioTheme.fonts.ui;
 export const DISPLAY = studioTheme.fonts.display;
 
+/** The weights the slide fonts ship faces for, named as a writer reads them. */
+export const FONT_WEIGHT_OPTIONS = [
+  { value: "300", label: "Light" },
+  { value: "400", label: "Regular" },
+  { value: "600", label: "Semibold" },
+  { value: "700", label: "Bold" },
+  { value: "800", label: "Black" },
+];
+
 export const FONTS = [
   "Fraunces",
   "Cormorant Garamond",

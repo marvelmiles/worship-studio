@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { BookOpen, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { FileText, Video } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ContentKind, MediaItem } from "../../types";
 import { useStore } from "../../store/useStore";
@@ -7,7 +7,16 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { inputStyle } from "../../components/ui/Field";
-import { ImageSurface } from "../../components/media/ImageSurface";
+
+/**
+ * What this modal picks from one named library.
+ *
+ * Pictures and passages are both excluded because neither is a single list any
+ * more: a picture is chosen across two libraries (see OverlayImagePicker) and a
+ * passage is chosen by reference or by verse text as well as by name (see
+ * OverlayPassagePicker).
+ */
+export type PickableKind = Exclude<ContentKind, "image" | "scripture">;
 
 /** One thing that can be dropped onto the broadcast, flattened for the list. */
 interface PickableItem {
@@ -17,24 +26,18 @@ interface PickableItem {
   media?: MediaItem;
 }
 
-const KIND_ICON: Record<ContentKind, LucideIcon> = {
-  scripture: BookOpen,
+const KIND_ICON: Record<PickableKind, LucideIcon> = {
   manuscript: FileText,
-  image: ImageIcon,
   video: Video,
 };
 
-const KIND_TITLE: Record<ContentKind, string> = {
-  scripture: "Add a passage",
+const KIND_TITLE: Record<PickableKind, string> = {
   manuscript: "Add a manuscript",
-  image: "Add a picture",
   video: "Add a clip",
 };
 
-const KIND_EMPTY: Record<ContentKind, string> = {
-  scripture: "Save a passage from the Bible page and it will appear here.",
+const KIND_EMPTY: Record<PickableKind, string> = {
   manuscript: "Write a manuscript and it will appear here.",
-  image: "Upload a picture in the Media library and it will appear here.",
   video: "Upload a clip in the Media library and it will appear here.",
 };
 
@@ -42,10 +45,10 @@ const KIND_EMPTY: Record<ContentKind, string> = {
  * Picks the library item an overlay will show, without leaving the broadcast.
  *
  * Mid-service the operator cannot afford to navigate away from a running
- * camera to go and find a passage, so every kind the broadcast accepts is
- * offered from one list here. It reads the same store slices the Bible,
- * Manuscripts and Media pages read, so anything saved anywhere in the app is
- * immediately available to put on screen.
+ * camera to go and find a manuscript or a clip, so the library is offered here
+ * as a searchable list. It reads the same store slices the Manuscripts and
+ * Media pages read, so anything saved anywhere in the app is immediately
+ * available to put on screen.
  */
 export function OverlayContentPicker({
   kind,
@@ -53,28 +56,26 @@ export function OverlayContentPicker({
   onClose,
 }: {
   /** Null closes the picker; a kind opens it on that library. */
-  kind: ContentKind | null;
-  onPick: (kind: ContentKind, item: PickableItem) => void;
+  kind: PickableKind | null;
+  onPick: (kind: PickableKind, item: PickableItem) => void;
   onClose: () => void;
 }) {
   const { colors, fonts } = useUITheme();
-  const scriptures = useStore((s) => s.scriptures);
   const manuscripts = useStore((s) => s.manuscripts);
   const media = useStore((s) => s.media);
   const [query, setQuery] = useState("");
 
   const items = useMemo<PickableItem[]>(() => {
     if (!kind) return [];
-    if (kind === "scripture" || kind === "manuscript") {
-      const docs = kind === "scripture" ? scriptures : manuscripts;
-      return docs
+    if (kind === "manuscript") {
+      return manuscripts
         .filter((doc) => !doc.deleted)
         .map((doc) => ({ id: doc.id, name: doc.title }));
     }
     return media
       .filter((item) => item.kind === kind)
       .map((item) => ({ id: item.id, name: item.name, media: item }));
-  }, [kind, scriptures, manuscripts, media]);
+  }, [kind, manuscripts, media]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -91,7 +92,7 @@ export function OverlayContentPicker({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search"
-        aria-label={`Search ${kind === "scripture" ? "passages" : kind === "manuscript" ? "manuscripts" : "media"}`}
+        aria-label={`Search ${kind === "manuscript" ? "manuscripts" : "clips"}`}
         style={{ ...inputStyle, marginBottom: 12 }}
       />
 
@@ -150,11 +151,7 @@ export function OverlayContentPicker({
                     color: colors.dim,
                   }}
                 >
-                  {item.media.kind === "image" ? (
-                    <ImageSurface item={item.media} variant="thumb" />
-                  ) : (
-                    <Video size={16} />
-                  )}
+                  <Video size={16} />
                 </span>
               ) : (
                 <Icon size={16} color={colors.accentSoft} />

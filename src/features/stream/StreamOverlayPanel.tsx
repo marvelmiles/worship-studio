@@ -15,24 +15,24 @@ import {
   Video,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ContentKind } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { inputStyle } from "../../components/ui/Field";
-import { useDeck } from "../presentation/useDeck";
-import { OverlayContentPicker } from "./OverlayContentPicker";
+import {
+  OverlayContentPicker,
+  type PickableKind,
+} from "./OverlayContentPicker";
+import { OverlayImagePicker } from "./OverlayImagePicker";
+import { OverlayPassagePicker } from "./OverlayPassagePicker";
+import { OverlaySectionLabel } from "./OverlayControls";
+import { OverlaySettingsPanel } from "./OverlaySettingsPanel";
 import {
   createContentOverlay,
   createMarqueeOverlay,
+  hasStagedEdits,
   isMarquee,
-  isMediaKind,
   overlayVisibility,
-  MAX_MARQUEE_SECONDS,
-  MIN_MARQUEE_SECONDS,
-  type ContentOverlay,
-  type MarqueeOverlay,
   type OverlayVisibility,
   type StreamOverlay,
   type StreamOverlayKind,
@@ -45,7 +45,6 @@ import {
   takeAllStreamOverlaysOffAir,
   toggleStreamOverlayHidden,
   toggleStreamOverlayLive,
-  updateStreamOverlay,
 } from "./lib/streamOverlayStore";
 
 const KIND_ICON: Record<StreamOverlayKind, LucideIcon> = {
@@ -56,10 +55,8 @@ const KIND_ICON: Record<StreamOverlayKind, LucideIcon> = {
   marquee: Megaphone,
 };
 
-const ADD_BUTTONS: { kind: ContentKind; label: string }[] = [
-  { kind: "scripture", label: "Passage" },
+const ADD_BUTTONS: { kind: PickableKind; label: string }[] = [
   { kind: "manuscript", label: "Manuscript" },
-  { kind: "image", label: "Picture" },
   { kind: "video", label: "Clip" },
 ];
 
@@ -78,9 +75,9 @@ const DEFAULT_MARQUEE_TEXT =
  * Nothing added here goes out on its own. An element is staged, arranged, and
  * only then put on air by hand, so the room never watches a passage being
  * dragged into place or a verse being paged to. Once something *is* on air,
- * every further change to it lands immediately — at that point the operator is
- * adjusting what the room is already looking at, and waiting for a second
- * confirmation would only be in the way.
+ * further changes to it are held back too and go out together on Apply now
+ * (see OverlaySettingsPanel) — unless the operator has asked that element to
+ * sync as they work.
  */
 export function StreamOverlayPanel({
   overlays,
@@ -91,7 +88,9 @@ export function StreamOverlayPanel({
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }) {
-  const [picking, setPicking] = useState<ContentKind | null>(null);
+  const [picking, setPicking] = useState<PickableKind | null>(null);
+  const [pickingPicture, setPickingPicture] = useState(false);
+  const [pickingPassage, setPickingPassage] = useState(false);
   const selected =
     overlays.find((overlay) => overlay.id === selectedId) ?? null;
   // Status, not the eye: a hidden element that was put on air still has an
@@ -105,8 +104,16 @@ export function StreamOverlayPanel({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <SectionLabel>Add to the broadcast</SectionLabel>
+        <OverlaySectionLabel>Add to the broadcast</OverlaySectionLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          <Button
+            variant="subtle"
+            size="sm"
+            onClick={() => setPickingPassage(true)}
+          >
+            <BookOpen size={14} />
+            Passage
+          </Button>
           {ADD_BUTTONS.map(({ kind, label }) => {
             const Icon = KIND_ICON[kind];
             return (
@@ -121,6 +128,14 @@ export function StreamOverlayPanel({
               </Button>
             );
           })}
+          <Button
+            variant="subtle"
+            size="sm"
+            onClick={() => setPickingPicture(true)}
+          >
+            <ImageIcon size={14} />
+            Picture
+          </Button>
           <Button
             variant="subtle"
             size="sm"
@@ -152,7 +167,7 @@ export function StreamOverlayPanel({
               gap: 8,
             }}
           >
-            <SectionLabel>Elements</SectionLabel>
+            <OverlaySectionLabel>Elements</OverlaySectionLabel>
             <span style={{ display: "flex", gap: 12, marginBottom: 7 }}>
               {anyOnAir && (
                 <TextAction
@@ -188,7 +203,7 @@ export function StreamOverlayPanel({
         </div>
       )}
 
-      {selected && <OverlaySettings overlay={selected} />}
+      {selected && <OverlaySettingsPanel overlay={selected} />}
 
       <OverlayContentPicker
         kind={picking}
@@ -198,6 +213,37 @@ export function StreamOverlayPanel({
           addStreamOverlay(overlay);
           onSelect(overlay.id);
           setPicking(null);
+        }}
+      />
+
+      <OverlayPassagePicker
+        open={pickingPassage}
+        onClose={() => setPickingPassage(false)}
+        onPick={(choice) => {
+          const overlay = createContentOverlay(
+            "scripture",
+            choice.contentId,
+            choice.label,
+          );
+          addStreamOverlay(overlay);
+          onSelect(overlay.id);
+          setPickingPassage(false);
+        }}
+      />
+
+      <OverlayImagePicker
+        open={pickingPicture}
+        onClose={() => setPickingPicture(false)}
+        onPick={(choice) => {
+          const overlay = createContentOverlay(
+            "image",
+            choice.id,
+            choice.name,
+            choice.source,
+          );
+          addStreamOverlay(overlay);
+          onSelect(overlay.id);
+          setPickingPicture(false);
         }}
       />
     </div>
@@ -231,25 +277,6 @@ function TextAction({
     >
       {children}
     </button>
-  );
-}
-
-function SectionLabel({ children }: { children: string }) {
-  const { colors, fonts } = useUITheme();
-  return (
-    <div
-      style={{
-        fontFamily: fonts.ui,
-        fontSize: 11.5,
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-        color: colors.dim,
-        marginBottom: 7,
-      }}
-    >
-      {children}
-    </div>
   );
 }
 
@@ -305,7 +332,7 @@ function OverlayRow({
         <span className="ws-ellipsis" style={{ minWidth: 0, flex: 1 }}>
           {isMarquee(overlay) ? overlay.text : overlay.label}
         </span>
-        <StatusChip visibility={visibility} />
+        <StatusChip visibility={visibility} staged={hasStagedEdits(overlay)} />
       </button>
       <RowButton
         icon={overlay.hidden ? EyeOff : Eye}
@@ -353,12 +380,29 @@ const VISIBILITY_LABEL: Record<OverlayVisibility, string> = {
  * takes precedence over the other two: an element switched off is not on air
  * whatever its status says, and reading "On air" next to something the room
  * cannot see would be the one genuinely dangerous thing this panel could claim.
+ *
+ * An element with work waiting on it says so here rather than only in its own
+ * settings, so an operator scanning the list can see that what they arranged
+ * has not gone out yet.
  */
-function StatusChip({ visibility }: { visibility: OverlayVisibility }) {
+function StatusChip({
+  visibility,
+  staged,
+}: {
+  visibility: OverlayVisibility;
+  staged: boolean;
+}) {
   const { colors, fonts } = useUITheme();
   const onAir = visibility === "live";
+  const waiting = onAir && staged;
+  const tone = waiting ? colors.warning : colors.accent;
   return (
     <span
+      title={
+        waiting
+          ? "Changes are waiting to be applied to the broadcast"
+          : undefined
+      }
       style={{
         flexShrink: 0,
         display: "inline-flex",
@@ -366,9 +410,9 @@ function StatusChip({ visibility }: { visibility: OverlayVisibility }) {
         gap: 4,
         padding: "1px 7px",
         borderRadius: 999,
-        background: onAir ? fade(colors.accent, 0.18) : "transparent",
-        border: `1px solid ${onAir ? colors.accent : colors.border}`,
-        color: onAir ? colors.accentSoft : colors.dim,
+        background: onAir ? fade(tone, 0.18) : "transparent",
+        border: `1px solid ${onAir ? tone : colors.border}`,
+        color: onAir ? tone : colors.dim,
         fontFamily: fonts.ui,
         fontSize: 9.5,
         fontWeight: 700,
@@ -376,7 +420,7 @@ function StatusChip({ visibility }: { visibility: OverlayVisibility }) {
         textTransform: "uppercase",
       }}
     >
-      {VISIBILITY_LABEL[visibility]}
+      {waiting ? "Not applied" : VISIBILITY_LABEL[visibility]}
     </span>
   );
 }
@@ -415,243 +459,5 @@ function RowButton({
     >
       <Icon size={13} />
     </button>
-  );
-}
-
-/** The selected overlay's own settings, which differ by what it is showing. */
-function OverlaySettings({ overlay }: { overlay: StreamOverlay }) {
-  const { colors } = useUITheme();
-  const live = overlay.status === "live";
-  return (
-    <div
-      style={{
-        padding: 13,
-        borderRadius: 12,
-        background: colors.bg,
-        border: `1px solid ${colors.border}`,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      <SectionLabel>Selected element</SectionLabel>
-
-      {/* The apply control leads, because this block is where an operator lands
-          the moment they insert something: arrange it here, then put it up. */}
-      <Button
-        variant={live ? "danger" : "primary"}
-        size="sm"
-        onClick={() => toggleStreamOverlayLive(overlay.id)}
-        style={{ width: "100%" }}
-        title={
-          live
-            ? "Remove this from the broadcast. It keeps its placement."
-            : "Put this on the broadcast now, everywhere it is shown."
-        }
-      >
-        {live ? <MonitorX size={14} /> : <MonitorPlay size={14} />}
-        {live ? "Take off the broadcast" : "Show on the broadcast"}
-      </Button>
-
-      {/* A live element that is switched off looks identical to one that was
-          never put up, so the discrepancy is named rather than left to be
-          worked out from two controls disagreeing. */}
-      {live && overlay.hidden && (
-        <Button
-          variant="subtle"
-          size="sm"
-          onClick={() => toggleStreamOverlayHidden(overlay.id)}
-          style={{ width: "100%" }}
-        >
-          <Eye size={14} />
-          Hidden. Show it again
-        </Button>
-      )}
-
-      <Slider
-        label="Opacity"
-        value={overlay.opacity}
-        min={10}
-        max={100}
-        suffix="%"
-        onChange={(opacity) => updateStreamOverlay(overlay.id, { opacity })}
-      />
-
-      {isMarquee(overlay) ? (
-        <MarqueeSettings overlay={overlay} />
-      ) : (
-        <ContentSettings overlay={overlay} />
-      )}
-    </div>
-  );
-}
-
-function MarqueeSettings({ overlay }: { overlay: MarqueeOverlay }) {
-  const { colors, fonts } = useUITheme();
-  return (
-    <>
-      <label style={{ display: "block" }}>
-        <span
-          style={{
-            display: "block",
-            fontFamily: fonts.ui,
-            fontSize: 12,
-            fontWeight: 600,
-            color: colors.sub,
-            marginBottom: 6,
-          }}
-        >
-          Announcement
-        </span>
-        <textarea
-          value={overlay.text}
-          onChange={(event) =>
-            updateStreamOverlay(overlay.id, { text: event.target.value })
-          }
-          rows={2}
-          style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }}
-        />
-      </label>
-      {/* Seconds per pass runs backwards from "speed", so the slider is
-          inverted: dragging right reads as faster, which is what an operator
-          means when they reach for it. */}
-      <Slider
-        label="Speed"
-        value={
-          MIN_MARQUEE_SECONDS + MAX_MARQUEE_SECONDS - overlay.durationSeconds
-        }
-        min={MIN_MARQUEE_SECONDS}
-        max={MAX_MARQUEE_SECONDS}
-        onChange={(value) =>
-          updateStreamOverlay(overlay.id, {
-            durationSeconds: MIN_MARQUEE_SECONDS + MAX_MARQUEE_SECONDS - value,
-          })
-        }
-      />
-    </>
-  );
-}
-
-function ContentSettings({ overlay }: { overlay: ContentOverlay }) {
-  const { colors, fonts } = useUITheme();
-  const showsText = !isMediaKind(overlay.kind);
-  const deck = useDeck(overlay.kind, overlay.contentId);
-  // A media overlay shows one file, so useDeck's whole-library slideshow count
-  // says nothing about it. Only a document has slides worth paging through.
-  const slideCount = showsText ? (deck?.slides.length ?? 0) : 1;
-
-  const step = (direction: number) => {
-    if (slideCount === 0) return;
-    const next = (overlay.slideIndex + direction + slideCount) % slideCount;
-    updateStreamOverlay(overlay.id, { slideIndex: next });
-  };
-
-  return (
-    <>
-      {slideCount > 1 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 8,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: fonts.ui,
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: colors.sub,
-            }}
-          >
-            Slide {overlay.slideIndex + 1} of {slideCount}
-          </span>
-          <span style={{ display: "flex", gap: 6 }}>
-            <Button variant="subtle" size="sm" onClick={() => step(-1)}>
-              Previous
-            </Button>
-            <Button variant="subtle" size="sm" onClick={() => step(1)}>
-              Next
-            </Button>
-          </span>
-        </div>
-      )}
-
-      {showsText && (
-        <Button
-          variant={overlay.opaque ? "primary" : "subtle"}
-          size="sm"
-          onClick={() =>
-            updateStreamOverlay(overlay.id, { opaque: !overlay.opaque })
-          }
-          title={
-            overlay.opaque
-              ? "The words sit on their own panel. Click to float them straight on the camera."
-              : "The words float on the camera. Click to put a readable panel behind them."
-          }
-        >
-          {overlay.opaque ? "Panel behind text" : "Text on camera"}
-        </Button>
-      )}
-
-      {!deck && (
-        <span
-          style={{
-            fontFamily: fonts.ui,
-            fontSize: 12.5,
-            color: colors.danger,
-          }}
-        >
-          This item is no longer in the library.
-        </span>
-      )}
-    </>
-  );
-}
-
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  suffix,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}) {
-  const { colors, fonts } = useUITheme();
-  return (
-    <label style={{ display: "block" }}>
-      <span
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          fontFamily: fonts.ui,
-          fontSize: 12,
-          fontWeight: 600,
-          color: colors.sub,
-          marginBottom: 5,
-        }}
-      >
-        {label}
-        {suffix && (
-          <span style={{ color: colors.dim }}>{`${value}${suffix}`}</span>
-        )}
-      </span>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        style={{ width: "100%", accentColor: colors.accent }}
-      />
-    </label>
   );
 }

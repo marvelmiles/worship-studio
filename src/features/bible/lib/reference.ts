@@ -98,6 +98,21 @@ export function parseReference(input: string): ParsedReference | null {
   };
 }
 
+/** "Job 2", "Job 2:3", "Job 2:3-5": how a parsed reference reads back. */
+export function formatParsedReference({
+  book,
+  chapter,
+  verseStart,
+  verseEnd,
+}: ParsedReference): string {
+  if (!verseStart) return `${book.name} ${chapter}`;
+  const verses =
+    !verseEnd || verseEnd === verseStart
+      ? `${verseStart}`
+      : `${verseStart}-${verseEnd}`;
+  return `${book.name} ${chapter}:${verses}`;
+}
+
 export function formatRange(range: PassageRange): string {
   const { bookName, chapter, verseStart, verseEnd } = range;
   const verses =

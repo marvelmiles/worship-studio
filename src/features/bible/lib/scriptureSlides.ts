@@ -6,6 +6,7 @@ import type {
   TextStyle,
 } from "../../../types";
 import { uid } from "../../../lib/id";
+import { splitTextIntoParts } from "../../../lib/textBlocks";
 import { SCRIPTURE_REFERENCE_FONT_SIZE } from "../../../data/themes";
 import { formatRange, formatReference } from "./reference";
 
@@ -47,54 +48,6 @@ function chunkLines(chunk: BibleVerse[], showVerseNumbers: boolean): string[] {
     }
     return verseLines;
   });
-}
-
-/**
- * Splits text into `count` roughly equal parts at word boundaries, nudging
- * each break toward the nearest sentence punctuation so parts read naturally.
- * Every break lands as close as possible to an even division of the text.
- */
-function splitTextIntoParts(text: string, maxChars: number): string[] {
-  if (text.length <= maxChars) return [text];
-  const count = Math.ceil(text.length / maxChars);
-  const words = text.split(/\s+/).filter(Boolean);
-
-  // Word boundaries as cumulative character positions (position after word i).
-  const bounds: { pos: number; index: number; punct: boolean }[] = [];
-  let pos = 0;
-  words.forEach((word, i) => {
-    pos += (i === 0 ? 0 : 1) + word.length;
-    bounds.push({ pos, index: i, punct: /[,;:.!?]$/.test(word) });
-  });
-
-  const total = text.length;
-  const chosen: number[] = []; // word indices after which we break
-  for (let k = 1; k < count; k++) {
-    const ideal = (total * k) / count;
-    const prev = chosen.length ? chosen[chosen.length - 1] : -1;
-    let best = -1;
-    let bestScore = Infinity;
-    for (const b of bounds) {
-      if (b.index <= prev || b.index >= words.length - 1) continue;
-      // Distance from the ideal split point, with a discount for breaking
-      // right after punctuation so natural pauses win close calls.
-      const score = Math.abs(b.pos - ideal) - (b.punct ? maxChars * 0.15 : 0);
-      if (score < bestScore) {
-        bestScore = score;
-        best = b.index;
-      }
-    }
-    if (best >= 0) chosen.push(best);
-  }
-
-  const parts: string[] = [];
-  let start = 0;
-  for (const breakIdx of chosen) {
-    parts.push(words.slice(start, breakIdx + 1).join(" "));
-    start = breakIdx + 1;
-  }
-  parts.push(words.slice(start).join(" "));
-  return parts.filter(Boolean);
 }
 
 /** Per-slide line groups for one chunk: a single group, or split parts. */
