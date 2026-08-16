@@ -265,3 +265,36 @@ input[type="range"].ws-slider::-moz-range-progress {
     transform: rotate(360deg);
   }
 }
+
+/*
+ * The announcement marquee laid over a live broadcast. The track is padded by a
+ * full container width so the text starts off-screen to the right, then travels
+ * exactly its own length: one pass carries it from just outside one edge to just
+ * outside the other, whatever the text or the band measures.
+ */
+@keyframes wfMarquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.ws-marquee-track {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  will-change: transform;
+  animation-name: wfMarquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Scrolling text is a motion trigger, so it holds still when asked to. */
+@media (prefers-reduced-motion: reduce) {
+  .ws-marquee-track {
+    animation: none;
+    padding-left: 0;
+  }
+}

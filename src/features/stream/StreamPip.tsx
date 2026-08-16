@@ -13,6 +13,8 @@ import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { AudioSharingPill } from "./AudioSharingPill";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
+import { StreamOverlayLayers } from "./StreamOverlayLayers";
+import { useStreamOverlays } from "./lib/streamOverlayStore";
 import {
   endStreamSession,
   setStreamMode,
@@ -36,6 +38,7 @@ export function StreamPip() {
   const session = useStreamSession();
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
   const audio = useRemoteAudio(session.stream);
+  const overlays = useStreamOverlays();
   const videoRef = useRef<HTMLVideoElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState(() => ({
@@ -210,6 +213,10 @@ export function StreamPip() {
             display: "block",
           }}
         />
+        {/* The same overlays the projector is showing, at PiP scale: the
+            operator can see what the room sees while working elsewhere in the
+            app. Clips stay silent here; the projection carries the sound. */}
+        <StreamOverlayLayers overlays={overlays} live muted />
         {(connecting || disconnected) && (
           <div
             style={{

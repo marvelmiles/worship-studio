@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Layers,
   Maximize2,
   Minimize2,
   MonitorPlay,
@@ -12,15 +13,24 @@ import {
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
+import { useViewport } from "../../hooks/useViewport";
 import { Button } from "../../components/ui/Button";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
 import { AudioSharingPill } from "./AudioSharingPill";
+import { StreamOverlayLayers } from "./StreamOverlayLayers";
+import { StreamOverlayEditor } from "./StreamOverlayEditor";
+import { StreamOverlayPanel } from "./StreamOverlayPanel";
+import { useStreamOverlays } from "./lib/streamOverlayStore";
+import { isOnAir } from "./lib/streamOverlay";
 import type { PeerStatus } from "./lib/peer";
 
 /** Video never shrinks below this, so a short viewport scrolls instead. */
 const MIN_VIDEO_HEIGHT = 360;
+
+/** Wide enough for the overlay list and its settings without wrapping. */
+const OVERLAY_DRAWER_WIDTH = 330;
 
 /**
  * The full-screen "stage" view of the projected camera. Purely presentational:
@@ -55,10 +65,18 @@ export function ProjectionSurface({
   const pushToast = useStore((s) => s.pushToast);
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
   const audio = useRemoteAudio(stream);
+  const { isTablet } = useViewport();
+  const overlays = useStreamOverlays();
   const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [overlaysOpen, setOverlaysOpen] = useState(false);
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(
+    null,
+  );
   const disconnected = status === "failed";
+  // The count that matters is what the room can see, not what is staged.
+  const onAirCount = overlays.filter(isOnAir).length;
 
   // Tell the sender whenever the projection goes live on (or leaves) the display.
   useEffect(() => {
@@ -195,6 +213,15 @@ export function ProjectionSurface({
               {audio.muted ? "Unmute audio" : "Mute audio"}
             </Button>
           )}
+          <Button
+            variant={overlaysOpen ? "primary" : "ghost"}
+            size="sm"
+            onClick={() => setOverlaysOpen((open) => !open)}
+            title="Show passages, manuscripts, pictures, clips and announcements over the camera"
+          >
+            <Layers size={14} />
+            {onAirCount > 0 ? `Overlays (${onAirCount} on air)` : "Overlays"}
+          </Button>
           <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
@@ -221,63 +248,113 @@ export function ProjectionSurface({
         </div>
       </div>
 
-      {/* Video: full width, all remaining height, floored at a usable minimum. */}
+      {/* Video and, when open, the overlay drawer beside it. They stack on a
+          narrow screen so the drawer never squeezes the camera to a sliver. */}
       <div
         style={{
-          position: "relative",
+          display: "flex",
+          flexDirection: isTablet ? "column" : "row",
           flex: 1,
-          minHeight: MIN_VIDEO_HEIGHT,
-          background: "#000",
+          minHeight: 0,
+          alignItems: "stretch",
         }}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={previewMuted}
+        <div
           style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
+            position: "relative",
+            flex: 1,
+            minHeight: MIN_VIDEO_HEIGHT,
+            background: "#000",
           }}
-        />
-        {disconnected && (
-          <div
+        >
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={previewMuted}
             style={{
-              position: "absolute",
-              inset: 0,
-              display: "grid",
-              placeItems: "center",
-              textAlign: "center",
-              padding: 24,
-              background: "rgba(0,0,0,0.55)",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
             }}
-          >
-            <div>
-              <div
-                style={{
-                  fontFamily: fonts.display,
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: "#fff",
-                  marginBottom: 6,
-                }}
-              >
-                The camera disconnected
-              </div>
-              <div
-                style={{
-                  fontFamily: fonts.ui,
-                  fontSize: 13.5,
-                  color: "rgba(255,255,255,0.7)",
-                }}
-              >
-                Press Stop to close this view, then reconnect from the device
-                list.
+          />
+          {/* Drafts and handles appear only while the drawer is open. With it
+              closed this surface is a program monitor and shows exactly what
+              the room is seeing; with it open it is the arranging surface. */}
+          <StreamOverlayLayers
+            overlays={overlays}
+            live
+            muted={isLive}
+            showDrafts={overlaysOpen}
+          />
+          {overlaysOpen && (
+            <StreamOverlayEditor
+              overlays={overlays}
+              selectedId={selectedOverlayId}
+              onSelect={setSelectedOverlayId}
+            />
+          )}
+          {disconnected && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                textAlign: "center",
+                padding: 24,
+                background: "rgba(0,0,0,0.55)",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontFamily: fonts.display,
+                    fontSize: 18,
+                    fontWeight: 700,
+                    color: "#fff",
+                    marginBottom: 6,
+                  }}
+                >
+                  The camera disconnected
+                </div>
+                <div
+                  style={{
+                    fontFamily: fonts.ui,
+                    fontSize: 13.5,
+                    color: "rgba(255,255,255,0.7)",
+                  }}
+                >
+                  Press Stop to close this view, then reconnect from the device
+                  list.
+                </div>
               </div>
             </div>
-          </div>
+          )}
+        </div>
+
+        {overlaysOpen && (
+          <aside
+            aria-label="Broadcast overlays"
+            style={{
+              flexShrink: 0,
+              width: isTablet ? "auto" : OVERLAY_DRAWER_WIDTH,
+              maxHeight: isTablet ? "45dvh" : undefined,
+              overflowY: "auto",
+              padding: 14,
+              background: colors.raise,
+              ...(isTablet
+                ? { borderTop: `1px solid ${colors.border}` }
+                : { borderLeft: `1px solid ${colors.border}` }),
+            }}
+          >
+            <StreamOverlayPanel
+              overlays={overlays}
+              selectedId={selectedOverlayId}
+              onSelect={setSelectedOverlayId}
+            />
+          </aside>
         )}
       </div>
     </div>

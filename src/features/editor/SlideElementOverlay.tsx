@@ -37,14 +37,14 @@ const TOOLBAR_ABOVE_FROM = 14;
 /** Marks the draggable box, so a grip can hand focus back to the box it belongs to. */
 const BOX_ATTRIBUTE = "data-slide-element";
 
-const LABELS: Record<SlideElementKind, string> = {
+const LABELS: Record<string, string> = {
   image: "Placed image",
   video: "Placed video",
   text: "Text box",
 };
 
-interface Gesture {
-  element: SlideElementRef;
+interface Gesture<Kind extends string> {
+  element: SlideElementRef<Kind>;
   handle: HandleId | "move";
   frame: SlideFrame;
   pointerX: number;
@@ -53,33 +53,49 @@ interface Gesture {
   slideHeight: number;
 }
 
-/** Identifies one placement, which is all a command needs to find it again. */
-export interface SlideElementRef {
+/**
+ * Identifies one placement, which is all a command needs to find it again.
+ *
+ * `Kind` is a type parameter because this overlay is the drag/resize surface for
+ * more than the slide editor: the live broadcast lays passages, manuscripts and
+ * announcement bands over a camera and needs the same gestures over its own
+ * vocabulary of elements. It defaults to the slide editor's kinds, so every
+ * existing caller is unchanged.
+ */
+export interface SlideElementRef<Kind extends string = SlideElementKind> {
   id: string;
-  kind: SlideElementKind;
+  kind: Kind;
 }
 
-export interface SlideElement extends SlideElementRef {
+export interface SlideElement<
+  Kind extends string = SlideElementKind,
+> extends SlideElementRef<Kind> {
   frame: SlideFrame;
+  /** Accessible name for this box; defaults to one derived from `kind`. */
+  label?: string;
+  /** Whether the middle of the box drags it; defaults by kind (see interiorDrags). */
+  dragFromInterior?: boolean;
 }
 
-/** Everything the editor supplies to make placements interactive. */
-export interface SlideElementEditing {
+/** Everything a host supplies to make placements interactive. */
+export interface SlideElementEditing<Kind extends string = SlideElementKind> {
   selectedId: string | null;
-  onSelect: (element: SlideElementRef | null) => void;
+  onSelect: (element: SlideElementRef<Kind> | null) => void;
   /** Called continuously while dragging; `gesture` groups it into one undo step. */
   onFrameChange: (
-    element: SlideElementRef,
+    element: SlideElementRef<Kind>,
     frame: SlideFrame,
     gesture: string,
   ) => void;
-  onDuplicate: (element: SlideElementRef) => void;
-  onDelete: (element: SlideElementRef) => void;
-  onReorder: (element: SlideElementRef, direction: number) => void;
+  onDuplicate: (element: SlideElementRef<Kind>) => void;
+  onDelete: (element: SlideElementRef<Kind>) => void;
+  onReorder: (element: SlideElementRef<Kind>, direction: number) => void;
 }
 
-interface SlideElementOverlayProps extends SlideElementEditing {
-  elements: SlideElement[];
+interface SlideElementOverlayProps<
+  Kind extends string,
+> extends SlideElementEditing<Kind> {
+  elements: SlideElement<Kind>[];
 }
 
 /**
@@ -117,9 +133,17 @@ function resizeFrame(
  * its box and a selected clip shows its player, so those hand their middle back
  * to what is underneath and are moved by their edges instead, the way a text
  * box behaves in a slide editor.
+ *
+ * An element may state it outright, which is what a host with its own kinds
+ * does: a broadcast overlay is never typed into, so all of its kinds drag from
+ * the middle regardless of what they contain.
  */
-const interiorDrags = (element: SlideElement, selected: boolean): boolean =>
-  element.kind === "image" || (element.kind === "video" && !selected);
+const interiorDrags = <Kind extends string>(
+  element: SlideElement<Kind>,
+  selected: boolean,
+): boolean =>
+  element.dragFromInterior ??
+  (element.kind === "image" || (element.kind === "video" && !selected));
 
 /**
  * The editor's handle on everything placed on a slide: pictures, clips and text
@@ -130,7 +154,7 @@ const interiorDrags = (element: SlideElement, selected: boolean): boolean =>
  * Everything outside a placement stays click-through, which is what keeps the
  * slide's own text editable while placements are on it.
  */
-export function SlideElementOverlay({
+export function SlideElementOverlay<Kind extends string = SlideElementKind>({
   elements,
   selectedId,
   onSelect,
@@ -138,14 +162,14 @@ export function SlideElementOverlay({
   onDuplicate,
   onDelete,
   onReorder,
-}: SlideElementOverlayProps) {
+}: SlideElementOverlayProps<Kind>) {
   const { colors } = useUITheme();
   const rootRef = useRef<HTMLDivElement>(null);
-  const gesture = useRef<Gesture | null>(null);
+  const gesture = useRef<Gesture<Kind> | null>(null);
 
   const begin = (
     event: PointerEvent<HTMLElement>,
-    element: SlideElement,
+    element: SlideElement<Kind>,
     handle: HandleId | "move",
   ) => {
     // Without this the click lands in the text underneath and moves the caret.
@@ -195,7 +219,7 @@ export function SlideElementOverlay({
 
   const handleKeys = (
     event: KeyboardEvent<HTMLElement>,
-    element: SlideElement,
+    element: SlideElement<Kind>,
   ) => {
     const step = event.shiftKey ? NUDGE_FAST : NUDGE;
     const nudge = (dx: number, dy: number) => {
@@ -260,7 +284,7 @@ export function SlideElementOverlay({
             {...{ [BOX_ATTRIBUTE]: element.id }}
             role="button"
             tabIndex={0}
-            aria-label={`${LABELS[element.kind]}. Drag to move, arrow keys to nudge.`}
+            aria-label={`${element.label ?? LABELS[element.kind] ?? "Element"}. Drag to move, arrow keys to nudge.`}
             aria-pressed={selected}
             style={boxStyle}
             onPointerDown={

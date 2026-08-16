@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { StreamOverlayLayers } from "./StreamOverlayLayers";
+import { useMirroredStreamOverlays } from "./lib/streamOverlayStore";
+import { useOverlayContentSync } from "./lib/useOverlayContentSync";
 
 /**
  * Renders in the popup opened by the stream's Go Live button. It projects the
- * live camera and nothing else — no controls, no app chrome. The stream is
- * pulled by reference from the opener window (see streamLive.ts); this window
- * never touches signalling or WebRTC, it only displays.
+ * live camera and whatever the operator has laid over it, and nothing else — no
+ * controls, no app chrome.
+ *
+ * Two links feed it, because the two halves cannot travel the same way. The
+ * camera is pulled by reference from the opener window (see streamLive.ts),
+ * since a MediaStream cannot be cloned across a channel. The overlays are plain
+ * data and arrive over a BroadcastChannel, which is what lets the operator keep
+ * rearranging them from the app while this window projects. Either way this
+ * window never touches signalling or WebRTC; it only displays.
  */
 export function StreamWindow() {
+  const overlays = useMirroredStreamOverlays();
+  useOverlayContentSync(overlays);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -111,6 +122,9 @@ export function StreamWindow() {
           background: "#000",
         }}
       />
+
+      {/* This is the copy the room watches, so its clips are the ones heard. */}
+      <StreamOverlayLayers overlays={overlays} live />
 
       {!stream && (
         <div
