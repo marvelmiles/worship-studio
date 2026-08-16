@@ -1,26 +1,78 @@
 import { useMemo } from "react";
-import type { CSSProperties, PointerEvent } from "react";
-import type { ResolvedStyle, VerticalAlign } from "../types";
+import type { CSSProperties, PointerEvent, ReactNode } from "react";
+import type { Align, ResolvedStyle, VerticalAlign } from "../types";
 import { colors, fade } from "../theme/tokens";
 import { lineContentOffsets } from "../lib/inlineDocument";
 import { analyzeLines, listMarkerLabel } from "../lib/lists";
+import type { ListKind, ListLine } from "../lib/lists";
 import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
 import { FormattedText } from "./FormattedText";
 
 /** One indent level, in the same container-query unit the text is sized in. */
 const INDENT_STEP_CQW = 3.2;
 
-const FLEX_ALIGN = {
-  left: "flex-start",
-  center: "center",
-  right: "flex-end",
-} as const;
-
 const FLEX_VERTICAL: Record<VerticalAlign, string> = {
   top: "flex-start",
   middle: "center",
   bottom: "flex-end",
 };
+
+interface ListItemLineProps {
+  item: ListLine & { kind: ListKind };
+  align: Align;
+  painted: ReactNode;
+  editable: boolean;
+}
+
+/**
+ * A line carrying a list marker.
+ *
+ * Left-aligned text gets the hanging indent an outline is read with: the marker
+ * sits in its own column and wrapped text lines up under the words above it.
+ * Centred and right-aligned text cannot have that column, since pinning the
+ * marker to the edge would drag the words off the alignment the slide is set
+ * in, so the marker travels inline with the text and the whole item wraps and
+ * aligns as one piece.
+ */
+function ListItemLine({ item, align, painted, editable }: ListItemLineProps) {
+  const label = listMarkerLabel(item.kind, item.index, item.level);
+  const markerStyle: CSSProperties = {
+    fontVariantNumeric: "tabular-nums",
+    userSelect: editable ? "none" : undefined,
+  };
+
+  if (align !== "left")
+    return (
+      <>
+        <span
+          aria-hidden
+          contentEditable={false}
+          style={{ ...markerStyle, marginInlineEnd: "0.9cqw" }}
+        >
+          {label}
+        </span>
+        {painted}
+      </>
+    );
+
+  return (
+    <span style={{ display: "flex", alignItems: "baseline", gap: "0.9cqw" }}>
+      <span
+        aria-hidden
+        contentEditable={false}
+        style={{
+          ...markerStyle,
+          flex: "none",
+          minWidth: "2.6cqw",
+          textAlign: "end",
+        }}
+      >
+        {label}
+      </span>
+      <span style={{ flex: 1, textAlign: "start" }}>{painted}</span>
+    </span>
+  );
+}
 
 interface SlideTextBlockProps {
   lines: string[];
@@ -138,30 +190,12 @@ export function SlideTextBlock({
               }}
             >
               {item.kind ? (
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: "0.9cqw",
-                    justifyContent: FLEX_ALIGN[align],
-                    textAlign: "start",
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    contentEditable={false}
-                    style={{
-                      flex: "none",
-                      minWidth: "2.6cqw",
-                      textAlign: "end",
-                      fontVariantNumeric: "tabular-nums",
-                      userSelect: editable ? "none" : undefined,
-                    }}
-                  >
-                    {listMarkerLabel(item.kind, item.index, item.level)}
-                  </span>
-                  <span>{painted}</span>
-                </span>
+                <ListItemLine
+                  item={{ ...item, kind: item.kind }}
+                  align={align}
+                  painted={painted}
+                  editable={editable}
+                />
               ) : (
                 painted
               )}

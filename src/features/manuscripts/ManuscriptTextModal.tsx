@@ -145,8 +145,10 @@ export function ManuscriptTextModal({
             <Mark>**Chorus**</Mark>, <Mark>Chorus:</Mark>,{" "}
             <Mark>Chorus: first line</Mark> or a bare <Mark>Bridge</Mark>, and
             so are performer cues like <Mark>Soloist:</Mark> and{" "}
-            <Mark>Choir:</Mark>. Untagged stanzas become verses, keeping any{" "}
-            <Mark>1.</Mark> <Mark>(2)</Mark> <Mark>IV.</Mark> numbering.
+            <Mark>Choir:</Mark>. Untagged stanzas become verses, and a stanza
+            opening <Mark>1.</Mark> <Mark>(2)</Mark> <Mark>IV.</Mark> is
+            numbered by it: the number labels the slide instead of standing in
+            front of the lyric, so every line is set the same way.
           </p>
           <p style={helpStyle}>
             Repeat marks never reach the screen: <Mark>(2x)</Mark>{" "}

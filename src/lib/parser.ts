@@ -5,7 +5,7 @@ import { defaultFormatForCollection } from "./manuscript/format";
 import { extractManuscriptMetadata } from "./manuscript/metadata";
 import { buildSermonSlides } from "./manuscript/sermon";
 import {
-  matchStanzaNumber,
+  readStanzaOpener,
   usesBareStanzaNumbers,
 } from "./manuscript/numbering";
 import {
@@ -202,17 +202,18 @@ function buildSections(
       continue;
     }
 
-    const stanzaNumber = matchStanzaNumber(line, allowBareNumbers);
+    const stanza = readStanzaOpener(line, allowBareNumbers);
     if (
-      stanzaNumber !== null ||
+      stanza !== null ||
       !current ||
       (pendingBreak && (stanzaMode || !current.named))
     ) {
-      current = newSection("verse", "Verse", stanzaNumber, false);
+      current = newSection("verse", "Verse", stanza?.number ?? null, false);
       sections.push(current);
     }
     pendingBreak = false;
-    pushLine(current, line);
+    // The stanza number names the slide, so only the lyric goes on it.
+    pushLine(current, stanza?.text ?? line);
   }
 
   return sections;
@@ -365,12 +366,17 @@ const emptySlide = (): Slide => ({
  * Good Shepherd`, names the manuscript and files it in the matching
  * collection; it is a label, never a slide line.
  *
+ * Lyrics reach the slide as words alone. A stanza opening with `1.`, `(2)`,
+ * `IV.` or, in a document that reads like a numbered hymn, a bare `3`, is
+ * numbered by it: the number becomes the slide's label, "Verse 3", and leaves
+ * the line, so every lyric is set the same way and none of them is dragged out
+ * of line by a leading marker.
+ *
  * Sections are recognised however they were written: `[Verse 2]`, `## Chorus`,
  * `**Chorus**`, `Chorus:`, `Chorus: first line`, `Choir- first line`,
  * `(Adlibs)` or a bare `Bridge` on its own line. Performer cues such as
  * `Soloist:` and `Choir:` count as sections too. Untagged text falls back to
- * blank-line stanzas, and a stanza opening with `1.`, `(2)`, `IV.` or, in a
- * document that reads like a numbered hymn, a bare `3`, keeps that number.
+ * blank-line stanzas.
  *
  * Repeat shorthand never reaches the screen. `(2x)`, `/2ce`, `[4x]` and the
  * like are lifted into the slide's presenter notes, and a cue that points at
