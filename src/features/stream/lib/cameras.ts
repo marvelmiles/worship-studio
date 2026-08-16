@@ -1,9 +1,16 @@
 /**
- * Camera enumeration helpers for the sender. A device with more than one camera
- * exposes each as a separate video input; switching (see openCameraFacing) opens
- * the requested front/back lens, which works the same on a phone (front/back and
- * its extra rear lenses) and a laptop (built-in/USB).
+ * Camera capture for the sender. A device with more than one camera exposes each
+ * as a separate video input; switching (see openCameraFacing) opens the
+ * requested front/back lens, which works the same on a phone (front/back and its
+ * extra rear lenses) and a laptop (built-in/USB).
+ *
+ * Every camera here is opened through the same quality ladder, so the picture
+ * profile can't drift between the first camera and a flipped one. The profile
+ * itself lives in videoQuality.ts, alongside the encoder settings that have to
+ * agree with it.
  */
+
+import { VIDEO_CAPTURE, VIDEO_CAPTURE_PREFERRED } from "./videoQuality";
 
 export async function listCameras(): Promise<MediaDeviceInfo[]> {
   try {
@@ -14,48 +21,73 @@ export async function listCameras(): Promise<MediaDeviceInfo[]> {
   }
 }
 
-/**
- * The capture profile shared by every camera request. A LAN carries far more
- * than WebRTC's conservative default, so we ask the camera for a full 1080p30
- * feed and let the encoder push it at a high bitrate (see peer.ts). This is the
- * single source of truth for capture quality — both the initial camera and the
- * flip-to-next-camera path build their constraints from it.
- */
-const VIDEO_QUALITY: MediaTrackConstraints = {
-  width: { ideal: 1920 },
-  height: { ideal: 1080 },
-  frameRate: { ideal: 30 },
-};
-
-/**
- * Constraints for the first camera opened, preferring the rear lens. Video only:
- * the microphone is added on demand by the sender's "Include audio" toggle (see
- * setStreamAudioEnabled) rather than captured up front, so the mic is never
- * opened unless the operator asks for it.
- */
-export function cameraConstraints(): MediaStreamConstraints {
-  return {
-    video: { facingMode: "environment", ...VIDEO_QUALITY },
-    audio: false,
-  };
-}
-
-/** Constraints for a specific camera, used when flipping between lenses. */
-export function cameraById(deviceId: string): MediaStreamConstraints {
-  return {
-    video: { deviceId: { exact: deviceId }, ...VIDEO_QUALITY },
-    audio: false,
-  };
-}
-
 export type FacingMode = "user" | "environment";
 
-/** Constraints that pin a specific front/back lens, used to flip a phone camera. */
-export function cameraByFacing(facingMode: FacingMode): MediaStreamConstraints {
-  return {
-    video: { facingMode: { exact: facingMode }, ...VIDEO_QUALITY },
-    audio: false,
-  };
+/** Which physical camera to open, with no bearing on the quality asked of it. */
+type LensSelector = Pick<MediaTrackConstraints, "facingMode" | "deviceId">;
+
+/**
+ * Every request we will make for one lens, best first: the full profile with its
+ * resolution floors, the same profile as a preference only, then the bare lens.
+ *
+ * The ladder exists because the floors in VIDEO_CAPTURE are what stop a device
+ * quietly handing back a 640x480 capture to be stretched over a projector — but
+ * those same floors are genuinely out of reach for some laptop webcams, where
+ * insisting would mean no camera at all. Asking in descending order gets the
+ * best picture the hardware can actually produce, rather than the cheapest one
+ * it would like to offer.
+ *
+ * Video only: the microphone is added on demand by the sender's "Include audio"
+ * toggle (see setStreamAudioEnabled) rather than captured up front, so the mic is
+ * never opened unless the operator asks for it.
+ */
+function lensAttempts(lens: LensSelector): MediaStreamConstraints[] {
+  return [
+    { video: { ...lens, ...VIDEO_CAPTURE }, audio: false },
+    { video: { ...lens, ...VIDEO_CAPTURE_PREFERRED }, audio: false },
+    { video: { ...lens }, audio: false },
+  ];
+}
+
+/** Requests for a specific camera, used when flipping between lenses. */
+function cameraById(deviceId: string): MediaStreamConstraints[] {
+  return lensAttempts({ deviceId: { exact: deviceId } });
+}
+
+/** Both the strict (exact) and loose (ideal) forms of a facing request. */
+function facingAttempts(facingMode: FacingMode): MediaStreamConstraints[] {
+  return [
+    ...lensAttempts({ facingMode: { exact: facingMode } }),
+    ...lensAttempts({ facingMode }),
+  ];
+}
+
+/** Opens the first of the given requests that succeeds, or null if none do. */
+async function openFirstCamera(
+  attempts: MediaStreamConstraints[],
+): Promise<MediaStream | null> {
+  for (const constraints of attempts) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch {
+      /* try the next candidate */
+    }
+  }
+  return null;
+}
+
+/**
+ * Opens the camera a broadcast starts on, preferring the rear lens and the best
+ * picture the device will give. Throws only when no camera opens at all, which
+ * callers surface as a permission prompt.
+ */
+export async function openCamera(): Promise<MediaStream> {
+  const stream = await openFirstCamera([
+    ...lensAttempts({ facingMode: "environment" }),
+    ...lensAttempts({}),
+  ]);
+  if (!stream) throw new Error("No camera could be opened");
+  return stream;
 }
 
 /**
@@ -91,28 +123,6 @@ function isSameCamera(a: CameraIdentity, b: CameraIdentity): boolean {
   if (a.label && b.label) return a.label === b.label;
   if (a.facingMode && b.facingMode) return a.facingMode === b.facingMode;
   return false;
-}
-
-/** Both the strict (exact) and loose (ideal) forms of a facing constraint. */
-function facingAttempts(facingMode: FacingMode): MediaStreamConstraints[] {
-  return [
-    cameraByFacing(facingMode),
-    { video: { facingMode, ...VIDEO_QUALITY }, audio: false },
-  ];
-}
-
-/** Opens the first of the given constraints that succeeds, or null if none do. */
-async function openFirstCamera(
-  attempts: MediaStreamConstraints[],
-): Promise<MediaStream | null> {
-  for (const constraints of attempts) {
-    try {
-      return await navigator.mediaDevices.getUserMedia(constraints);
-    } catch {
-      /* try the next candidate */
-    }
-  }
-  return null;
 }
 
 export interface CameraSwitch {
@@ -158,7 +168,7 @@ export async function openCameraFacing(
   for (let offset = 1; offset <= cameras.length; offset += 1) {
     const camera = cameras[(Math.max(startIndex, 0) + offset) % cameras.length];
     if (camera?.deviceId && camera.deviceId !== current.deviceId) {
-      switchAttempts.push(cameraById(camera.deviceId));
+      switchAttempts.push(...cameraById(camera.deviceId));
     }
   }
 
@@ -180,11 +190,11 @@ export async function openCameraFacing(
 
   // No other camera opened — restore the original so the broadcast keeps running.
   const restoreAttempts: MediaStreamConstraints[] = [];
-  if (current.deviceId) restoreAttempts.push(cameraById(current.deviceId));
+  if (current.deviceId) restoreAttempts.push(...cameraById(current.deviceId));
   if (current.facingMode === "user" || current.facingMode === "environment") {
     restoreAttempts.push(...facingAttempts(current.facingMode));
   }
-  restoreAttempts.push({ video: { ...VIDEO_QUALITY }, audio: false });
+  restoreAttempts.push(...lensAttempts({}));
 
   const restored = await openFirstCamera(restoreAttempts);
   if (restored) return { stream: restored, switched: false };

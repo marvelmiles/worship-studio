@@ -7,7 +7,6 @@ import {
   X,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
@@ -139,9 +138,12 @@ export function StreamPip() {
         zIndex: 200,
         borderRadius: 14,
         overflow: "hidden",
-        background: fade(colors.panelSolid, 0.96),
-        backdropFilter: "blur(18px) saturate(150%)",
-        WebkitBackdropFilter: "blur(18px) saturate(150%)",
+        // Solid rather than a translucent backdrop-filter panel. At the opacity
+        // this used the blur was invisible anyway, and a backdrop filter makes
+        // the compositor re-blur the region behind a floating window that sits
+        // over a playing video and is dragged around — cost paid every frame,
+        // during a service, for nothing on screen.
+        background: colors.panelSolid,
         border: `1px solid ${colors.border}`,
         boxShadow: "0 18px 45px rgba(0,0,0,0.5)",
       }}

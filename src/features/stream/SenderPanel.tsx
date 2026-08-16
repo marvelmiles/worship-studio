@@ -25,8 +25,8 @@ import { deriveNetworkRoom } from "./lib/room";
 import { publishBroadcaster, type BroadcastHandle } from "./lib/signaling";
 import {
   listCameras,
+  openCamera,
   openCameraFacing,
-  cameraConstraints,
   setStreamAudioEnabled,
   type FacingMode,
 } from "./lib/cameras";
@@ -337,7 +337,7 @@ function AutoBroadcastPanel({
 
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(cameraConstraints());
+        stream = await openCamera();
       } catch {
         if (!cancelled) {
           pushToast(
@@ -611,8 +611,7 @@ function ManualSenderPanel({
     offerRef.current = offerSdp;
     setPhase("streaming");
     try {
-      const stream =
-        await navigator.mediaDevices.getUserMedia(cameraConstraints());
+      const stream = await openCamera();
       streamRef.current = stream;
       const sender = await createSender({
         offerSdp,

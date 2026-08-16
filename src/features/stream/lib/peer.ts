@@ -15,18 +15,18 @@
  */
 
 import { setStreamAudioEnabled } from "./cameras";
+import { withVideoQualityHints } from "./sdp";
+import {
+  MAX_VIDEO_BITRATE,
+  MAX_VIDEO_FRAMERATE,
+  PLAYOUT_DELAY_SECONDS,
+  PREFERRED_VIDEO_CODECS,
+  VIDEO_CONTENT_HINT,
+  VIDEO_DEGRADATION_PREFERENCE,
+} from "./videoQuality";
 
 export type PeerStatus =
   "idle" | "gathering" | "waiting" | "connecting" | "live" | "failed";
-
-/**
- * The projected feed is a phone camera on the same WiFi filling a whole
- * projector, so image quality matters far more than WebRTC's default target.
- * On a LAN there is ample headroom, so we lift the encoder's ceiling to a
- * bitrate that keeps a full-screen 1080p feed crisp instead of soft and blocky.
- */
-const MAX_VIDEO_BITRATE = 8_000_000;
-const MAX_VIDEO_FRAMERATE = 30;
 
 /** Camera streaming without an ICE server list: LAN-only, by construction. */
 function createConnection(): RTCPeerConnection {
@@ -34,34 +34,140 @@ function createConnection(): RTCPeerConnection {
 }
 
 /**
- * Raises the outgoing video quality above the browser's cautious default. The
- * WebRTC encoder aims low unless told otherwise; on a LAN that leaves a
- * projected feed looking soft. We lift the bitrate ceiling, hold the resolution
- * under load (dropping frame rate first — a worship camera reads better
- * sharp-and-steady than smooth-and-soft), and stop the encoder from downscaling.
- * Runs after each (re)negotiation, so both the initial track and a flipped
- * camera get the same treatment.
+ * Puts the codecs a phone can encode in hardware at the front of a video
+ * transceiver's list, so the offer asks for one of those first.
+ *
+ * Reorders rather than filters. Dropping the unpreferred codecs would be a
+ * stronger guarantee and a worse trade: a sender that supports none of ours
+ * would have nothing left to negotiate and simply fail to connect. Everything
+ * the browser can do stays on the list, just further down, and the sort is
+ * stable so entries of equal rank — including the retransmission and
+ * error-correction pseudo-codecs — keep their original relative order.
+ */
+function preferHardwareVideoCodec(transceiver: RTCRtpTransceiver): void {
+  const capabilities = RTCRtpReceiver.getCapabilities?.("video");
+  if (!capabilities || typeof transceiver.setCodecPreferences !== "function") {
+    return;
+  }
+
+  // Read the codec type off the capabilities themselves: the DOM lib has
+  // renamed it across TypeScript versions, and this can't go stale.
+  type VideoCodec = (typeof capabilities.codecs)[number];
+
+  const rank = (codec: VideoCodec): number => {
+    const index = PREFERRED_VIDEO_CODECS.indexOf(
+      codec.mimeType.toLowerCase() as (typeof PREFERRED_VIDEO_CODECS)[number],
+    );
+    return index === -1 ? PREFERRED_VIDEO_CODECS.length : index;
+  };
+
+  try {
+    transceiver.setCodecPreferences(
+      [...capabilities.codecs].sort((a, b) => rank(a) - rank(b)),
+    );
+  } catch {
+    /* an unsupported ordering leaves the browser's default, which still works */
+  }
+}
+
+/**
+ * Asks every receiver on the connection to keep its playout buffer small.
+ *
+ * `jitterBufferTarget` is the standard control and takes milliseconds;
+ * `playoutDelayHint` is the older name still shipping in some builds and takes
+ * seconds. Both are set and each is ignored where it isn't recognised. Assigning
+ * an unknown property is harmless, so no capability check is needed — only the
+ * guard against a browser that rejects the write outright.
+ */
+function minimisePlayoutDelay(pc: RTCPeerConnection): void {
+  for (const receiver of pc.getReceivers()) {
+    const tunable = receiver as RTCRtpReceiver & {
+      jitterBufferTarget?: number | null;
+      playoutDelayHint?: number | null;
+    };
+    try {
+      tunable.jitterBufferTarget = PLAYOUT_DELAY_SECONDS * 1000;
+      tunable.playoutDelayHint = PLAYOUT_DELAY_SECONDS;
+    } catch {
+      /* read-only on this browser; its own default buffer applies */
+    }
+  }
+}
+
+/** One encoder setting, applied to the send parameters in place. */
+type EncodingAdjustment = (
+  encoding: RTCRtpEncodingParameters,
+  parameters: RTCRtpSendParameters,
+) => void;
+
+const VIDEO_ENCODER_SETTINGS: readonly EncodingAdjustment[] = [
+  (encoding) => {
+    encoding.maxBitrate = MAX_VIDEO_BITRATE;
+  },
+  (encoding) => {
+    encoding.maxFramerate = MAX_VIDEO_FRAMERATE;
+  },
+  (encoding) => {
+    encoding.scaleResolutionDownBy = 1;
+  },
+  (_encoding, parameters) => {
+    parameters.degradationPreference = VIDEO_DEGRADATION_PREFERENCE;
+  },
+];
+
+/**
+ * Applies a set of encoder settings in one transaction. Returns whether the
+ * browser accepted it — `setParameters` is all-or-nothing, so a single member it
+ * dislikes rejects everything sent alongside it.
+ */
+async function applyEncoderSettings(
+  sender: RTCRtpSender,
+  settings: readonly EncodingAdjustment[],
+): Promise<boolean> {
+  // Parameters must be read fresh each time: setParameters only accepts an
+  // object carrying the transaction id from the most recent getParameters.
+  const parameters = sender.getParameters();
+  if (!parameters.encodings || parameters.encodings.length === 0) {
+    parameters.encodings = [{}];
+  }
+  for (const apply of settings) apply(parameters.encodings[0], parameters);
+
+  try {
+    await sender.setParameters(parameters);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Raises the outgoing video quality above the browser's cautious default: a
+ * bitrate ceiling a projected 1080p feed can actually use, a frame rate cap, no
+ * standing downscale, and an adaptation policy that trims a little of everything
+ * under load rather than stalling the picture.
+ *
+ * The settings are retried one at a time if the batch is refused. Browsers
+ * disagree about which encoding parameters they accept and when — Safari is
+ * particularly reluctant while a negotiation is still in flight — and because
+ * `setParameters` rejects the whole object on one bad member, sending them as a
+ * single block meant one unsupported field silently took the bitrate ceiling
+ * down with it, leaving the encoder at the default that made the feed soft in
+ * the first place.
+ *
+ * Runs after each (re)negotiation and again once the connection settles, so both
+ * the initial track and a flipped camera get the same treatment even on a
+ * browser that would only accept the change later.
  */
 async function tuneVideoSender(pc: RTCPeerConnection): Promise<void> {
   const videoSender = pc.getSenders().find((s) => s.track?.kind === "video");
   if (!videoSender) return;
 
   // contentHint is per-track, so it must be reset whenever the track changes.
-  if (videoSender.track) videoSender.track.contentHint = "detail";
+  if (videoSender.track) videoSender.track.contentHint = VIDEO_CONTENT_HINT;
 
-  const params = videoSender.getParameters();
-  if (!params.encodings || params.encodings.length === 0) {
-    params.encodings = [{}];
-  }
-  params.encodings[0].maxBitrate = MAX_VIDEO_BITRATE;
-  params.encodings[0].maxFramerate = MAX_VIDEO_FRAMERATE;
-  params.encodings[0].scaleResolutionDownBy = 1;
-  params.degradationPreference = "maintain-resolution";
-
-  try {
-    await videoSender.setParameters(params);
-  } catch {
-    /* a browser may reject param changes mid-negotiation; the feed still runs */
+  if (await applyEncoderSettings(videoSender, VIDEO_ENCODER_SETTINGS)) return;
+  for (const setting of VIDEO_ENCODER_SETTINGS) {
+    await applyEncoderSettings(videoSender, [setting]);
   }
 }
 
@@ -124,8 +230,15 @@ export async function createReceiver(options: {
 }): Promise<ReceiverHandle> {
   const pc = createConnection();
 
-  pc.addTransceiver("video", { direction: "recvonly" });
+  // The offer's codec order is what decides which encoder the phone runs, so
+  // this one call is the difference between a hardware and a software encode on
+  // an iPhone — and so between a sharp, in-time feed and a soft, laggy one.
+  const videoTransceiver = pc.addTransceiver("video", {
+    direction: "recvonly",
+  });
+  preferHardwareVideoCodec(videoTransceiver);
   pc.addTransceiver("audio", { direction: "recvonly" });
+  minimisePlayoutDelay(pc);
 
   // A tiny bidirectional control channel, created before the offer so it's
   // negotiated in the one handshake. The receiver tells the sender when the feed
@@ -164,11 +277,16 @@ export async function createReceiver(options: {
   const remote = new MediaStream();
   pc.addEventListener("track", (event) => {
     remote.addTrack(event.track);
+    // A receiver's buffer target can be reset when its track is attached, so
+    // re-assert it here as well as at construction.
+    minimisePlayoutDelay(pc);
     options.onStream(remote);
   });
   pc.addEventListener("connectionstatechange", () => {
-    if (pc.connectionState === "connected") options.onStatus("live");
-    else if (pc.connectionState === "connecting")
+    if (pc.connectionState === "connected") {
+      minimisePlayoutDelay(pc);
+      options.onStatus("live");
+    } else if (pc.connectionState === "connecting")
       options.onStatus("connecting");
     else if (
       pc.connectionState === "failed" ||
@@ -185,7 +303,11 @@ export async function createReceiver(options: {
 
   return {
     pc,
-    invite: pc.localDescription?.sdp ?? "",
+    // Only the copy that travels to the sender carries the bandwidth hints. The
+    // local description is left exactly as the browser generated it, because
+    // browsers validate a modified one against their own and this side does no
+    // encoding, so it has nothing to gain from them anyway.
+    invite: withVideoQualityHints(pc.localDescription?.sdp ?? ""),
     accept: async (answerSdp: string) => {
       options.onStatus("connecting");
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
@@ -231,8 +353,13 @@ export async function createSender(options: {
   const pc = createConnection();
 
   pc.addEventListener("connectionstatechange", () => {
-    if (pc.connectionState === "connected") options.onStatus("live");
-    else if (pc.connectionState === "connecting")
+    if (pc.connectionState === "connected") {
+      // Re-apply the encoder settings now the connection is stable. A browser
+      // that refused them mid-handshake accepts them here, and this is the point
+      // at which the encoder would otherwise settle on its cautious defaults.
+      void tuneVideoSender(pc);
+      options.onStatus("live");
+    } else if (pc.connectionState === "connecting")
       options.onStatus("connecting");
     else if (
       pc.connectionState === "failed" ||
