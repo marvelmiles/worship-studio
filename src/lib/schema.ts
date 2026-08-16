@@ -94,23 +94,40 @@ const videoSettingsSchema = z
   })
   .passthrough();
 
+const slideFrameSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+});
+
+const lineOverridesSchema = z.record(textStyleSchema);
+
 const slideMediaSchema = z
   .object({
     id: z.string().optional(),
     kind: z.enum(["image", "video"]),
     mediaId: z.string(),
-    frame: z
-      .object({
-        x: z.number(),
-        y: z.number(),
-        width: z.number(),
-        height: z.number(),
-      })
-      .optional(),
+    source: z.enum(["media", "background"]).optional().catch(undefined),
+    frame: slideFrameSchema.optional(),
     radius: z.number().optional(),
     opacity: z.number().optional(),
     image: imageSettingsSchema.optional().catch(undefined),
     video: videoSettingsSchema.optional().catch(undefined),
+  })
+  .passthrough();
+
+const slideTextBoxSchema = z
+  .object({
+    id: z.string().optional(),
+    frame: slideFrameSchema.optional(),
+    lines: z.array(z.string()).optional(),
+    verticalAlign: z
+      .enum(["top", "middle", "bottom"])
+      .optional()
+      .catch(undefined),
+    style: textStyleSchema.optional(),
+    lineOverrides: lineOverridesSchema.optional().catch(undefined),
   })
   .passthrough();
 
@@ -122,6 +139,7 @@ const slideSchema = z
     lines: z.array(z.string()).optional(),
     overrides: slideOverridesSchema.optional(),
     media: z.array(slideMediaSchema).optional().catch(undefined),
+    textBoxes: z.array(slideTextBoxSchema).optional().catch(undefined),
     notes: z.string().optional(),
   })
   .passthrough();

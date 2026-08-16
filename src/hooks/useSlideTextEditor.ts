@@ -6,6 +6,7 @@ import {
   replaceRange,
 } from "../lib/inlineDocument";
 import {
+  domPositionFromPoint,
   domPositionFromSource,
   sourceOffsetFromDom,
   sourceRangeFromDom,
@@ -22,6 +23,12 @@ export interface SlideTextEditing {
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
   /** Viewport rect of the current highlight, for the floating toolbar. */
   selectionRect: DOMRect | null;
+  /**
+   * Puts the caret where the surface was clicked. Called once the block that
+   * was clicked has become the editing surface, which is a render after the
+   * click the browser would otherwise have placed the caret from.
+   */
+  focusAt: (point: { x: number; y: number }) => void;
 }
 
 interface Options {
@@ -123,6 +130,24 @@ export function useSlideTextEditor({
     bind(host);
     return () => bind(null);
   }, [element, bind, host]);
+
+  const focusAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const root = elementRef.current;
+      if (!root) return;
+      root.focus({ preventScroll: true });
+      const position = domPositionFromPoint(point.x, point.y);
+      const offset =
+        position && root.contains(position.node)
+          ? sourceOffsetFromDom(root, position.node, position.offset)
+          : null;
+      // A click on the padding around the text lands outside every painted run;
+      // the caret then goes to the end, which is where typing should carry on.
+      const at = offset ?? textRef.current.length;
+      host.setSelection({ start: at, end: at }, true);
+    },
+    [host],
+  );
 
   useEffect(() => {
     if (!element) return;
@@ -273,5 +298,5 @@ export function useSlideTextEditor({
     };
   }, [element, runCommand, readSelection, undo, redo]);
 
-  return { ref, onKeyDown: handleKeyDown, selectionRect };
+  return { ref, onKeyDown: handleKeyDown, selectionRect, focusAt };
 }

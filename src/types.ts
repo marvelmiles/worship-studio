@@ -47,11 +47,11 @@ export interface SlideOverrides extends TextStyle {
 }
 
 /**
- * Where a picture or clip sits on the slide, in percentages of the slide box so
+ * Where a placed element sits on the slide, in percentages of the slide box so
  * the placement survives every size the slide is painted at (thumbnail,
  * editor, projector).
  */
-export interface SlideMediaFrame {
+export interface SlideFrame {
   x: number;
   y: number;
   width: number;
@@ -59,16 +59,24 @@ export interface SlideMediaFrame {
 }
 
 /**
+ * Which library owns the file behind a placement: the media library, or the
+ * asset library's picture backgrounds.
+ */
+export type SlideMediaSource = "media" | "background";
+
+/**
  * A picture or clip placed on a slide, PowerPoint style: it owns its position,
  * its stacking order (the array index) and its own copy of the media settings,
- * so moving or recolouring it never reaches the media library.
+ * so moving or recolouring it never reaches the library it came from.
  */
 export interface SlideMedia {
   id: string;
   kind: MediaKind;
-  /** The media-library item that owns the file. */
+  /** The library item that owns the file, in the library named by `source`. */
   mediaId: string;
-  frame: SlideMediaFrame;
+  /** Missing on placements saved before asset-library pictures could be placed. */
+  source?: SlideMediaSource;
+  frame: SlideFrame;
   /** Corner rounding, in percent of the slide width. */
   radius?: number;
   /** 0–100. */
@@ -76,6 +84,27 @@ export interface SlideMedia {
   image?: ImageSettings;
   video?: VideoSettings;
 }
+
+export type VerticalAlign = "top" | "middle" | "bottom";
+
+/**
+ * A block of text placed on a slide, sized and positioned like a picture. It
+ * carries its own lines and its own appearance, layered over whatever the
+ * slide, the document and the theme already set.
+ */
+export interface SlideTextBox {
+  id: string;
+  frame: SlideFrame;
+  lines: string[];
+  /** Where the text sits inside its box. Defaults to "middle". */
+  verticalAlign?: VerticalAlign;
+  style?: TextStyle;
+  /** Per-line style overrides, keyed by line index. Layered on top of `style`. */
+  lineOverrides?: Record<number, TextStyle>;
+}
+
+/** Everything a slide can carry as a movable, resizable placement. */
+export type SlideElementKind = MediaKind | "text";
 
 export interface Slide {
   id: string;
@@ -87,6 +116,8 @@ export interface Slide {
   lineOverrides?: Record<number, TextStyle>;
   /** Pictures and clips placed on the slide, painted in array order. */
   media?: SlideMedia[];
+  /** Text blocks placed on the slide, painted over the pictures and clips. */
+  textBoxes?: SlideTextBox[];
   notes: string;
 }
 

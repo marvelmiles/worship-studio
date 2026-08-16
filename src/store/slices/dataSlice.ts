@@ -20,6 +20,7 @@ import { DEFAULT_COLLECTION } from "../../data/collections";
 import { parseManuscriptSlides } from "../../lib/parser";
 import { resolveManuscriptFormat } from "../../lib/manuscript/format";
 import { normalizeSlideMedia } from "../../lib/slideMedia";
+import { normalizeSlideTextBox } from "../../lib/slideTextBox";
 import { now, uid } from "../../lib/id";
 import { readFile } from "../../lib/files";
 import {
@@ -108,6 +109,7 @@ function normalizeImportedSlide(slide: ImportedSlide): Slide {
       backgroundImage: normalizeImportedBackgroundImage(backgroundImage),
     },
     media: slide.media?.map(normalizeSlideMedia),
+    textBoxes: slide.textBoxes?.map(normalizeSlideTextBox),
     notes: slide.notes ?? "",
   };
 }

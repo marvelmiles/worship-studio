@@ -10,6 +10,7 @@ import type {
 } from "../../types";
 import { fade, colors, UI } from "../../theme/tokens";
 import {
+  layerTextStyle,
   resolveBackgroundId,
   resolveBackgroundImage,
   resolveLineStyle,
@@ -25,7 +26,8 @@ import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
 import { FormatToolbar } from "../../components/controls/FormatToolbar";
 import type { TextFormattingController } from "../../hooks/useTextFormatting";
-import { SlideMediaPanel } from "./SlideMediaPanel";
+import { SlideElementsPanel } from "./SlideElementsPanel";
+import type { SlideElementRef } from "./SlideElementOverlay";
 import type { DeckEditor } from "./useDeckEditor";
 
 interface InspectorPanelProps {
@@ -39,9 +41,14 @@ interface InspectorPanelProps {
   selectedLine: number | null;
   onScopeToLine: (scoped: boolean) => void;
   formatting: TextFormattingController;
-  /** The picture or clip being worked on, shared with the slide's drag surface. */
-  selectedMediaId: string | null;
-  onSelectMedia: (id: string | null) => void;
+  /** The placement being worked on, shared with the slide's drag surface. */
+  selectedElement: SlideElementRef | null;
+  onSelectElement: (element: SlideElementRef | null) => void;
+  /** The text box holding the caret, or null while the slide's own text is written. */
+  activeTextBoxId: string | null;
+  /** True on prose documents, where text is laid out in blocks rather than sung. */
+  allowTextBoxes: boolean;
+  onAddTextBox: () => void;
 }
 
 type StyleScope = "slide" | "line";
@@ -56,11 +63,20 @@ export function InspectorPanel({
   selectedLine,
   onScopeToLine,
   formatting,
-  selectedMediaId,
-  onSelectMedia,
+  selectedElement,
+  onSelectElement,
+  activeTextBoxId,
+  allowTextBoxes,
+  onAddTextBox,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
-  const lineCount = slide.lines?.length ?? 0;
+
+  // Styling follows the caret: it lands on the text box being written into, or
+  // on the slide itself when its own text is the surface.
+  const textBox =
+    (slide.textBoxes ?? []).find((box) => box.id === activeTextBoxId) ?? null;
+  const lines = textBox ? textBox.lines : (slide.lines ?? []);
+  const lineCount = lines.length;
   const selectionMode = formatting.hasSelection;
   const lineMode =
     !selectionMode && selectedLine !== null && selectedLine < lineCount;
@@ -69,6 +85,12 @@ export function InspectorPanel({
     Math.max(0, lineCount - 1),
   );
 
+  const slideStyle = resolveStyle(slide, doc, theme);
+  const styleAtLine = (line: number) =>
+    textBox
+      ? layerTextStyle(slideStyle, textBox.style, textBox.lineOverrides?.[line])
+      : resolveLineStyle(slide, line, doc, theme);
+
   // Highlighted text is styled character by character, so the panel shows the
   // style of the first line it covers with the selection's own style on top.
   const styleLine = selectionMode
@@ -76,11 +98,10 @@ export function InspectorPanel({
     : selectedLine;
   const style =
     styleLine !== null && styleLine < lineCount
-      ? {
-          ...resolveLineStyle(slide, styleLine, doc, theme),
-          ...formatting.style,
-        }
-      : resolveStyle(slide, doc, theme);
+      ? { ...styleAtLine(styleLine), ...formatting.style }
+      : textBox
+        ? layerTextStyle(slideStyle, textBox.style)
+        : slideStyle;
 
   const effectiveBackgroundId = resolveBackgroundId(slide, doc, theme);
   const effectiveBackground = backgrounds.find(
@@ -89,14 +110,17 @@ export function InspectorPanel({
   const backgroundImage = effectiveBackground
     ? resolveBackgroundImage(slide, doc, effectiveBackground)
     : null;
+  const ownLineOverrides = textBox
+    ? textBox.lineOverrides
+    : slide.lineOverrides;
   const hasLineOverrides =
-    lineMode && Boolean(slide.lineOverrides?.[selectedLine]);
+    lineMode && Boolean(ownLineOverrides?.[selectedLine]);
 
   /**
    * Where a text style lands, following what a word processor does: with text
    * highlighted, character properties go on that run and paragraph properties
    * (alignment, line height) go on every line it touches. Otherwise it is the
-   * clicked line, or the whole slide.
+   * clicked line, or the whole block the caret is in.
    */
   const setTextOverride = (key: keyof TextStyle, value: unknown) => {
     if (selectionMode) {
@@ -108,14 +132,20 @@ export function InspectorPanel({
       const target: number[] = [];
       for (let line = first; line <= last && line < lineCount; line += 1)
         target.push(line);
-      editor.updateLineOverrides(slide.id, target, key, value);
+      editor.setLineStyles(slide.id, activeTextBoxId, target, key, value);
       return;
     }
     if (lineMode) {
-      editor.updateLineOverride(slide.id, selectedLine, key, value);
+      editor.setLineStyles(
+        slide.id,
+        activeTextBoxId,
+        [selectedLine],
+        key,
+        value,
+      );
       return;
     }
-    editor.updateSlideOverride(slide.id, key, value);
+    editor.setTextStyle(slide.id, activeTextBoxId, key, value);
   };
   const setOverride = (key: string, value: unknown) =>
     editor.updateSlideOverride(slide.id, key, value);
@@ -143,7 +173,9 @@ export function InspectorPanel({
           ? "Selected Text"
           : lineMode
             ? `Line ${selectedLine + 1} Text`
-            : "Text"}
+            : textBox
+              ? "Text Box"
+              : "Text"}
       </SectionTitle>
       {selectionMode && (
         <ScopeBanner>
@@ -163,7 +195,7 @@ export function InspectorPanel({
         >
           <PillTabs<StyleScope>
             tabs={[
-              { id: "slide", label: "Whole slide" },
+              { id: "slide", label: textBox ? "Whole box" : "Whole slide" },
               { id: "line", label: `Line ${caretLine + 1}` },
             ]}
             value={lineMode ? "line" : "slide"}
@@ -171,8 +203,14 @@ export function InspectorPanel({
           />
           {lineMode && hasLineOverrides && (
             <button
-              onClick={() => editor.clearLineOverrides(slide.id, selectedLine)}
-              title="Reset this line to the slide's style"
+              onClick={() =>
+                editor.clearLineStyles(slide.id, activeTextBoxId, selectedLine)
+              }
+              title={
+                textBox
+                  ? "Reset this line to the box's style"
+                  : "Reset this line to the slide's style"
+              }
               style={{
                 fontFamily: UI,
                 fontSize: 11.5,
@@ -251,12 +289,16 @@ export function InspectorPanel({
         </div>
       )}
 
-      <SectionTitle>Images &amp; Videos</SectionTitle>
-      <SlideMediaPanel
+      <SectionTitle>
+        {allowTextBoxes ? "Slide Elements" : "Images & Videos"}
+      </SectionTitle>
+      <SlideElementsPanel
         slide={slide}
         editor={editor}
-        selectedId={selectedMediaId}
-        onSelect={onSelectMedia}
+        selected={selectedElement}
+        onSelect={onSelectElement}
+        allowTextBoxes={allowTextBoxes}
+        onAddTextBox={onAddTextBox}
       />
 
       <SectionTitle>Audio</SectionTitle>

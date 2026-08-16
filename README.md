@@ -60,6 +60,13 @@ Then open the URL Vite prints (default http://localhost:5173).
 - **Write on the slide itself.** The slide in the editor is the text area:
   type, paste and edit straight onto it and every change is already what the
   room will see, with no separate box to keep in step.
+- **Place pictures, clips and text boxes.** Drop an image or video onto a slide
+  from the media library or from the Asset Library's backgrounds, drag it where
+  the layout needs it, resize it from its corners and stack it back and forth.
+  A selected clip hands over its own player, so it can be played, scrubbed,
+  muted or thrown fullscreen while the slide is being laid out. Sermon
+  manuscripts are built out of text boxes, so a message is laid out the way a
+  presentation is, and more boxes can be added to any of its slides.
 - **Word‑style text formatting.** Highlight any word, phrase or line and apply
   bold, italic, underline, strikethrough or highlight from the toolbar that
   pops up over the selection or from the Inspector (Ctrl+B / I / U / D / H),

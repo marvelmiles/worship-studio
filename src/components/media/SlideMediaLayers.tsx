@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
-import type { MediaItem, SlideMedia } from "../../types";
-import { useStore } from "../../store/useStore";
-import { useBlobUrl } from "../../lib/blobUrls";
+import type { SlideMedia } from "../../types";
+import { useSlideMediaFile } from "../../hooks/useSlideMediaFile";
 import { buildFilter } from "../../lib/media";
 import { placedImageSettings, placedVideoSettings } from "../../lib/slideMedia";
 import { ImageLayer } from "./ImageLayer";
@@ -11,9 +10,17 @@ interface SlideMediaLayersProps {
   media: SlideMedia[];
   /** True on the projector: clips play rather than resting on their first frame. */
   live?: boolean;
+  /**
+   * The placement whose player controls are live, so a clip can be played,
+   * scrubbed, muted or thrown fullscreen while the slide is being laid out.
+   */
+  controlsFor?: string | null;
 }
 
-const frameStyle = (media: SlideMedia): CSSProperties => ({
+const frameStyle = (
+  media: SlideMedia,
+  interactive: boolean,
+): CSSProperties => ({
   position: "absolute",
   left: `${media.frame.x}%`,
   top: `${media.frame.y}%`,
@@ -22,27 +29,35 @@ const frameStyle = (media: SlideMedia): CSSProperties => ({
   borderRadius: `${media.radius ?? 0}cqw`,
   overflow: "hidden",
   opacity: (media.opacity ?? 100) / 100,
-  pointerEvents: "none",
+  pointerEvents: interactive ? "auto" : "none",
 });
 
 /**
  * Paints the pictures and clips placed on a slide, in the order they are
- * stacked. Nothing here is interactive: the editor lays its own drag surface
- * over the slide (see features/editor/SlideMediaOverlay), so the same layers
- * render identically in a thumbnail, the editor and the projector.
+ * stacked. Only a clip showing its controls takes pointer input: the editor
+ * lays its own drag surface over the slide (see
+ * features/editor/SlideElementOverlay), so the same layers render identically
+ * in a thumbnail, the editor and the projector.
  */
-export function SlideMediaLayers({ media, live }: SlideMediaLayersProps) {
-  const library = useStore((s) => s.media);
+export function SlideMediaLayers({
+  media,
+  live,
+  controlsFor,
+}: SlideMediaLayersProps) {
   return (
     <>
       {media.map((placed) => {
-        const item = library.find((entry) => entry.id === placed.mediaId);
+        const controls = placed.kind === "video" && placed.id === controlsFor;
         return (
-          <div key={placed.id} aria-hidden style={frameStyle(placed)}>
+          <div
+            key={placed.id}
+            aria-hidden={!controls}
+            style={frameStyle(placed, controls)}
+          >
             {placed.kind === "image" ? (
-              <PlacedImage media={placed} item={item} />
+              <PlacedImage media={placed} />
             ) : (
-              <PlacedVideo media={placed} item={item} live={live} />
+              <PlacedVideo media={placed} live={live} controls={controls} />
             )}
           </div>
         );
@@ -51,12 +66,12 @@ export function SlideMediaLayers({ media, live }: SlideMediaLayersProps) {
   );
 }
 
-function PlacedImage({ media, item }: { media: SlideMedia; item?: MediaItem }) {
-  const url = useBlobUrl(item?.id ?? null);
+function PlacedImage({ media }: { media: SlideMedia }) {
+  const file = useSlideMediaFile(media);
   return (
     <ImageLayer
-      src={url}
-      alt={item?.name ?? ""}
+      src={file.url}
+      alt={file.name}
       settings={placedImageSettings(media)}
       style={{ background: "transparent" }}
     />
@@ -66,38 +81,42 @@ function PlacedImage({ media, item }: { media: SlideMedia; item?: MediaItem }) {
 /**
  * A clip in its box. On the projector it starts itself; in the editor it holds
  * its trim-start frame so the writer can see what they placed without the slide
- * turning into a playing video while they type.
+ * turning into a playing video while they type. Selecting it hands the controls
+ * over, so it can be previewed by hand before the service.
  */
 function PlacedVideo({
   media,
-  item,
   live,
+  controls,
 }: {
   media: SlideMedia;
-  item?: MediaItem;
   live?: boolean;
+  controls: boolean;
 }) {
-  const url = useBlobUrl(item?.id ?? null);
+  const file = useSlideMediaFile(media);
+  const url = file.url;
   const videoRef = useRef<HTMLVideoElement>(null);
   const settings = placedVideoSettings(media);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
+  // Playback is driven by hand while the controls are showing, so the clip is
+  // only cued and started when they are not.
   useEffect(() => {
     const element = videoRef.current;
-    if (!element || !url) return;
+    if (!element || !url || controls) return;
     element.currentTime = settingsRef.current.trimStart;
     element.playbackRate = settingsRef.current.playbackRate;
     if (live) void element.play().catch(() => {});
     else element.pause();
-  }, [url, live]);
+  }, [url, live, controls]);
 
   useEffect(() => {
     const element = videoRef.current;
     if (!element) return;
-    element.muted = !live || settings.muted;
+    element.muted = controls || live ? settings.muted : true;
     element.volume = Math.min(1, Math.max(0, settings.volume / 100));
-  }, [live, settings.muted, settings.volume]);
+  }, [live, controls, settings.muted, settings.volume]);
 
   const handleTimeUpdate = () => {
     const element = videoRef.current;
@@ -125,6 +144,7 @@ function PlacedVideo({
       ref={videoRef}
       src={url}
       playsInline
+      controls={controls}
       loop={settings.loop && settings.trimEnd === null}
       onTimeUpdate={handleTimeUpdate}
       onEnded={handleEnded}

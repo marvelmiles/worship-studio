@@ -1,13 +1,16 @@
 import type {
+  Background,
   ImageSettings,
   MediaItem,
   MediaKind,
+  SlideFrame,
   SlideMedia,
-  SlideMediaFrame,
+  SlideMediaSource,
   VideoSettings,
 } from "../types";
 import { uid } from "./id";
 import {
+  backgroundImageSettings,
   DEFAULT_IMAGE_SETTINGS,
   DEFAULT_VIDEO_SETTINGS,
   imageSettingsOf,
@@ -39,18 +42,59 @@ const clamp = (value: number, min: number, max: number): number =>
 
 const round = (value: number): number => Math.round(value * 100) / 100;
 
+/** The natural size of a file, when the library that holds it recorded one. */
+interface Dimensions {
+  width?: number;
+  height?: number;
+}
+
+/**
+ * A file chosen to be placed on a slide, whichever library it came from. It
+ * carries only what a placement needs, so the picker can offer media-library
+ * uploads and asset-library pictures side by side.
+ */
+export interface SlideMediaChoice extends Dimensions {
+  source: SlideMediaSource;
+  id: string;
+  kind: MediaKind;
+  name: string;
+  duration?: number;
+  image?: ImageSettings;
+  video?: VideoSettings;
+}
+
+export const mediaItemChoice = (item: MediaItem): SlideMediaChoice => ({
+  source: "media",
+  id: item.id,
+  kind: item.kind,
+  name: item.name,
+  width: item.width,
+  height: item.height,
+  duration: item.duration,
+  image: item.kind === "image" ? imageSettingsOf(item) : undefined,
+  video: item.kind === "video" ? videoSettingsOf(item) : undefined,
+});
+
+export const backgroundChoice = (background: Background): SlideMediaChoice => ({
+  source: "background",
+  id: background.id,
+  kind: "image",
+  name: background.name,
+  image: backgroundImageSettings(background),
+});
+
 /** Aspect ratio of the file itself, falling back to the slide's own. */
-const ratioOf = (item?: MediaItem): number =>
-  item?.width && item?.height ? item.width / item.height : SLIDE_ASPECT;
+const ratioOf = (size?: Dimensions): number =>
+  size?.width && size?.height ? size.width / size.height : SLIDE_ASPECT;
 
 /**
  * A first placement that shows the whole picture: centred, a third of the slide
  * wide, and as tall as the file's own proportions ask for.
  */
-export function frameForItem(item?: MediaItem): SlideMediaFrame {
+export function frameForItem(size?: Dimensions): SlideFrame {
   const width = DEFAULT_WIDTH;
   const height = clamp(
-    (width / ratioOf(item)) * SLIDE_ASPECT,
+    (width / ratioOf(size)) * SLIDE_ASPECT,
     MIN_FRAME_SIZE,
     MAX_DEFAULT_HEIGHT,
   );
@@ -63,7 +107,7 @@ export function frameForItem(item?: MediaItem): SlideMediaFrame {
 }
 
 /** Keeps a frame usable: never smaller than a grab target, never dragged away. */
-export function clampFrame(frame: SlideMediaFrame): SlideMediaFrame {
+export function clampFrame(frame: SlideFrame): SlideFrame {
   const width = clamp(frame.width, MIN_FRAME_SIZE, 100);
   const height = clamp(frame.height, MIN_FRAME_SIZE, 100);
   return {
@@ -80,31 +124,38 @@ export function clampFrame(frame: SlideMediaFrame): SlideMediaFrame {
  * inside it, and the darken overlay belongs to backgrounds, not to a picture
  * sitting on top of the text.
  */
-export const slideImageSettings = (item?: MediaItem): ImageSettings => ({
-  ...(item ? imageSettingsOf(item) : DEFAULT_IMAGE_SETTINGS),
+export const slideImageSettings = (base?: ImageSettings): ImageSettings => ({
+  ...(base ?? DEFAULT_IMAGE_SETTINGS),
   fit: "cover",
   scrim: false,
 });
 
 /** Clip settings for a placement: it loops, because a slide stays on screen. */
-export const slideVideoSettings = (item?: MediaItem): VideoSettings => ({
-  ...(item ? videoSettingsOf(item) : DEFAULT_VIDEO_SETTINGS),
+export const slideVideoSettings = (base?: VideoSettings): VideoSettings => ({
+  ...(base ?? DEFAULT_VIDEO_SETTINGS),
   fit: "cover",
   loop: true,
 });
 
-export function createSlideMedia(item: MediaItem): SlideMedia {
+export function createSlideMedia(choice: SlideMediaChoice): SlideMedia {
   return {
     id: uid(),
-    kind: item.kind,
-    mediaId: item.id,
-    frame: frameForItem(item),
+    kind: choice.kind,
+    mediaId: choice.id,
+    source: choice.source,
+    frame: frameForItem(choice),
     radius: DEFAULT_SLIDE_MEDIA_RADIUS,
     opacity: DEFAULT_SLIDE_MEDIA_OPACITY,
-    image: item.kind === "image" ? slideImageSettings(item) : undefined,
-    video: item.kind === "video" ? slideVideoSettings(item) : undefined,
+    image:
+      choice.kind === "image" ? slideImageSettings(choice.image) : undefined,
+    video:
+      choice.kind === "video" ? slideVideoSettings(choice.video) : undefined,
   };
 }
+
+/** The library a placement points at; anything older came from the media library. */
+export const placedMediaSource = (media: SlideMedia): SlideMediaSource =>
+  media.source ?? "media";
 
 /** Reads a placement's own settings, falling back to a sane default. */
 export const placedImageSettings = (media: SlideMedia): ImageSettings =>
@@ -118,7 +169,8 @@ export interface ImportedSlideMedia {
   id?: string;
   kind: MediaKind;
   mediaId: string;
-  frame?: Partial<SlideMediaFrame>;
+  source?: SlideMediaSource;
+  frame?: Partial<SlideFrame>;
   radius?: number;
   opacity?: number;
   image?: Partial<ImageSettings>;
@@ -131,6 +183,7 @@ export function normalizeSlideMedia(raw: ImportedSlideMedia): SlideMedia {
     id: raw.id || uid(),
     kind: raw.kind,
     mediaId: raw.mediaId,
+    source: raw.source ?? "media",
     frame: clampFrame({ ...frameForItem(), ...raw.frame }),
     radius: raw.radius ?? DEFAULT_SLIDE_MEDIA_RADIUS,
     opacity: raw.opacity ?? DEFAULT_SLIDE_MEDIA_OPACITY,

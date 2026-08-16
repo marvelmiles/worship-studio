@@ -5,6 +5,7 @@ import type {
   ResolvedStyle,
   Slide,
   SlideDeckDoc,
+  TextStyle,
   Theme,
 } from "../types";
 import { BACKGROUNDS } from "../data/backgrounds";
@@ -33,6 +34,21 @@ function applyTextStyle(
       (target as unknown as Record<string, unknown>)[key] = value;
     }
   }
+}
+
+/**
+ * A resolved style with further overrides layered on top, each one winning over
+ * the last. Used wherever text carries its own appearance on top of the slide's,
+ * a placed text box above all.
+ */
+export function layerTextStyle(
+  base: ResolvedStyle,
+  ...styles: (TextStyle | undefined)[]
+): ResolvedStyle {
+  const style = { ...base };
+  for (const layer of styles)
+    applyTextStyle(style, layer as Record<string, unknown> | undefined);
+  return style;
 }
 
 /** Merge theme defaults, then doc-level style, then per-slide overrides. */

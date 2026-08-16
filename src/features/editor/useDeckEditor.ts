@@ -2,12 +2,16 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type {
   Slide,
   SlideDeckDoc,
+  SlideElementKind,
+  SlideFrame,
   SlideMedia,
   SlideOverrides,
+  SlideTextBox,
   TextStyle,
 } from "../../types";
 import { now, uid } from "../../lib/id";
 import { clampFrame } from "../../lib/slideMedia";
+import { textCarrierOf, withCarrierText } from "../../lib/slideTextBox";
 import type { EditHistory } from "../../hooks/useTextFormatting";
 import type { TextRange } from "../../lib/textRange";
 
@@ -19,6 +23,59 @@ const blankSlide = (): Slide => ({
   overrides: {},
   notes: "",
 });
+
+/** The two collections of placements a slide carries, keyed by what is in them. */
+type SlideListKey = "media" | "textBoxes";
+
+const listKeyFor = (kind: SlideElementKind): SlideListKey =>
+  kind === "text" ? "textBoxes" : "media";
+
+/** Anything that can sit in one of those collections. */
+interface Placed {
+  id: string;
+  frame: SlideFrame;
+}
+
+/** Writes one style property, dropping it when the value is cleared. */
+function withStyleKey(
+  style: TextStyle | undefined,
+  key: string,
+  value: unknown,
+): TextStyle {
+  const next = { ...(style ?? {}) } as Record<string, unknown>;
+  if (value === "" || value == null) delete next[key];
+  else next[key] = value;
+  return next as TextStyle;
+}
+
+/** The same, across several lines at once, dropping lines left with nothing. */
+function withLineStyleKey(
+  lineOverrides: Record<number, TextStyle> | undefined,
+  lineIndexes: number[],
+  key: string,
+  value: unknown,
+): Record<number, TextStyle> {
+  const next = { ...(lineOverrides ?? {}) };
+  for (const lineIndex of lineIndexes) {
+    const line = withStyleKey(next[lineIndex], key, value);
+    if (Object.keys(line).length) next[lineIndex] = line;
+    else delete next[lineIndex];
+  }
+  return next;
+}
+
+/** Drops the per-line styles of lines a rewrite left behind. */
+const trimLineOverrides = (
+  lineOverrides: Record<number, TextStyle> | undefined,
+  lineCount: number,
+): Record<number, TextStyle> | undefined =>
+  lineOverrides
+    ? Object.fromEntries(
+        Object.entries(lineOverrides).filter(
+          ([index]) => Number(index) < lineCount,
+        ),
+      )
+    : undefined;
 
 /** Steps kept for one editing session, bounded so a long service stays cheap. */
 const HISTORY_LIMIT = 200;
@@ -113,6 +170,12 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     [patchDoc],
   );
 
+  const slideOf = useCallback(
+    (id: string): Slide | undefined =>
+      (latest.current.doc.slides ?? []).find((item) => item.id === id),
+    [],
+  );
+
   const updateSlide = useCallback(
     (id: string, changes: Partial<Slide>, options?: EditOptions) =>
       setSlides(
@@ -130,39 +193,33 @@ export function useDeckEditor<T extends SlideDeckDoc>(
    */
   const setSlideText = useCallback(
     (id: string, text: string, options?: EditOptions) => {
-      const slide = (latest.current.doc.slides ?? []).find(
-        (item) => item.id === id,
-      );
+      const slide = slideOf(id);
       if (!slide) return;
       const lines = text.split("\n");
-      const lineOverrides = slide.lineOverrides
-        ? Object.fromEntries(
-            Object.entries(slide.lineOverrides).filter(
-              ([index]) => Number(index) < lines.length,
-            ),
-          )
-        : undefined;
-      updateSlide(id, { lines, lineOverrides }, options);
+      updateSlide(
+        id,
+        {
+          lines,
+          lineOverrides: trimLineOverrides(slide.lineOverrides, lines.length),
+        },
+        options,
+      );
     },
-    [updateSlide],
+    [slideOf, updateSlide],
   );
 
   const updateSlideOverride = useCallback(
     (id: string, key: string, value: unknown) => {
-      const slide = (latest.current.doc.slides ?? []).find(
-        (item) => item.id === id,
-      );
+      const slide = slideOf(id);
       if (!slide) return;
-      const overrides = { ...(slide.overrides || {}) } as Record<
-        string,
-        unknown
-      >;
-      if (value === "" || value == null) delete overrides[key];
-      else overrides[key] = value;
       // Dragging a slider fires continuously; the whole drag is one undo step.
-      updateSlide(id, { overrides }, { coalesceKey: `override:${id}:${key}` });
+      updateSlide(
+        id,
+        { overrides: withStyleKey(slide.overrides, key, value) },
+        { coalesceKey: `override:${id}:${key}` },
+      );
     },
-    [updateSlide],
+    [slideOf, updateSlide],
   );
 
   /**
@@ -171,84 +228,147 @@ export function useDeckEditor<T extends SlideDeckDoc>(
    */
   const patchSlideOverrides = useCallback(
     (id: string, changes: Partial<SlideOverrides>) => {
-      const slide = (latest.current.doc.slides ?? []).find(
-        (item) => item.id === id,
-      );
+      const slide = slideOf(id);
       if (!slide) return;
-      const overrides = { ...(slide.overrides || {}) } as Record<
-        string,
-        unknown
-      >;
-      for (const [key, value] of Object.entries(changes)) {
-        if (value === "" || value == null) delete overrides[key];
-        else overrides[key] = value;
-      }
+      let overrides: SlideOverrides = slide.overrides || {};
+      for (const [key, value] of Object.entries(changes))
+        overrides = withStyleKey(overrides, key, value);
       updateSlide(id, { overrides });
     },
-    [updateSlide],
+    [slideOf, updateSlide],
   );
 
-  /** One patch for every line at once: a loop over the single-line form would
-   *  read stale slides and only the last change would survive. */
-  const updateLineOverrides = useCallback(
-    (id: string, lineIndexes: number[], key: string, value: unknown) => {
-      const slide = (latest.current.doc.slides ?? []).find(
-        (item) => item.id === id,
-      );
+  /**
+   * Writes one text property onto whichever block owns the caret: a placed text
+   * box, or the slide itself. One patch for every line at once, because a loop
+   * over a single-line form would read stale slides and only the last change
+   * would survive.
+   */
+  const setLineStyles = useCallback(
+    (
+      id: string,
+      boxId: string | null,
+      lineIndexes: number[],
+      key: string,
+      value: unknown,
+    ) => {
+      const slide = slideOf(id);
       if (!slide) return;
-      const lineOverrides = { ...(slide.lineOverrides || {}) } as Record<
-        number,
-        Record<string, unknown>
-      >;
-      for (const lineIndex of lineIndexes) {
-        const line = { ...(lineOverrides[lineIndex] || {}) };
-        if (value === "" || value == null) delete line[key];
-        else line[key] = value;
-        if (Object.keys(line).length) lineOverrides[lineIndex] = line;
-        else delete lineOverrides[lineIndex];
+      const options: EditOptions = {
+        coalesceKey: `lineStyle:${id}:${boxId ?? "body"}:${lineIndexes.join(",")}:${key}`,
+      };
+      if (!boxId) {
+        updateSlide(
+          id,
+          {
+            lineOverrides: withLineStyleKey(
+              slide.lineOverrides,
+              lineIndexes,
+              key,
+              value,
+            ),
+          },
+          options,
+        );
+        return;
       }
       updateSlide(
         id,
-        { lineOverrides },
-        { coalesceKey: `lineOverride:${id}:${lineIndexes.join(",")}:${key}` },
+        {
+          textBoxes: (slide.textBoxes ?? []).map((box) =>
+            box.id === boxId
+              ? {
+                  ...box,
+                  lineOverrides: withLineStyleKey(
+                    box.lineOverrides,
+                    lineIndexes,
+                    key,
+                    value,
+                  ),
+                }
+              : box,
+          ),
+        },
+        options,
       );
     },
-    [updateSlide],
+    [slideOf, updateSlide],
   );
 
-  const updateLineOverride = useCallback(
-    (id: string, lineIndex: number, key: string, value: unknown) =>
-      updateLineOverrides(id, [lineIndex], key, value),
-    [updateLineOverrides],
-  );
-
-  const clearLineOverrides = useCallback(
-    (id: string, lineIndex: number) => {
-      const slide = (latest.current.doc.slides ?? []).find(
-        (item) => item.id === id,
+  const setTextStyle = useCallback(
+    (id: string, boxId: string | null, key: string, value: unknown) => {
+      if (!boxId) {
+        updateSlideOverride(id, key, value);
+        return;
+      }
+      const slide = slideOf(id);
+      if (!slide) return;
+      updateSlide(
+        id,
+        {
+          textBoxes: (slide.textBoxes ?? []).map((box) =>
+            box.id === boxId
+              ? { ...box, style: withStyleKey(box.style, key, value) }
+              : box,
+          ),
+        },
+        { coalesceKey: `textStyle:${id}:${boxId}:${key}` },
       );
-      if (!slide?.lineOverrides) return;
-      const lineOverrides = { ...slide.lineOverrides };
-      delete lineOverrides[lineIndex];
-      updateSlide(id, { lineOverrides });
     },
-    [updateSlide],
+    [slideOf, updateSlide, updateSlideOverride],
   );
 
-  const slideMediaOf = useCallback((id: string): SlideMedia[] | null => {
-    const slide = (latest.current.doc.slides ?? []).find(
-      (item) => item.id === id,
-    );
-    return slide ? (slide.media ?? []) : null;
-  }, []);
+  const clearLineStyles = useCallback(
+    (id: string, boxId: string | null, lineIndex: number) => {
+      const slide = slideOf(id);
+      if (!slide) return;
+      const drop = (overrides: Record<number, TextStyle> | undefined) => {
+        if (!overrides) return undefined;
+        const next = { ...overrides };
+        delete next[lineIndex];
+        return next;
+      };
+      if (!boxId) {
+        updateSlide(id, { lineOverrides: drop(slide.lineOverrides) });
+        return;
+      }
+      updateSlide(id, {
+        textBoxes: (slide.textBoxes ?? []).map((box) =>
+          box.id === boxId
+            ? { ...box, lineOverrides: drop(box.lineOverrides) }
+            : box,
+        ),
+      });
+    },
+    [slideOf, updateSlide],
+  );
+
+  /**
+   * Rewrites one of a slide's two collections of placements. `transform`
+   * returning null leaves the document alone, which is how a command that found
+   * nothing to act on avoids pushing an empty undo step.
+   */
+  const patchSlideList = useCallback(
+    <T extends Placed>(
+      id: string,
+      key: SlideListKey,
+      transform: (list: T[]) => T[] | null,
+      options?: EditOptions,
+    ): boolean => {
+      const slide = slideOf(id);
+      if (!slide) return false;
+      const next = transform((slide[key] as unknown as T[] | undefined) ?? []);
+      if (!next) return false;
+      updateSlide(id, { [key]: next } as Partial<Slide>, options);
+      return true;
+    },
+    [slideOf, updateSlide],
+  );
 
   const addSlideMedia = useCallback(
-    (id: string, media: SlideMedia) => {
-      const current = slideMediaOf(id);
-      if (!current) return;
-      updateSlide(id, { media: [...current, media] });
-    },
-    [slideMediaOf, updateSlide],
+    (id: string, media: SlideMedia) =>
+      void patchSlideList<SlideMedia>(id, "media", (list) => [...list, media]),
+    [patchSlideList],
   );
 
   /**
@@ -261,65 +381,143 @@ export function useDeckEditor<T extends SlideDeckDoc>(
       mediaId: string,
       changes: Partial<SlideMedia>,
       options?: EditOptions,
-    ) => {
-      const current = slideMediaOf(id);
-      if (!current) return;
-      updateSlide(
+    ) =>
+      void patchSlideList<SlideMedia>(
         id,
-        {
-          media: current.map((item) =>
+        "media",
+        (list) =>
+          list.map((item) =>
             item.id === mediaId ? { ...item, ...changes } : item,
           ),
-        },
+        options,
+      ),
+    [patchSlideList],
+  );
+
+  const addSlideTextBox = useCallback(
+    (id: string, box: SlideTextBox) =>
+      void patchSlideList<SlideTextBox>(id, "textBoxes", (list) => [
+        ...list,
+        box,
+      ]),
+    [patchSlideList],
+  );
+
+  const updateSlideTextBox = useCallback(
+    (
+      id: string,
+      boxId: string,
+      changes: Partial<SlideTextBox>,
+      options?: EditOptions,
+    ) =>
+      void patchSlideList<SlideTextBox>(
+        id,
+        "textBoxes",
+        (list) =>
+          list.map((box) => (box.id === boxId ? { ...box, ...changes } : box)),
+        options,
+      ),
+    [patchSlideList],
+  );
+
+  /** The text-box twin of `setSlideText`, writing back one box's own lines. */
+  const setSlideTextBoxText = useCallback(
+    (id: string, boxId: string, text: string, options?: EditOptions) => {
+      const lines = text.split("\n");
+      patchSlideList<SlideTextBox>(
+        id,
+        "textBoxes",
+        (list) =>
+          list.map((box) =>
+            box.id === boxId
+              ? {
+                  ...box,
+                  lines,
+                  lineOverrides: trimLineOverrides(
+                    box.lineOverrides,
+                    lines.length,
+                  ),
+                }
+              : box,
+          ),
         options,
       );
     },
-    [slideMediaOf, updateSlide],
+    [patchSlideList],
   );
 
-  const removeSlideMedia = useCallback(
-    (id: string, mediaId: string) => {
-      const current = slideMediaOf(id);
-      if (!current) return;
-      updateSlide(id, { media: current.filter((item) => item.id !== mediaId) });
-    },
-    [slideMediaOf, updateSlide],
+  const updateSlideElementFrame = useCallback(
+    (
+      id: string,
+      kind: SlideElementKind,
+      elementId: string,
+      frame: SlideFrame,
+      options?: EditOptions,
+    ) =>
+      void patchSlideList<Placed>(
+        id,
+        listKeyFor(kind),
+        (list) =>
+          list.map((item) =>
+            item.id === elementId ? { ...item, frame } : item,
+          ),
+        options,
+      ),
+    [patchSlideList],
+  );
+
+  const removeSlideElement = useCallback(
+    (id: string, kind: SlideElementKind, elementId: string) =>
+      void patchSlideList<Placed>(id, listKeyFor(kind), (list) =>
+        list.some((item) => item.id === elementId)
+          ? list.filter((item) => item.id !== elementId)
+          : null,
+      ),
+    [patchSlideList],
   );
 
   /** Copies a placement, offset a little so the copy is visible under the cursor. */
-  const duplicateSlideMedia = useCallback(
-    (id: string, mediaId: string): string | null => {
-      const current = slideMediaOf(id);
-      const source = current?.find((item) => item.id === mediaId);
-      if (!current || !source) return null;
-      const copy: SlideMedia = {
-        ...source,
-        id: uid(),
-        frame: clampFrame({
-          ...source.frame,
-          x: source.frame.x + DUPLICATE_OFFSET,
-          y: source.frame.y + DUPLICATE_OFFSET,
-        }),
-      };
-      updateSlide(id, { media: [...current, copy] });
-      return copy.id;
+  const duplicateSlideElement = useCallback(
+    (id: string, kind: SlideElementKind, elementId: string): string | null => {
+      const copyId = uid();
+      const written = patchSlideList<Placed>(id, listKeyFor(kind), (list) => {
+        const source = list.find((item) => item.id === elementId);
+        if (!source) return null;
+        return [
+          ...list,
+          {
+            ...source,
+            id: copyId,
+            frame: clampFrame({
+              ...source.frame,
+              x: source.frame.x + DUPLICATE_OFFSET,
+              y: source.frame.y + DUPLICATE_OFFSET,
+            }),
+          },
+        ];
+      });
+      return written ? copyId : null;
     },
-    [slideMediaOf, updateSlide],
+    [patchSlideList],
   );
 
   /** Moves a placement through the stack; the last entry is painted on top. */
-  const reorderSlideMedia = useCallback(
-    (id: string, mediaId: string, direction: number) => {
-      const current = slideMediaOf(id);
-      if (!current) return;
-      const index = current.findIndex((item) => item.id === mediaId);
-      const target = index + direction;
-      if (index < 0 || target < 0 || target >= current.length) return;
-      const media = [...current];
-      [media[index], media[target]] = [media[target], media[index]];
-      updateSlide(id, { media });
-    },
-    [slideMediaOf, updateSlide],
+  const reorderSlideElement = useCallback(
+    (
+      id: string,
+      kind: SlideElementKind,
+      elementId: string,
+      direction: number,
+    ) =>
+      void patchSlideList<Placed>(id, listKeyFor(kind), (list) => {
+        const index = list.findIndex((item) => item.id === elementId);
+        const target = index + direction;
+        if (index < 0 || target < 0 || target >= list.length) return null;
+        const next = [...list];
+        [next[index], next[target]] = [next[target], next[index]];
+        return next;
+      }),
+    [patchSlideList],
   );
 
   const updateDocStyle = useCallback(
@@ -389,35 +587,46 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     [setSlides],
   );
 
+  /**
+   * Halves a slide's text onto two slides. Whichever block carries the text is
+   * the one that is split, so a sermon built out of text boxes divides the same
+   * way a stanza of lyrics does.
+   */
   const splitSlide = useCallback(
     (index: number) => {
       const current = latest.current.doc.slides ?? [];
       const slide = current[index];
-      if (!slide?.lines || slide.lines.length < 2) return;
-      const mid = Math.ceil(slide.lines.length / 2);
+      if (!slide) return;
+      const carrier = textCarrierOf(slide);
+      if (carrier.lines.length < 2) return;
+
+      const mid = Math.ceil(carrier.lines.length / 2);
       const firstOverrides: Record<number, TextStyle> = {};
       const secondOverrides: Record<number, TextStyle> = {};
-      Object.entries(slide.lineOverrides || {}).forEach(([k, v]) => {
+      Object.entries(carrier.lineOverrides || {}).forEach(([k, v]) => {
         const i = Number(k);
         if (i < mid) firstOverrides[i] = v;
         else secondOverrides[i - mid] = v;
       });
-      const first: Slide = {
-        ...slide,
-        lines: slide.lines.slice(0, mid),
-        lineOverrides: Object.keys(firstOverrides).length
-          ? firstOverrides
-          : undefined,
-      };
-      const second: Slide = {
-        ...slide,
-        id: uid(),
-        lines: slide.lines.slice(mid),
-        label: `${slide.label} (b)`,
-        lineOverrides: Object.keys(secondOverrides).length
-          ? secondOverrides
-          : undefined,
-      };
+
+      const asSlide = (
+        base: Slide,
+        lines: string[],
+        overrides: Record<number, TextStyle>,
+      ) =>
+        withCarrierText(
+          base,
+          carrier,
+          lines,
+          Object.keys(overrides).length ? overrides : undefined,
+        );
+
+      const first = asSlide(slide, carrier.lines.slice(0, mid), firstOverrides);
+      const second = asSlide(
+        { ...slide, id: uid(), label: `${slide.label} (b)` },
+        carrier.lines.slice(mid),
+        secondOverrides,
+      );
       const next = [...current];
       next.splice(index, 1, first, second);
       setSlides(next);
@@ -425,26 +634,45 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     [setSlides],
   );
 
+  /**
+   * Folds the next slide into this one: its text joins the block that carries
+   * this slide's, and everything it had placed on it comes along rather than
+   * being dropped on the floor.
+   */
   const mergeSlideDown = useCallback(
     (index: number) => {
       const current = latest.current.doc.slides ?? [];
       if (index >= current.length - 1) return;
       const a = current[index];
       const b = current[index + 1];
-      const offset = a.lines.length;
+      const carrier = textCarrierOf(a);
+      const incoming = textCarrierOf(b);
+      const offset = carrier.lines.length;
+
       const lineOverrides: Record<number, TextStyle> = {
-        ...(a.lineOverrides || {}),
+        ...(carrier.lineOverrides || {}),
       };
-      Object.entries(b.lineOverrides || {}).forEach(([i, v]) => {
+      Object.entries(incoming.lineOverrides || {}).forEach(([i, v]) => {
         lineOverrides[Number(i) + offset] = v;
       });
-      const merged: Slide = {
+
+      const withPlacements: Slide = {
         ...a,
-        lines: [...a.lines, ...b.lines],
-        lineOverrides: Object.keys(lineOverrides).length
-          ? lineOverrides
-          : undefined,
+        media: [...(a.media ?? []), ...(b.media ?? [])],
+        textBoxes: [
+          ...(a.textBoxes ?? []),
+          // The box the incoming text was read out of is now part of this
+          // slide's own text, so it does not come along a second time.
+          ...(b.textBoxes ?? []).filter((box) => box.id !== incoming.boxId),
+        ],
       };
+      const merged = withCarrierText(
+        withPlacements,
+        carrier,
+        [...carrier.lines, ...incoming.lines],
+        Object.keys(lineOverrides).length ? lineOverrides : undefined,
+      );
+
       const next = [...current];
       next.splice(index, 2, merged);
       setSlides(next);
@@ -538,14 +766,18 @@ export function useDeckEditor<T extends SlideDeckDoc>(
     setSlideText,
     updateSlideOverride,
     patchSlideOverrides,
-    updateLineOverride,
-    updateLineOverrides,
-    clearLineOverrides,
+    setTextStyle,
+    setLineStyles,
+    clearLineStyles,
     addSlideMedia,
     updateSlideMedia,
-    removeSlideMedia,
-    duplicateSlideMedia,
-    reorderSlideMedia,
+    addSlideTextBox,
+    updateSlideTextBox,
+    setSlideTextBoxText,
+    updateSlideElementFrame,
+    removeSlideElement,
+    duplicateSlideElement,
+    reorderSlideElement,
     updateDocStyle,
     moveSlide,
     duplicateSlide,

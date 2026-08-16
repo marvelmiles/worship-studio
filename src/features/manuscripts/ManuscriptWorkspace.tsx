@@ -10,6 +10,7 @@ import { DeckWorkspace } from "../editor/DeckWorkspace";
 import { ManuscriptTextModal } from "./ManuscriptTextModal";
 import { ManuscriptSettingsModal } from "./ManuscriptSettingsModal";
 import { parseManuscript } from "../../lib/parser";
+import { resolveManuscriptFormat } from "../../lib/manuscript/format";
 import { isUntitledManuscript } from "../../store/slices/manuscriptsSlice";
 
 export function ManuscriptWorkspace({
@@ -62,6 +63,9 @@ export function ManuscriptWorkspace({
       editor={editor}
       backTo="/manuscripts"
       backTitle="Back to manuscripts"
+      // A sermon reads as blocks on a page, so its text is laid out in boxes the
+      // writer can place; lyrics are sung line by line and fill the slide.
+      allowTextBoxes={resolveManuscriptFormat(draft) === "sermon"}
       topBarActions={(compact) =>
         compact ? (
           <>

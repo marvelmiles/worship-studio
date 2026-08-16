@@ -1,24 +1,22 @@
-import { useMemo } from "react";
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 import type { Background, ImageSettings, ResolvedStyle, Slide } from "../types";
-import { colors, fade, UI } from "../theme/tokens";
+import { UI } from "../theme/tokens";
 import { backgroundImageSettings, isImageBackground } from "../lib/media";
 import { BackgroundSurface } from "./media/BackgroundSurface";
 import { SlideMediaLayers } from "./media/SlideMediaLayers";
 import { SCRIM_GRADIENT } from "./media/ImageLayer";
-import { lineContentOffsets } from "../lib/inlineDocument";
-import { analyzeLines, listMarkerLabel } from "../lib/lists";
 import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
-import { FormattedText } from "./FormattedText";
+import { SlideTextBlock } from "./SlideTextBlock";
+import { SlideTextBoxLayers } from "./SlideTextBoxLayers";
 
-/** One indent level, in the same container-query unit the text is sized in. */
-const INDENT_STEP_CQW = 3.2;
+/** The margins the slide's own text is painted with. */
+const BODY_PADDING = "7cqw 9cqw";
 
-const FLEX_ALIGN = {
-  left: "flex-start",
-  center: "center",
-  right: "flex-end",
-} as const;
+/** Where a click landed, so the editor can put the caret there. */
+export interface ClickPoint {
+  x: number;
+  y: number;
+}
 
 interface SlideCanvasProps {
   slide: Slide;
@@ -37,6 +35,12 @@ interface SlideCanvasProps {
   selectedLine?: number | null;
   /** Makes the slide's text the editable surface, see hooks/useSlideTextEditor. */
   editing?: SlideTextEditing;
+  /** The text box `editing` is attached to, or null for the slide's own text. */
+  editingTextBoxId?: string | null;
+  /** Editor only: a text surface was clicked and should take over the caret. */
+  onActivateText?: (boxId: string | null, point: ClickPoint) => void;
+  /** The placed clip whose player controls are live (the editor's selection). */
+  mediaControlsFor?: string | null;
   /** True on the projector, where placed clips play instead of holding a frame. */
   live?: boolean;
   /** Drawn over the slide, above the placed media (the editor's drag surface). */
@@ -49,13 +53,15 @@ interface SlideCanvasProps {
  * projection without any per-context font math. When `fill` is set the slide
  * fills its container instead of enforcing the 16:9 aspect ratio.
  *
- * With `editing` attached the text block itself becomes the editor: the caret
- * sits in the real slide, so what the writer types is already what the room
- * will see.
+ * A slide carries its text two ways: the slide's own lines, which fill it, and
+ * text boxes placed anywhere on it the way a picture is. Sermon decks are built
+ * out of boxes, lyrics out of the slide's own lines, and both are painted here
+ * from the same block renderer.
  *
- * Pictures and clips placed on the slide are painted over the text in the order
- * they are stacked; `overlay` is where the editor hangs its drag surface for
- * them, so this component stays free of any editing behaviour.
+ * With `editing` attached one of those blocks becomes the editor: the caret sits
+ * in the real slide, so what the writer types is already what the room will see.
+ * `overlay` is where the editor hangs its drag surface for the placements, so
+ * this component stays free of any editing behaviour.
  */
 export function SlideCanvas({
   slide,
@@ -70,6 +76,9 @@ export function SlideCanvas({
   lineStyles,
   selectedLine,
   editing,
+  editingTextBoxId = null,
+  onActivateText,
+  mediaControlsFor,
   live,
   overlay,
 }: SlideCanvasProps) {
@@ -91,15 +100,20 @@ export function SlideCanvas({
         : { background: bg?.css || "#111" };
 
   const wantScrim = !noBackground && !paintsPicture && scrim === true;
-  const lines = useMemo(
-    () => (slide.lines && slide.lines.length ? slide.lines : [""]),
-    [slide.lines],
-  );
-  const items = useMemo(() => analyzeLines(lines), [lines]);
-  const sourceOffsets = useMemo(
-    () => (editable ? lineContentOffsets(lines) : null),
-    [editable, lines],
-  );
+
+  const textBoxes = slide.textBoxes ?? [];
+  const bodyLines = slide.lines ?? [];
+  // A slide whose words all live in boxes has no body left to paint, and an
+  // empty one would only get in the way of clicking into the boxes.
+  const showBody =
+    !textBoxes.length || bodyLines.some((line) => line.trim() !== "");
+  const bodyActive = editable && editingTextBoxId === null;
+
+  const activate = (boxId: string | null, event: PointerEvent<HTMLElement>) => {
+    if (!onActivateText) return;
+    event.stopPropagation();
+    onActivateText(boxId, { x: event.clientX, y: event.clientY });
+  };
 
   return (
     <div
@@ -126,108 +140,41 @@ export function SlideCanvas({
           style={{ position: "absolute", inset: 0, background: SCRIM_GRADIENT }}
         />
       )}
-      <div
-        ref={editing?.ref}
-        contentEditable={editable || undefined}
-        suppressContentEditableWarning={editable}
-        spellCheck={editable ? false : undefined}
-        role={editable ? "textbox" : undefined}
-        aria-multiline={editable || undefined}
-        aria-label={editable ? "Slide text" : undefined}
-        onKeyDown={editing?.onKeyDown}
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          alignItems: "center",
-          padding: "7cqw 9cqw",
-          outline: "none",
-          cursor: editable ? "text" : undefined,
-        }}
-      >
-        <div style={{ width: "100%" }}>
-          {items.map((item, i) => {
-            const lineStyle = lineStyles?.[i] ?? style;
-            const selected = selectedLine === i;
-            const align = lineStyle.align || "center";
-            const marked = editable || selectedLine != null;
-            const content =
-              sourceOffsets || item.content ? (
-                <FormattedText
-                  text={item.content}
-                  baseWeight={lineStyle.fontWeight}
-                  sourceBase={sourceOffsets?.[i]}
-                />
-              ) : (
-                "\u00A0"
-              );
-            return (
-              <div
-                key={i}
-                style={{
-                  textAlign: align,
-                  color: lineStyle.color,
-                  fontFamily: `'${lineStyle.fontFamily}', serif`,
-                  fontWeight: lineStyle.fontWeight,
-                  fontSize: `${lineStyle.fontSize}cqw`,
-                  lineHeight: lineStyle.lineHeight,
-                  letterSpacing: `${lineStyle.letterSpacing || 0}cqw`,
-                  textShadow: lineStyle.textShadow,
-                  textTransform: lineStyle.uppercase ? "uppercase" : "none",
-                  whiteSpace: editable ? "pre-wrap" : undefined,
-                  borderRadius: 6,
-                  padding: marked ? "0.3cqw 0.6cqw" : undefined,
-                  margin: marked ? "-0.3cqw -0.6cqw" : undefined,
-                  paddingInlineStart: item.level
-                    ? `${item.level * INDENT_STEP_CQW + (marked ? 0.6 : 0)}cqw`
-                    : undefined,
-                  outline: selected
-                    ? `0.25cqw solid ${colors.accent}`
-                    : marked
-                      ? "0.25cqw dashed transparent"
-                      : undefined,
-                  outlineOffset: 2,
-                  background: selected ? fade(colors.accent, 0.14) : undefined,
-                  transition: marked
-                    ? "outline-color .15s ease, background .15s ease"
-                    : undefined,
-                }}
-              >
-                {item.kind ? (
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "baseline",
-                      gap: "0.9cqw",
-                      justifyContent: FLEX_ALIGN[align],
-                      textAlign: "start",
-                    }}
-                  >
-                    <span
-                      aria-hidden
-                      contentEditable={false}
-                      style={{
-                        flex: "none",
-                        minWidth: "2.6cqw",
-                        textAlign: "end",
-                        fontVariantNumeric: "tabular-nums",
-                        userSelect: editable ? "none" : undefined,
-                      }}
-                    >
-                      {listMarkerLabel(item.kind, item.index, item.level)}
-                    </span>
-                    <span>{content}</span>
-                  </span>
-                ) : (
-                  content
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {showBody && (
+        <SlideTextBlock
+          lines={bodyLines}
+          style={style}
+          lineStyles={lineStyles}
+          selectedLine={bodyActive ? selectedLine : null}
+          editing={bodyActive ? editing : undefined}
+          marked={editable}
+          padding={BODY_PADDING}
+          onPointerDown={
+            onActivateText ? (event) => activate(null, event) : undefined
+          }
+        />
+      )}
       {slide.media && slide.media.length > 0 && (
-        <SlideMediaLayers media={slide.media} live={live} />
+        <SlideMediaLayers
+          media={slide.media}
+          live={live}
+          controlsFor={mediaControlsFor}
+        />
+      )}
+      {textBoxes.length > 0 && (
+        <SlideTextBoxLayers
+          boxes={textBoxes}
+          style={style}
+          editing={editing}
+          editingBoxId={editingTextBoxId}
+          selectedLine={selectedLine}
+          marked={editable}
+          onPointerDownBox={
+            onActivateText
+              ? (boxId, event) => activate(boxId, event)
+              : undefined
+          }
+        />
       )}
       {overlay}
       {showLabel && slide.label && (

@@ -96,6 +96,30 @@ export interface DomPosition {
   offset: number;
 }
 
+/** The standard API, next to the older WebKit/Blink spelling of it. */
+interface CaretDocument {
+  caretPositionFromPoint?: (
+    x: number,
+    y: number,
+  ) => { offsetNode: Node; offset: number } | null;
+  caretRangeFromPoint?: (x: number, y: number) => Range | null;
+}
+
+/**
+ * Where a click landed, in DOM terms. A block only becomes editable once it is
+ * the surface being written into, which is a render too late for the browser to
+ * have placed the caret itself, so the caret is placed from the point instead.
+ */
+export function domPositionFromPoint(x: number, y: number): DomPosition | null {
+  const source = document as Document & CaretDocument;
+  const position = source.caretPositionFromPoint?.(x, y);
+  if (position) return { node: position.offsetNode, offset: position.offset };
+  const range = source.caretRangeFromPoint?.(x, y);
+  return range
+    ? { node: range.startContainer, offset: range.startOffset }
+    : null;
+}
+
 /** Where a raw-text offset sits in the rendered DOM. */
 export function domPositionFromSource(
   root: HTMLElement,

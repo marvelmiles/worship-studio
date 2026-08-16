@@ -38,6 +38,7 @@ import {
   resolveStyle,
 } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
+import { createSlideTextBox } from "../../lib/slideTextBox";
 import { Button, IconButton } from "../../components/ui/Button";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ContextMenu } from "../../components/ui/ContextMenu";
@@ -48,7 +49,10 @@ import { useFollowPresentation } from "./useFollowPresentation";
 import { SlideListPanel } from "./SlideListPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import { InspectorPanel } from "./InspectorPanel";
-import type { SlideMediaEditing } from "./SlideMediaOverlay";
+import type {
+  SlideElementEditing,
+  SlideElementRef,
+} from "./SlideElementOverlay";
 
 type MobileTab = "slides" | "edit" | "style";
 
@@ -66,6 +70,11 @@ interface DeckWorkspaceProps {
   backTitle: string;
   topBarActions: (compact: boolean) => ReactNode;
   emptyState: ReactNode;
+  /**
+   * True for documents laid out in blocks rather than sung line by line, where
+   * the writer can place text boxes the way a slide editor does.
+   */
+  allowTextBoxes?: boolean;
   children?: ReactNode;
 }
 
@@ -77,6 +86,7 @@ export function DeckWorkspace({
   backTitle,
   topBarActions,
   emptyState,
+  allowTextBoxes = false,
   children,
 }: DeckWorkspaceProps) {
   const navigate = useNavigate();
@@ -106,16 +116,21 @@ export function DeckWorkspace({
   const [menu, setMenu] = useState<ContextState | null>(null);
   const [tab, setTab] = useState<MobileTab>("edit");
   const [lineScope, setLineScope] = useState(false);
-  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [selectedElement, setSelectedElement] =
+    useState<SlideElementRef | null>(null);
+  const [pickedTextBoxId, setPickedTextBoxId] = useState<string | null>(null);
 
   const leaveGuard = useUnsavedChanges(editor.dirty);
 
   const slide = editor.selectedSlide;
   const slideId = slide?.id ?? null;
 
-  // A placement belongs to the slide it sits on, so moving off it drops the
-  // selection rather than leaving the inspector editing something unseen.
-  useEffect(() => setSelectedMediaId(null), [slideId]);
+  // A placement belongs to the slide it sits on, so moving off it drops both the
+  // selection and the caret rather than leaving them on something unseen.
+  useEffect(() => {
+    setSelectedElement(null);
+    setPickedTextBoxId(null);
+  }, [slideId]);
 
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
@@ -124,22 +139,43 @@ export function DeckWorkspace({
   const isPresentingThisDoc =
     presentation?.kind === kind && presentation.id === doc.id;
 
-  // The slide's lines edit as one block of text, so the formatting toolbar can
-  // act on a selection that runs across several of them.
-  const slideText = (slide?.lines ?? []).join("\n");
-  const { setSlideText } = editor;
+  // A slide carries its text either in its own lines or in placed text boxes.
+  // Exactly one of those blocks is being written into at a time: the one that
+  // was clicked, or the only one there is.
+  const textBoxes = slide?.textBoxes ?? [];
+  const bodyLines = slide?.lines ?? [];
+  const bodyVisible =
+    !textBoxes.length || bodyLines.some((line) => line.trim() !== "");
+  const activeTextBoxId =
+    pickedTextBoxId && textBoxes.some((box) => box.id === pickedTextBoxId)
+      ? pickedTextBoxId
+      : bodyVisible
+        ? null
+        : (textBoxes[0]?.id ?? null);
+  const activeTextBox =
+    textBoxes.find((box) => box.id === activeTextBoxId) ?? null;
+
+  // Its lines edit as one block of text, so the formatting toolbar can act on a
+  // selection that runs across several of them.
+  const slideText = (activeTextBox?.lines ?? bodyLines).join("\n");
+  const { setSlideText, setSlideTextBoxText } = editor;
   const onSlideTextChange = useCallback(
     (text: string, meta: TextChangeMeta) => {
       if (!slideId) return;
       // A run of typing and a slider being dragged each fold into one step; a
       // formatting command is its own, so one undo takes exactly it back.
       const group = meta.coalesceKey ?? (meta.typing ? "typing" : null);
-      setSlideText(slideId, text, {
+      const options = {
         caret: meta.caret,
-        coalesceKey: group ? `text:${slideId}:${group}` : undefined,
-      });
+        coalesceKey: group
+          ? `text:${slideId}:${activeTextBoxId ?? "body"}:${group}`
+          : undefined,
+      };
+      if (activeTextBoxId)
+        setSlideTextBoxText(slideId, activeTextBoxId, text, options);
+      else setSlideText(slideId, text, options);
     },
-    [slideId, setSlideText],
+    [slideId, activeTextBoxId, setSlideText, setSlideTextBoxText],
   );
 
   const formatting = useTextFormatting({
@@ -150,7 +186,7 @@ export function DeckWorkspace({
 
   // Line-scoped styling follows the caret, so the inspector always acts on the
   // line being written rather than on one picked earlier and left behind.
-  const lineCount = slide?.lines.length ?? 0;
+  const lineCount = activeTextBox?.lines.length ?? bodyLines.length;
   const selectedLine =
     lineScope && lineCount
       ? Math.min(formatting.lines.first, lineCount - 1)
@@ -241,39 +277,61 @@ export function DeckWorkspace({
     />
   );
 
-  const mediaEditing: SlideMediaEditing = {
-    selectedId: selectedMediaId,
-    onSelect: setSelectedMediaId,
-    onFrameChange: (mediaId, frame, gesture) => {
+  // Selecting a text box also makes it the block being written into, so the
+  // caret, the styling scope and the settings panel never point at three
+  // different things at once.
+  const selectElement = (element: SlideElementRef | null) => {
+    setSelectedElement(element);
+    if (!element || element.kind === "text")
+      setPickedTextBoxId(element?.id ?? null);
+  };
+
+  const elementEditing: SlideElementEditing = {
+    selectedId: selectedElement?.id ?? null,
+    onSelect: selectElement,
+    onFrameChange: (element, frame, gesture) => {
       if (!slideId) return;
       // One drag is one undo step, the way a slider drag is.
-      editor.updateSlideMedia(
+      editor.updateSlideElementFrame(slideId, element.kind, element.id, frame, {
+        coalesceKey: `element:${slideId}:${element.id}:${gesture}`,
+      });
+    },
+    onDuplicate: (element) => {
+      if (!slideId) return;
+      const copyId = editor.duplicateSlideElement(
         slideId,
-        mediaId,
-        { frame },
-        { coalesceKey: `media:${slideId}:${mediaId}:${gesture}` },
+        element.kind,
+        element.id,
       );
+      if (copyId) selectElement({ id: copyId, kind: element.kind });
     },
-    onDuplicate: (mediaId) => {
+    onDelete: (element) => {
       if (!slideId) return;
-      const copyId = editor.duplicateSlideMedia(slideId, mediaId);
-      if (copyId) setSelectedMediaId(copyId);
+      editor.removeSlideElement(slideId, element.kind, element.id);
+      selectElement(null);
     },
-    onDelete: (mediaId) => {
+    onReorder: (element, direction) => {
       if (!slideId) return;
-      editor.removeSlideMedia(slideId, mediaId);
-      setSelectedMediaId(null);
-    },
-    onReorder: (mediaId, direction) => {
-      if (!slideId) return;
-      editor.reorderSlideMedia(slideId, mediaId, direction);
+      editor.reorderSlideElement(slideId, element.kind, element.id, direction);
     },
   };
+
+  // A freshly inserted box is the one being written into, so the writer can
+  // type into it straight away rather than hunting for it on the slide.
+  const addTextBox = () => {
+    if (!slideId) return;
+    const box = createSlideTextBox();
+    editor.addSlideTextBox(slideId, box);
+    selectElement({ id: box.id, kind: "text" });
+  };
+
+  const activateTextBox = (boxId: string | null) =>
+    selectElement(boxId ? { id: boxId, kind: "text" } : null);
 
   const previewPanel = slide ? (
     <PreviewPanel
       slide={slide}
-      mediaEditing={mediaEditing}
+      elementEditing={elementEditing}
       style={resolveStyle(slide, doc, theme)}
       lineStyles={slide.lines.map((_, i) =>
         resolveLineStyle(slide, i, doc, theme),
@@ -290,6 +348,8 @@ export function DeckWorkspace({
         )
       }
       selectedLine={selectedLine}
+      activeTextBoxId={activeTextBoxId}
+      onActivateTextBox={activateTextBox}
     />
   ) : (
     emptyState
@@ -306,8 +366,11 @@ export function DeckWorkspace({
       selectedLine={selectedLine}
       onScopeToLine={setLineScope}
       formatting={formatting}
-      selectedMediaId={selectedMediaId}
-      onSelectMedia={setSelectedMediaId}
+      selectedElement={selectedElement}
+      onSelectElement={selectElement}
+      activeTextBoxId={activeTextBoxId}
+      allowTextBoxes={allowTextBoxes}
+      onAddTextBox={addTextBox}
     />
   ) : null;
 

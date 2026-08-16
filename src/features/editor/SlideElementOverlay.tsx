@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
-import type { SlideMedia, SlideMediaFrame } from "../../types";
+import type { SlideElementKind, SlideFrame } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { clampFrame, MIN_FRAME_SIZE } from "../../lib/slideMedia";
@@ -20,41 +20,66 @@ const HANDLES: { id: HandleId; x: number; y: number; cursor: string }[] = [
   { id: "w", x: 0, y: 0.5, cursor: "ew-resize" },
 ];
 
+/** The draggable band drawn along each edge, in pixels. */
+const EDGE_BAND = 11;
+const EDGES: { id: string; style: CSSProperties }[] = [
+  { id: "top", style: { top: 0, left: 0, right: 0, height: EDGE_BAND } },
+  { id: "bottom", style: { bottom: 0, left: 0, right: 0, height: EDGE_BAND } },
+  { id: "left", style: { top: 0, bottom: 0, left: 0, width: EDGE_BAND } },
+  { id: "right", style: { top: 0, bottom: 0, right: 0, width: EDGE_BAND } },
+];
+
 /** Percent of the slide one arrow-key press moves a placement. */
 const NUDGE = 1;
 const NUDGE_FAST = 5;
 /** A box at least this far from the top has room for its toolbar above it. */
 const TOOLBAR_ABOVE_FROM = 14;
 /** Marks the draggable box, so a grip can hand focus back to the box it belongs to. */
-const BOX_ATTRIBUTE = "data-slide-media";
+const BOX_ATTRIBUTE = "data-slide-element";
+
+const LABELS: Record<SlideElementKind, string> = {
+  image: "Placed image",
+  video: "Placed video",
+  text: "Text box",
+};
 
 interface Gesture {
-  mediaId: string;
+  element: SlideElementRef;
   handle: HandleId | "move";
-  frame: SlideMediaFrame;
+  frame: SlideFrame;
   pointerX: number;
   pointerY: number;
   slideWidth: number;
   slideHeight: number;
 }
 
-/** Everything the editor supplies to make placed media interactive. */
-export interface SlideMediaEditing {
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  /** Called continuously while dragging; `gesture` groups it into one undo step. */
-  onFrameChange: (
-    mediaId: string,
-    frame: SlideMediaFrame,
-    gesture: string,
-  ) => void;
-  onDuplicate: (mediaId: string) => void;
-  onDelete: (mediaId: string) => void;
-  onReorder: (mediaId: string, direction: number) => void;
+/** Identifies one placement, which is all a command needs to find it again. */
+export interface SlideElementRef {
+  id: string;
+  kind: SlideElementKind;
 }
 
-interface SlideMediaOverlayProps extends SlideMediaEditing {
-  media: SlideMedia[];
+export interface SlideElement extends SlideElementRef {
+  frame: SlideFrame;
+}
+
+/** Everything the editor supplies to make placements interactive. */
+export interface SlideElementEditing {
+  selectedId: string | null;
+  onSelect: (element: SlideElementRef | null) => void;
+  /** Called continuously while dragging; `gesture` groups it into one undo step. */
+  onFrameChange: (
+    element: SlideElementRef,
+    frame: SlideFrame,
+    gesture: string,
+  ) => void;
+  onDuplicate: (element: SlideElementRef) => void;
+  onDelete: (element: SlideElementRef) => void;
+  onReorder: (element: SlideElementRef, direction: number) => void;
+}
+
+interface SlideElementOverlayProps extends SlideElementEditing {
+  elements: SlideElement[];
 }
 
 /**
@@ -63,11 +88,11 @@ interface SlideMediaOverlayProps extends SlideMediaEditing {
  * instead of turning the box inside out.
  */
 function resizeFrame(
-  start: SlideMediaFrame,
+  start: SlideFrame,
   handle: HandleId,
   dx: number,
   dy: number,
-): SlideMediaFrame {
+): SlideFrame {
   const frame = { ...start };
 
   if (handle.includes("w")) {
@@ -88,30 +113,39 @@ function resizeFrame(
 }
 
 /**
- * The editor's handle on the pictures and clips a slide carries. It sits over
- * the canvas rather than inside it, so the slide itself renders exactly the same
- * whether it is being edited or projected: only this layer knows about
- * selection, dragging and resizing.
- *
- * Everything outside a placed item stays click-through, which is what keeps the
- * text underneath editable while media is on the slide.
+ * True while the middle of a placement should drag it. Text is written inside
+ * its box and a selected clip shows its player, so those hand their middle back
+ * to what is underneath and are moved by their edges instead, the way a text
+ * box behaves in a slide editor.
  */
-export function SlideMediaOverlay({
-  media,
+const interiorDrags = (element: SlideElement, selected: boolean): boolean =>
+  element.kind === "image" || (element.kind === "video" && !selected);
+
+/**
+ * The editor's handle on everything placed on a slide: pictures, clips and text
+ * boxes. It sits over the canvas rather than inside it, so the slide itself
+ * renders exactly the same whether it is being edited or projected: only this
+ * layer knows about selection, dragging and resizing.
+ *
+ * Everything outside a placement stays click-through, which is what keeps the
+ * slide's own text editable while placements are on it.
+ */
+export function SlideElementOverlay({
+  elements,
   selectedId,
   onSelect,
   onFrameChange,
   onDuplicate,
   onDelete,
   onReorder,
-}: SlideMediaOverlayProps) {
+}: SlideElementOverlayProps) {
   const { colors } = useUITheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture | null>(null);
 
   const begin = (
     event: PointerEvent<HTMLElement>,
-    placed: SlideMedia,
+    element: SlideElement,
     handle: HandleId | "move",
   ) => {
     // Without this the click lands in the text underneath and moves the caret.
@@ -123,11 +157,11 @@ export function SlideMediaOverlay({
     event.currentTarget
       .closest<HTMLElement>(`[${BOX_ATTRIBUTE}]`)
       ?.focus({ preventScroll: true });
-    onSelect(placed.id);
+    onSelect({ id: element.id, kind: element.kind });
     gesture.current = {
-      mediaId: placed.id,
+      element: { id: element.id, kind: element.kind },
       handle,
-      frame: placed.frame,
+      frame: element.frame,
       pointerX: event.clientX,
       pointerY: event.clientY,
       slideWidth: slide.width,
@@ -149,7 +183,7 @@ export function SlideMediaOverlay({
             y: active.frame.y + dy,
           })
         : resizeFrame(active.frame, active.handle, dx, dy);
-    onFrameChange(active.mediaId, frame, active.handle);
+    onFrameChange(active.element, frame, active.handle);
   };
 
   const end = (event: PointerEvent<HTMLElement>) => {
@@ -161,17 +195,17 @@ export function SlideMediaOverlay({
 
   const handleKeys = (
     event: KeyboardEvent<HTMLElement>,
-    placed: SlideMedia,
+    element: SlideElement,
   ) => {
     const step = event.shiftKey ? NUDGE_FAST : NUDGE;
     const nudge = (dx: number, dy: number) => {
       event.preventDefault();
       onFrameChange(
-        placed.id,
+        element,
         clampFrame({
-          ...placed.frame,
-          x: placed.frame.x + dx,
-          y: placed.frame.y + dy,
+          ...element.frame,
+          x: element.frame.x + dx,
+          y: element.frame.y + dy,
         }),
         "keyboard",
       );
@@ -188,7 +222,7 @@ export function SlideMediaOverlay({
       case "Delete":
       case "Backspace":
         event.preventDefault();
-        return onDelete(placed.id);
+        return onDelete(element);
       case "Escape":
         event.preventDefault();
         return onSelect(null);
@@ -202,16 +236,17 @@ export function SlideMediaOverlay({
       ref={rootRef}
       style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
     >
-      {media.map((placed) => {
-        const selected = placed.id === selectedId;
+      {elements.map((element) => {
+        const selected = element.id === selectedId;
+        const grabbable = interiorDrags(element, selected);
         const boxStyle: CSSProperties = {
           position: "absolute",
-          left: `${placed.frame.x}%`,
-          top: `${placed.frame.y}%`,
-          width: `${placed.frame.width}%`,
-          height: `${placed.frame.height}%`,
-          pointerEvents: "auto",
-          cursor: "move",
+          left: `${element.frame.x}%`,
+          top: `${element.frame.y}%`,
+          width: `${element.frame.width}%`,
+          height: `${element.frame.height}%`,
+          pointerEvents: grabbable ? "auto" : "none",
+          cursor: grabbable ? "move" : undefined,
           touchAction: "none",
           outline: selected
             ? `2px solid ${colors.accent}`
@@ -221,33 +256,49 @@ export function SlideMediaOverlay({
         };
         return (
           <div
-            key={placed.id}
-            {...{ [BOX_ATTRIBUTE]: placed.id }}
+            key={element.id}
+            {...{ [BOX_ATTRIBUTE]: element.id }}
             role="button"
             tabIndex={0}
-            aria-label={`Placed ${placed.kind}. Drag to move, arrow keys to nudge.`}
+            aria-label={`${LABELS[element.kind]}. Drag to move, arrow keys to nudge.`}
             aria-pressed={selected}
             style={boxStyle}
-            onPointerDown={(event) => begin(event, placed, "move")}
+            onPointerDown={
+              grabbable ? (event) => begin(event, element, "move") : undefined
+            }
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={end}
-            onKeyDown={(event) => handleKeys(event, placed)}
-            onFocus={() => onSelect(placed.id)}
+            onKeyDown={(event) => handleKeys(event, element)}
+            onFocus={() => onSelect({ id: element.id, kind: element.kind })}
           >
+            {!grabbable &&
+              EDGES.map((edge) => (
+                <span
+                  key={edge.id}
+                  onPointerDown={(event) => begin(event, element, "move")}
+                  style={{
+                    position: "absolute",
+                    ...edge.style,
+                    pointerEvents: "auto",
+                    cursor: "move",
+                    touchAction: "none",
+                  }}
+                />
+              ))}
             {selected && (
               <>
                 <Toolbar
-                  below={placed.frame.y < TOOLBAR_ABOVE_FROM}
-                  onDuplicate={() => onDuplicate(placed.id)}
-                  onDelete={() => onDelete(placed.id)}
-                  onForward={() => onReorder(placed.id, 1)}
-                  onBackward={() => onReorder(placed.id, -1)}
+                  below={element.frame.y < TOOLBAR_ABOVE_FROM}
+                  onDuplicate={() => onDuplicate(element)}
+                  onDelete={() => onDelete(element)}
+                  onForward={() => onReorder(element, 1)}
+                  onBackward={() => onReorder(element, -1)}
                 />
                 {HANDLES.map((handle) => (
                   <span
                     key={handle.id}
-                    onPointerDown={(event) => begin(event, placed, handle.id)}
+                    onPointerDown={(event) => begin(event, element, handle.id)}
                     style={{
                       position: "absolute",
                       left: `${handle.x * 100}%`,
@@ -259,6 +310,7 @@ export function SlideMediaOverlay({
                       borderRadius: 3,
                       background: colors.accent,
                       border: `1.5px solid ${colors.onAccent}`,
+                      pointerEvents: "auto",
                       cursor: handle.cursor,
                       touchAction: "none",
                     }}
@@ -313,6 +365,7 @@ function Toolbar({
         gap: 2,
         padding: 3,
         borderRadius: 9,
+        pointerEvents: "auto",
         background: colors.panelSolid,
         border: `1px solid ${colors.border}`,
         boxShadow: "0 8px 22px rgba(0,0,0,0.4)",

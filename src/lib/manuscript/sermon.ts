@@ -1,12 +1,22 @@
 import type { Slide, TextStyle } from "../../types";
 import { uid } from "../id";
 import { analyzeLines } from "../lists";
+import {
+  createSlideTextBox,
+  SERMON_BODY_FRAME,
+  SERMON_TITLE_FRAME,
+} from "../slideTextBox";
 
 /**
  * Sermon layout: a message is prose, not lyrics, so it is built the way an
  * article reads. Paragraphs stay whole instead of being cut into one line per
  * sentence, points keep their heading, and the topic, the text it is preached
  * from and the preacher's name open the deck on a title slide.
+ *
+ * Every slide carries its words in a text box rather than in the slide's own
+ * lines, so a message can be laid out the way a presentation is: the block is
+ * dragged and resized to leave room for whatever else the slide needs, and more
+ * boxes can be added beside it.
  */
 
 /** Body text size, in the container-query units the canvas paints in. */
@@ -345,9 +355,16 @@ function buildTitleSlide(
     id: uid(),
     type: "title",
     label: "Title",
-    lines,
+    lines: [],
     overrides: { align: "center", lineHeight: 1.4 },
-    lineOverrides,
+    textBoxes: [
+      createSlideTextBox({
+        frame: SERMON_TITLE_FRAME,
+        lines,
+        lineOverrides,
+        verticalAlign: "middle",
+      }),
+    ],
     notes: "",
   };
 }
@@ -493,15 +510,24 @@ function toSlide(
     type: section.type,
     label:
       total > 1 ? `${section.label} · ${index + 1}/${total}` : section.label,
-    lines: draft.lines.length ? draft.lines : [""],
+    lines: [],
+    // Left on the slide rather than on the box: the box inherits them, so
+    // restyling the slide still reaches the words inside it.
     overrides: {
       align: "left",
       fontSize: BODY_SIZE,
       lineHeight: BODY_LINE_HEIGHT,
     },
-    lineOverrides: Object.keys(lineOverrides).length
-      ? lineOverrides
-      : undefined,
+    textBoxes: [
+      createSlideTextBox({
+        frame: SERMON_BODY_FRAME,
+        lines: draft.lines.length ? draft.lines : [""],
+        lineOverrides: Object.keys(lineOverrides).length
+          ? lineOverrides
+          : undefined,
+        verticalAlign: "top",
+      }),
+    ],
     notes: "",
   };
 }
