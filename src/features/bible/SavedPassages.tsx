@@ -1,17 +1,22 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import type { ScripturePassage, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
+import type { BgMap } from "../../hooks/useBgMap";
+import { sortPinnedFirst } from "../../lib/pinning";
 import {
   resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
-import { Button, IconButton } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { MoreMenu } from "../../components/ui/MoreMenu";
+import { PinBadge, usePinAction } from "../../components/ui/PinControl";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 
 export function SavedPassages({ trashView }: { trashView: boolean }) {
@@ -26,10 +31,13 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
 
   const [query, setQuery] = useState("");
 
+  const saved = useMemo(
+    () => scriptures.filter((passage) => !passage.quick),
+    [scriptures],
+  );
+
   const list = useMemo(() => {
-    let base = scriptures.filter(
-      (s) => !s.quick && (trashView ? s.deleted : !s.deleted),
-    );
+    let base = saved.filter((s) => (trashView ? s.deleted : !s.deleted));
     const term = query.trim().toLowerCase();
     if (term) {
       base = base.filter((s) =>
@@ -38,8 +46,10 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
         ),
       );
     }
-    return base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
-  }, [scriptures, query, trashView]);
+    const ordered = base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+    // A search is answered by what matches it; pins only order the library.
+    return term || trashView ? ordered : sortPinnedFirst(ordered);
+  }, [saved, query, trashView]);
 
   return (
     <>
@@ -69,106 +79,133 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
         )
       ) : (
         <div className="ws-card-grid">
-          {list.map((passage) => {
-            const first = passage.slides?.[0];
-            const theme =
-              themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
-            const background = resolveBackgroundView(
-              first,
-              passage,
-              theme,
-              bgMap,
-            );
-            return (
-              <div key={passage.id} className="ws-glass ws-card">
-                <div
-                  onClick={() =>
-                    !trashView && navigate(`/scripture/${passage.id}`)
-                  }
-                  style={{
-                    cursor: trashView ? "default" : "pointer",
-                    position: "relative",
-                  }}
-                >
-                  {first && (
-                    <SlideCanvas
-                      slide={first}
-                      bg={background.background}
-                      bgImage={background.image}
-                      radius={0}
-                      style={resolveStyle(first, passage, theme)}
-                      lineStyles={first.lines.map((_, i) =>
-                        resolveLineStyle(first, i, passage, theme),
-                      )}
-                    />
-                  )}
-                  <div className="ws-thumb-badge">
-                    {passage.slides?.length || 0} slides
-                  </div>
-                </div>
-                <div className="ws-card-body">
-                  <div className="ws-card-title">{passage.title}</div>
-                  <div className="ws-card-sub">
-                    {passage.version} · {passage.verses.length} verse
-                    {passage.verses.length === 1 ? "" : "s"}
-                  </div>
-                  <div className="ws-card-actions">
-                    {trashView ? (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => restoreScripture(passage.id)}
-                        >
-                          <RotateCcw size={13} />
-                          Restore
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="danger"
-                          onClick={() => deleteScripture(passage.id)}
-                        >
-                          <Trash2 size={13} />
-                          Delete
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <PresentMenu
-                          onPresent={({ pip }) =>
-                            startPresent(
-                              "scripture",
-                              passage.id,
-                              0,
-                              pip ? "pip" : "stage",
-                            )
-                          }
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/scripture/${passage.id}`)}
-                        >
-                          <Pencil size={13} />
-                          Edit
-                        </Button>
-                        <div style={{ marginLeft: "auto" }}>
-                          <IconButton
-                            icon={Trash2}
-                            title="Move to trash"
-                            danger
-                            onClick={() => trashScripture(passage.id)}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {list.map((passage) => (
+            <PassageCard
+              key={passage.id}
+              passage={passage}
+              library={saved}
+              themes={themes}
+              bgMap={bgMap}
+              trashView={trashView}
+              onOpen={() => navigate(`/scripture/${passage.id}`)}
+              onPresent={(pip) =>
+                startPresent("scripture", passage.id, 0, pip ? "pip" : "stage")
+              }
+              onTrash={() => trashScripture(passage.id)}
+              onRestore={() => restoreScripture(passage.id)}
+              onDelete={() => deleteScripture(passage.id)}
+            />
+          ))}
         </div>
       )}
     </>
+  );
+}
+
+interface PassageCardProps {
+  passage: ScripturePassage;
+  /** Every saved passage, so the pin budget can be read off the library. */
+  library: ScripturePassage[];
+  themes: Theme[];
+  bgMap: BgMap;
+  trashView: boolean;
+  onOpen: () => void;
+  onPresent: (pip: boolean) => void;
+  onTrash: () => void;
+  onRestore: () => void;
+  onDelete: () => void;
+}
+
+function PassageCard({
+  passage,
+  library,
+  themes,
+  bgMap,
+  trashView,
+  onOpen,
+  onPresent,
+  onTrash,
+  onRestore,
+  onDelete,
+}: PassageCardProps) {
+  const pinAction = usePinAction("scripture", passage, library);
+
+  const first = passage.slides?.[0];
+  const theme =
+    themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
+  const background = resolveBackgroundView(first, passage, theme, bgMap);
+
+  return (
+    <div className="ws-glass ws-card">
+      <div
+        onClick={() => !trashView && onOpen()}
+        style={{
+          cursor: trashView ? "default" : "pointer",
+          position: "relative",
+        }}
+      >
+        {first && (
+          <SlideCanvas
+            slide={first}
+            bg={background.background}
+            bgImage={background.image}
+            radius={0}
+            style={resolveStyle(first, passage, theme)}
+            lineStyles={first.lines.map((_, i) =>
+              resolveLineStyle(first, i, passage, theme),
+            )}
+          />
+        )}
+        <div className="ws-thumb-badge">
+          {passage.slides?.length || 0} slides
+        </div>
+      </div>
+      <div className="ws-card-body">
+        <div className="ws-card-title">
+          <span className="ws-ellipsis">{passage.title}</span>
+          {!trashView && <PinBadge item={passage} />}
+        </div>
+        <div className="ws-card-sub">
+          {passage.version} · {passage.verses.length} verse
+          {passage.verses.length === 1 ? "" : "s"}
+        </div>
+        <div className="ws-card-actions">
+          {trashView ? (
+            <>
+              <Button size="sm" variant="ghost" onClick={onRestore}>
+                <RotateCcw size={13} />
+                Restore
+              </Button>
+              <Button size="sm" variant="danger" onClick={onDelete}>
+                <Trash2 size={13} />
+                Delete
+              </Button>
+            </>
+          ) : (
+            <>
+              <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
+              <Button size="sm" variant="ghost" onClick={onOpen}>
+                <Pencil size={13} />
+                Edit
+              </Button>
+              <div style={{ marginLeft: "auto" }}>
+                <MoreMenu
+                  items={[
+                    pinAction,
+                    { divider: true },
+                    {
+                      label: "Move to trash",
+                      icon: Trash2,
+                      danger: true,
+                      onClick: onTrash,
+                    },
+                  ]}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

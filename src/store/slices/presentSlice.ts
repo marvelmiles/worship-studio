@@ -1,4 +1,9 @@
-import type { ContentKind, PresentTarget, SlideDeckDoc } from "../../types";
+import type {
+  ContentKind,
+  MediaItem,
+  PresentTarget,
+  SlideDeckDoc,
+} from "../../types";
 import { endLive } from "../../lib/liveWindow";
 import type { SliceCreator } from "../storeTypes";
 
@@ -9,17 +14,25 @@ import type { SliceCreator } from "../storeTypes";
  */
 export type PresentationMode = "stage" | "pip";
 
-/** The exact document the presentation is running on, pinned for the whole run. */
+/**
+ * The exact content the presentation is running on, pinned for the whole run:
+ * the document for a manuscript or a passage, the library item for a picture or
+ * a clip. Either way the screen only moves when the operator pushes a new
+ * version out with `updatePresentation`.
+ */
 export interface PresentedDeck {
   kind: ContentKind;
   id: string;
-  doc: SlideDeckDoc;
+  doc?: SlideDeckDoc;
+  item?: MediaItem;
 }
 
-const presentedDeckFor = (
+const pinnedContent = (
   kind: ContentKind,
   doc: SlideDeckDoc | undefined,
-): PresentedDeck | null => (doc ? { kind, id: doc.id, doc } : null);
+  item: MediaItem | undefined,
+): PresentedDeck | null =>
+  doc ? { kind, id: doc.id, doc } : item ? { kind, id: item.id, item } : null;
 
 export interface PresentSlice {
   presentation: PresentTarget | null;
@@ -50,6 +63,8 @@ export interface PresentSlice {
    * version. False when this document is not the one being presented.
    */
   updatePresentation: (kind: ContentKind, doc: SlideDeckDoc) => boolean;
+  /** The same for a picture or a clip, pushed from the media editor. */
+  updateMediaPresentation: (item: MediaItem) => boolean;
   stopPresent: () => void;
 }
 
@@ -67,16 +82,20 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
         : kind === "scripture"
           ? state.scriptures.find((s) => s.id === id)
           : undefined;
+    const mediaItem =
+      kind === "image" || kind === "video"
+        ? state.media.find((m) => m.id === id && m.kind === kind)
+        : undefined;
     const canPresent =
       kind === "manuscript" || kind === "scripture"
         ? Boolean(deckDoc?.slides?.length)
-        : state.media.some((m) => m.id === id && m.kind === kind);
+        : Boolean(mediaItem);
     if (canPresent)
       set({
         presentation: { kind, id, startIndex },
         presentationMode: mode,
         presentationIndex: startIndex,
-        presentedDeck: presentedDeckFor(kind, deckDoc),
+        presentedDeck: pinnedContent(kind, deckDoc, mediaItem),
       });
   },
 
@@ -88,6 +107,14 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
     const { presentation } = get();
     if (presentation?.kind !== kind || presentation.id !== doc.id) return false;
     set({ presentedDeck: { kind, id: doc.id, doc } });
+    return true;
+  },
+
+  updateMediaPresentation: (item) => {
+    const { presentation } = get();
+    if (presentation?.kind !== item.kind || presentation.id !== item.id)
+      return false;
+    set({ presentedDeck: { kind: item.kind, id: item.id, item } });
     return true;
   },
 

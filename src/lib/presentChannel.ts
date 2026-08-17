@@ -1,4 +1,9 @@
-import type { ContentKind, PresentationView, SlideDeckDoc } from "../types";
+import type {
+  ContentKind,
+  MediaItem,
+  PresentationView,
+  SlideDeckDoc,
+} from "../types";
 
 export const PRESENT_CHANNEL_NAME = "worship-studio-present";
 export const PRESENT_WINDOW_NAME = "worship-studio-live-output";
@@ -23,6 +28,12 @@ export interface PresentState {
    * the operator applied even when the library has not been given it yet.
    */
   doc?: SlideDeckDoc;
+  /**
+   * The picture or clip being projected, sent for the same reason as `doc`: the
+   * operator's version reaches the audience without a save behind it. Metadata
+   * only, the file itself is read from storage by id.
+   */
+  item?: MediaItem;
   slideIndex: number;
   paused: boolean;
   zoom: number;

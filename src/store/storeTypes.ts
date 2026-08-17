@@ -10,6 +10,7 @@ import type { PrefsSlice } from "./slices/prefsSlice";
 import type { StorageSlice } from "./slices/storageSlice";
 import type { PresentSlice } from "./slices/presentSlice";
 import type { KeepOnResetSlice } from "./slices/keepOnResetSlice";
+import type { PinsSlice } from "./slices/pinsSlice";
 import type { DataSlice } from "./slices/dataSlice";
 
 export type StoreState = UiSlice &
@@ -23,6 +24,7 @@ export type StoreState = UiSlice &
   StorageSlice &
   PresentSlice &
   KeepOnResetSlice &
+  PinsSlice &
   DataSlice;
 
 export type SliceCreator<T> = StateCreator<StoreState, [], [], T>;

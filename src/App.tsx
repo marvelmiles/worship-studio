@@ -23,6 +23,10 @@ import { ManuscriptEditor } from "./features/manuscripts/ManuscriptEditor";
 import { BiblePage } from "./features/bible/BiblePage";
 import { ScriptureEditor } from "./features/bible/ScriptureEditor";
 import { ImagesPage, VideosPage } from "./features/media/MediaLibraryPage";
+import {
+  ImageEditorPage,
+  VideoEditorPage,
+} from "./features/media/MediaEditorPage";
 import { StreamPage } from "./features/stream/StreamPage";
 import { StreamWindow } from "./features/stream/StreamWindow";
 import { StreamProjectionRoot } from "./features/stream/StreamProjectionRoot";
@@ -79,7 +83,8 @@ export default function App() {
           overflowY:
             ["/editor", "/scripture", "/bible"].some((p) =>
               location.pathname.startsWith(p),
-            ) || /^\/(manuscripts|songs)\/./.test(location.pathname)
+            ) ||
+            /^\/(manuscripts|songs|images|videos)\/./.test(location.pathname)
               ? "hidden"
               : "auto",
         }}
@@ -109,7 +114,9 @@ export default function App() {
             <Route path="/bible" element={<BiblePage />} />
             <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
             <Route path="/images" element={<ImagesPage />} />
+            <Route path="/images/:mediaId" element={<ImageEditorPage />} />
             <Route path="/videos" element={<VideosPage />} />
+            <Route path="/videos/:mediaId" element={<VideoEditorPage />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route
               path="/editor/:manuscriptId"

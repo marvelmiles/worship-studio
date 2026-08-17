@@ -171,9 +171,7 @@ export function useDashboardData() {
         at: m.updatedAt || m.createdAt,
         icon: m.kind === "image" ? ImageIcon : Film,
         open: () =>
-          navigate(m.kind === "image" ? "/images" : "/videos", {
-            state: { openId: m.id },
-          }),
+          navigate(`${m.kind === "image" ? "/images" : "/videos"}/${m.id}`),
       });
     }
 

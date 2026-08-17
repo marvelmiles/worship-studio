@@ -24,7 +24,8 @@ export interface MediaSlice {
   media: MediaItem[];
 
   uploadMedia: (kind: MediaKind, file: File, name?: string) => Promise<string>;
-  updateMedia: (id: string, changes: Partial<MediaItem>) => void;
+  /** False when storage is full, or the item is gone, and nothing was written. */
+  updateMedia: (id: string, changes: Partial<MediaItem>) => boolean;
   removeMedia: (id: string) => Promise<void>;
   useImageAsBackground: (id: string) => string;
   /**
@@ -96,15 +97,16 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
   },
 
   updateMedia: (id, changes) => {
-    if (blockWrite(get)) return;
+    if (blockWrite(get)) return false;
     const current = get().media.find((m) => m.id === id);
-    if (!current) return;
+    if (!current) return false;
     const next: MediaItem = { ...current, ...changes, id, updatedAt: now() };
     set((state) => ({
       media: state.media.map((m) => (m.id === id ? next : m)),
     }));
     void saveRecord("media", next);
     afterWrite(get);
+    return true;
   },
 
   removeMedia: async (id) => {

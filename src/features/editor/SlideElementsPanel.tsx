@@ -27,6 +27,8 @@ import {
   placedVideoSettings,
 } from "../../lib/slideMedia";
 import type { SlideMediaChoice } from "../../lib/slideMedia";
+import type { SlideElementCapabilities } from "../../lib/slideElements";
+import { allowsAnySlideElement } from "../../lib/slideElements";
 import { Button } from "../../components/ui/Button";
 import { Field, Range, Select, Toggle } from "../../components/ui/Field";
 import { AdjustmentControls } from "../../components/media/AdjustmentControls";
@@ -61,19 +63,38 @@ const nextRotation = (
   ROTATIONS[(ROTATIONS.indexOf(rotate) + 1) % ROTATIONS.length];
 
 const HINTS = {
-  none: "Place a picture, clip or text box on the slide, then drag it where the layout needs it. Each one keeps its own size, position and settings, so a slide can be laid out however the message needs.",
   media:
     "Drag the picture or clip on the slide to move it, its corners to resize it, and the arrow keys to nudge it.",
   text: "Write straight into the box on the slide. Drag its edge to move it, its corners to resize it, and style the words from the Text section above.",
+  /** Nothing can be added, but something placed earlier is still on the slide. */
+  locked:
+    "This document's layout places nothing new on a slide. Select what is already on this one to adjust or remove it.",
 } as const;
+
+/** "a picture", "a picture or a text box", "a picture, a clip or a text box". */
+function joinPhrases(phrases: string[]): string {
+  if (phrases.length < 2) return phrases[0] ?? "";
+  return `${phrases.slice(0, -1).join(", ")} or ${phrases[phrases.length - 1]}`;
+}
+
+function placementHint(capabilities: SlideElementCapabilities): string {
+  const placeable = joinPhrases(
+    [
+      capabilities.images ? "a picture" : "",
+      capabilities.videos ? "a clip" : "",
+      capabilities.textBoxes ? "a text box" : "",
+    ].filter(Boolean),
+  );
+  return `Place ${placeable} on the slide, then drag it where the layout needs it. Each one keeps its own size, position and settings, so a slide can be laid out however the message needs.`;
+}
 
 interface SlideElementsPanelProps {
   slide: Slide;
   editor: DeckEditor;
   selected: SlideElementRef | null;
   onSelect: (element: SlideElementRef | null) => void;
-  /** True on prose documents, where text is laid out in blocks rather than sung. */
-  allowTextBoxes: boolean;
+  /** What this document's layout allows onto a slide. */
+  capabilities: SlideElementCapabilities;
   onAddTextBox: () => void;
 }
 
@@ -88,7 +109,7 @@ export function SlideElementsPanel({
   editor,
   selected,
   onSelect,
-  allowTextBoxes,
+  capabilities,
   onAddTextBox,
 }: SlideElementsPanelProps) {
   const { colors, fonts } = useUITheme();
@@ -139,33 +160,54 @@ export function SlideElementsPanel({
       ? library.find((item) => item.id === media.mediaId)?.duration
       : undefined;
 
-  const hint = media ? HINTS.media : textBox ? HINTS.text : HINTS.none;
+  const canPlace = allowsAnySlideElement(capabilities);
+  const hint = media
+    ? HINTS.media
+    : textBox
+      ? HINTS.text
+      : canPlace
+        ? placementHint(capabilities)
+        : HINTS.locked;
 
   return (
     <>
-      <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-        <Button variant="ghost" size="sm" onClick={() => setPicking("image")}>
-          <ImageIcon size={14} />
-          Add image
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => setPicking("video")}>
-          <Film size={14} />
-          Add video
-        </Button>
-        {allowTextBoxes && (
-          <Button variant="ghost" size="sm" onClick={onAddTextBox}>
-            <Type size={14} />
-            Add text box
-          </Button>
-        )}
-      </div>
+      {canPlace && (
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {capabilities.images && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPicking("image")}
+            >
+              <ImageIcon size={14} />
+              Add image
+            </Button>
+          )}
+          {capabilities.videos && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPicking("video")}
+            >
+              <Film size={14} />
+              Add video
+            </Button>
+          )}
+          {capabilities.textBoxes && (
+            <Button variant="ghost" size="sm" onClick={onAddTextBox}>
+              <Type size={14} />
+              Add text box
+            </Button>
+          )}
+        </div>
+      )}
 
       <p
         style={{
           fontFamily: fonts.ui,
           fontSize: 11.5,
           color: colors.dim,
-          margin: "10px 0 0",
+          margin: canPlace ? "10px 0 0" : 0,
           lineHeight: 1.55,
         }}
       >

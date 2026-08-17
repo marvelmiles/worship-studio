@@ -100,6 +100,9 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
       get().upsertManuscript({
         ...manuscript,
         deleted: true,
+        // A trashed manuscript is out of the listing a pin orders, so it gives
+        // its slot back rather than reclaiming one on restore.
+        pinned: undefined,
         updatedAt: now(),
       });
   },

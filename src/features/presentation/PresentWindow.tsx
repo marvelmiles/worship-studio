@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -79,17 +79,26 @@ export function PresentWindow() {
     }
   };
 
-  const deck = useDeck(state?.kind, state?.id, state?.doc);
+  // Held steady between broadcasts so the deck is only rebuilt when the
+  // operator actually sends a new version.
+  const override = useMemo(
+    () => ({ doc: state?.doc, item: state?.item }),
+    [state?.doc, state?.item],
+  );
+  const deck = useDeck(state?.kind, state?.id, override);
   const bgMap = useBgMap();
 
   // This window loads its store once on open; content created or edited after
   // that would be missing here, so reload from storage when the operator's
-  // broadcast references something newer than our copy. A text deck arrives
-  // whole in the broadcast and is never stale. The key resets after a moment so
-  // a reload that raced the operator's write gets retried.
+  // broadcast references something newer than our copy. A deck or a media item
+  // that arrived whole in the broadcast is never stale. The key resets after a
+  // moment so a reload that raced the operator's write gets retried.
   useEffect(() => {
     if (!state || state.doc) return;
-    const stale = !deck || (state.rev && deck.rev !== state.rev);
+    // A media item arrives whole too, but the library around it (the rest of
+    // the image slideshow) still has to be there, so a deck that could not be
+    // built at all is always worth another read.
+    const stale = !deck || (!state.item && state.rev && deck.rev !== state.rev);
     if (!stale) return;
     const key = `${state.kind}:${state.id}:${state.rev || ""}`;
     if (lastReloadKey.current === key) return;

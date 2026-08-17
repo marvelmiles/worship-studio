@@ -125,6 +125,14 @@ code {
   white-space: nowrap;
 }
 
+/* A title sitting beside its badges has to be the part that gives way, and a
+   flex child only shrinks below its content once its automatic minimum is
+   lifted. */
+.ws-card-title > .ws-ellipsis {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 .ws-section-label {
   font-family: var(--ws-font-ui, Inter, system-ui, sans-serif);
   font-size: 12px;

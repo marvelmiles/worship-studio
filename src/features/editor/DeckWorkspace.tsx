@@ -7,21 +7,15 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   ArrowUp,
   ArrowDown,
   Copy,
   CornerDownRight,
-  MonitorUp,
-  Play,
-  Redo2,
-  Save,
   Scissors,
   Trash2,
-  Undo2,
 } from "lucide-react";
 import type { ContentKind, SlideDeckDoc } from "../../types";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -39,8 +33,9 @@ import {
 } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
 import { createSlideTextBox } from "../../lib/slideTextBox";
-import { Button, IconButton } from "../../components/ui/Button";
-import { PresentMenu } from "../../components/ui/PresentMenu";
+import { DEFAULT_SLIDE_ELEMENTS } from "../../lib/slideElements";
+import type { SlideElementCapabilities } from "../../lib/slideElements";
+import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import type { MenuItem } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -71,10 +66,11 @@ interface DeckWorkspaceProps {
   topBarActions: (compact: boolean) => ReactNode;
   emptyState: ReactNode;
   /**
-   * True for documents laid out in blocks rather than sung line by line, where
-   * the writer can place text boxes the way a slide editor does.
+   * What this document's layout allows onto a slide. Defaults to pictures and
+   * clips with no placed text, which is how every deck behaved before layouts
+   * had a say (see lib/slideElements.ts).
    */
-  allowTextBoxes?: boolean;
+  elements?: SlideElementCapabilities;
   children?: ReactNode;
 }
 
@@ -86,7 +82,7 @@ export function DeckWorkspace({
   backTitle,
   topBarActions,
   emptyState,
-  allowTextBoxes = false,
+  elements = DEFAULT_SLIDE_ELEMENTS,
   children,
 }: DeckWorkspaceProps) {
   const navigate = useNavigate();
@@ -369,7 +365,7 @@ export function DeckWorkspace({
       selectedElement={selectedElement}
       onSelectElement={selectElement}
       activeTextBoxId={activeTextBoxId}
-      allowTextBoxes={allowTextBoxes}
+      elements={elements}
       onAddTextBox={addTextBox}
     />
   ) : null;
@@ -383,7 +379,7 @@ export function DeckWorkspace({
         minHeight: 0,
       }}
     >
-      <TopBar
+      <EditorTopBar
         title={doc.title}
         compact={width < 560}
         backTitle={backTitle}
@@ -461,126 +457,6 @@ export function DeckWorkspace({
       />
 
       {children}
-    </div>
-  );
-}
-
-interface TopBarProps {
-  title: string;
-  compact: boolean;
-  backTitle: string;
-  onBack: () => void;
-  onTitle: (title: string) => void;
-  onPresent: (options: { pip: boolean }) => void;
-  actions: ReactNode;
-  dirty: boolean;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-  onSave: () => void;
-  /** Only set while this document is the one being presented. */
-  onUpdatePresentation?: () => void;
-}
-
-function TopBar({
-  title,
-  compact,
-  backTitle,
-  onBack,
-  onTitle,
-  onPresent,
-  actions,
-  dirty,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  onSave,
-  onUpdatePresentation,
-}: TopBarProps) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "11px 16px",
-        borderBottom: `1px solid ${colors.border}`,
-        flexWrap: "wrap",
-      }}
-    >
-      <IconButton icon={ArrowLeft} title={backTitle} onClick={onBack} />
-      <input
-        value={title}
-        onChange={(e) => onTitle(e.target.value)}
-        style={{
-          flex: 1,
-          minWidth: 120,
-          background: "transparent",
-          border: "none",
-          outline: "none",
-          fontFamily: DISPLAY,
-          fontSize: compact ? 17 : 20,
-          fontWeight: 600,
-          color: colors.text,
-        }}
-      />
-      <IconButton
-        icon={Undo2}
-        title="Undo (Ctrl+Z)"
-        disabled={!canUndo}
-        onClick={onUndo}
-      />
-      <IconButton
-        icon={Redo2}
-        title="Redo (Ctrl+Y)"
-        disabled={!canRedo}
-        onClick={onRedo}
-      />
-      {actions}
-      {onUpdatePresentation &&
-        (compact ? (
-          <IconButton
-            icon={MonitorUp}
-            title="Update presentation"
-            onClick={onUpdatePresentation}
-          />
-        ) : (
-          <Button variant="ghost" size="sm" onClick={onUpdatePresentation}>
-            <MonitorUp size={14} />
-            Update presentation
-          </Button>
-        ))}
-      {compact ? (
-        <IconButton
-          icon={Save}
-          title={dirty ? "Save changes" : "No changes to save"}
-          disabled={!dirty}
-          active={dirty}
-          onClick={onSave}
-        />
-      ) : (
-        <Button
-          variant={dirty ? "primary" : "ghost"}
-          size="sm"
-          disabled={!dirty}
-          onClick={onSave}
-        >
-          <Save size={14} />
-          {dirty ? "Save" : "Saved"}
-        </Button>
-      )}
-      <PresentMenu onPresent={onPresent} title="Present">
-        {compact ? (
-          <IconButton icon={Play} title="Present" active />
-        ) : (
-          <Button variant="primary" size="sm">
-            <Play size={14} />
-            Present
-          </Button>
-        )}
-      </PresentMenu>
     </div>
   );
 }

@@ -174,6 +174,7 @@ export const manuscriptSchema = z
     updatedAt: z.string().optional(),
     deleted: z.boolean().optional(),
     builtIn: z.boolean().optional(),
+    pinned: z.boolean().optional(),
   })
   .passthrough();
 
@@ -251,6 +252,7 @@ export const scriptureSchema = z
     updatedAt: z.string().optional(),
     deleted: z.boolean().optional(),
     quick: z.boolean().optional(),
+    pinned: z.boolean().optional(),
   })
   .passthrough();
 
@@ -271,6 +273,7 @@ export const mediaSchema = z
     video: videoSettingsSchema.optional().catch(undefined),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
+    pinned: z.boolean().optional(),
   })
   .passthrough();
 

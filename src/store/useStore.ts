@@ -11,6 +11,7 @@ import { createPrefsSlice } from "./slices/prefsSlice";
 import { createStorageSlice } from "./slices/storageSlice";
 import { createPresentSlice } from "./slices/presentSlice";
 import { createKeepOnResetSlice } from "./slices/keepOnResetSlice";
+import { createPinsSlice } from "./slices/pinsSlice";
 import { createDataSlice } from "./slices/dataSlice";
 
 export type { StoreState } from "./storeTypes";
@@ -35,5 +36,6 @@ export const useStore = create<StoreState>()((...args) => ({
   ...createStorageSlice(...args),
   ...createPresentSlice(...args),
   ...createKeepOnResetSlice(...args),
+  ...createPinsSlice(...args),
   ...createDataSlice(...args),
 }));

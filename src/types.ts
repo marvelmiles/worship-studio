@@ -147,6 +147,8 @@ export interface SlideDeckDoc {
   builtIn?: boolean;
   /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
   keepOnReset?: boolean;
+  /** Held at the top of its library listing. See lib/pinning.ts. */
+  pinned?: boolean;
 }
 
 /** Deck-level appearance overrides (no slide-only keys). */
@@ -259,6 +261,8 @@ export interface MediaItem {
   createdAt: string;
   updatedAt: string;
   builtIn?: boolean;
+  /** Held at the top of its library listing. See lib/pinning.ts. */
+  pinned?: boolean;
 }
 
 export interface Theme {

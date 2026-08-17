@@ -21,8 +21,16 @@ export interface Deck {
   /** Last-updated stamp of the source so mirrors can spot stale copies. */
   rev: string;
   doc?: SlideDeckDoc;
+  /** The picture or clip being shown, for media decks. */
+  item?: MediaItem;
   theme?: Theme;
   slides: DeckSlide[];
+}
+
+/** A version arriving from elsewhere, which the popup renders instead. */
+export interface DeckOverride {
+  doc?: SlideDeckDoc;
+  item?: MediaItem;
 }
 
 /**
@@ -30,16 +38,17 @@ export interface Deck {
  * and scripture passages become text decks; presenting an image navigates the
  * whole image library as a slideshow; a video is a single-slide deck.
  *
- * Text decks come from the copy pinned when the presentation started rather
+ * What is shown comes from the copy pinned when the presentation started rather
  * than from the library, so an operator editing mid-service only changes the
- * screen once they update the presentation. `docOverride` is that copy
- * arriving from elsewhere, which is how the projected popup renders a version
- * the library has not been given yet.
+ * screen once they update the presentation. That holds for a picture and a clip
+ * as much as for a document. `override` is such a copy arriving from elsewhere,
+ * which is how the projected popup renders a version the library has not been
+ * given yet.
  */
 export function useDeck(
   kind: ContentKind | undefined,
   id: string | undefined,
-  docOverride?: SlideDeckDoc,
+  override?: DeckOverride,
 ): Deck | null {
   const manuscripts = useStore((s) => s.manuscripts);
   const scriptures = useStore((s) => s.scriptures);
@@ -50,14 +59,15 @@ export function useDeck(
   return useMemo(() => {
     if (!kind || !id) return null;
 
+    const pinned =
+      presentedDeck && presentedDeck.kind === kind && presentedDeck.id === id
+        ? presentedDeck
+        : null;
+
     if (kind === "manuscript" || kind === "scripture") {
-      const pinned =
-        presentedDeck && presentedDeck.kind === kind && presentedDeck.id === id
-          ? presentedDeck.doc
-          : undefined;
       const doc: SlideDeckDoc | undefined =
-        docOverride ??
-        pinned ??
+        override?.doc ??
+        pinned?.doc ??
         (kind === "manuscript"
           ? manuscripts.find((m) => m.id === id)
           : scriptures.find((s) => s.id === id));
@@ -78,34 +88,48 @@ export function useDeck(
       };
     }
 
+    // The version being shown: the operator's pushed copy, else the library's.
+    const shown = override?.item ?? pinned?.item;
+
     if (kind === "image") {
       const images = media
         .filter((m) => m.kind === "image")
         .sort(sortMediaByRecency);
-      const target = images.find((m) => m.id === id);
+      const target = shown ?? images.find((m) => m.id === id);
       if (!target) return null;
+      const inLibrary = images.some((m) => m.id === id);
       return {
         kind,
         id,
         title: target.name,
         rev: target.updatedAt,
-        slides: images.map((item) => ({ kind: "image" as const, item })),
+        item: target,
+        // The slideshow still runs over the library; only the picture being
+        // shown is the operator's version of it. A picture the library has not
+        // caught up with yet stands on its own until it does.
+        slides: inLibrary
+          ? images.map((item) => ({
+              kind: "image" as const,
+              item: item.id === id ? target : item,
+            }))
+          : [{ kind: "image" as const, item: target }],
       };
     }
 
-    const item = media.find((m) => m.id === id && m.kind === "video");
+    const item = shown ?? media.find((m) => m.id === id && m.kind === "video");
     if (!item) return null;
     return {
       kind,
       id,
       title: item.name,
       rev: item.updatedAt,
+      item,
       slides: [{ kind: "video" as const, item }],
     };
   }, [
     kind,
     id,
-    docOverride,
+    override,
     presentedDeck,
     manuscripts,
     scriptures,

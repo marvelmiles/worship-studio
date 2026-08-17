@@ -17,6 +17,11 @@ import {
   resolveStyle,
 } from "../../lib/resolve";
 import { isInlineStyleKey } from "../../lib/inlineStyle";
+import {
+  allowsAnySlideElement,
+  slideElementsTitle,
+} from "../../lib/slideElements";
+import type { SlideElementCapabilities } from "../../lib/slideElements";
 import { Button } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
 import { PillTabs } from "../../components/ui/PillTabs";
@@ -46,8 +51,8 @@ interface InspectorPanelProps {
   onSelectElement: (element: SlideElementRef | null) => void;
   /** The text box holding the caret, or null while the slide's own text is written. */
   activeTextBoxId: string | null;
-  /** True on prose documents, where text is laid out in blocks rather than sung. */
-  allowTextBoxes: boolean;
+  /** What this document's layout allows onto a slide. */
+  elements: SlideElementCapabilities;
   onAddTextBox: () => void;
 }
 
@@ -66,7 +71,7 @@ export function InspectorPanel({
   selectedElement,
   onSelectElement,
   activeTextBoxId,
-  allowTextBoxes,
+  elements,
   onAddTextBox,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
@@ -160,6 +165,13 @@ export function InspectorPanel({
       backgroundImage: settings,
       scrim: undefined,
     });
+
+  // A deck that places nothing still shows the section while a slide carries a
+  // placement from before, so it can be adjusted or taken off rather than
+  // stranded on the slide with no way to reach it.
+  const showElements =
+    allowsAnySlideElement(elements) ||
+    Boolean(slide.media?.length || slide.textBoxes?.length);
 
   const selectionLabel =
     formatting.lines.first === formatting.lines.last
@@ -289,17 +301,19 @@ export function InspectorPanel({
         </div>
       )}
 
-      <SectionTitle>
-        {allowTextBoxes ? "Slide Elements" : "Images & Videos"}
-      </SectionTitle>
-      <SlideElementsPanel
-        slide={slide}
-        editor={editor}
-        selected={selectedElement}
-        onSelect={onSelectElement}
-        allowTextBoxes={allowTextBoxes}
-        onAddTextBox={onAddTextBox}
-      />
+      {showElements && (
+        <>
+          <SectionTitle>{slideElementsTitle(elements)}</SectionTitle>
+          <SlideElementsPanel
+            slide={slide}
+            editor={editor}
+            selected={selectedElement}
+            onSelect={onSelectElement}
+            capabilities={elements}
+            onAddTextBox={onAddTextBox}
+          />
+        </>
+      )}
 
       <SectionTitle>Audio</SectionTitle>
       <AudioPicker

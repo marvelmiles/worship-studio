@@ -1,26 +1,13 @@
 import { useState } from "react";
-import {
-  FlipHorizontal2,
-  FlipVertical2,
-  RotateCcw,
-  RotateCw,
-  Save,
-  Undo2,
-} from "lucide-react";
+import { Save, Undo2 } from "lucide-react";
 import type { ImageSettings } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import {
-  Field,
-  Select,
-  TextInput,
-  Toggle,
-  SectionTitle,
-} from "../../components/ui/Field";
+import { Field, TextInput } from "../../components/ui/Field";
 import { ImageLayer } from "../../components/media/ImageLayer";
-import { AdjustmentControls } from "./AdjustmentControls";
+import { ImageSettingsControls } from "./ImageSettingsControls";
 
 interface ImageEditorModalProps {
   title: string;
@@ -39,12 +26,6 @@ interface ImageEditorModalProps {
   onSave: (settings: ImageSettings, name: string) => void;
   onClose: () => void;
 }
-
-const FIT_OPTIONS = [
-  { value: "contain", label: "Contain (fit, letterboxed)" },
-  { value: "cover", label: "Cover (fill, may crop)" },
-  { value: "fill", label: "Fill (stretch)" },
-];
 
 /**
  * Edits one picture. The caller owns where the result is written, so the same
@@ -70,12 +51,6 @@ export function ImageEditorModal({
 
   const patch = (changes: Partial<ImageSettings>) =>
     setSettings((prev) => ({ ...prev, ...changes }));
-
-  const rotateBy = (delta: 90 | -90) =>
-    patch({
-      rotate: ((((settings.rotate + delta) % 360) + 360) %
-        360) as ImageSettings["rotate"],
-    });
 
   const save = () => {
     onSave(settings, name.trim());
@@ -140,60 +115,7 @@ export function ImageEditorModal({
         </div>
       )}
 
-      <SectionTitle>Transform</SectionTitle>
-      <div className="ws-row-wrap" style={{ marginBottom: 12 }}>
-        <Button size="sm" variant="ghost" onClick={() => rotateBy(-90)}>
-          <RotateCcw size={14} />
-          Rotate left
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => rotateBy(90)}>
-          <RotateCw size={14} />
-          Rotate right
-        </Button>
-        <Button
-          size="sm"
-          variant={settings.flipH ? "primary" : "ghost"}
-          onClick={() => patch({ flipH: !settings.flipH })}
-        >
-          <FlipHorizontal2 size={14} />
-          Flip H
-        </Button>
-        <Button
-          size="sm"
-          variant={settings.flipV ? "primary" : "ghost"}
-          onClick={() => patch({ flipV: !settings.flipV })}
-        >
-          <FlipVertical2 size={14} />
-          Flip V
-        </Button>
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-          gap: "0 16px",
-        }}
-      >
-        <Field label="Screen fit">
-          <Select
-            value={settings.fit}
-            options={FIT_OPTIONS}
-            onChange={(e) =>
-              patch({ fit: e.target.value as ImageSettings["fit"] })
-            }
-          />
-        </Field>
-        <div style={{ paddingTop: 24 }}>
-          <Toggle
-            label="Darken overlay (legibility)"
-            checked={settings.scrim}
-            onChange={(scrim) => patch({ scrim })}
-          />
-        </div>
-      </div>
-
-      <SectionTitle>Adjustments</SectionTitle>
-      <AdjustmentControls value={settings} onChange={patch} />
+      <ImageSettingsControls settings={settings} onChange={patch} />
     </Modal>
   );
 }

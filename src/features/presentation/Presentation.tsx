@@ -136,6 +136,7 @@ export function Presentation() {
   const deckId = deck?.id;
   const deckRev = deck?.rev;
   const deckDoc = deck?.doc;
+  const deckItem = deck?.item;
   useEffect(() => {
     if (!deckKind || !deckId) return;
     stateRef.current = {
@@ -143,6 +144,7 @@ export function Presentation() {
       id: deckId,
       rev: deckRev,
       doc: deckDoc,
+      item: deckItem,
       slideIndex: p.slideIndex,
       paused: p.paused,
       zoom: p.zoom,
@@ -156,6 +158,7 @@ export function Presentation() {
     deckId,
     deckRev,
     deckDoc,
+    deckItem,
     p.slideIndex,
     p.paused,
     p.zoom,

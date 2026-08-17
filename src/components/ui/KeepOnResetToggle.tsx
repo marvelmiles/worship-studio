@@ -9,6 +9,50 @@ import {
   type KeepableKind,
 } from "../../lib/keepOnReset";
 import { Button, IconButton } from "./Button";
+import type { MoreMenuItem } from "./MoreMenu";
+
+interface KeepableItem {
+  id: string;
+  keepOnReset?: boolean;
+  builtIn?: boolean;
+  deleted?: boolean;
+}
+
+interface KeepOnResetState {
+  /** False for items that can't hold a slot at all. */
+  available: boolean;
+  kept: boolean;
+  /** True when every slot is taken and this item isn't in one. */
+  full: boolean;
+  title: string;
+  toggle: () => void;
+}
+
+/** One reading of the keep-on-reset budget, shared by every control below. */
+function useKeepOnResetState(
+  kind: KeepableKind,
+  item: KeepableItem,
+): KeepOnResetState {
+  const manuscripts = useStore((s) => s.manuscripts);
+  const themes = useStore((s) => s.themes);
+  const toggleKeepOnReset = useStore((s) => s.toggleKeepOnReset);
+
+  const kept = Boolean(item.keepOnReset);
+  const used = keptCount(manuscripts, themes);
+  const full = !kept && used >= MAX_KEPT_ITEMS;
+
+  return {
+    available: canKeep(item),
+    kept,
+    full,
+    title: kept
+      ? "Kept: survives a reset. Click to stop keeping it."
+      : full
+        ? `All ${MAX_KEPT_ITEMS} keep-on-reset slots are used. Unkeep another item first.`
+        : `Keep on reset: survives "Reset App to Defaults" (${used} of ${MAX_KEPT_ITEMS} used).`,
+    toggle: () => toggleKeepOnReset(kind, item.id),
+  };
+}
 
 /**
  * Registers a manuscript or custom theme as "keep on reset". Renders nothing
@@ -21,38 +65,21 @@ export function KeepOnResetToggle({
   variant = "icon",
 }: {
   kind: KeepableKind;
-  item: {
-    id: string;
-    keepOnReset?: boolean;
-    builtIn?: boolean;
-    deleted?: boolean;
-  };
+  item: KeepableItem;
   /** "icon" for dense card rows, "button" for a labelled control in a panel. */
   variant?: "icon" | "button";
 }) {
-  const manuscripts = useStore((s) => s.manuscripts);
-  const themes = useStore((s) => s.themes);
-  const toggleKeepOnReset = useStore((s) => s.toggleKeepOnReset);
-
-  if (!canKeep(item)) return null;
-
-  const kept = Boolean(item.keepOnReset);
-  const used = keptCount(manuscripts, themes);
-  const full = !kept && used >= MAX_KEPT_ITEMS;
-  const title = kept
-    ? "Kept: survives a reset. Click to stop keeping it."
-    : full
-      ? `All ${MAX_KEPT_ITEMS} keep-on-reset slots are used. Unkeep another item first.`
-      : `Keep on reset: survives "Reset App to Defaults" (${used} of ${MAX_KEPT_ITEMS} used).`;
+  const state = useKeepOnResetState(kind, item);
+  if (!state.available) return null;
 
   if (variant === "icon") {
     return (
       <IconButton
-        icon={kept ? ShieldCheck : Shield}
-        title={title}
-        active={kept}
-        disabled={full}
-        onClick={() => toggleKeepOnReset(kind, item.id)}
+        icon={state.kept ? ShieldCheck : Shield}
+        title={state.title}
+        active={state.kept}
+        disabled={state.full}
+        onClick={state.toggle}
       />
     );
   }
@@ -60,15 +87,32 @@ export function KeepOnResetToggle({
   return (
     <Button
       size="sm"
-      variant={kept ? "primary" : "ghost"}
-      title={title}
-      disabled={full}
-      onClick={() => toggleKeepOnReset(kind, item.id)}
+      variant={state.kept ? "primary" : "ghost"}
+      title={state.title}
+      disabled={state.full}
+      onClick={state.toggle}
     >
-      {kept ? <ShieldCheck size={13} /> : <Shield size={13} />}
-      {kept ? "Kept on reset" : "Keep on reset"}
+      {state.kept ? <ShieldCheck size={13} /> : <Shield size={13} />}
+      {state.kept ? "Kept on reset" : "Keep on reset"}
     </Button>
   );
+}
+
+/** The same control as an entry in a card's overflow menu. */
+export function useKeepOnResetAction(
+  kind: KeepableKind,
+  item: KeepableItem,
+): MoreMenuItem | null {
+  const state = useKeepOnResetState(kind, item);
+  if (!state.available) return null;
+  return {
+    label: state.kept ? "Stop keeping on reset" : "Keep on reset",
+    icon: state.kept ? ShieldCheck : Shield,
+    active: state.kept,
+    disabled: state.full,
+    title: state.title,
+    onClick: state.toggle,
+  };
 }
 
 /** The "KEPT" chip shown on cards, so a kept item reads as kept at a glance. */

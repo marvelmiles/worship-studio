@@ -14,24 +14,20 @@ import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { formatBytes } from "../../lib/storageStats";
-import {
-  DEFAULT_IMAGE_SETTINGS,
-  formatDuration,
-  imageSettingsOf,
-  sortMediaByRecency,
-} from "../../lib/media";
+import { formatDuration, sortMediaByRecency } from "../../lib/media";
+import { sortPinnedFirst } from "../../lib/pinning";
 import { imageDeckIndex } from "../presentation/useDeck";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
-import { Button, IconButton } from "../../components/ui/Button";
+import { Button } from "../../components/ui/Button";
+import { MoreMenu } from "../../components/ui/MoreMenu";
+import { PinBadge, usePinAction } from "../../components/ui/PinControl";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
-import { ImageEditorModal } from "../../components/media/ImageEditorModal";
-import { VideoEditorModal } from "./VideoEditorModal";
 
 interface MediaPageConfig {
   kind: MediaKind;
@@ -42,6 +38,8 @@ interface MediaPageConfig {
   emptyTitle: string;
   emptyMessage: string;
   emptyIcon: LucideIcon;
+  /** Where one of these opens for editing. */
+  editPath: string;
 }
 
 const CONFIGS: Record<MediaKind, MediaPageConfig> = {
@@ -56,6 +54,7 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     emptyMessage:
       "Upload some to present them on screen or use them as slide backgrounds.",
     emptyIcon: ImageIcon,
+    editPath: "/images",
   },
   video: {
     kind: "video",
@@ -67,10 +66,9 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     emptyTitle: "No videos yet",
     emptyMessage: "Upload some to play them on the projector.",
     emptyIcon: Film,
+    editPath: "/videos",
   },
 };
-
-const itemSize = (item: MediaItem) => formatBytes(item.size || 0);
 
 export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const config = CONFIGS[kind];
@@ -80,35 +78,49 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
   const removeMedia = useStore((s) => s.removeMedia);
-  const updateMedia = useStore((s) => s.updateMedia);
   const startPresent = useStore((s) => s.startPresent);
   const toggleImageBackground = useStore((s) => s.toggleImageBackground);
   const pushToast = useStore((s) => s.pushToast);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<MediaItem | null>(null);
   const [deleting, setDeleting] = useState<MediaItem | null>(null);
 
-  // Deep-links (e.g. dashboard activities) land here with the item to open.
-  // The state is dropped through the router rather than history directly, so
-  // the entry keeps the bookkeeping Back and Forward rely on.
   const location = useLocation();
   const navigate = useNavigate();
+  const openEditor = (item: MediaItem) =>
+    navigate(`${config.editPath}/${item.id}`);
+
+  // Deep-links written before the editor had a page of its own still arrive
+  // carrying an item id. Both hand-offs replace this entry rather than stacking
+  // one, so Back returns where the link was followed from instead of bouncing
+  // straight into the editor again.
   const openId = (location.state as { openId?: string } | null)?.openId;
+  const handedOff = useRef<string | null>(null);
   useEffect(() => {
-    if (!openId) return;
-    const item = media.find((m) => m.id === openId && m.kind === kind);
-    if (item) setEditing(item);
-    navigate(location.pathname, { replace: true, state: null });
-  }, [openId, media, kind, navigate, location.pathname]);
+    if (!openId || handedOff.current === openId) return;
+    handedOff.current = openId;
+    const known = media.some((m) => m.id === openId && m.kind === kind);
+    navigate(known ? `${config.editPath}/${openId}` : location.pathname, {
+      replace: true,
+      state: null,
+    });
+  }, [openId, media, kind, navigate, location.pathname, config.editPath]);
+
+  const library = useMemo(
+    () => media.filter((m) => m.kind === kind),
+    [media, kind],
+  );
 
   const list = useMemo(() => {
-    let base = media.filter((m) => m.kind === kind);
     const term = query.trim().toLowerCase();
-    if (term) base = base.filter((m) => m.name.toLowerCase().includes(term));
-    return base.sort(sortMediaByRecency);
-  }, [media, kind, query]);
+    const base = term
+      ? library.filter((m) => m.name.toLowerCase().includes(term))
+      : library;
+    const ordered = [...base].sort(sortMediaByRecency);
+    // A search is answered by what matches it; pins only order the library.
+    return term ? ordered : sortPinnedFirst(ordered);
+  }, [library, query]);
 
   // The image ids currently mirrored as backgrounds, so each card's toggle can
   // show whether that image is already in use.
@@ -122,7 +134,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
     [backgrounds],
   );
 
-  const present = (item: MediaItem, pip = false) => {
+  const present = (item: MediaItem, pip: boolean) => {
     const mode = pip ? "pip" : "stage";
     if (kind === "image")
       startPresent("image", item.id, imageDeckIndex(media, item.id), mode);
@@ -197,100 +209,19 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
       ) : (
         <div className="ws-card-grid">
           {list.map((item) => (
-            <div key={item.id} className="ws-glass ws-card">
-              <div
-                className="ws-thumb"
-                onClick={() => setEditing(item)}
-                style={{ cursor: "pointer" }}
-                title="Open editor"
-              >
-                <LazyMount>
-                  {item.kind === "image" ? (
-                    <ImageSurface item={item} variant="thumb" />
-                  ) : (
-                    <>
-                      <VideoThumb item={item} />
-                      {item.duration !== undefined && (
-                        <div className="ws-thumb-badge">
-                          {formatDuration(item.duration)}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </LazyMount>
-              </div>
-              <div className="ws-card-body">
-                <div
-                  className="ws-card-title ws-ellipsis"
-                  style={{ display: "block" }}
-                >
-                  {item.name}
-                </div>
-                <div className="ws-card-sub">
-                  {item.width && item.height
-                    ? `${item.width}×${item.height} · `
-                    : ""}
-                  {itemSize(item)}
-                </div>
-                <div className="ws-card-actions">
-                  <PresentMenu onPresent={({ pip }) => present(item, pip)} />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditing(item)}
-                  >
-                    <Pencil size={13} />
-                    Edit
-                  </Button>
-                  {item.kind === "image" && (
-                    <IconButton
-                      icon={Wallpaper}
-                      active={backgroundImageIds.has(item.id)}
-                      title={
-                        backgroundImageIds.has(item.id)
-                          ? "Remove from backgrounds"
-                          : "Use as background"
-                      }
-                      onClick={() => toggleBackground(item)}
-                    />
-                  )}
-                  <div style={{ marginLeft: "auto" }}>
-                    <IconButton
-                      icon={Trash2}
-                      title="Delete"
-                      danger
-                      onClick={() => setDeleting(item)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <MediaCard
+              key={item.id}
+              item={item}
+              library={library}
+              isBackground={backgroundImageIds.has(item.id)}
+              onOpen={() => openEditor(item)}
+              onPresent={(pip) => present(item, pip)}
+              onToggleBackground={() => toggleBackground(item)}
+              onDelete={() => setDeleting(item)}
+            />
           ))}
         </div>
       )}
-
-      {editing &&
-        (kind === "image" ? (
-          <ImageEditorModal
-            key={editing.id}
-            title="Edit Image"
-            blobId={editing.id}
-            alt={editing.name}
-            initialName={editing.name}
-            initialSettings={imageSettingsOf(editing)}
-            defaults={DEFAULT_IMAGE_SETTINGS}
-            onSave={(settings, name) => {
-              updateMedia(editing.id, {
-                name: name || editing.name,
-                image: settings,
-              });
-              pushToast("Image saved.");
-            }}
-            onClose={() => setEditing(null)}
-          />
-        ) : (
-          <VideoEditorModal item={editing} onClose={() => setEditing(null)} />
-        ))}
 
       <ConfirmDialog
         open={Boolean(deleting)}
@@ -305,6 +236,98 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
         }}
         onCancel={() => setDeleting(null)}
       />
+    </div>
+  );
+}
+
+interface MediaCardProps {
+  item: MediaItem;
+  /** Everything of this kind, so the pin budget can be read off the library. */
+  library: MediaItem[];
+  isBackground: boolean;
+  onOpen: () => void;
+  onPresent: (pip: boolean) => void;
+  onToggleBackground: () => void;
+  onDelete: () => void;
+}
+
+function MediaCard({
+  item,
+  library,
+  isBackground,
+  onOpen,
+  onPresent,
+  onToggleBackground,
+  onDelete,
+}: MediaCardProps) {
+  const pinAction = usePinAction(item.kind, item, library);
+
+  return (
+    <div className="ws-glass ws-card">
+      <div
+        className="ws-thumb"
+        onClick={onOpen}
+        style={{ cursor: "pointer" }}
+        title="Open editor"
+      >
+        <LazyMount>
+          {item.kind === "image" ? (
+            <ImageSurface item={item} variant="thumb" />
+          ) : (
+            <>
+              <VideoThumb item={item} />
+              {item.duration !== undefined && (
+                <div className="ws-thumb-badge">
+                  {formatDuration(item.duration)}
+                </div>
+              )}
+            </>
+          )}
+        </LazyMount>
+      </div>
+      <div className="ws-card-body">
+        <div className="ws-card-title">
+          <span className="ws-ellipsis">{item.name}</span>
+          <PinBadge item={item} />
+        </div>
+        <div className="ws-card-sub">
+          {item.width && item.height ? `${item.width}×${item.height} · ` : ""}
+          {formatBytes(item.size || 0)}
+        </div>
+        <div className="ws-card-actions">
+          <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
+          <Button size="sm" variant="ghost" onClick={onOpen}>
+            <Pencil size={13} />
+            Edit
+          </Button>
+          <div style={{ marginLeft: "auto" }}>
+            <MoreMenu
+              items={[
+                pinAction,
+                ...(item.kind === "image"
+                  ? [
+                      {
+                        label: isBackground
+                          ? "Remove from backgrounds"
+                          : "Use as background",
+                        icon: Wallpaper,
+                        active: isBackground,
+                        onClick: onToggleBackground,
+                      },
+                    ]
+                  : []),
+                { divider: true },
+                {
+                  label: "Delete",
+                  icon: Trash2,
+                  danger: true,
+                  onClick: onDelete,
+                },
+              ]}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

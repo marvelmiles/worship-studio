@@ -203,7 +203,14 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
   trashScripture: (id) => {
     const passage = get().scriptures.find((s) => s.id === id);
     if (passage)
-      get().upsertScripture({ ...passage, deleted: true, updatedAt: now() });
+      get().upsertScripture({
+        ...passage,
+        deleted: true,
+        // A trashed passage is out of the listing a pin orders, so it gives its
+        // slot back rather than reclaiming one on restore.
+        pinned: undefined,
+        updatedAt: now(),
+      });
   },
   restoreScripture: (id) => {
     const passage = get().scriptures.find((s) => s.id === id);

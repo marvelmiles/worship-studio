@@ -11,6 +11,7 @@ import { ManuscriptTextModal } from "./ManuscriptTextModal";
 import { ManuscriptSettingsModal } from "./ManuscriptSettingsModal";
 import { parseManuscript } from "../../lib/parser";
 import { resolveManuscriptFormat } from "../../lib/manuscript/format";
+import { manuscriptSlideElements } from "../../lib/slideElements";
 import { isUntitledManuscript } from "../../store/slices/manuscriptsSlice";
 
 export function ManuscriptWorkspace({
@@ -63,9 +64,10 @@ export function ManuscriptWorkspace({
       editor={editor}
       backTo="/manuscripts"
       backTitle="Back to manuscripts"
-      // A sermon reads as blocks on a page, so its text is laid out in boxes the
-      // writer can place; lyrics are sung line by line and fill the slide.
-      allowTextBoxes={resolveManuscriptFormat(draft) === "sermon"}
+      // A sermon is laid out on the page, with pictures and text boxes placed
+      // where the message needs them; lyrics are sung line by line off a slide
+      // that carries nothing but the words.
+      elements={manuscriptSlideElements(resolveManuscriptFormat(draft))}
       topBarActions={(compact) =>
         compact ? (
           <>
