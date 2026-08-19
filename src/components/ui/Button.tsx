@@ -101,6 +101,12 @@ interface IconButtonProps {
   disabled?: boolean;
   /** "sm" matches a small labelled button, so the two line up in one row. */
   size?: "sm" | "md";
+  /**
+   * Gives the button the raised surface a ghost `Button` has, so a row of them
+   * beside a labelled button reads as one set of controls rather than as loose
+   * glyphs. It says nothing about state: that is `active`'s job.
+   */
+  filled?: boolean;
 }
 
 /** Square sizes, chosen so each matches the height of the Button of that size. */
@@ -117,9 +123,19 @@ export function IconButton({
   danger,
   disabled,
   size = "md",
+  filled,
 }: IconButtonProps) {
   const { colors } = useUITheme();
-  const restBackground = active ? fade(colors.accent, 0.16) : "transparent";
+  const restBackground = active
+    ? fade(colors.accent, 0.16)
+    : filled
+      ? colors.raise
+      : "transparent";
+  const restBorder = active
+    ? fade(colors.accent, 0.3)
+    : filled
+      ? colors.border
+      : "transparent";
   const { box, icon } = ICON_BUTTON_BOX[size];
   return (
     <button
@@ -139,13 +155,15 @@ export function IconButton({
         transition: "all .15s",
         background: restBackground,
         color: danger ? colors.danger : active ? colors.accentSoft : colors.sub,
-        border: `1px solid ${active ? fade(colors.accent, 0.3) : "transparent"}`,
+        border: `1px solid ${restBorder}`,
       }}
       onMouseEnter={(e) => {
         if (disabled) return;
         e.currentTarget.style.background = active
           ? fade(colors.accent, 0.22)
-          : colors.raise;
+          : danger
+            ? fade(colors.danger, 0.16)
+            : colors.raise;
       }}
       onMouseLeave={(e) => (e.currentTarget.style.background = restBackground)}
     >

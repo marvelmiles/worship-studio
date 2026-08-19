@@ -14,7 +14,7 @@ import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
-import { greeting, isCreation, rank } from "./utils";
+import { greeting, itemActivity, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
 
 export interface DashboardCounts {
@@ -121,11 +121,15 @@ export function useDashboardData() {
     const list: Activity[] = [];
 
     for (const m of activeManuscripts) {
+      const activity = itemActivity(m.createdAt, m.updatedAt, m.mark, {
+        created: "created",
+        edited: "edited",
+      });
       list.push({
         key: `manuscript:${m.id}`,
         title: m.title,
-        detail: `Manuscript · ${isCreation(m.createdAt, m.updatedAt) ? "created" : "edited"}`,
-        at: m.updatedAt,
+        detail: `Manuscript · ${activity.verb}`,
+        at: activity.at,
         icon: FileText,
         open: () => navigate(`/manuscripts/${m.id}`),
       });
@@ -133,11 +137,15 @@ export function useDashboardData() {
 
     for (const p of scriptures) {
       if (p.quick || p.deleted) continue;
+      const activity = itemActivity(p.createdAt, p.updatedAt, p.mark, {
+        created: "saved",
+        edited: "edited",
+      });
       list.push({
         key: `passage:${p.id}`,
         title: p.title,
-        detail: `Bible passage · ${isCreation(p.createdAt, p.updatedAt) ? "saved" : "edited"}`,
-        at: p.updatedAt,
+        detail: `Bible passage · ${activity.verb}`,
+        at: activity.at,
         icon: BookOpen,
         open: () => navigate(`/scripture/${p.id}`),
       });
@@ -164,11 +172,15 @@ export function useDashboardData() {
     for (const m of media) {
       if (m.builtIn) continue;
       const label = m.kind === "image" ? "Image" : "Video";
+      const activity = itemActivity(m.createdAt, m.updatedAt, m.mark, {
+        created: "added",
+        edited: "edited",
+      });
       list.push({
         key: `media:${m.id}`,
         title: m.name,
-        detail: `${label} · ${isCreation(m.createdAt, m.updatedAt) ? "added" : "edited"}`,
-        at: m.updatedAt || m.createdAt,
+        detail: `${label} · ${activity.verb}`,
+        at: activity.at,
         icon: m.kind === "image" ? ImageIcon : Film,
         open: () =>
           navigate(`${m.kind === "image" ? "/images" : "/videos"}/${m.id}`),
@@ -200,13 +212,16 @@ export function useDashboardData() {
     }
 
     for (const t of themes) {
-      const at = t.updatedAt || t.createdAt;
-      if (!at) continue;
+      const activity = itemActivity(t.createdAt, t.updatedAt, t.mark, {
+        created: "created",
+        edited: "edited",
+      });
+      if (!activity.at) continue;
       list.push({
         key: `theme:${t.id}`,
         title: t.name,
-        detail: `Theme · ${isCreation(t.createdAt, t.updatedAt) ? "created" : "edited"}`,
-        at,
+        detail: `Theme · ${activity.verb}`,
+        at: activity.at,
         icon: Palette,
         open: () => openOverlay("themes", t.id),
       });

@@ -56,8 +56,12 @@ export function useMediaPlayback(
   const [playback, setPlayback] = useState<MediaPlayback>({
     ...DEFAULT_MEDIA_PLAYBACK,
     playing: autoPlay,
+    seekTime: settings?.trimStart ?? 0,
   });
-  const [time, setTime] = useState(0);
+  // The clip is parked at its trim start before a frame is decoded, so the
+  // readout opens on the position the surface is about to take rather than on
+  // wherever zero happens to be.
+  const [time, setTime] = useState(settings?.trimStart ?? 0);
   const [duration, setDuration] = useState(0);
 
   const getTime = useCallback(

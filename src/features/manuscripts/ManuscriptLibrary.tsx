@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { FileText, PenLine, Plus, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS } from "../../data/collections";
@@ -20,7 +20,7 @@ import {
 } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { BgSwatch } from "../../components/controls/BgSwatch";
-import { Button } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
@@ -32,7 +32,7 @@ import {
   KeepOnResetBadge,
   useKeepOnResetAction,
 } from "../../components/ui/KeepOnResetToggle";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import { PinButton } from "../../components/ui/PinControl";
 import {
   CardActions,
   cardOpenProps,
@@ -102,18 +102,24 @@ export function ManuscriptLibrary() {
         }
       />
 
-      <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder="Search by title, author, text…"
-        />
-        <LibrarySortSelect value={sort} onChange={setSort} />
+      <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
         <PillTabs
           tabs={["All", ...COLLECTIONS].map((c) => ({ id: c, label: c }))}
           value={collection}
           onChange={setCollection}
         />
+        <div className="ws-row-wrap">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by title, author, text…"
+          />
+          <LibrarySortSelect
+            value={sort}
+            onChange={setSort}
+            nameLabel="Title"
+          />
+        </div>
       </div>
 
       {list.length === 0 &&
@@ -190,7 +196,6 @@ function ManuscriptCard({
   onPresent,
   onDelete,
 }: ManuscriptCardProps) {
-  const pinAction = usePinAction("manuscript", manuscript, library);
   const keepAction = useKeepOnResetAction("manuscript", manuscript);
 
   const first = manuscript.slides?.[0];
@@ -206,19 +211,8 @@ function ManuscriptCard({
   );
 
   const menuItems: MoreMenuItem[] = [
-    pinAction,
+    { label: "Open in editor", icon: PenLine, onClick: onOpen },
     ...(keepAction ? [keepAction] : []),
-    ...(manuscript.builtIn
-      ? []
-      : [
-          { divider: true },
-          {
-            label: "Delete",
-            icon: Trash2,
-            danger: true,
-            onClick: onDelete,
-          },
-        ]),
   ];
 
   return (
@@ -252,7 +246,6 @@ function ManuscriptCard({
       <div className="ws-card-body">
         <div className="ws-card-title">
           <span className="ws-ellipsis">{manuscript.title}</span>
-          <PinBadge item={manuscript} />
           <KeepOnResetBadge item={manuscript} />
           {manuscript.builtIn && (
             <span
@@ -274,7 +267,21 @@ function ManuscriptCard({
         </div>
         <CardActions>
           <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
-          <MoreMenu size="sm" items={menuItems} />
+          <PinButton kind="manuscript" item={manuscript} library={library} />
+          <IconButton
+            filled
+            danger
+            size="sm"
+            icon={Trash2}
+            disabled={manuscript.builtIn}
+            title={
+              manuscript.builtIn
+                ? "Default manuscripts can't be deleted"
+                : "Delete manuscript"
+            }
+            onClick={onDelete}
+          />
+          <MoreMenu filled size="sm" items={menuItems} />
         </CardActions>
       </div>
     </div>

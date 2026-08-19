@@ -1,8 +1,8 @@
 import { ArrowUpDown } from "lucide-react";
-import type { CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import {
-  LIBRARY_SORT_CHOICES,
+  librarySortChoices,
   type LibrarySortOption,
 } from "../../lib/librarySort";
 import { Select } from "./Field";
@@ -10,6 +10,8 @@ import { Select } from "./Field";
 interface LibrarySortSelectProps {
   value: LibrarySortOption;
   onChange: (value: LibrarySortOption) => void;
+  /** The field this library orders by, named as the operator sees it. */
+  nameLabel: string;
   style?: CSSProperties;
 }
 
@@ -17,9 +19,11 @@ interface LibrarySortSelectProps {
 export function LibrarySortSelect({
   value,
   onChange,
+  nameLabel,
   style,
 }: LibrarySortSelectProps) {
   const { colors } = useUITheme();
+  const options = useMemo(() => librarySortChoices(nameLabel), [nameLabel]);
   return (
     <div style={{ position: "relative", minWidth: 190, ...style }}>
       <ArrowUpDown
@@ -35,7 +39,7 @@ export function LibrarySortSelect({
       <Select
         value={value}
         aria-label="Sort by"
-        options={LIBRARY_SORT_CHOICES}
+        options={options}
         onChange={(event) => onChange(event.target.value as LibrarySortOption)}
         style={{ paddingLeft: 38 }}
       />

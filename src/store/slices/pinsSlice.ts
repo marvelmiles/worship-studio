@@ -1,4 +1,5 @@
-import { now } from "../../lib/id";
+import type { LibraryMark } from "../../types";
+import { pinMark } from "../../lib/libraryMarks";
 import {
   MAX_PINNED_ITEMS,
   pinnedCount,
@@ -28,7 +29,7 @@ interface PinTarget {
   pinned: boolean;
   /** Everything competing for the same five slots. */
   siblings: Pinnable[];
-  write: (pinned: true | undefined) => void;
+  write: (pinned: true | undefined, mark: LibraryMark) => void;
 }
 
 /** Finds the item behind a pin and how to write it back to its own library. */
@@ -46,8 +47,9 @@ function pinTarget(
       name: manuscript.title,
       pinned: Boolean(manuscript.pinned),
       siblings: state.manuscripts,
-      write: (pinned) =>
-        state.upsertManuscript({ ...manuscript, pinned, updatedAt: now() }),
+      // A pin is not an edit, so `updatedAt` is left where the last edit put it.
+      write: (pinned, mark) =>
+        state.upsertManuscript({ ...manuscript, pinned, mark }),
     };
   }
 
@@ -58,8 +60,8 @@ function pinTarget(
       name: passage.title,
       pinned: Boolean(passage.pinned),
       siblings: state.scriptures.filter((s) => !s.quick),
-      write: (pinned) =>
-        state.upsertScripture({ ...passage, pinned, updatedAt: now() }),
+      write: (pinned, mark) =>
+        state.upsertScripture({ ...passage, pinned, mark }),
     };
   }
 
@@ -69,7 +71,8 @@ function pinTarget(
     name: item.name,
     pinned: Boolean(item.pinned),
     siblings: state.media.filter((m) => m.kind === kind),
-    write: (pinned) => state.updateMedia(item.id, { pinned }),
+    write: (pinned, mark) =>
+      state.updateMedia(item.id, { pinned, mark }, { touch: false }),
   };
 }
 
@@ -89,7 +92,7 @@ export const createPinsSlice: SliceCreator<PinsSlice> = (_set, get) => ({
 
     // `undefined` rather than `false` so an unpinned record stays as small as
     // it was before the feature existed.
-    target.write(pinning ? true : undefined);
+    target.write(pinning ? true : undefined, pinMark(pinning));
     get().pushToast(
       pinning ? `Pinned "${target.name}".` : `Unpinned "${target.name}".`,
     );

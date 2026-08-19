@@ -1,6 +1,12 @@
 import type { VideoSettings } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { formatDuration, needsHoursField } from "../../lib/media";
+import {
+  formatDuration,
+  needsHoursField,
+  timecodeShape,
+  validateTrimEnd,
+  validateTrimStart,
+} from "../../lib/media";
 import { Field, Range, SectionTitle, Select, Toggle } from "../ui/Field";
 import { TimecodeInput } from "../ui/TimecodeInput";
 import { AdjustmentControls } from "./AdjustmentControls";
@@ -39,7 +45,8 @@ export function VideoSettingsControls({
   const { colors, fonts } = useUITheme();
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
   const withHours = needsHoursField(duration);
-  const timecodeShape = withHours ? "hh:mm:ss" : "mm:ss";
+  const shape = timecodeShape(withHours);
+  const bounds = { duration, withHours };
 
   return (
     <>
@@ -55,28 +62,31 @@ export function VideoSettingsControls({
       >
         Playback runs from the trim start to the trim end
         {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write both
-        as {timecodeShape}. Clearing the end takes it back to the last frame.
+        as {shape}, two digits per field. Clearing the end takes it back to the
+        last frame.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
-        <Field label={`Start (${timecodeShape})`}>
+        <Field label={`Start (${shape})`}>
           <TimecodeInput
             aria-label="Trim start"
             seconds={settings.trimStart}
             withHours={withHours}
-            max={duration}
-            onChange={(trimStart) =>
-              onChange({ trimStart: Math.max(0, trimStart ?? 0) })
+            validate={(value) =>
+              validateTrimStart(value, settings.trimEnd, bounds)
             }
+            onChange={(trimStart) => onChange({ trimStart: trimStart ?? 0 })}
           />
         </Field>
-        <Field label={`End (${timecodeShape})`}>
+        <Field label={`End (${shape})`}>
           <TimecodeInput
             aria-label="Trim end"
             seconds={settings.trimEnd ?? (duration || null)}
             withHours={withHours}
-            max={duration}
-            placeholder={timecodeShape}
+            placeholder={shape}
             clearable
+            validate={(value) =>
+              validateTrimEnd(value, settings.trimStart, bounds)
+            }
             onChange={(trimEnd) => onChange({ trimEnd })}
           />
         </Field>

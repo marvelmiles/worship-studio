@@ -4,10 +4,18 @@ import { deleteRecord, saveRecord } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
+export interface ThemeUpdateOptions {
+  /**
+   * Moves `updatedAt` to now. Off for writes that aren't edits, such as
+   * keep-on-reset, so "recently modified" keeps meaning "recently edited".
+   */
+  touch?: boolean;
+}
+
 export interface ThemesSlice {
   themes: Theme[];
 
-  upsertTheme: (theme: Theme) => void;
+  upsertTheme: (theme: Theme, options?: ThemeUpdateOptions) => void;
   createTheme: () => Theme | null;
   deleteTheme: (id: string) => void;
 }
@@ -15,9 +23,9 @@ export interface ThemesSlice {
 export const createThemesSlice: SliceCreator<ThemesSlice> = (set, get) => ({
   themes: [],
 
-  upsertTheme: (theme) => {
+  upsertTheme: (theme, { touch = true }: ThemeUpdateOptions = {}) => {
     if (blockWrite(get)) return;
-    const stamped: Theme = { ...theme, updatedAt: now() };
+    const stamped: Theme = touch ? { ...theme, updatedAt: now() } : theme;
     set((state) => {
       const exists = state.themes.some((t) => t.id === stamped.id);
       const themes = exists

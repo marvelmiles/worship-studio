@@ -1,6 +1,4 @@
 import { Pin, PinOff } from "lucide-react";
-import { useUITheme } from "../../theme/ThemeProvider";
-import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
 import {
   MAX_PINNED_ITEMS,
@@ -9,17 +7,19 @@ import {
   type Pinnable,
   type PinnableKind,
 } from "../../lib/pinning";
-import type { MoreMenuItem } from "./MoreMenu";
+import { IconButton } from "./Button";
 
 interface PinTarget extends Pinnable {
   id: string;
 }
 
-interface PinControlProps {
+interface PinButtonProps {
   kind: PinnableKind;
   item: PinTarget;
   /** Everything competing for the same five slots: the listing being drawn. */
   library: Pinnable[];
+  /** Matches the pin to the buttons beside it; "sm" on a library card. */
+  size?: "sm" | "md";
 }
 
 interface PinState {
@@ -30,8 +30,8 @@ interface PinState {
   toggle: () => void;
 }
 
-/** One reading of a library's pin budget, shared by every control below. */
-function usePinState({ kind, item, library }: PinControlProps): PinState {
+/** One reading of a library's pin budget. */
+function usePinState({ kind, item, library }: PinButtonProps): PinState {
   const togglePin = useStore((s) => s.togglePin);
   const pinned = isPinned(item);
   const used = pinnedCount(library);
@@ -49,46 +49,28 @@ function usePinState({ kind, item, library }: PinControlProps): PinState {
 }
 
 /**
- * The same toggle as an entry in a card's overflow menu. Its icon and label
- * carry the current state, so the row needs no highlight of its own.
+ * The pin as a control of its own on a library card.
+ *
+ * The icon carries the state on its own, so the button keeps the same surface
+ * whether the item is pinned or not: a pinned item shows the "unpin" glyph, an
+ * unpinned one shows the pin. That makes this button the card's only pin
+ * indicator, which is why nothing beside the title repeats it.
  */
-export function usePinAction(
-  kind: PinnableKind,
-  item: PinTarget,
-  library: Pinnable[],
-): MoreMenuItem {
+export function PinButton({
+  kind,
+  item,
+  library,
+  size = "sm",
+}: PinButtonProps) {
   const state = usePinState({ kind, item, library });
-  return {
-    label: state.pinned ? "Unpin" : "Pin to top",
-    icon: state.pinned ? PinOff : Pin,
-    disabled: state.full,
-    title: state.title,
-    onClick: state.toggle,
-  };
-}
-
-/** The chip on a card, so a pinned item reads as pinned at a glance. */
-export function PinBadge({ item }: { item: Pinnable }) {
-  const { colors } = useUITheme();
-  if (!isPinned(item)) return null;
   return (
-    <span
-      title="Pinned to the top of this library"
-      aria-label="Pinned"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 18,
-        height: 18,
-        borderRadius: 999,
-        color: colors.accentSoft,
-        background: fade(colors.accent, 0.14),
-        border: `1px solid ${fade(colors.accent, 0.3)}`,
-        flexShrink: 0,
-      }}
-    >
-      <Pin size={10} />
-    </span>
+    <IconButton
+      filled
+      size={size}
+      icon={state.pinned ? PinOff : Pin}
+      title={state.title}
+      disabled={state.full}
+      onClick={state.toggle}
+    />
   );
 }

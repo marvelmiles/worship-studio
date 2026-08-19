@@ -4,6 +4,7 @@ import {
   Film,
   Image as ImageIcon,
   ImagePlus,
+  PenLine,
   Trash2,
   Upload,
   Wallpaper,
@@ -26,9 +27,9 @@ import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
-import { Button } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { MoreMenu } from "../../components/ui/MoreMenu";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import { PinButton } from "../../components/ui/PinControl";
 import {
   CardActions,
   cardOpenProps,
@@ -191,7 +192,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
           onChange={setQuery}
           placeholder={`Search ${config.title.toLowerCase()}…`}
         />
-        <LibrarySortSelect value={sort} onChange={setSort} />
+        <LibrarySortSelect value={sort} onChange={setSort} nameLabel="Name" />
       </div>
 
       {list.length === 0 ? (
@@ -271,8 +272,6 @@ function MediaCard({
   onToggleBackground,
   onDelete,
 }: MediaCardProps) {
-  const pinAction = usePinAction(item.kind, item, library);
-
   return (
     <div className="ws-glass ws-card" {...cardOpenProps(item.name, onOpen)}>
       <div className="ws-thumb" title="Open editor">
@@ -294,7 +293,6 @@ function MediaCard({
       <div className="ws-card-body">
         <div className="ws-card-title">
           <span className="ws-ellipsis">{item.name}</span>
-          <PinBadge item={item} />
         </div>
         <div className="ws-card-sub">
           {item.width && item.height ? `${item.width}×${item.height} · ` : ""}
@@ -302,10 +300,20 @@ function MediaCard({
         </div>
         <CardActions>
           <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
+          <PinButton kind={item.kind} item={item} library={library} />
+          <IconButton
+            filled
+            danger
+            size="sm"
+            icon={Trash2}
+            title={`Delete ${item.kind}`}
+            onClick={onDelete}
+          />
           <MoreMenu
+            filled
             size="sm"
             items={[
-              pinAction,
+              { label: "Open in editor", icon: PenLine, onClick: onOpen },
               ...(item.kind === "image"
                 ? [
                     {
@@ -318,13 +326,6 @@ function MediaCard({
                     },
                   ]
                 : []),
-              { divider: true },
-              {
-                label: "Delete",
-                icon: Trash2,
-                danger: true,
-                onClick: onDelete,
-              },
             ]}
           />
         </CardActions>

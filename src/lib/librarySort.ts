@@ -4,7 +4,10 @@
  * The listing order is the operator's to choose and nothing else moves it: the
  * default reads newest-first off `createdAt`, so saving an edit mid-service
  * never reshuffles the grid under the cursor. "Recently modified" is the one
- * option that answers to `updatedAt`, because that is what it was asked for.
+ * option that answers to `updatedAt`, which moves only when a document is
+ * written in an editor: pinning an item, or keeping it through a reset, is
+ * recorded as a mark instead (see lib/libraryMarks.ts) and leaves this order
+ * alone.
  */
 
 export type LibrarySortOption =
@@ -15,12 +18,17 @@ export interface LibrarySortChoice {
   label: string;
 }
 
-export const LIBRARY_SORT_CHOICES: LibrarySortChoice[] = [
+/**
+ * The choices offered by one library, named after the field that library
+ * actually orders by, so a manuscript listing offers "Title A-Z" while an image
+ * listing offers "Name A-Z".
+ */
+export const librarySortChoices = (nameLabel: string): LibrarySortChoice[] => [
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
   { value: "modified", label: "Recently modified" },
-  { value: "ascending", label: "Name A to Z" },
-  { value: "descending", label: "Name Z to A" },
+  { value: "ascending", label: `${nameLabel} A-Z` },
+  { value: "descending", label: `${nameLabel} Z-A` },
 ];
 
 export const DEFAULT_LIBRARY_SORT: LibrarySortOption = "newest";

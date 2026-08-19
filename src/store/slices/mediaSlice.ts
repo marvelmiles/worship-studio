@@ -20,12 +20,24 @@ import {
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
+export interface MediaUpdateOptions {
+  /**
+   * Moves `updatedAt` to now. Off for writes that aren't edits, such as a pin,
+   * so the library's "recently modified" order keeps meaning "recently edited".
+   */
+  touch?: boolean;
+}
+
 export interface MediaSlice {
   media: MediaItem[];
 
   uploadMedia: (kind: MediaKind, file: File, name?: string) => Promise<string>;
   /** False when storage is full, or the item is gone, and nothing was written. */
-  updateMedia: (id: string, changes: Partial<MediaItem>) => boolean;
+  updateMedia: (
+    id: string,
+    changes: Partial<MediaItem>,
+    options?: MediaUpdateOptions,
+  ) => boolean;
   removeMedia: (id: string) => Promise<void>;
   useImageAsBackground: (id: string) => string;
   /**
@@ -96,11 +108,16 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     }
   },
 
-  updateMedia: (id, changes) => {
+  updateMedia: (id, changes, { touch = true }: MediaUpdateOptions = {}) => {
     if (blockWrite(get)) return false;
     const current = get().media.find((m) => m.id === id);
     if (!current) return false;
-    const next: MediaItem = { ...current, ...changes, id, updatedAt: now() };
+    const next: MediaItem = {
+      ...current,
+      ...changes,
+      id,
+      updatedAt: touch ? now() : current.updatedAt,
+    };
     set((state) => ({
       media: state.media.map((m) => (m.id === id ? next : m)),
     }));

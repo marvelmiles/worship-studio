@@ -161,18 +161,92 @@ export function formatTimecode(seconds: number, withHours: boolean): string {
     : `${pad(minutes)}:${pad(secs)}`;
 }
 
+/** How a timecode has to be written, for labels and error messages. */
+export const timecodeShape = (withHours: boolean): string =>
+  withHours ? "hh:mm:ss" : "mm:ss";
+
+const TIMECODE_PATTERN = /^\d{2}:\d{2}$/;
+const TIMECODE_WITH_HOURS_PATTERN = /^\d{2}:\d{2}:\d{2}$/;
+
 /**
- * Reads a typed timecode back into seconds, accepting the shorthand a person
- * actually types: `90`, `1:30` and `00:01:30` all land on the same second.
- * Null for anything that is not a time, so a half-typed field is left alone
- * rather than snapping to zero under the cursor.
+ * Reads a typed timecode back into seconds, insisting on two digits per field:
+ * `01:30`, or `00:01:30` once the clip runs past an hour. Null for anything
+ * else, so a half-typed field is left alone rather than snapping to a position
+ * nobody asked for.
  */
-export function parseTimecode(value: string): number | null {
+export function parseTimecode(
+  value: string,
+  withHours: boolean,
+): number | null {
   const text = value.trim();
-  if (!/^\d{1,3}(:\d{1,2}){0,2}$/.test(text)) return null;
+  const pattern = withHours ? TIMECODE_WITH_HOURS_PATTERN : TIMECODE_PATTERN;
+  if (!pattern.test(text)) return null;
   const parts = text.split(":").map(Number);
-  if (parts.some((part) => !Number.isFinite(part))) return null;
+  // Everything below the leading field is a sixtieth of the one above it, so
+  // `90` seconds is a typo rather than a minute and a half.
+  if (parts.slice(1).some((part) => part > 59)) return null;
   return parts.reduce((total, part) => total * 60 + part, 0);
+}
+
+// What a finished timecode can still grow out of: every field is two digits,
+// and the ones below the first run 00 to 59, so their tens digit is 0 to 5.
+// `01:5` is on its way somewhere, `1:30` and `01:6` are not.
+const PARTIAL_TIMECODE_PATTERN = /^(\d{0,2}|\d{2}:([0-5]\d?)?)$/;
+const PARTIAL_TIMECODE_WITH_HOURS_PATTERN =
+  /^(\d{0,2}|\d{2}:([0-5]\d?)?|\d{2}:[0-5]\d:([0-5]\d?)?)$/;
+
+/**
+ * True while what has been typed could still be finished into a timecode, so a
+ * field being written into is left alone instead of being told off for every
+ * keystroke on the way to `01:30`.
+ */
+export const isPartialTimecode = (value: string, withHours: boolean): boolean =>
+  (withHours
+    ? PARTIAL_TIMECODE_WITH_HOURS_PATTERN
+    : PARTIAL_TIMECODE_PATTERN
+  ).test(value.trim());
+
+/** What a trim point is checked against: the clip it belongs to. */
+export interface TrimBounds {
+  /** The clip's length. Unknown until its headers are in, and then skipped. */
+  duration?: number;
+  withHours: boolean;
+}
+
+/**
+ * The rules both trim points answer to: a position lives inside the clip, and
+ * the window between them has to be worth playing. Returns the message to show
+ * the operator, or null when the position is usable.
+ */
+export function validateTrimStart(
+  seconds: number | null,
+  trimEnd: number | null,
+  { duration, withHours }: TrimBounds,
+): string | null {
+  if (seconds === null)
+    return `Enter a start time as ${timecodeShape(withHours)}.`;
+  if (seconds < 0)
+    return "The start can't be before the beginning of the clip.";
+  if (duration && seconds >= duration)
+    return `The start has to be before the end of the clip (${formatTimecode(duration, withHours)}).`;
+  if (trimEnd === null) return null;
+  if (seconds === trimEnd) return "The start and end can't be the same.";
+  if (seconds > trimEnd) return "The start has to come before the end.";
+  return null;
+}
+
+export function validateTrimEnd(
+  seconds: number | null,
+  trimStart: number,
+  { duration, withHours }: TrimBounds,
+): string | null {
+  // An empty end is the clip's last frame, which is always a usable window.
+  if (seconds === null) return null;
+  if (duration && seconds > duration)
+    return `The end can't be past the clip's length (${formatTimecode(duration, withHours)}).`;
+  if (seconds === trimStart) return "The start and end can't be the same.";
+  if (seconds < trimStart) return "The end has to come after the start.";
+  return null;
 }
 
 export interface MediaProbe {

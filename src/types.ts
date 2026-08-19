@@ -127,6 +127,19 @@ export type ShortcutMode = "all-slides" | "first-slide-per-tag";
  * Common shape of every document that presents a deck of text slides
  * (manuscripts, scripture passages, and any future slide-based module).
  */
+/**
+ * A mark placed on a library item without editing it: pinning it to the top of
+ * its listing, or registering it to survive a reset. Marks are tracked apart
+ * from `updatedAt` so "recently modified" keeps meaning "recently edited",
+ * while the activity feed can still report them. See lib/libraryMarks.ts.
+ */
+export type LibraryMarkAction = "pinned" | "unpinned" | "kept" | "unkept";
+
+export interface LibraryMark {
+  action: LibraryMarkAction;
+  at: string;
+}
+
 export interface SlideDeckDoc {
   id: string;
   title: string;
@@ -149,6 +162,8 @@ export interface SlideDeckDoc {
   keepOnReset?: boolean;
   /** Held at the top of its library listing. See lib/pinning.ts. */
   pinned?: boolean;
+  /** The most recent pin or keep-on-reset toggle. Never an edit. */
+  mark?: LibraryMark;
 }
 
 /** Deck-level appearance overrides (no slide-only keys). */
@@ -263,6 +278,8 @@ export interface MediaItem {
   builtIn?: boolean;
   /** Held at the top of its library listing. See lib/pinning.ts. */
   pinned?: boolean;
+  /** The most recent pin toggle. Never an edit. */
+  mark?: LibraryMark;
 }
 
 export interface Theme {
@@ -271,6 +288,8 @@ export interface Theme {
   builtIn?: boolean;
   /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
   keepOnReset?: boolean;
+  /** The most recent keep-on-reset toggle. Never an edit. */
+  mark?: LibraryMark;
   /** Missing on built-in/legacy themes that were never edited. */
   createdAt?: string;
   updatedAt?: string;

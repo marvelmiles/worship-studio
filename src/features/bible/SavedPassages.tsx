@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, RotateCcw, Trash2 } from "lucide-react";
+import { BookOpen, PenLine, RotateCcw, Trash2 } from "lucide-react";
 import type { ScripturePassage, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -17,11 +17,11 @@ import {
   resolveStyle,
 } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
-import { Button } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import { PinButton } from "../../components/ui/PinControl";
 import {
   CardActions,
   cardOpenProps,
@@ -71,7 +71,11 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
             onChange={setQuery}
             placeholder="Search saved passages…"
           />
-          <LibrarySortSelect value={sort} onChange={setSort} />
+          <LibrarySortSelect
+            value={sort}
+            onChange={setSort}
+            nameLabel="Title"
+          />
         </div>
       )}
 
@@ -140,8 +144,6 @@ function PassageCard({
   onRestore,
   onDelete,
 }: PassageCardProps) {
-  const pinAction = usePinAction("scripture", passage, library);
-
   const first = passage.slides?.[0];
   const theme =
     themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
@@ -172,7 +174,6 @@ function PassageCard({
       <div className="ws-card-body">
         <div className="ws-card-title">
           <span className="ws-ellipsis">{passage.title}</span>
-          {!trashView && <PinBadge item={passage} />}
         </div>
         <div className="ws-card-sub">
           {passage.version} · {passage.verses.length} verse
@@ -193,17 +194,20 @@ function PassageCard({
           ) : (
             <>
               <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
+              <PinButton kind="scripture" item={passage} library={library} />
+              <IconButton
+                filled
+                danger
+                size="sm"
+                icon={Trash2}
+                title="Move to trash"
+                onClick={onTrash}
+              />
               <MoreMenu
+                filled
                 size="sm"
                 items={[
-                  pinAction,
-                  { divider: true },
-                  {
-                    label: "Move to trash",
-                    icon: Trash2,
-                    danger: true,
-                    onClick: onTrash,
-                  },
+                  { label: "Open in editor", icon: PenLine, onClick: onOpen },
                 ]}
               />
             </>

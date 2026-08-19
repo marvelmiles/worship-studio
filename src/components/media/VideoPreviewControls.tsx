@@ -1,6 +1,6 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { formatDuration } from "../../lib/media";
+import { formatTimecode, needsHoursField } from "../../lib/media";
 import { IconButton } from "../ui/Button";
 
 interface VideoPreviewControlsProps {
@@ -18,6 +18,9 @@ interface VideoPreviewControlsProps {
  * The transport under the media editor's preview: play, rewind to the trim
  * start, and scrub inside the trimmed window so the clip can be parked exactly
  * where a trim point should be captured.
+ *
+ * Both readouts are written the way the trim fields are, so a clip parked at
+ * its first frame reads 00:00 and a position can be copied straight across.
  */
 export function VideoPreviewControls({
   playing,
@@ -32,6 +35,7 @@ export function VideoPreviewControls({
   const end = Math.max(trimEnd, trimStart + 0.1);
   const position = Math.min(Math.max(time, trimStart), end);
   const filled = ((position - trimStart) / (end - trimStart)) * 100;
+  const withHours = needsHoursField(end);
 
   const readout = {
     fontFamily: fonts.ui,
@@ -66,7 +70,7 @@ export function VideoPreviewControls({
         onClick={onRestart}
       />
       <span style={{ ...readout, textAlign: "right" }}>
-        {formatDuration(position)}
+        {formatTimecode(position, withHours)}
       </span>
       <input
         type="range"
@@ -83,7 +87,7 @@ export function VideoPreviewControls({
           background: `linear-gradient(90deg, ${colors.accent} 0%, ${colors.accentSoft} ${filled}%, ${controls.track} ${filled}%)`,
         }}
       />
-      <span style={readout}>{formatDuration(end)}</span>
+      <span style={readout}>{formatTimecode(end, withHours)}</span>
     </div>
   );
 }

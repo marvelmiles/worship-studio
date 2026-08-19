@@ -27,6 +27,8 @@ interface MoreMenuProps {
   align?: PopoverAlign;
   /** Matches the trigger to the buttons beside it; "sm" on a library card. */
   size?: "sm" | "md";
+  /** Gives the trigger the raised surface the controls beside it carry. */
+  filled?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export function MoreMenu({
   side = "bottom",
   align = "end",
   size = "md",
+  filled,
 }: MoreMenuProps) {
   const { colors } = useUITheme();
   const [open, setOpen] = useState(false);
@@ -56,6 +59,7 @@ export function MoreMenu({
           title={title}
           active={open}
           size={size}
+          filled={filled}
         />
       }
     >

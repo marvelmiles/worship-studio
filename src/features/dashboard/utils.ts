@@ -1,8 +1,9 @@
 import type { CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { Background } from "../../types";
+import type { Background, LibraryMark } from "../../types";
 import { fade } from "../../theme/tokens";
 import { formatDate } from "../../lib/id";
+import { describeMark, latestMark } from "../../lib/libraryMarks";
 
 export interface UsedItem {
   id: string;
@@ -28,6 +29,26 @@ export function isCreation(createdAt?: string, updatedAt?: string): boolean {
   if (!createdAt) return false;
   if (!updatedAt) return true;
   return +new Date(updatedAt) - +new Date(createdAt) < 5000;
+}
+
+/**
+ * What an item's row in the feed says, and when it happened. A pin or a
+ * keep-on-reset is reported in its own words when it is the most recent thing
+ * to have happened to the item; anything older falls back to the edit itself.
+ */
+export function itemActivity(
+  createdAt: string | undefined,
+  updatedAt: string | undefined,
+  mark: LibraryMark | undefined,
+  verbs: { created: string; edited: string },
+): { at: string; verb: string } {
+  const editedAt = updatedAt || createdAt || "";
+  const marked = latestMark(editedAt, mark);
+  if (marked) return { at: marked.at, verb: describeMark(marked) };
+  return {
+    at: editedAt,
+    verb: isCreation(createdAt, updatedAt) ? verbs.created : verbs.edited,
+  };
 }
 
 export function timeAgo(iso: string): string {
