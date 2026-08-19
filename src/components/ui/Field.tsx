@@ -55,13 +55,19 @@ type TextInputProps = InputHTMLAttributes<HTMLInputElement>;
 
 export function TextInput(props: TextInputProps) {
   const { colors: c } = useUITheme();
-  const { style, ...rest } = props;
+  const { style, onFocus, onBlur, ...rest } = props;
   return (
     <input
       {...rest}
       style={{ ...inputStyle, ...(style || {}) }}
-      onFocus={(e) => (e.target.style.borderColor = c.borderStrong)}
-      onBlur={(e) => (e.target.style.borderColor = c.border)}
+      onFocus={(e) => {
+        e.target.style.borderColor = c.borderStrong;
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = c.border;
+        onBlur?.(e);
+      }}
     />
   );
 }

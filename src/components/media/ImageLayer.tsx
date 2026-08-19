@@ -15,17 +15,16 @@ interface ImageLayerProps {
 /**
  * Paints one picture with its editing settings applied, filling the positioned
  * box it is dropped into (thumbnails, the slide canvas and the stage all are
- * 16:9). When the rotation swaps axes the image is scaled by the box ratio so
- * "contain" keeps fitting and "cover"/"fill" keep covering.
+ * 16:9).
+ *
+ * A quarter turn swaps which axis of the box the picture is laid along, so the
+ * frame is given the box's own height as its width and vice versa before being
+ * rotated back over it. Container query units read those two lengths off the
+ * box itself, which keeps a rotated picture inside any frame it is dropped
+ * into rather than only a 16:9 one.
  */
 export function ImageLayer({ src, alt, settings, style }: ImageLayerProps) {
   const swapAxes = settings.rotate === 90 || settings.rotate === 270;
-  const ratioScale = swapAxes
-    ? settings.fit === "contain"
-      ? 9 / 16
-      : 16 / 9
-    : 1;
-  const transform = buildImageTransform(settings);
   return (
     <div
       style={{
@@ -35,6 +34,7 @@ export function ImageLayer({ src, alt, settings, style }: ImageLayerProps) {
         display: "grid",
         placeItems: "center",
         background: "#000",
+        containerType: swapAxes ? "size" : undefined,
         ...style,
       }}
     >
@@ -44,14 +44,11 @@ export function ImageLayer({ src, alt, settings, style }: ImageLayerProps) {
           alt={alt}
           draggable={false}
           style={{
-            width: "100%",
-            height: "100%",
+            width: swapAxes ? "100cqh" : "100%",
+            height: swapAxes ? "100cqw" : "100%",
             objectFit: settings.fit,
             filter: buildFilter(settings),
-            transform:
-              ratioScale !== 1
-                ? `${transform} scale(${ratioScale})`
-                : transform,
+            transform: buildImageTransform(settings),
           }}
         />
       )}

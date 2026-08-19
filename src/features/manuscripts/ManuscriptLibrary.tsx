@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS } from "../../data/collections";
@@ -16,6 +16,7 @@ import {
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -36,15 +37,14 @@ export function ManuscriptLibrary() {
   const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
   const createManuscript = useStore((s) => s.createManuscript);
-  const trashManuscript = useStore((s) => s.trashManuscript);
-  const restoreManuscript = useStore((s) => s.restoreManuscript);
   const deleteManuscript = useStore((s) => s.deleteManuscript);
   const startPresent = useStore((s) => s.startPresent);
+  const pushToast = useStore((s) => s.pushToast);
   const bgMap = useBgMap();
 
   const [query, setQuery] = useState("");
   const [collection, setCollection] = useState("All");
-  const [trashView, setTrashView] = useState(false);
+  const [deleting, setDeleting] = useState<Manuscript | null>(null);
 
   const onNew = () => {
     const created = createManuscript();
@@ -54,7 +54,8 @@ export function ManuscriptLibrary() {
   const searching = Boolean(query.trim());
 
   const list = useMemo(() => {
-    let base = manuscripts.filter((m) => (trashView ? m.deleted : !m.deleted));
+    // Records trashed before deleting became final stay out of the library.
+    let base = manuscripts.filter((m) => !m.deleted);
     if (collection !== "All")
       base = base.filter((m) => m.collection === collection);
     const term = query.trim().toLowerCase();
@@ -66,60 +67,45 @@ export function ManuscriptLibrary() {
       );
     const ordered = base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
     // A search is answered by what matches it; pins only order the library.
-    return term || trashView ? ordered : sortPinnedFirst(ordered);
-  }, [manuscripts, query, collection, trashView]);
+    return term ? ordered : sortPinnedFirst(ordered);
+  }, [manuscripts, query, collection]);
+
+  const confirmDelete = () => {
+    if (deleting) {
+      deleteManuscript(deleting.id);
+      pushToast(`Deleted "${deleting.title}".`);
+    }
+    setDeleting(null);
+  };
 
   return (
     <div className="ws-page">
       <PageHeader
-        title={trashView ? "Trash" : "Manuscripts"}
-        subtitle={
-          trashView
-            ? undefined
-            : "Lyrics, hymns and sermons turned into styled, presentable slides."
-        }
+        title="Manuscripts"
+        subtitle="Lyrics, hymns and sermons turned into styled, presentable slides."
         actions={
-          <>
-            <Button
-              variant={trashView ? "primary" : "ghost"}
-              onClick={() => setTrashView(!trashView)}
-            >
-              <Trash2 size={15} />
-              {trashView ? "Manuscripts" : "Trash"}
-            </Button>
-            {!trashView && (
-              <Button variant="primary" onClick={onNew}>
-                <Plus size={16} />
-                New Manuscript
-              </Button>
-            )}
-          </>
+          <Button variant="primary" onClick={onNew}>
+            <Plus size={16} />
+            New Manuscript
+          </Button>
         }
       />
 
-      {!trashView && (
-        <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder="Search by title, author, text…"
-          />
-          <PillTabs
-            tabs={["All", ...COLLECTIONS].map((c) => ({ id: c, label: c }))}
-            value={collection}
-            onChange={setCollection}
-          />
-        </div>
-      )}
+      <div className="ws-row-wrap" style={{ marginBottom: 18 }}>
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Search by title, author, text…"
+        />
+        <PillTabs
+          tabs={["All", ...COLLECTIONS].map((c) => ({ id: c, label: c }))}
+          value={collection}
+          onChange={setCollection}
+        />
+      </div>
 
       {list.length === 0 &&
-        (trashView ? (
-          <EmptyState
-            icon={Trash2}
-            title="Trash is empty"
-            message="Manuscripts you delete are kept here until you remove them for good."
-          />
-        ) : searching || collection !== "All" ? (
+        (searching || collection !== "All" ? (
           <EmptyState
             icon={FileText}
             title="No manuscripts match"
@@ -147,7 +133,6 @@ export function ManuscriptLibrary() {
             library={manuscripts}
             themes={themes}
             bgMap={bgMap}
-            trashView={trashView}
             onOpen={() => navigate(`/manuscripts/${manuscript.id}`)}
             onPresent={(pip) =>
               startPresent(
@@ -157,12 +142,18 @@ export function ManuscriptLibrary() {
                 pip ? "pip" : "stage",
               )
             }
-            onTrash={() => trashManuscript(manuscript.id)}
-            onRestore={() => restoreManuscript(manuscript.id)}
-            onDelete={() => deleteManuscript(manuscript.id)}
+            onDelete={() => setDeleting(manuscript)}
           />
         ))}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        title="Delete manuscript?"
+        message={`"${deleting?.title}" and its slides will be permanently removed. This can't be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   );
 }
@@ -173,11 +164,8 @@ interface ManuscriptCardProps {
   library: Manuscript[];
   themes: Theme[];
   bgMap: BgMap;
-  trashView: boolean;
   onOpen: () => void;
   onPresent: (pip: boolean) => void;
-  onTrash: () => void;
-  onRestore: () => void;
   onDelete: () => void;
 }
 
@@ -186,11 +174,8 @@ function ManuscriptCard({
   library,
   themes,
   bgMap,
-  trashView,
   onOpen,
   onPresent,
-  onTrash,
-  onRestore,
   onDelete,
 }: ManuscriptCardProps) {
   const pinAction = usePinAction("manuscript", manuscript, library);
@@ -216,23 +201,17 @@ function ManuscriptCard({
       : [
           { divider: true },
           {
-            label: "Move to trash",
+            label: "Delete",
             icon: Trash2,
             danger: true,
-            onClick: onTrash,
+            onClick: onDelete,
           },
         ]),
   ];
 
   return (
     <div className="ws-glass ws-card">
-      <div
-        onClick={() => !trashView && onOpen()}
-        style={{
-          cursor: trashView ? "default" : "pointer",
-          position: "relative",
-        }}
-      >
+      <div onClick={onOpen} style={{ cursor: "pointer", position: "relative" }}>
         {first ? (
           <SlideCanvas
             slide={first}
@@ -258,7 +237,7 @@ function ManuscriptCard({
       <div className="ws-card-body">
         <div className="ws-card-title">
           <span className="ws-ellipsis">{manuscript.title}</span>
-          {!trashView && <PinBadge item={manuscript} />}
+          <PinBadge item={manuscript} />
           <KeepOnResetBadge item={manuscript} />
           {manuscript.builtIn && (
             <span
@@ -279,29 +258,12 @@ function ManuscriptCard({
           {manuscript.collection ? ` · ${manuscript.collection}` : ""}
         </div>
         <div className="ws-card-actions">
-          {trashView ? (
-            <>
-              <Button size="sm" variant="ghost" onClick={onRestore}>
-                <RotateCcw size={13} />
-                Restore
-              </Button>
-              <Button size="sm" variant="danger" onClick={onDelete}>
-                <Trash2 size={13} />
-                Delete
-              </Button>
-            </>
-          ) : (
-            <>
-              <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-              <Button size="sm" variant="ghost" onClick={onOpen}>
-                <Pencil size={13} />
-                Edit
-              </Button>
-              <div style={{ marginLeft: "auto" }}>
-                <MoreMenu items={menuItems} />
-              </div>
-            </>
-          )}
+          <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
+          <Button size="sm" variant="ghost" onClick={onOpen}>
+            <Pencil size={13} />
+            Edit
+          </Button>
+          <MoreMenu size="sm" items={menuItems} />
         </div>
       </div>
     </div>

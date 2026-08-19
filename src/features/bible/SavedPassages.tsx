@@ -188,20 +188,19 @@ function PassageCard({
                 <Pencil size={13} />
                 Edit
               </Button>
-              <div style={{ marginLeft: "auto" }}>
-                <MoreMenu
-                  items={[
-                    pinAction,
-                    { divider: true },
-                    {
-                      label: "Move to trash",
-                      icon: Trash2,
-                      danger: true,
-                      onClick: onTrash,
-                    },
-                  ]}
-                />
-              </div>
+              <MoreMenu
+                size="sm"
+                items={[
+                  pinAction,
+                  { divider: true },
+                  {
+                    label: "Move to trash",
+                    icon: Trash2,
+                    danger: true,
+                    onClick: onTrash,
+                  },
+                ]}
+              />
             </>
           )}
         </div>

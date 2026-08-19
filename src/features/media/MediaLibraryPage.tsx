@@ -300,32 +300,31 @@ function MediaCard({
             <Pencil size={13} />
             Edit
           </Button>
-          <div style={{ marginLeft: "auto" }}>
-            <MoreMenu
-              items={[
-                pinAction,
-                ...(item.kind === "image"
-                  ? [
-                      {
-                        label: isBackground
-                          ? "Remove from backgrounds"
-                          : "Use as background",
-                        icon: Wallpaper,
-                        active: isBackground,
-                        onClick: onToggleBackground,
-                      },
-                    ]
-                  : []),
-                { divider: true },
-                {
-                  label: "Delete",
-                  icon: Trash2,
-                  danger: true,
-                  onClick: onDelete,
-                },
-              ]}
-            />
-          </div>
+          <MoreMenu
+            size="sm"
+            items={[
+              pinAction,
+              ...(item.kind === "image"
+                ? [
+                    {
+                      label: isBackground
+                        ? "Remove from backgrounds"
+                        : "Use as background",
+                      icon: Wallpaper,
+                      active: isBackground,
+                      onClick: onToggleBackground,
+                    },
+                  ]
+                : []),
+              { divider: true },
+              {
+                label: "Delete",
+                icon: Trash2,
+                danger: true,
+                onClick: onDelete,
+              },
+            ]}
+          />
         </div>
       </div>
     </div>

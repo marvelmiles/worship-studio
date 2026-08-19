@@ -270,13 +270,25 @@ export function Presentation() {
   };
 
   /**
+   * Moves between the fullscreen stage and the floating presenter. Each holds
+   * its own video element, so the clip's position is handed over on the way
+   * across: without it the new element would open at the trim start and the
+   * clip would look as though popping out had stopped it.
+   */
+  const switchMode = (next: "stage" | "pip") => {
+    if (p.isVideoSlide)
+      p.seekVideoTo(p.videoRef.current?.getCurrentTime() ?? p.videoTime);
+    setPresentationMode(next);
+  };
+
+  /**
    * Shrinks the presentation into the floating presenter so the operator can
    * use the rest of the app. The projected window is untouched: the audience
    * keeps seeing the stage while this window hands the screen back.
    */
   const handleShrinkToPip = () => {
     if (document.fullscreenElement) void document.exitFullscreen?.();
-    setPresentationMode("pip");
+    switchMode("pip");
   };
 
   const currentLabel =
@@ -300,11 +312,16 @@ export function Presentation() {
           total={p.slides.length}
           paused={p.paused}
           isLive={live}
+          mediaPlayback={p.mediaPlayback}
+          // Only silenced while the projected window is carrying the sound.
+          muteMedia={live}
+          onMediaTime={p.onVideoTime}
+          onMediaEnded={p.onVideoEnded}
           rootRef={pipRef}
           onPrev={() => p.go(-1)}
           onNext={() => p.go(1)}
           onTogglePause={p.togglePause}
-          onOpenStage={() => setPresentationMode("stage")}
+          onOpenStage={() => switchMode("stage")}
           onGoLive={handleGoLive}
           onStopLive={() => {
             endLive();

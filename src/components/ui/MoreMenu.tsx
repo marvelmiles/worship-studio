@@ -25,6 +25,8 @@ interface MoreMenuProps {
   title?: string;
   side?: PopoverSide;
   align?: PopoverAlign;
+  /** Matches the trigger to the buttons beside it; "sm" on a library card. */
+  size?: "sm" | "md";
 }
 
 /**
@@ -37,6 +39,7 @@ export function MoreMenu({
   title = "More actions",
   side = "bottom",
   align = "end",
+  size = "md",
 }: MoreMenuProps) {
   const { colors } = useUITheme();
   const [open, setOpen] = useState(false);
@@ -47,7 +50,14 @@ export function MoreMenu({
       onOpenChange={setOpen}
       side={side}
       align={align}
-      trigger={<IconButton icon={MoreHorizontal} title={title} active={open} />}
+      trigger={
+        <IconButton
+          icon={MoreHorizontal}
+          title={title}
+          active={open}
+          size={size}
+        />
+      }
     >
       <div
         role="menu"

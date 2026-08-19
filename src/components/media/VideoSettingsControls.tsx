@@ -1,16 +1,10 @@
 import { TimerReset } from "lucide-react";
 import type { VideoSettings } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { formatDuration } from "../../lib/media";
+import { formatDuration, needsHoursField } from "../../lib/media";
 import { Button } from "../ui/Button";
-import {
-  Field,
-  Range,
-  SectionTitle,
-  Select,
-  TextInput,
-  Toggle,
-} from "../ui/Field";
+import { Field, Range, SectionTitle, Select, Toggle } from "../ui/Field";
+import { TimecodeInput } from "../ui/TimecodeInput";
 import { AdjustmentControls } from "./AdjustmentControls";
 
 const FIT_OPTIONS = [
@@ -49,6 +43,9 @@ export function VideoSettingsControls({
 }: VideoSettingsControlsProps) {
   const { colors, fonts } = useUITheme();
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
+  const withHours = needsHoursField(duration);
+  const timecodeShape = withHours ? "hh:mm:ss" : "mm:ss";
+  const capturePlayhead = () => Math.round(playheadTime());
 
   return (
     <>
@@ -63,27 +60,25 @@ export function VideoSettingsControls({
         }}
       >
         Playback runs from the trim start to the trim end
-        {duration ? ` (video is ${formatDuration(duration)})` : ""}. Scrub the
-        preview, then capture the playhead.
+        {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write both
+        as {timecodeShape}, or scrub the preview and capture the playhead.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
-        <Field label={`Start: ${formatDuration(settings.trimStart)}`}>
+        <Field label={`Start (${timecodeShape})`}>
           <div className="ws-row">
-            <TextInput
-              type="number"
-              min={0}
-              step={0.1}
-              value={String(settings.trimStart)}
-              onChange={(event) =>
-                onChange({
-                  trimStart: Math.max(0, Number(event.target.value) || 0),
-                })
+            <TimecodeInput
+              aria-label="Trim start"
+              seconds={settings.trimStart}
+              withHours={withHours}
+              max={duration}
+              onChange={(trimStart) =>
+                onChange({ trimStart: Math.max(0, trimStart ?? 0) })
               }
             />
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onChange({ trimStart: playheadTime() })}
+              onClick={() => onChange({ trimStart: capturePlayhead() })}
             >
               <TimerReset size={13} />
               Playhead
@@ -91,28 +86,22 @@ export function VideoSettingsControls({
           </div>
         </Field>
         <Field
-          label={`End: ${settings.trimEnd === null ? "full length" : formatDuration(settings.trimEnd)}`}
+          label={`End (${settings.trimEnd === null ? "full length" : timecodeShape})`}
         >
           <div className="ws-row">
-            <TextInput
-              type="number"
-              min={0}
-              step={0.1}
-              value={settings.trimEnd === null ? "" : String(settings.trimEnd)}
+            <TimecodeInput
+              aria-label="Trim end"
+              seconds={settings.trimEnd}
+              withHours={withHours}
+              max={duration}
               placeholder="Full length"
-              onChange={(event) =>
-                onChange({
-                  trimEnd:
-                    event.target.value === ""
-                      ? null
-                      : Math.max(0, Number(event.target.value) || 0),
-                })
-              }
+              clearable
+              onChange={(trimEnd) => onChange({ trimEnd })}
             />
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onChange({ trimEnd: playheadTime() })}
+              onClick={() => onChange({ trimEnd: capturePlayhead() })}
             >
               <TimerReset size={13} />
               Playhead

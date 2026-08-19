@@ -41,8 +41,7 @@ export interface ManuscriptsSlice {
   /** False when storage is full and the write was refused. */
   upsertManuscript: (manuscript: Manuscript) => boolean;
   createManuscript: () => Manuscript | null;
-  trashManuscript: (id: string) => void;
-  restoreManuscript: (id: string) => void;
+  /** Permanent: the library confirms with the user before calling this. */
   deleteManuscript: (id: string) => void;
 }
 
@@ -94,27 +93,6 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
     return manuscript;
   },
 
-  trashManuscript: (id) => {
-    const manuscript = get().manuscripts.find((m) => m.id === id);
-    if (manuscript && !manuscript.builtIn)
-      get().upsertManuscript({
-        ...manuscript,
-        deleted: true,
-        // A trashed manuscript is out of the listing a pin orders, so it gives
-        // its slot back rather than reclaiming one on restore.
-        pinned: undefined,
-        updatedAt: now(),
-      });
-  },
-  restoreManuscript: (id) => {
-    const manuscript = get().manuscripts.find((m) => m.id === id);
-    if (manuscript)
-      get().upsertManuscript({
-        ...manuscript,
-        deleted: false,
-        updatedAt: now(),
-      });
-  },
   deleteManuscript: (id) => {
     const manuscript = get().manuscripts.find((m) => m.id === id);
     if (manuscript?.builtIn) return;

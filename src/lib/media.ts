@@ -107,12 +107,53 @@ export function buildImageTransform(settings: ImageSettings): string {
 export const sortMediaByRecency = (a: MediaItem, b: MediaItem): number =>
   b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : 0;
 
+const SECONDS_PER_HOUR = 3600;
+
+const pad = (value: number): string => String(value).padStart(2, "0");
+
+/** True once a clip is long enough to need an hours field in its timecodes. */
+export const needsHoursField = (seconds?: number): boolean =>
+  seconds !== undefined &&
+  Number.isFinite(seconds) &&
+  seconds >= SECONDS_PER_HOUR;
+
 export function formatDuration(seconds?: number): string {
   if (seconds === undefined || !Number.isFinite(seconds)) return "";
-  const total = Math.round(seconds);
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / SECONDS_PER_HOUR);
+  const minutes = Math.floor((total % SECONDS_PER_HOUR) / 60);
+  const secs = total % 60;
+  return hours > 0
+    ? `${hours}:${pad(minutes)}:${pad(secs)}`
+    : `${minutes}:${pad(secs)}`;
+}
+
+/**
+ * A position in a clip written the way an editor types it: `mm:ss`, or
+ * `hh:mm:ss` once the clip runs past an hour.
+ */
+export function formatTimecode(seconds: number, withHours: boolean): string {
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / SECONDS_PER_HOUR);
+  const minutes = Math.floor((total % SECONDS_PER_HOUR) / 60);
+  const secs = total % 60;
+  return withHours
+    ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}`
+    : `${pad(minutes)}:${pad(secs)}`;
+}
+
+/**
+ * Reads a typed timecode back into seconds, accepting the shorthand a person
+ * actually types: `90`, `1:30` and `00:01:30` all land on the same second.
+ * Null for anything that is not a time, so a half-typed field is left alone
+ * rather than snapping to zero under the cursor.
+ */
+export function parseTimecode(value: string): number | null {
+  const text = value.trim();
+  if (!/^\d{1,3}(:\d{1,2}){0,2}$/.test(text)) return null;
+  const parts = text.split(":").map(Number);
+  if (parts.some((part) => !Number.isFinite(part))) return null;
+  return parts.reduce((total, part) => total * 60 + part, 0);
 }
 
 export interface MediaProbe {

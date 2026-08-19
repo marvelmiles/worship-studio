@@ -80,6 +80,16 @@ export const VideoSurface = forwardRef<VideoSurfaceHandle, VideoSurfaceProps>(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [seekToken, src]);
 
+    // A clip only reports its length once its headers are in, and a seek made
+    // before then is dropped, so the trim start is claimed again here.
+    const handleLoadedMetadata = () => {
+      const el = videoRef.current;
+      if (!el) return;
+      const { trimStart } = appliedRef.current;
+      if (el.currentTime < trimStart) el.currentTime = trimStart;
+      onTimeUpdate?.(el.currentTime, el.duration || 0);
+    };
+
     const handleTimeUpdate = () => {
       const el = videoRef.current;
       if (!el) return;
@@ -128,6 +138,7 @@ export const VideoSurface = forwardRef<VideoSurfaceHandle, VideoSurfaceProps>(
             ref={videoRef}
             src={src}
             playsInline
+            onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleEnded}
             style={{

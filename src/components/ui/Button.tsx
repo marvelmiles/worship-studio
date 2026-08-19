@@ -99,7 +99,15 @@ interface IconButtonProps {
   active?: boolean;
   danger?: boolean;
   disabled?: boolean;
+  /** "sm" matches a small labelled button, so the two line up in one row. */
+  size?: "sm" | "md";
 }
+
+/** Square sizes, chosen so each matches the height of the Button of that size. */
+const ICON_BUTTON_BOX: Record<"sm" | "md", { box: number; icon: number }> = {
+  sm: { box: 29, icon: 15 },
+  md: { box: 34, icon: 16.5 },
+};
 
 export function IconButton({
   icon: Icon,
@@ -108,9 +116,11 @@ export function IconButton({
   active,
   danger,
   disabled,
+  size = "md",
 }: IconButtonProps) {
   const { colors } = useUITheme();
   const restBackground = active ? fade(colors.accent, 0.16) : "transparent";
+  const { box, icon } = ICON_BUTTON_BOX[size];
   return (
     <button
       title={title}
@@ -121,8 +131,8 @@ export function IconButton({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 34,
-        height: 34,
+        width: box,
+        height: box,
         borderRadius: 9,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.45 : 1,
@@ -139,7 +149,7 @@ export function IconButton({
       }}
       onMouseLeave={(e) => (e.currentTarget.style.background = restBackground)}
     >
-      <Icon size={16.5} />
+      <Icon size={icon} />
     </button>
   );
 }

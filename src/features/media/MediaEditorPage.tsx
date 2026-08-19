@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Undo2 } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
@@ -6,19 +6,23 @@ import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { useMediaPlayback } from "../../hooks/useMediaPlayback";
+import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
 } from "../../hooks/useUnsavedChanges";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { buildFilter, formatDuration } from "../../lib/media";
+import { formatDuration } from "../../lib/media";
 import { formatBytes } from "../../lib/storageStats";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ImageLayer } from "../../components/media/ImageLayer";
 import { ImageSettingsControls } from "../../components/media/ImageSettingsControls";
+import { VideoPreviewControls } from "../../components/media/VideoPreviewControls";
 import { VideoSettingsControls } from "../../components/media/VideoSettingsControls";
+import { VideoSurface } from "../../components/media/VideoSurface";
 import { useMediaEditor } from "./useMediaEditor";
 
 const LIBRARY_PATH: Record<MediaKind, string> = {
@@ -88,19 +92,45 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
   const compact = width < 560;
   const pushToast = useStore((s) => s.pushToast);
   const editor = useMediaEditor(item);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const src = useBlobUrl(item.id);
   const leaveGuard = useUnsavedChanges(editor.dirty);
 
   useDocumentTitle(`${editor.draft.name} · WorshipStudio`);
 
   const isImage = item.kind === "image";
-  const duration = item.duration || videoRef.current?.duration || 0;
+  const videoSettings = editor.draft.video;
+  // A preview does not start playing on its own: the editor is opened to look
+  // at a clip, not to have it run.
+  const video = useMediaPlayback(videoSettings, { autoPlay: false });
+  const duration = item.duration || video.duration || 0;
+  const trimEnd = videoSettings.trimEnd ?? duration;
+
+  useUndoRedoShortcuts({
+    canUndo: editor.canUndo,
+    canRedo: editor.canRedo,
+    undo: editor.undo,
+    redo: editor.redo,
+  });
+
+  // The transport owns whether the clip is running and where; the sidebar owns
+  // how it sounds, so the volume and mute controls are heard as they are set.
+  const previewPlayback = useMemo(
+    () => ({
+      ...video.playback,
+      volume: videoSettings.volume,
+      muted: video.playback.muted || videoSettings.muted,
+    }),
+    [video.playback, videoSettings.volume, videoSettings.muted],
+  );
 
   // A refused save (storage full) raises its own alert from the store, so the
   // editor stays dirty and says nothing rather than claiming it wrote.
   const handleSave = () => {
-    if (editor.save()) pushToast(isImage ? "Image saved." : "Video saved.");
+    if (!editor.save()) return;
+    pushToast(isImage ? "Image saved." : "Video saved.");
+    // Saved settings are shown rather than described: the clip runs again from
+    // its trim start, under the trim, speed and grading just written.
+    if (!isImage) video.restart();
   };
 
   const handleUpdatePresentation = () => {
@@ -112,43 +142,62 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
       style={{
         height: "100%",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        flexDirection: "column",
+        gap: 12,
         padding: stacked ? 16 : 24,
         minHeight: 0,
       }}
     >
       <div
         style={{
-          position: "relative",
-          width: "100%",
-          maxHeight: "100%",
-          aspectRatio: "16/9",
-          borderRadius: 14,
-          overflow: "hidden",
-          border: `1px solid ${colors.border}`,
-          background: "#000",
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {isImage ? (
-          <ImageLayer src={src} alt={item.name} settings={editor.draft.image} />
-        ) : (
-          <video
-            ref={videoRef}
-            src={src || undefined}
-            controls
-            playsInline
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: editor.draft.video.fit,
-              filter: buildFilter(editor.draft.video),
-            }}
-          />
-        )}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            maxHeight: "100%",
+            aspectRatio: "16/9",
+            borderRadius: 14,
+            overflow: "hidden",
+            border: `1px solid ${colors.border}`,
+            background: "#000",
+          }}
+        >
+          {isImage ? (
+            <ImageLayer
+              src={src}
+              alt={item.name}
+              settings={editor.draft.image}
+            />
+          ) : (
+            <VideoSurface
+              ref={video.surfaceRef}
+              item={item}
+              settings={videoSettings}
+              playback={previewPlayback}
+              onTimeUpdate={video.onTimeUpdate}
+              onEnded={video.onEnded}
+            />
+          )}
+        </div>
       </div>
+      {!isImage && (
+        <VideoPreviewControls
+          playing={video.playback.playing}
+          time={video.time}
+          trimStart={videoSettings.trimStart}
+          trimEnd={trimEnd}
+          onTogglePlaying={video.togglePlaying}
+          onRestart={video.restart}
+          onSeek={video.seekTo}
+        />
+      )}
     </div>
   );
 
@@ -175,10 +224,12 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
         />
       ) : (
         <VideoSettingsControls
-          settings={editor.draft.video}
+          settings={videoSettings}
           onChange={editor.patchVideo}
           duration={duration}
-          playheadTime={() => videoRef.current?.currentTime ?? 0}
+          playheadTime={() =>
+            video.surfaceRef.current?.getCurrentTime() ?? video.time
+          }
           narrow
         />
       )}

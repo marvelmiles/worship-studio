@@ -66,6 +66,17 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Editors",
+    note: "Available in the manuscript, scripture, image and video editors. One step covers everything the editor holds: typing, formatting, slide changes and picture or clip settings alike.",
+    shortcuts: [
+      { keys: ["Ctrl", "+", "Z"], description: "Undo the last change" },
+      {
+        keys: ["Ctrl", "+", "Y"],
+        description: "Redo (Ctrl+Shift+Z works too)",
+      },
+    ],
+  },
+  {
     title: "Bible Page & Scripture Editor",
     note: "Available while reading on the Bible page, or editing a saved passage.",
     shortcuts: [

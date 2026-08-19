@@ -4,10 +4,7 @@ import { slideIndexForVerse } from "../bible/lib/scriptureSlides";
 import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
-import {
-  DEFAULT_MEDIA_PLAYBACK,
-  type MediaPlayback,
-} from "../../lib/presentChannel";
+import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { videoSettingsOf } from "../../lib/media";
 import {
   resolveAudioId,
@@ -20,7 +17,6 @@ import {
 } from "../../lib/tagGroups";
 import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
-import type { VideoSurfaceHandle } from "../../components/media/VideoSurface";
 
 const VIEW_ORDER: PresentationView[] = ["normal", "cover", "fill"];
 const ZOOM_MIN = 0.5;
@@ -64,13 +60,7 @@ export function usePresentation(
   const [view, setView] = useState<PresentationView>(prefs.presentationView);
   const [showInfo, setShowInfo] = useState(prefs.showPresenterBar);
   const [elapsed, setElapsed] = useState(0);
-  const [mediaPlayback, setMediaPlayback] = useState<MediaPlayback>(
-    DEFAULT_MEDIA_PLAYBACK,
-  );
-  const [videoTime, setVideoTime] = useState(0);
-  const [videoDuration, setVideoDuration] = useState(0);
 
-  const videoRef = useRef<VideoSurfaceHandle>(null);
   const textSlides = useMemo(
     () => slides.flatMap((s) => (s.kind === "text" ? [s.slide] : [])),
     [slides],
@@ -104,6 +94,21 @@ export function usePresentation(
   const videoSettings = currentVideoItem
     ? videoSettingsOf(currentVideoItem)
     : undefined;
+  const video = useMediaPlayback(videoSettings);
+  const {
+    surfaceRef: videoRef,
+    playback: mediaPlayback,
+    time: videoTime,
+    duration: videoDuration,
+    togglePlaying: toggleVideoPlaying,
+    toggleMuted: toggleVideoMuted,
+    setVolume: setVideoVolume,
+    seekTo: seekVideoTo,
+    seekBy: seekVideoBy,
+    restart: restartVideo,
+    onTimeUpdate: onVideoTime,
+    onEnded: onVideoEnded,
+  } = video;
 
   const audioId = doc ? resolveAudioId(currentTextSlide, doc, theme) : null;
   const audioItem = audio.find((a) => a.id === audioId);
@@ -172,62 +177,13 @@ export function usePresentation(
   );
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
-  const toggleVideoPlaying = useCallback(
-    () => setMediaPlayback((p) => ({ ...p, playing: !p.playing })),
-    [],
-  );
-  const toggleVideoMuted = useCallback(
-    () => setMediaPlayback((p) => ({ ...p, muted: !p.muted })),
-    [],
-  );
-  const setVideoVolume = useCallback(
-    (volume: number) =>
-      setMediaPlayback((p) => ({ ...p, volume, muted: false })),
-    [],
-  );
-  const seekVideoTo = useCallback((time: number) => {
-    setMediaPlayback((p) => ({
-      ...p,
-      seekTime: time,
-      seekToken: p.seekToken + 1,
-    }));
-    setVideoTime(time);
-  }, []);
-  const seekVideoBy = useCallback(
-    (delta: number) => {
-      const start = videoSettings?.trimStart ?? 0;
-      const end = videoSettings?.trimEnd ?? (videoDuration || Infinity);
-      const current = videoRef.current?.getCurrentTime() ?? videoTime;
-      seekVideoTo(Math.max(start, Math.min(end, current + delta)));
-    },
-    [seekVideoTo, videoSettings, videoDuration, videoTime],
-  );
-  const restartVideo = useCallback(() => {
-    seekVideoTo(videoSettings?.trimStart ?? 0);
-    setMediaPlayback((p) => ({ ...p, playing: true }));
-  }, [seekVideoTo, videoSettings]);
-
-  const onVideoTime = useCallback((time: number, duration: number) => {
-    setVideoTime(time);
-    if (duration) setVideoDuration(duration);
-  }, []);
-  const onVideoEnded = useCallback(
-    () => setMediaPlayback((p) => ({ ...p, playing: false })),
-    [],
-  );
-
   // A fresh video slide always starts playing from its trim point.
   const curVideoId = currentVideoItem?.id;
+  const { reset: resetVideo } = video;
   useEffect(() => {
     if (!curVideoId) return;
-    setVideoTime(0);
-    setVideoDuration(0);
-    setMediaPlayback((p) => ({
-      ...DEFAULT_MEDIA_PLAYBACK,
-      seekToken: p.seekToken + 1,
-      seekTime: 0,
-    }));
-  }, [curVideoId]);
+    resetVideo();
+  }, [curVideoId, resetVideo]);
 
   // Read through a ref so changing the gate never re-binds the listeners.
   const shortcutGateRef = useRef(shortcutGate);

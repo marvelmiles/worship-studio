@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
+import type { MediaPlayback } from "../../lib/presentChannel";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoSurface } from "../../components/media/VideoSurface";
@@ -31,6 +32,15 @@ interface PresenterPipProps {
   total: number;
   paused: boolean;
   isLive: boolean;
+  /**
+   * Playback of a clip on the stage, carried over so shrinking the stage into
+   * this window never stops what the audience is watching.
+   */
+  mediaPlayback: MediaPlayback;
+  /** Silences this copy: the projected window is the one playing the sound. */
+  muteMedia: boolean;
+  onMediaTime: (time: number, duration: number) => void;
+  onMediaEnded: () => void;
   /** Owned by the parent so it can gate presentation shortcuts on focus. */
   rootRef: RefObject<HTMLDivElement>;
   onPrev: () => void;
@@ -62,6 +72,10 @@ export function PresenterPip({
   total,
   paused,
   isLive,
+  mediaPlayback,
+  muteMedia,
+  onMediaTime,
+  onMediaEnded,
   rootRef,
   onPrev,
   onNext,
@@ -242,8 +256,13 @@ export function PresenterPip({
           <ImageSurface item={content.item} variant="thumb" />
         )}
         {content.kind === "video" && (
-          // Muted: the projected window is the one that plays sound.
-          <VideoSurface item={content.item} forceMuted />
+          <VideoSurface
+            item={content.item}
+            playback={mediaPlayback}
+            forceMuted={muteMedia}
+            onTimeUpdate={onMediaTime}
+            onEnded={onMediaEnded}
+          />
         )}
       </div>
 

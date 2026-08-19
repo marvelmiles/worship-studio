@@ -22,6 +22,7 @@ import { useBgMap } from "../../hooks/useBgMap";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
 import type { TextChangeMeta } from "../../hooks/useTextFormatting";
+import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
@@ -178,6 +179,15 @@ export function DeckWorkspace({
     value: slideText,
     onChange: onSlideTextChange,
     history: editor.history,
+  });
+
+  // Stepped through the text controller rather than the editor directly, so an
+  // undo puts the caret back where the writer was as well as the text.
+  useUndoRedoShortcuts({
+    canUndo: editor.canUndo,
+    canRedo: editor.canRedo,
+    undo: formatting.undo,
+    redo: formatting.redo,
   });
 
   // Line-scoped styling follows the caret, so the inspector always acts on the
