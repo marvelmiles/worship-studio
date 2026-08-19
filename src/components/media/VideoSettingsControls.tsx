@@ -27,6 +27,11 @@ interface VideoSettingsControlsProps {
   onChange: (changes: Partial<VideoSettings>) => void;
   /** Length of the clip, shown so the trim points read against something. */
   duration?: number;
+  /**
+   * Reports what a field is refusing, so the editor holding these settings can
+   * keep its save disabled until every one of them is usable.
+   */
+  onIssueChange?: (field: string, message: string | null) => void;
   /** Stacks the paired controls, for a narrow sidebar. */
   narrow?: boolean;
 }
@@ -40,6 +45,7 @@ export function VideoSettingsControls({
   settings,
   onChange,
   duration,
+  onIssueChange,
   narrow,
 }: VideoSettingsControlsProps) {
   const { colors, fonts } = useUITheme();
@@ -74,6 +80,7 @@ export function VideoSettingsControls({
             validate={(value) =>
               validateTrimStart(value, settings.trimEnd, bounds)
             }
+            onErrorChange={(message) => onIssueChange?.("trimStart", message)}
             onChange={(trimStart) => onChange({ trimStart: trimStart ?? 0 })}
           />
         </Field>
@@ -87,6 +94,7 @@ export function VideoSettingsControls({
             validate={(value) =>
               validateTrimEnd(value, settings.trimStart, bounds)
             }
+            onErrorChange={(message) => onIssueChange?.("trimEnd", message)}
             onChange={(trimEnd) => onChange({ trimEnd })}
           />
         </Field>

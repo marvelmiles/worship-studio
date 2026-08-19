@@ -12,6 +12,15 @@ export interface MediaPlaybackOptions {
   autoPlay?: boolean;
 }
 
+/** Another surface's transport, taken on wholesale. */
+export interface AdoptedPlayback {
+  playing: boolean;
+  muted: boolean;
+  volume: number;
+  /** Where that surface's clip has got to. */
+  time: number;
+}
+
 export interface RestartOptions {
   playing?: boolean;
   /** Where to land, defaulting to the clip's trim start. */
@@ -34,6 +43,12 @@ export interface MediaPlaybackController {
   seekBy: (delta: number) => void;
   /** Back to the trim start and running, after a changed trim or a rewind. */
   restart: (options?: RestartOptions) => void;
+  /**
+   * Takes another surface's transport on: what it is doing, how it sounds and
+   * where it has got to, in one step. Used to bring an editor's preview into
+   * line with the clip the audience is already watching.
+   */
+  adopt: (state: AdoptedPlayback) => void;
   /** A different clip entirely: the whole transport starts over. */
   reset: () => void;
   onTimeUpdate: (time: number, duration: number) => void;
@@ -119,6 +134,17 @@ export function useMediaPlayback(
     [trimStart],
   );
 
+  const adopt = useCallback((state: AdoptedPlayback) => {
+    setTime(state.time);
+    setPlayback((current) => ({
+      playing: state.playing,
+      muted: state.muted,
+      volume: state.volume,
+      seekTime: state.time,
+      seekToken: current.seekToken + 1,
+    }));
+  }, []);
+
   const reset = useCallback(() => {
     setTime(trimStart);
     setDuration(0);
@@ -152,6 +178,7 @@ export function useMediaPlayback(
     seekTo,
     seekBy,
     restart,
+    adopt,
     reset,
     onTimeUpdate,
     onEnded,

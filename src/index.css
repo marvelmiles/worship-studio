@@ -376,3 +376,30 @@ input[type="range"].ws-scrubber::-moz-range-progress {
     animation: none;
   }
 }
+
+/*
+ * The ring drawn around an item a deep link points at (see useAttention). The
+ * solid outline stays for as long as the class is on the element; the halo
+ * pulses twice and settles, which catches the eye without turning into a
+ * selected state the user has to dismiss.
+ */
+.ws-attention {
+  box-shadow:
+    0 0 0 2px var(--ws-accent, #2563eb),
+    0 0 0 0 transparent;
+  animation: wsAttention 1.15s ease-in-out 2;
+}
+
+@keyframes wsAttention {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px var(--ws-accent, #2563eb),
+      0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--ws-accent, #2563eb),
+      0 0 0 9px color-mix(in srgb, var(--ws-accent, #2563eb) 26%, transparent);
+  }
+}

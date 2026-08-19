@@ -23,6 +23,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
 import type { TextChangeMeta } from "../../hooks/useTextFormatting";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
+import { useValidation } from "../../hooks/useValidation";
 import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
@@ -33,6 +34,7 @@ import {
   resolveStyle,
 } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
+import { validateName } from "../../lib/validation";
 import { createSlideTextBox } from "../../lib/slideTextBox";
 import { DEFAULT_SLIDE_ELEMENTS } from "../../lib/slideElements";
 import type { SlideElementCapabilities } from "../../lib/slideElements";
@@ -51,6 +53,12 @@ import type {
 } from "./SlideElementOverlay";
 
 type MobileTab = "slides" | "edit" | "style";
+
+/** What each kind of deck calls the thing at the top of its editor. */
+const TITLE_LABEL: Partial<Record<ContentKind, string>> = {
+  manuscript: "manuscript title",
+  scripture: "passage title",
+};
 
 interface ContextState {
   index: number;
@@ -118,6 +126,9 @@ export function DeckWorkspace({
   const [pickedTextBoxId, setPickedTextBoxId] = useState<string | null>(null);
 
   const leaveGuard = useUnsavedChanges(editor.dirty);
+  const validation = useValidation({
+    title: validateName(doc.title, TITLE_LABEL[kind] ?? "title"),
+  });
 
   const slide = editor.selectedSlide;
   const slideId = slide?.id ?? null;
@@ -210,13 +221,27 @@ export function DeckWorkspace({
     updatePresentation(kind, doc);
   };
 
+  // Nothing leaves the editor while something in it is refusing what was typed:
+  // the save control is already disabled by then, and this says why for any
+  // other route in rather than writing a document with a hole in it.
   // A refused save (storage full) raises its own alert from the store, so the
   // editor stays dirty and says nothing rather than claiming it wrote.
+  const refuse = () =>
+    pushToast(validation.message ?? "Fix the highlighted fields.", "error");
+
   const handleSave = () => {
+    if (validation.invalid) {
+      refuse();
+      return;
+    }
     if (editor.save()) pushToast("Changes saved.");
   };
 
   const handleUpdatePresentation = () => {
+    if (validation.invalid) {
+      refuse();
+      return;
+    }
     if (updatePresentation(kind, doc)) pushToast("Presentation updated.");
   };
 
@@ -400,6 +425,9 @@ export function DeckWorkspace({
         onPresent={present}
         actions={topBarActions(width < 560)}
         dirty={editor.dirty}
+        titleError={validation.messageFor("title")}
+        invalid={validation.invalid}
+        invalidReason={validation.message}
         canUndo={editor.canUndo}
         canRedo={editor.canRedo}
         onUndo={formatting.undo}

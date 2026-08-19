@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import {
   formatTimecode,
@@ -19,6 +19,12 @@ interface TimecodeInputProps {
   clearable?: boolean;
   /** Returns why this position can't be used here, or null when it can. */
   validate?: (seconds: number | null) => string | null;
+  /**
+   * Reports what the field is refusing, so the editor around it can hold its
+   * save back rather than writing the last usable value behind the operator's
+   * back. Called with null the moment the field is usable again.
+   */
+  onErrorChange?: (message: string | null) => void;
   "aria-label"?: string;
 }
 
@@ -49,6 +55,7 @@ export function TimecodeInput({
   placeholder,
   clearable,
   validate,
+  onErrorChange,
   "aria-label": ariaLabel,
 }: TimecodeInputProps) {
   const { colors, fonts } = useUITheme();
@@ -57,6 +64,15 @@ export function TimecodeInput({
   const live = typing?.seconds === seconds ? typing : null;
   const value = live ? live.text : settled;
   const error = live?.error ?? null;
+
+  // Read through a ref so a caller passing an inline handler never re-runs the
+  // report, and unmounting clears whatever this field was holding back.
+  const report = useRef(onErrorChange);
+  report.current = onErrorChange;
+  useEffect(() => {
+    report.current?.(error);
+    return () => report.current?.(null);
+  }, [error]);
 
   const reject = (text: string, message: string) =>
     setTyping({ text, seconds, error: message });

@@ -13,6 +13,7 @@ import type { Background } from "../../types";
 import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
+import { overlayTarget } from "../../lib/overlayTarget";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
 import { greeting, itemActivity, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
@@ -195,7 +196,7 @@ export function useDashboardData() {
         detail: "Audio · added",
         at: a.createdAt,
         icon: Volume2,
-        open: () => openOverlay("assets", "audio"),
+        open: () => openOverlay("assets", overlayTarget("audio", a.id)),
       });
     }
 
@@ -207,7 +208,7 @@ export function useDashboardData() {
         detail: "Background · added",
         at: b.createdAt,
         icon: Wallpaper,
-        open: () => openOverlay("assets", "backgrounds"),
+        open: () => openOverlay("assets", overlayTarget("backgrounds", b.id)),
       });
     }
 

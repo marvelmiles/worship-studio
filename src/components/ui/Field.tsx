@@ -22,13 +22,14 @@ export const inputStyle: CSSProperties = {
   outline: "none",
 };
 
-export function Field({
-  label,
-  children,
-}: {
+interface FieldProps {
   label: string;
+  /** Why what is in the field can't be used, shown under it in the danger tone. */
+  error?: string | null;
   children: ReactNode;
-}) {
+}
+
+export function Field({ label, error, children }: FieldProps) {
   const { colors: c, fonts } = useUITheme();
   return (
     <label style={{ display: "block", marginBottom: 13 }}>
@@ -40,32 +41,58 @@ export function Field({
           fontWeight: 600,
           letterSpacing: 0.4,
           textTransform: "uppercase",
-          color: c.dim,
+          color: error ? c.danger : c.dim,
           marginBottom: 6,
         }}
       >
         {label}
       </span>
       {children}
+      {error && (
+        <span
+          role="alert"
+          style={{
+            display: "block",
+            marginTop: 6,
+            fontFamily: fonts.ui,
+            fontSize: 11.5,
+            lineHeight: 1.45,
+            color: c.danger,
+            textTransform: "none",
+            letterSpacing: 0,
+          }}
+        >
+          {error}
+        </span>
+      )}
     </label>
   );
 }
 
-type TextInputProps = InputHTMLAttributes<HTMLInputElement>;
+interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
+  /** Paints the field in the danger tone and keeps it there through focus. */
+  invalid?: boolean;
+}
 
 export function TextInput(props: TextInputProps) {
   const { colors: c } = useUITheme();
-  const { style, onFocus, onBlur, ...rest } = props;
+  const { style, onFocus, onBlur, invalid, ...rest } = props;
+  const resting = invalid ? c.danger : c.border;
   return (
     <input
       {...rest}
-      style={{ ...inputStyle, ...(style || {}) }}
+      aria-invalid={invalid || undefined}
+      style={{
+        ...inputStyle,
+        ...(invalid ? { borderColor: c.danger } : {}),
+        ...(style || {}),
+      }}
       onFocus={(e) => {
-        e.target.style.borderColor = c.borderStrong;
+        e.target.style.borderColor = invalid ? c.danger : c.borderStrong;
         onFocus?.(e);
       }}
       onBlur={(e) => {
-        e.target.style.borderColor = c.border;
+        e.target.style.borderColor = resting;
         onBlur?.(e);
       }}
     />

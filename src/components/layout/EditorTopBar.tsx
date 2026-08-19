@@ -1,6 +1,14 @@
 import type { ReactNode } from "react";
-import { ArrowLeft, MonitorUp, Play, Redo2, Save, Undo2 } from "lucide-react";
-import { colors, DISPLAY } from "../../theme/tokens";
+import {
+  ArrowLeft,
+  MonitorDown,
+  MonitorUp,
+  Play,
+  Redo2,
+  Save,
+  Undo2,
+} from "lucide-react";
+import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { Button, IconButton } from "../ui/Button";
 import { PresentMenu } from "../ui/PresentMenu";
 
@@ -15,6 +23,16 @@ interface EditorTopBarProps {
   /** Editor-specific controls, dropped in before the shared ones. */
   actions?: ReactNode;
   dirty: boolean;
+  /** Why the title can't be used, shown under it and holding the save back. */
+  titleError?: string | null;
+  /**
+   * True while anything in the editor is refusing to be saved. The save control
+   * says what is wrong rather than writing a document the operator would have
+   * to find and fix later.
+   */
+  invalid?: boolean;
+  /** The first thing wrong, used as the disabled save control's reason. */
+  invalidReason?: string | null;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -22,11 +40,16 @@ interface EditorTopBarProps {
   onSave: () => void;
   /** Only set while this document is the one being presented. */
   onUpdatePresentation?: () => void;
+  /**
+   * Takes the running presentation's state back into the editor. Only set when
+   * there is something live to take, which is a clip this editor is presenting.
+   */
+  onSyncFromPresentation?: () => void;
 }
 
 /**
  * The header every editor in the studio wears: where you came from, what you
- * are editing, undo and redo, and the three things you do with the result —
+ * are editing, undo and redo, and the three things you do with the result:
  * push it to the running presentation, save it, present it.
  */
 export function EditorTopBar({
@@ -38,13 +61,24 @@ export function EditorTopBar({
   onPresent,
   actions,
   dirty,
+  titleError,
+  invalid,
+  invalidReason,
   canUndo,
   canRedo,
   onUndo,
   onRedo,
   onSave,
   onUpdatePresentation,
+  onSyncFromPresentation,
 }: EditorTopBarProps) {
+  const blocked = Boolean(invalid);
+  const saveTitle = blocked
+    ? (invalidReason ?? "Fix the highlighted fields to save")
+    : dirty
+      ? "Save changes"
+      : "No changes to save";
+
   return (
     <div
       style={{
@@ -57,22 +91,40 @@ export function EditorTopBar({
       }}
     >
       <IconButton icon={ArrowLeft} title={backTitle} onClick={onBack} />
-      <input
-        value={title}
-        onChange={(event) => onTitle(event.target.value)}
-        aria-label="Title"
-        style={{
-          flex: 1,
-          minWidth: 120,
-          background: "transparent",
-          border: "none",
-          outline: "none",
-          fontFamily: DISPLAY,
-          fontSize: compact ? 17 : 20,
-          fontWeight: 600,
-          color: colors.text,
-        }}
-      />
+      <div style={{ flex: 1, minWidth: 120 }}>
+        <input
+          value={title}
+          onChange={(event) => onTitle(event.target.value)}
+          aria-label="Title"
+          aria-invalid={titleError ? true : undefined}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            borderBottom: `1px solid ${titleError ? colors.danger : "transparent"}`,
+            outline: "none",
+            fontFamily: DISPLAY,
+            fontSize: compact ? 17 : 20,
+            fontWeight: 600,
+            color: colors.text,
+          }}
+        />
+        {titleError && (
+          <span
+            role="alert"
+            style={{
+              display: "block",
+              marginTop: 3,
+              fontFamily: UI,
+              fontSize: 11.5,
+              lineHeight: 1.4,
+              color: colors.danger,
+            }}
+          >
+            {titleError}
+          </span>
+        )}
+      </div>
       <IconButton
         icon={Undo2}
         title="Undo (Ctrl+Z)"
@@ -86,6 +138,19 @@ export function EditorTopBar({
         onClick={onRedo}
       />
       {actions}
+      {onSyncFromPresentation &&
+        (compact ? (
+          <IconButton
+            icon={MonitorDown}
+            title="Sync with the presentation"
+            onClick={onSyncFromPresentation}
+          />
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onSyncFromPresentation}>
+            <MonitorDown size={14} />
+            Sync with presentation
+          </Button>
+        ))}
       {onUpdatePresentation &&
         (compact ? (
           <IconButton
@@ -102,16 +167,17 @@ export function EditorTopBar({
       {compact ? (
         <IconButton
           icon={Save}
-          title={dirty ? "Save changes" : "No changes to save"}
-          disabled={!dirty}
-          active={dirty}
+          title={saveTitle}
+          disabled={!dirty || blocked}
+          active={dirty && !blocked}
           onClick={onSave}
         />
       ) : (
         <Button
-          variant={dirty ? "primary" : "ghost"}
+          variant={dirty && !blocked ? "primary" : "ghost"}
           size="sm"
-          disabled={!dirty}
+          title={saveTitle}
+          disabled={!dirty || blocked}
           onClick={onSave}
         >
           <Save size={14} />

@@ -4,7 +4,13 @@ import type { Background, Slide, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { colors, fade, UI } from "../../theme/tokens";
+import {
+  ATTENTION_CLASS,
+  attentionAttribute,
+  useAttention,
+} from "../../hooks/useAttention";
 import { resolveStyle } from "../../lib/resolve";
+import { validateName } from "../../lib/validation";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import {
@@ -76,19 +82,17 @@ export function ThemesModal() {
   const hasUnsavedChanges = Boolean(
     draft && savedTheme && JSON.stringify(draft) !== JSON.stringify(savedTheme),
   );
+  const nameError = draft ? validateName(draft.name, "theme name") : null;
 
   // Deep links (like dashboard activities) open the modal on a specific theme,
-  // scrolled so that theme's card is visible.
+  // scrolled to and ringed for a moment so it can be picked out of the list.
   const listRef = useRef<HTMLDivElement>(null);
+  const deepLinkedId = overlay === "themes" ? overlayContext : null;
+  const attentionId = useAttention(deepLinkedId, listRef);
   useEffect(() => {
-    if (overlay !== "themes" || !overlayContext) return;
-    setSelectedId(overlayContext);
-    requestAnimationFrame(() => {
-      listRef.current
-        ?.querySelector(`[data-theme-id="${overlayContext}"]`)
-        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    });
-  }, [overlay, overlayContext]);
+    if (!deepLinkedId) return;
+    setSelectedId(deepLinkedId);
+  }, [deepLinkedId]);
 
   const backgroundById = useMemo(() => {
     const map: Record<string, Background> = {};
@@ -101,8 +105,13 @@ export function ThemesModal() {
 
   const saveDraft = () => {
     if (!draft) return;
-    upsertTheme(draft);
-    pushToast(`Theme "${draft.name}" saved.`);
+    if (nameError) {
+      pushToast(nameError, "error");
+      return;
+    }
+    const named = { ...draft, name: draft.name.trim() };
+    upsertTheme(named);
+    pushToast(`Theme "${named.name}" saved.`);
   };
 
   const discardChanges = () => {
@@ -160,6 +169,7 @@ export function ThemesModal() {
                 theme={theme}
                 background={backgroundById[theme.backgroundId]}
                 active={theme.id === savedTheme?.id}
+                attention={theme.id === attentionId}
                 onSelect={() => setSelectedId(theme.id)}
               />
             ))}
@@ -181,7 +191,8 @@ export function ThemesModal() {
                 variant="primary"
                 size="sm"
                 onClick={saveDraft}
-                disabled={!hasUnsavedChanges}
+                disabled={!hasUnsavedChanges || Boolean(nameError)}
+                title={nameError ?? "Save this theme"}
               >
                 <Check size={14} />
                 Save theme
@@ -210,9 +221,10 @@ export function ThemesModal() {
               )}
             </div>
 
-            <Field label="Theme name">
+            <Field label="Theme name" error={nameError}>
               <TextInput
                 value={draft.name}
+                invalid={Boolean(nameError)}
                 onChange={(e) => patchDraft({ name: e.target.value })}
               />
             </Field>
@@ -324,17 +336,21 @@ function ThemeCard({
   theme,
   background,
   active,
+  attention,
   onSelect,
 }: {
   theme: Theme;
   background: Background;
   active: boolean;
+  /** Ringed for a moment because a deep link pointed at this theme. */
+  attention: boolean;
   onSelect: () => void;
 }) {
   return (
     <button
       onClick={onSelect}
-      data-theme-id={theme.id}
+      {...attentionAttribute(theme.id)}
+      className={attention ? ATTENTION_CLASS : undefined}
       style={{
         display: "block",
         width: "100%",

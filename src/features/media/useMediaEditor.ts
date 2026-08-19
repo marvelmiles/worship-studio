@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { ImageSettings, MediaItem, VideoSettings } from "../../types";
 import { useStore } from "../../store/useStore";
+import type { PresentedMedia } from "../../store/slices/presentSlice";
 import { useDraftHistory } from "../../hooks/useDraftHistory";
 import {
   DEFAULT_IMAGE_SETTINGS,
@@ -71,6 +72,17 @@ export interface MediaEditor {
   isPresenting: boolean;
   /** Pushes the draft onto the running presentation. */
   updatePresentation: () => boolean;
+  /**
+   * The transport of the clip the presentation is running, when that clip is
+   * this one. Null for a picture, or while nothing of this item is on.
+   */
+  presentedVideo: PresentedMedia | null;
+  /**
+   * Takes the settings the presentation is running with back into the draft, as
+   * one undo step, so the sidebar reads what the audience is being shown.
+   * False when there is nothing being presented to take.
+   */
+  adoptPresentation: () => boolean;
 }
 
 /**
@@ -86,6 +98,8 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
   const startPresent = useStore((s) => s.startPresent);
   const updateMediaPresentation = useStore((s) => s.updateMediaPresentation);
   const presentation = useStore((s) => s.presentation);
+  const presentedDeck = useStore((s) => s.presentedDeck);
+  const presentedMedia = useStore((s) => s.presentedMedia);
 
   const history = useDraftHistory<MediaDraft>(draftOf(item));
   const { draft, apply, patch } = history;
@@ -134,6 +148,34 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     [apply, draft],
   );
 
+  const isPresenting =
+    presentation?.kind === item.kind && presentation.id === item.id;
+  // What the audience is being shown, which is the version the operator pushed
+  // out rather than whatever the library happens to hold.
+  const presentedItem = isPresenting ? presentedDeck?.item : undefined;
+
+  const adoptPresentation = useCallback((): boolean => {
+    if (!presentedItem) return false;
+    const presentedSettings = videoSettingsOf(presentedItem);
+    // The operator's live mute and level are part of what the room is hearing,
+    // so they come across as settings rather than being left behind on a
+    // transport the editor does not share.
+    const live =
+      presentedItem.kind === "video" && presentedMedia
+        ? {
+            ...presentedSettings,
+            muted: presentedSettings.muted || presentedMedia.playback.muted,
+            volume: presentedMedia.playback.volume,
+          }
+        : presentedSettings;
+    apply({
+      name: presentedItem.name,
+      image: imageSettingsOf(presentedItem),
+      video: live,
+    });
+    return true;
+  }, [apply, presentedItem, presentedMedia]);
+
   const { markSaved } = history;
   const save = useCallback((): boolean => {
     // A clip whose end lands before its start would play nothing at all, so an
@@ -144,7 +186,7 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
         ? draft.video.trimEnd
         : null;
     const written = updateMedia(item.id, {
-      name: draft.name.trim() || item.name,
+      name: draft.name.trim(),
       ...(item.kind === "image"
         ? { image: draft.image }
         : { video: { ...draft.video, trimStart, trimEnd } }),
@@ -179,8 +221,10 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     resetSettings,
     save,
     present,
-    isPresenting:
-      presentation?.kind === item.kind && presentation.id === item.id,
+    isPresenting,
     updatePresentation: () => updateMediaPresentation(preview),
+    presentedVideo:
+      isPresenting && item.kind === "video" ? presentedMedia : null,
+    adoptPresentation,
   };
 }

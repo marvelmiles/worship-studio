@@ -3,12 +3,13 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
 import { useStore } from "../../store/useStore";
+import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useGoLive } from "../../hooks/useGoLive";
+import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
@@ -26,8 +27,8 @@ import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
 import { PresenterPip } from "./PresenterPip";
-import { VideoControlsBar } from "./VideoControlsBar";
 import { VideoSurface } from "../../components/media/VideoSurface";
+import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import type { Background, ScripturePassage } from "../../types";
 
 function resolveRootBg(
@@ -48,6 +49,16 @@ function resolveRootBg(
   return { background: bg.css || "#000" };
 }
 
+/** Where the clip's transport sits on the stage: above the presenter bar. */
+const STAGE_TRANSPORT_STYLE: CSSProperties = {
+  position: "fixed",
+  left: "50%",
+  bottom: 86,
+  transform: "translateX(-50%)",
+  zIndex: 20,
+  width: "min(680px, calc(100vw - 32px))",
+};
+
 const END_LABELS: Record<string, string> = {
   manuscript: "End of manuscript",
   scripture: "End of passage",
@@ -57,6 +68,7 @@ const END_LABELS: Record<string, string> = {
 
 export function Presentation() {
   const pushToast = useStore((s) => s.pushToast);
+  const { width } = useViewport();
   const mode = useStore((s) => s.presentationMode);
   const setPresentationMode = useStore((s) => s.setPresentationMode);
   const {
@@ -97,38 +109,15 @@ export function Presentation() {
   );
   const p = usePresentation(fullscreenOverride, shortcutGate);
 
-  const [chromeActive, setChromeActive] = useState(true);
-  const hideTimer = useRef<number>();
-  const hovering = useRef(false);
   const announced = useRef(false);
   const stateRef = useRef<PresentState | null>(null);
   const channelRef = useRef<BroadcastChannel | null>(null);
 
-  const scheduleHide = () => {
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => {
-      if (!hovering.current) setChromeActive(false);
-    }, 2800);
-  };
-  const wake = () => {
-    setChromeActive(true);
-    scheduleHide();
-  };
-  const onHoverChange = (isHovering: boolean) => {
-    hovering.current = isHovering;
-    if (isHovering) {
-      setChromeActive(true);
-      window.clearTimeout(hideTimer.current);
-    } else {
-      scheduleHide();
-    }
-  };
-
-  useEffect(() => {
-    wake();
-    return () => window.clearTimeout(hideTimer.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The stage chrome answers to the pointer anywhere on the page rather than to
+  // the root element: the clip's own element is portalled outside this tree, so
+  // a listener bound here would never see a pointer moving over the video.
+  const chrome = useAutoHideChrome({ enabled: mode === "stage" });
+  const { visible: chromeActive, onHoverChange } = chrome;
 
   useEffect(() => {
     if (isExtended && !announced.current) {
@@ -225,6 +214,39 @@ export function Presentation() {
     const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [live, isVideoSlide, videoPlaying, videoRate, readVideoTime, mode]);
+
+  /**
+   * Publishes the clip's transport for the rest of the app, which is how the
+   * media editor offers to bring itself into line with what the room is already
+   * watching. Only the changes are published, each carrying the clock its
+   * position was read at, so a consumer works out where the clip has got to
+   * without this having to broadcast on a tick.
+   */
+  const publishPresentedMedia = useStore((s) => s.publishPresentedMedia);
+  const currentVideoId =
+    p.currentSlide?.kind === "video" ? p.currentSlide.item.id : null;
+  useEffect(() => {
+    if (!isVideoSlide) {
+      publishPresentedMedia(null);
+      return;
+    }
+    publishPresentedMedia({
+      playback: p.mediaPlayback,
+      sync: {
+        time: readVideoTime(),
+        at: Date.now(),
+        playing: p.mediaPlayback.playing,
+        rate: videoRate,
+      },
+    });
+  }, [
+    isVideoSlide,
+    currentVideoId,
+    p.mediaPlayback,
+    videoRate,
+    readVideoTime,
+    publishPresentedMedia,
+  ]);
 
   const backdropBlobUrl = useBlobUrl(p.frame?.backdrop?.blobId);
   const audioSrc = useAssetUrl(p.audioItem);
@@ -390,7 +412,10 @@ export function Presentation() {
           isLive={live}
           videoHost={videoHost}
           videoProgress={videoProgress}
+          videoMuted={p.mediaPlayback.muted}
           onSeekVideo={p.seekVideoTo}
+          onToggleVideoMuted={p.toggleVideoMuted}
+          onRestartVideo={p.restartVideo}
           rootRef={pipRef}
           onPrev={() => p.go(-1)}
           onNext={() => p.go(1)}
@@ -413,11 +438,6 @@ export function Presentation() {
       {videoLayer}
       <div
         ref={p.rootRef}
-        onPointerMove={wake}
-        onPointerLeave={() => {
-          window.clearTimeout(hideTimer.current);
-          if (!hovering.current) setChromeActive(false);
-        }}
         style={{
           position: "fixed",
           inset: 0,
@@ -464,18 +484,22 @@ export function Presentation() {
         />
 
         {p.isVideoSlide && (
-          <VideoControlsBar
-            playback={p.mediaPlayback}
-            settings={p.videoSettings}
+          <VideoTransportBar
+            playing={p.mediaPlayback.playing}
+            muted={p.mediaPlayback.muted}
+            volume={p.mediaPlayback.volume}
             time={p.videoTime}
-            duration={p.videoDuration}
+            start={p.videoSettings?.trimStart ?? 0}
+            end={p.videoSettings?.trimEnd ?? p.videoDuration}
             visible={controlsVisible}
             onHoverChange={onHoverChange}
+            compact={width < 560}
             onTogglePlaying={p.toggleVideoPlaying}
             onToggleMuted={p.toggleVideoMuted}
             onVolume={p.setVideoVolume}
             onSeek={p.seekVideoTo}
             onRestart={p.restartVideo}
+            style={STAGE_TRANSPORT_STYLE}
           />
         )}
 

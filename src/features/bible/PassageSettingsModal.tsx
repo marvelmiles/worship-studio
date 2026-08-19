@@ -99,14 +99,26 @@ export function PassageSettingsModal({
     ? resolveBackgroundImage(undefined, passage, effectiveBackground)
     : null;
 
+  // A range that runs backwards is refused rather than quietly turned around:
+  // an operator who picked the wrong end should be told, not given verses they
+  // did not ask for halfway through a service.
+  const rangeError =
+    verseStart > verseEnd
+      ? "The first verse has to come before the last one."
+      : null;
+
   const rebuild = async () => {
     if (!book) return;
+    if (rangeError) {
+      pushToast(rangeError, "error");
+      return;
+    }
     setRebuilding(true);
     try {
-      const start = Math.max(1, Math.min(verseStart, verseEnd));
-      const end = Math.max(start, verseEnd);
       const chapterVerses = await getChapterVerses(version, bookId, chapter);
-      const verses = chapterVerses.filter((v) => v.v >= start && v.v <= end);
+      const verses = chapterVerses.filter(
+        (v) => v.v >= verseStart && v.v <= verseEnd,
+      );
       if (!verses.length) {
         pushToast("That verse range is empty in this chapter.", "error");
         return;
@@ -181,7 +193,7 @@ export function PassageSettingsModal({
             onChange={(e) => setChapter(Number(e.target.value))}
           />
         </Field>
-        <Field label="Verses (from – to)">
+        <Field label="Verses (from – to)" error={rangeError}>
           <div style={{ display: "flex", gap: 8 }}>
             <Select
               value={String(verseStart)}
@@ -224,6 +236,8 @@ export function PassageSettingsModal({
         variant="primary"
         onClick={() => void rebuild()}
         busy={rebuilding}
+        disabled={Boolean(rangeError)}
+        title={rangeError ?? "Rebuild this passage from its verses"}
       >
         <RefreshCw size={15} />
         Apply & rebuild slides

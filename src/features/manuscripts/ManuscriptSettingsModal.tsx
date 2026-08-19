@@ -13,6 +13,7 @@ import {
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
+import { validateName } from "../../lib/validation";
 import { Modal } from "../../components/ui/Modal";
 import {
   Field,
@@ -58,6 +59,9 @@ export function ManuscriptSettingsModal({
   onStyleChange,
   onAddColor,
 }: ManuscriptSettingsModalProps) {
+  // The same rule the editor header holds its save back on, so a title emptied
+  // here is answered where it was emptied rather than only at the top of the page.
+  const titleError = validateName(manuscript.title, "manuscript title");
   const manuscriptStyle = resolveStyle(undefined, manuscript, theme);
   const duration = resolveSlideDuration(manuscript, theme);
   const autoPlay = resolveAutoPlay(manuscript, theme);
@@ -93,9 +97,10 @@ export function ManuscriptSettingsModal({
 
       <SectionTitle>Details</SectionTitle>
       <div style={GRID}>
-        <Field label="Title">
+        <Field label="Title" error={titleError}>
           <TextInput
             value={manuscript.title}
+            invalid={Boolean(titleError)}
             onChange={(e) => onPatchManuscript({ title: e.target.value })}
           />
         </Field>

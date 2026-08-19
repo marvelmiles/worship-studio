@@ -8,7 +8,10 @@ import {
   MonitorUp,
   Pause,
   Play,
+  RotateCcw,
   StickyNote,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -40,8 +43,14 @@ interface PresenterPipProps {
   videoHost: HTMLElement;
   /** Set while a clip is on: how far through its trim window it has got. */
   videoProgress?: VideoProgress;
+  /** Whether the clip is currently silenced, for the transport's mute control. */
+  videoMuted: boolean;
   /** Scrubs the clip, on this window, the stage and the audience display. */
   onSeekVideo: (time: number) => void;
+  /** Silences the clip without stopping it, for a spoken introduction over it. */
+  onToggleVideoMuted: () => void;
+  /** Takes the clip back to its trim start and runs it again. */
+  onRestartVideo: () => void;
   /** Owned by the parent so it can gate presentation shortcuts on focus. */
   rootRef: RefObject<HTMLDivElement>;
   onPrev: () => void;
@@ -75,7 +84,10 @@ export function PresenterPip({
   isLive,
   videoHost,
   videoProgress,
+  videoMuted,
   onSeekVideo,
+  onToggleVideoMuted,
+  onRestartVideo,
   rootRef,
   onPrev,
   onNext,
@@ -141,6 +153,7 @@ export function PresenterPip({
   // A run of one has nothing to step between, so the transport that would move
   // through it is left out rather than shown doing nothing.
   const navigable = total > 1;
+  const isVideo = content.kind === "video";
 
   return (
     <div
@@ -261,8 +274,8 @@ export function PresenterPip({
         {content.kind === "image" && (
           <ImageSurface item={content.item} variant="thumb" />
         )}
-        {content.kind === "video" && <PortalSlot host={videoHost} />}
-        {content.kind === "video" && videoProgress && (
+        {isVideo && <PortalSlot host={videoHost} />}
+        {isVideo && videoProgress && (
           <>
             <VideoTimecode
               progress={videoProgress}
@@ -342,7 +355,7 @@ export function PresenterPip({
         <MiniButton
           icon={paused ? Play : Pause}
           title={
-            content.kind === "video"
+            isVideo
               ? paused
                 ? "Play the clip (P)"
                 : "Pause the clip (P)"
@@ -359,6 +372,21 @@ export function PresenterPip({
             title="Next slide (→)"
             onClick={onNext}
           />
+        )}
+        {isVideo && (
+          <>
+            <MiniButton
+              icon={RotateCcw}
+              title="Replay the clip from the beginning"
+              onClick={onRestartVideo}
+            />
+            <MiniButton
+              icon={videoMuted ? VolumeX : Volume2}
+              title={videoMuted ? "Unmute the clip (M)" : "Mute the clip (M)"}
+              active={videoMuted}
+              onClick={onToggleVideoMuted}
+            />
+          </>
         )}
         <span
           style={{

@@ -5,6 +5,7 @@ import type {
   SlideDeckDoc,
 } from "../../types";
 import { endLive } from "../../lib/liveWindow";
+import type { MediaPlayback, MediaSync } from "../../lib/presentChannel";
 import type { SliceCreator } from "../storeTypes";
 
 /**
@@ -34,6 +35,20 @@ const pinnedContent = (
 ): PresentedDeck | null =>
   doc ? { kind, id: doc.id, doc } : item ? { kind, id: item.id, item } : null;
 
+/**
+ * Where the running presentation's clip actually is, published by the presenter
+ * so the rest of the app can pick the same state up.
+ *
+ * The position is a reading rather than a live value: it carries the wall clock
+ * it was taken at, so a consumer works out where the clip has got to with
+ * `syncedPosition` instead of the presenter having to publish on a tick and
+ * re-render half the app four times a second.
+ */
+export interface PresentedMedia {
+  playback: MediaPlayback;
+  sync: MediaSync;
+}
+
 export interface PresentSlice {
   presentation: PresentTarget | null;
   presentationMode: PresentationMode;
@@ -49,6 +64,8 @@ export interface PresentSlice {
    * deliberately with `updatePresentation`.
    */
   presentedDeck: PresentedDeck | null;
+  /** Set only while the presentation is running a clip. */
+  presentedMedia: PresentedMedia | null;
 
   startPresent: (
     kind: ContentKind,
@@ -65,6 +82,8 @@ export interface PresentSlice {
   updatePresentation: (kind: ContentKind, doc: SlideDeckDoc) => boolean;
   /** The same for a picture or a clip, pushed from the media editor. */
   updateMediaPresentation: (item: MediaItem) => boolean;
+  /** Publishes the running clip's transport, or clears it when none is on. */
+  publishPresentedMedia: (state: PresentedMedia | null) => void;
   stopPresent: () => void;
 }
 
@@ -73,6 +92,7 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
   presentationMode: "stage",
   presentationIndex: 0,
   presentedDeck: null,
+  presentedMedia: null,
 
   startPresent: (kind, id, startIndex = 0, mode = "stage") => {
     const state = get();
@@ -96,6 +116,7 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
         presentationMode: mode,
         presentationIndex: startIndex,
         presentedDeck: pinnedContent(kind, deckDoc, mediaItem),
+        presentedMedia: null,
       });
   },
 
@@ -118,6 +139,8 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
     return true;
   },
 
+  publishPresentedMedia: (state) => set({ presentedMedia: state }),
+
   stopPresent: () => {
     // Ending the presentation always takes the projected window with it,
     // otherwise the audience keeps seeing a stage nothing is driving.
@@ -127,6 +150,7 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
       presentationMode: "stage",
       presentationIndex: 0,
       presentedDeck: null,
+      presentedMedia: null,
     });
   },
 });

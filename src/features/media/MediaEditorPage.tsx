@@ -6,8 +6,10 @@ import { colors, DISPLAY, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { useSpacePlayPause } from "../../hooks/useSpacePlayPause";
+import { useValidation } from "../../hooks/useValidation";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import {
   useUnsavedChanges,
@@ -15,15 +17,17 @@ import {
 } from "../../hooks/useUnsavedChanges";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { formatDuration } from "../../lib/media";
+import { syncedPosition } from "../../lib/presentChannel";
 import { formatBytes } from "../../lib/storageStats";
+import { validateName } from "../../lib/validation";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ImageLayer } from "../../components/media/ImageLayer";
 import { ImageSettingsControls } from "../../components/media/ImageSettingsControls";
-import { VideoPreviewControls } from "../../components/media/VideoPreviewControls";
 import { VideoSettingsControls } from "../../components/media/VideoSettingsControls";
 import { VideoSurface } from "../../components/media/VideoSurface";
+import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import { useMediaEditor } from "./useMediaEditor";
 
 const LIBRARY_PATH: Record<MediaKind, string> = {
@@ -101,16 +105,26 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
   const editor = useMediaEditor(item);
   const src = useBlobUrl(item.id);
   const leaveGuard = useUnsavedChanges(editor.dirty);
+  const isImage = item.kind === "image";
+  const validation = useValidation({
+    name: validateName(
+      editor.draft.name,
+      isImage ? "image name" : "video name",
+    ),
+  });
 
   useDocumentTitle(`${editor.draft.name} · WorshipStudio`);
 
-  const isImage = item.kind === "image";
   const videoSettings = editor.draft.video;
   // A preview does not start playing on its own: the editor is opened to look
   // at a clip, not to have it run.
   const video = useMediaPlayback(videoSettings, { autoPlay: false });
   const duration = item.duration || video.duration || 0;
   const trimEnd = videoSettings.trimEnd ?? duration;
+  // The transport lives over the clip and steps out of the way once the pointer
+  // settles, the way it does on the projected stage.
+  const surfaceRef = useRef<HTMLDivElement>(null);
+  const chrome = useAutoHideChrome({ enabled: !isImage, surfaceRef });
 
   useUndoRedoShortcuts({
     canUndo: editor.canUndo,
@@ -135,18 +149,54 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     [video.playback, videoSettings.volume, videoSettings.muted],
   );
 
-  // A refused save (storage full) raises its own alert from the store, so the
-  // editor stays dirty and says nothing rather than claiming it wrote.
-  // Saving writes what the preview is already showing, so the clip is left
-  // exactly where it is: an operator tuning a trim mid-review never has to find
-  // their place again.
+  // Nothing leaves the editor while a field is refusing what was typed into it.
+  // The save control is already disabled by then; this says why for any other
+  // route in, and keeps a half-typed trim off the audience display.
+  //
+  // Past that, a refused save (storage full) raises its own alert from the
+  // store, so the editor stays dirty and says nothing rather than claiming it
+  // wrote. Saving writes what the preview is already showing, so the clip is
+  // left exactly where it is: an operator tuning a trim mid-review never has to
+  // find their place again.
+  const refuse = () =>
+    pushToast(validation.message ?? "Fix the highlighted fields.", "error");
+
   const handleSave = () => {
+    if (validation.invalid) {
+      refuse();
+      return;
+    }
     if (!editor.save()) return;
     pushToast(isImage ? "Image saved." : "Video saved.");
   };
 
   const handleUpdatePresentation = () => {
+    if (validation.invalid) {
+      refuse();
+      return;
+    }
     if (editor.updatePresentation()) pushToast("Presentation updated.");
+  };
+
+  /**
+   * Brings the editor into line with what the room is already watching: the
+   * sidebar takes the presented clip's settings, and the preview takes its
+   * transport, down to the frame it is on. An operator who tuned a clip live and
+   * then opened it here stops having two versions of it running against them.
+   */
+  const presentedVideo = editor.presentedVideo;
+  const handleSyncFromPresentation = () => {
+    if (!presentedVideo || !editor.adoptPresentation()) return;
+    // The sidebar carries the mute and the level in this editor, and has just
+    // taken the presentation's; the transport only has to match what the clip
+    // is doing and where it has got to.
+    video.adopt({
+      playing: presentedVideo.playback.playing,
+      muted: false,
+      volume: presentedVideo.playback.volume,
+      time: syncedPosition(presentedVideo.sync),
+    });
+    pushToast("Synced with the presentation.");
   };
 
   const preview = (
@@ -170,6 +220,7 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
         }}
       >
         <div
+          ref={surfaceRef}
           style={{
             position: "relative",
             width: "100%",
@@ -188,28 +239,43 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
               settings={editor.draft.image}
             />
           ) : (
-            <VideoSurface
-              ref={video.surfaceRef}
-              item={item}
-              settings={videoSettings}
-              playback={previewPlayback}
-              onTimeUpdate={video.onTimeUpdate}
-              onEnded={video.onEnded}
-            />
+            <>
+              <VideoSurface
+                ref={video.surfaceRef}
+                item={item}
+                settings={videoSettings}
+                playback={previewPlayback}
+                onTimeUpdate={video.onTimeUpdate}
+                onEnded={video.onEnded}
+              />
+              <VideoTransportBar
+                playing={video.playback.playing}
+                muted={previewPlayback.muted}
+                volume={videoSettings.volume}
+                time={video.time}
+                start={videoSettings.trimStart}
+                end={trimEnd}
+                visible={chrome.visible}
+                onHoverChange={chrome.onHoverChange}
+                compact={compact}
+                onTogglePlaying={video.togglePlaying}
+                onRestart={video.restart}
+                onToggleMuted={() =>
+                  editor.patchVideo({ muted: !videoSettings.muted })
+                }
+                onVolume={(volume) => editor.patchVideo({ volume })}
+                onSeek={video.seekTo}
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  right: 12,
+                  bottom: 12,
+                }}
+              />
+            </>
           )}
         </div>
       </div>
-      {!isImage && (
-        <VideoPreviewControls
-          playing={video.playback.playing}
-          time={video.time}
-          trimStart={videoSettings.trimStart}
-          trimEnd={trimEnd}
-          onTogglePlaying={video.togglePlaying}
-          onRestart={video.restart}
-          onSeek={video.seekTo}
-        />
-      )}
     </div>
   );
 
@@ -239,6 +305,7 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
           settings={videoSettings}
           onChange={editor.patchVideo}
           duration={duration}
+          onIssueChange={validation.reportIssue}
           narrow
         />
       )}
@@ -276,6 +343,9 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
           )
         }
         dirty={editor.dirty}
+        titleError={validation.messageFor("name")}
+        invalid={validation.invalid}
+        invalidReason={validation.message}
         canUndo={editor.canUndo}
         canRedo={editor.canRedo}
         onUndo={editor.undo}
@@ -283,6 +353,9 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
         onSave={handleSave}
         onUpdatePresentation={
           editor.isPresenting ? handleUpdatePresentation : undefined
+        }
+        onSyncFromPresentation={
+          presentedVideo ? handleSyncFromPresentation : undefined
         }
       />
 
