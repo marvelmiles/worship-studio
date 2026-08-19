@@ -13,6 +13,7 @@ import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { stripInlineFormatting } from "../../lib/inlineFormat";
 import { stripListMarker } from "../../lib/lists";
+import type { VideoProgress } from "../../lib/media";
 import {
   openPresentChannel,
   type PresentState,
@@ -291,6 +292,21 @@ export function Presentation() {
     switchMode("pip");
   };
 
+  // On a clip the pause control is the clip's: holding a run of slides still
+  // while a video keeps playing under it is not what the button is reached for.
+  const paused = p.isVideoSlide ? !p.mediaPlayback.playing : p.paused;
+  const handleTogglePause = p.isVideoSlide
+    ? p.toggleVideoPlaying
+    : p.togglePause;
+
+  const videoProgress: VideoProgress | undefined = p.isVideoSlide
+    ? {
+        time: p.videoTime,
+        start: p.videoSettings?.trimStart ?? 0,
+        end: p.videoSettings?.trimEnd ?? p.videoDuration,
+      }
+    : undefined;
+
   const currentLabel =
     p.currentSlide.kind === "text"
       ? p.currentSlide.slide.label
@@ -310,17 +326,18 @@ export function Presentation() {
           frame={p.frame}
           slideIndex={p.slideIndex}
           total={p.slides.length}
-          paused={p.paused}
+          paused={paused}
           isLive={live}
           mediaPlayback={p.mediaPlayback}
           // Only silenced while the projected window is carrying the sound.
           muteMedia={live}
+          videoProgress={videoProgress}
           onMediaTime={p.onVideoTime}
           onMediaEnded={p.onVideoEnded}
           rootRef={pipRef}
           onPrev={() => p.go(-1)}
           onNext={() => p.go(1)}
-          onTogglePause={p.togglePause}
+          onTogglePause={handleTogglePause}
           onOpenStage={() => switchMode("stage")}
           onGoLive={handleGoLive}
           onStopLive={() => {
@@ -369,7 +386,7 @@ export function Presentation() {
       />
 
       <PresentationControls
-        paused={p.paused}
+        paused={paused}
         view={p.view}
         zoom={p.zoom}
         showInfo={p.showInfo}
@@ -383,7 +400,7 @@ export function Presentation() {
         onHoverChange={onHoverChange}
         onGoLive={handleGoLive}
         onShrinkToPip={handleShrinkToPip}
-        onTogglePause={p.togglePause}
+        onTogglePause={handleTogglePause}
         onSetView={p.setViewMode}
         onZoomIn={p.zoomIn}
         onZoomOut={p.zoomOut}
@@ -420,6 +437,7 @@ export function Presentation() {
           total={p.slides.length}
           elapsed={p.elapsed}
           paused={p.paused}
+          videoProgress={videoProgress}
           visible={presenterVisible}
           onHoverChange={onHoverChange}
           onPrev={() => p.go(-1)}

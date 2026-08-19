@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Plus, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
 import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS } from "../../data/collections";
@@ -27,7 +27,11 @@ import {
   KeepOnResetBadge,
   useKeepOnResetAction,
 } from "../../components/ui/KeepOnResetToggle";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import {
+  PinBadge,
+  PinButton,
+  usePinAction,
+} from "../../components/ui/PinControl";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
@@ -259,10 +263,7 @@ function ManuscriptCard({
         </div>
         <div className="ws-card-actions">
           <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-          <Button size="sm" variant="ghost" onClick={onOpen}>
-            <Pencil size={13} />
-            Edit
-          </Button>
+          <PinButton kind="manuscript" item={manuscript} library={library} />
           <MoreMenu size="sm" items={menuItems} />
         </div>
       </div>

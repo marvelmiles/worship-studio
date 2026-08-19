@@ -105,7 +105,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: "Video",
-    note: "Available while a video is on the stage.",
+    note: "Available while a video is on the stage. Space also plays and pauses the preview in the video editor.",
     shortcuts: [
       { keys: ["Space"], description: "Play / pause the video" },
       { keys: ["→"], description: "Seek forward 5s" },

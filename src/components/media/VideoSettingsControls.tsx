@@ -1,8 +1,6 @@
-import { TimerReset } from "lucide-react";
 import type { VideoSettings } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { formatDuration, needsHoursField } from "../../lib/media";
-import { Button } from "../ui/Button";
 import { Field, Range, SectionTitle, Select, Toggle } from "../ui/Field";
 import { TimecodeInput } from "../ui/TimecodeInput";
 import { AdjustmentControls } from "./AdjustmentControls";
@@ -23,8 +21,6 @@ interface VideoSettingsControlsProps {
   onChange: (changes: Partial<VideoSettings>) => void;
   /** Length of the clip, shown so the trim points read against something. */
   duration?: number;
-  /** Where the preview is parked, for the "Playhead" capture buttons. */
-  playheadTime: () => number;
   /** Stacks the paired controls, for a narrow sidebar. */
   narrow?: boolean;
 }
@@ -38,14 +34,12 @@ export function VideoSettingsControls({
   settings,
   onChange,
   duration,
-  playheadTime,
   narrow,
 }: VideoSettingsControlsProps) {
   const { colors, fonts } = useUITheme();
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
   const withHours = needsHoursField(duration);
   const timecodeShape = withHours ? "hh:mm:ss" : "mm:ss";
-  const capturePlayhead = () => Math.round(playheadTime());
 
   return (
     <>
@@ -61,52 +55,32 @@ export function VideoSettingsControls({
       >
         Playback runs from the trim start to the trim end
         {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write both
-        as {timecodeShape}, or scrub the preview and capture the playhead.
+        as {timecodeShape}.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
         <Field label={`Start (${timecodeShape})`}>
-          <div className="ws-row">
-            <TimecodeInput
-              aria-label="Trim start"
-              seconds={settings.trimStart}
-              withHours={withHours}
-              max={duration}
-              onChange={(trimStart) =>
-                onChange({ trimStart: Math.max(0, trimStart ?? 0) })
-              }
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onChange({ trimStart: capturePlayhead() })}
-            >
-              <TimerReset size={13} />
-              Playhead
-            </Button>
-          </div>
+          <TimecodeInput
+            aria-label="Trim start"
+            seconds={settings.trimStart}
+            withHours={withHours}
+            max={duration}
+            onChange={(trimStart) =>
+              onChange({ trimStart: Math.max(0, trimStart ?? 0) })
+            }
+          />
         </Field>
         <Field
           label={`End (${settings.trimEnd === null ? "full length" : timecodeShape})`}
         >
-          <div className="ws-row">
-            <TimecodeInput
-              aria-label="Trim end"
-              seconds={settings.trimEnd}
-              withHours={withHours}
-              max={duration}
-              placeholder="Full length"
-              clearable
-              onChange={(trimEnd) => onChange({ trimEnd })}
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onChange({ trimEnd: capturePlayhead() })}
-            >
-              <TimerReset size={13} />
-              Playhead
-            </Button>
-          </div>
+          <TimecodeInput
+            aria-label="Trim end"
+            seconds={settings.trimEnd}
+            withHours={withHours}
+            max={duration}
+            placeholder="Full length"
+            clearable
+            onChange={(trimEnd) => onChange({ trimEnd })}
+          />
         </Field>
       </div>
 

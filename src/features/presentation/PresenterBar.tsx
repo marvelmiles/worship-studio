@@ -2,11 +2,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fmtClock } from "../../lib/id";
+import type { VideoProgress } from "../../lib/media";
 import { useViewport } from "../../hooks/useViewport";
 import { StageButton } from "../../components/ui/Button";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
+import { VideoTimecode } from "../../components/media/VideoTimecode";
 import type { StageFrame } from "./stageContent";
 
 interface PresenterBarProps {
@@ -19,6 +21,8 @@ interface PresenterBarProps {
   total: number;
   elapsed: number;
   paused: boolean;
+  /** Set while a clip is on: how far through its trim window it has got. */
+  videoProgress?: VideoProgress;
   visible: boolean;
   onHoverChange: (hovering: boolean) => void;
   onPrev: () => void;
@@ -95,6 +99,7 @@ export function PresenterBar({
   total,
   elapsed,
   paused,
+  videoProgress,
   visible,
   onHoverChange,
   onPrev,
@@ -112,7 +117,16 @@ export function PresenterBar({
     color: colors.accent,
   };
   const { width } = useViewport();
-  const showNext = width >= 720;
+  // A run of one has nothing to step between, so neither the transport nor the
+  // slide it would move to is shown.
+  const navigable = total > 1;
+  const showNext = width >= 720 && navigable;
+  const counterStyle: CSSProperties = {
+    fontFamily: UI,
+    fontSize: 12,
+    color: colors.sub,
+    fontVariantNumeric: "tabular-nums",
+  };
 
   return (
     <div
@@ -176,28 +190,31 @@ export function PresenterBar({
           >
             {fmtClock(elapsed)}
           </div>
+          {navigable && (
+            <div style={counterStyle}>
+              {slideIndex + 1} / {total}
+            </div>
+          )}
+          {videoProgress && (
+            <VideoTimecode
+              progress={videoProgress}
+              style={{ ...counterStyle, display: "block" }}
+            />
+          )}
+        </div>
+        {navigable && (
           <div
             style={{
-              fontFamily: UI,
-              fontSize: 12,
-              color: colors.sub,
-              fontVariantNumeric: "tabular-nums",
+              display: "flex",
+              gap: 7,
+              opacity: paused ? 0.4 : 1,
+              pointerEvents: paused ? "none" : "auto",
             }}
           >
-            {slideIndex + 1} / {total}
+            <StageButton icon={ChevronLeft} title="Previous" onClick={onPrev} />
+            <StageButton icon={ChevronRight} title="Next" onClick={onNext} />
           </div>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: 7,
-            opacity: paused ? 0.4 : 1,
-            pointerEvents: paused ? "none" : "auto",
-          }}
-        >
-          <StageButton icon={ChevronLeft} title="Previous" onClick={onPrev} />
-          <StageButton icon={ChevronRight} title="Next" onClick={onNext} />
-        </div>
+        )}
       </div>
     </div>
   );

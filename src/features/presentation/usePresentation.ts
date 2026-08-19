@@ -250,7 +250,9 @@ export function usePresentation(
       } else if (key === "Escape") {
         exit();
       } else if (key === "p" || key === "P") {
-        togglePause();
+        // Matches the pause control: on a clip it is the clip that pauses.
+        if (isVideoSlide) toggleVideoPlaying();
+        else togglePause();
       } else if (key === "f" || key === "F") {
         toggleFullscreen();
       } else if (key === "i" || key === "I") {

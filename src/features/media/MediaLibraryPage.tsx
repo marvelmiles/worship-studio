@@ -4,7 +4,6 @@ import {
   Film,
   Image as ImageIcon,
   ImagePlus,
-  Pencil,
   Trash2,
   Upload,
   Wallpaper,
@@ -24,7 +23,11 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
 import { Button } from "../../components/ui/Button";
 import { MoreMenu } from "../../components/ui/MoreMenu";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import {
+  PinBadge,
+  PinButton,
+  usePinAction,
+} from "../../components/ui/PinControl";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
@@ -296,10 +299,7 @@ function MediaCard({
         </div>
         <div className="ws-card-actions">
           <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-          <Button size="sm" variant="ghost" onClick={onOpen}>
-            <Pencil size={13} />
-            Edit
-          </Button>
+          <PinButton kind={item.kind} item={item} library={library} />
           <MoreMenu
             size="sm"
             items={[

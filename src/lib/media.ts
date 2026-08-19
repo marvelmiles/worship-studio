@@ -95,17 +95,36 @@ export function buildFilter(adjustments: MediaAdjustments): string {
   return parts.length ? parts.join(" ") : "none";
 }
 
-export function buildImageTransform(settings: ImageSettings): string {
+/** The turns and flips a picture carries, for composing into a transform. */
+export function imageTransformParts(settings: ImageSettings): string[] {
   const parts: string[] = [];
   if (settings.rotate) parts.push(`rotate(${settings.rotate}deg)`);
   if (settings.flipH) parts.push("scaleX(-1)");
   if (settings.flipV) parts.push("scaleY(-1)");
-  return parts.length ? parts.join(" ") : "none";
+  return parts;
 }
 
 /** Stable newest-first ordering (createdAt, so edits don't reshuffle decks mid-show). */
 export const sortMediaByRecency = (a: MediaItem, b: MediaItem): number =>
   b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : 0;
+
+/** Where a clip has got to, against the trim window it is being played inside. */
+export interface VideoProgress {
+  time: number;
+  start: number;
+  end: number;
+}
+
+/** The clip's position clamped into its trim window. */
+export const videoPosition = ({ time, start, end }: VideoProgress): number =>
+  Math.min(Math.max(time, start), Math.max(end, start));
+
+/** The share of the trim window already played, 0 to 100. */
+export function videoProgressPercent(progress: VideoProgress): number {
+  const span = Math.max(progress.end - progress.start, 0);
+  if (!span) return 0;
+  return ((videoPosition(progress) - progress.start) / span) * 100;
+}
 
 const SECONDS_PER_HOUR = 3600;
 

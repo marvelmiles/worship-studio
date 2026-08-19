@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { BookOpen, RotateCcw, Trash2 } from "lucide-react";
 import type { ScripturePassage, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -16,7 +16,11 @@ import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
-import { PinBadge, usePinAction } from "../../components/ui/PinControl";
+import {
+  PinBadge,
+  PinButton,
+  usePinAction,
+} from "../../components/ui/PinControl";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 
 export function SavedPassages({ trashView }: { trashView: boolean }) {
@@ -184,10 +188,7 @@ function PassageCard({
           ) : (
             <>
               <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-              <Button size="sm" variant="ghost" onClick={onOpen}>
-                <Pencil size={13} />
-                Edit
-              </Button>
+              <PinButton kind="scripture" item={passage} library={library} />
               <MoreMenu
                 size="sm"
                 items={[

@@ -98,7 +98,10 @@ export function KeepOnResetToggle({
   );
 }
 
-/** The same control as an entry in a card's overflow menu. */
+/**
+ * The same control as an entry in a card's overflow menu. Its icon and label
+ * carry the current state, so the row needs no highlight of its own.
+ */
 export function useKeepOnResetAction(
   kind: KeepableKind,
   item: KeepableItem,
@@ -108,41 +111,38 @@ export function useKeepOnResetAction(
   return {
     label: state.kept ? "Stop keeping on reset" : "Keep on reset",
     icon: state.kept ? ShieldCheck : Shield,
-    active: state.kept,
     disabled: state.full,
     title: state.title,
     onClick: state.toggle,
   };
 }
 
-/** The "KEPT" chip shown on cards, so a kept item reads as kept at a glance. */
+/** The chip shown on cards, so a kept item reads as kept at a glance. */
 export function KeepOnResetBadge({
   item,
 }: {
   item: { keepOnReset?: boolean; builtIn?: boolean; deleted?: boolean };
 }) {
-  const { colors, fonts } = useUITheme();
+  const { colors } = useUITheme();
   if (!item.keepOnReset || !canKeep(item)) return null;
   return (
     <span
       title="Kept: this survives a reset"
+      aria-label="Kept on reset"
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        padding: "1px 6px",
+        justifyContent: "center",
+        width: 18,
+        height: 18,
         borderRadius: 999,
-        fontFamily: fonts.ui,
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.4,
         color: colors.accentSoft,
         background: fade(colors.accent, 0.14),
         border: `1px solid ${fade(colors.accent, 0.3)}`,
+        flexShrink: 0,
       }}
     >
       <ShieldCheck size={10} />
-      KEPT
     </span>
   );
 }

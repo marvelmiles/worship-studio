@@ -9,58 +9,101 @@ import {
   type Pinnable,
   type PinnableKind,
 } from "../../lib/pinning";
+import { Button } from "./Button";
 import type { MoreMenuItem } from "./MoreMenu";
 
 interface PinTarget extends Pinnable {
   id: string;
 }
 
+interface PinControlProps {
+  kind: PinnableKind;
+  item: PinTarget;
+  /** Everything competing for the same five slots: the listing being drawn. */
+  library: Pinnable[];
+}
+
+interface PinState {
+  pinned: boolean;
+  /** True when every slot in this library is taken and this item isn't in one. */
+  full: boolean;
+  title: string;
+  toggle: () => void;
+}
+
+/** One reading of a library's pin budget, shared by every control below. */
+function usePinState({ kind, item, library }: PinControlProps): PinState {
+  const togglePin = useStore((s) => s.togglePin);
+  const pinned = isPinned(item);
+  const used = pinnedCount(library);
+
+  return {
+    pinned,
+    full: !pinned && used >= MAX_PINNED_ITEMS,
+    title: pinned
+      ? "Pinned to the top of this library. Click to unpin."
+      : used >= MAX_PINNED_ITEMS
+        ? `All ${MAX_PINNED_ITEMS} pins are used here. Unpin another item first.`
+        : `Hold this at the top of the library (${used} of ${MAX_PINNED_ITEMS} pinned).`,
+    toggle: () => togglePin(kind, item.id),
+  };
+}
+
 /**
- * The pin entry for a card's overflow menu. `library` is everything competing
- * for the same five slots, which the caller already has to hand: the listing it
- * is drawing.
+ * The pin toggle a card leads with, beside Present. Opening the editor is what
+ * clicking the card itself does, so the row spends its second slot on the one
+ * thing an operator sets from the listing.
+ */
+export function PinButton(props: PinControlProps) {
+  const state = usePinState(props);
+  return (
+    <Button
+      size="sm"
+      variant={state.pinned ? "primary" : "ghost"}
+      title={state.title}
+      disabled={state.full}
+      onClick={state.toggle}
+    >
+      <Pin size={13} />
+      {state.pinned ? "Pinned" : "Pin"}
+    </Button>
+  );
+}
+
+/**
+ * The same toggle as an entry in a card's overflow menu. Its icon and label
+ * carry the current state, so the row needs no highlight of its own.
  */
 export function usePinAction(
   kind: PinnableKind,
   item: PinTarget,
   library: Pinnable[],
 ): MoreMenuItem {
-  const togglePin = useStore((s) => s.togglePin);
-  const pinned = isPinned(item);
-  const used = pinnedCount(library);
-  const full = !pinned && used >= MAX_PINNED_ITEMS;
-
+  const state = usePinState({ kind, item, library });
   return {
-    label: pinned ? "Unpin" : "Pin to top",
-    icon: pinned ? PinOff : Pin,
-    active: pinned,
-    disabled: full,
-    title: pinned
-      ? "Pinned to the top of this library. Click to unpin."
-      : full
-        ? `All ${MAX_PINNED_ITEMS} pins are used here. Unpin another item first.`
-        : `Hold this at the top of the library (${used} of ${MAX_PINNED_ITEMS} pinned).`,
-    onClick: () => togglePin(kind, item.id),
+    label: state.pinned ? "Unpin" : "Pin to top",
+    icon: state.pinned ? PinOff : Pin,
+    disabled: state.full,
+    title: state.title,
+    onClick: state.toggle,
   };
 }
 
 /** The chip on a card, so a pinned item reads as pinned at a glance. */
 export function PinBadge({ item }: { item: Pinnable }) {
-  const { colors, fonts } = useUITheme();
+  const { colors } = useUITheme();
   if (!isPinned(item)) return null;
   return (
     <span
       title="Pinned to the top of this library"
+      aria-label="Pinned"
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 3,
-        padding: "1px 6px",
+        justifyContent: "center",
+        width: 18,
+        height: 18,
         borderRadius: 999,
-        fontFamily: fonts.ui,
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: 0.4,
         color: colors.accentSoft,
         background: fade(colors.accent, 0.14),
         border: `1px solid ${fade(colors.accent, 0.3)}`,
@@ -68,7 +111,6 @@ export function PinBadge({ item }: { item: Pinnable }) {
       }}
     >
       <Pin size={10} />
-      PINNED
     </span>
   );
 }

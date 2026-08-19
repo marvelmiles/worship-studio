@@ -7,6 +7,7 @@ import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
+import { useSpacePlayPause } from "../../hooks/useSpacePlayPause";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import {
   useUnsavedChanges,
@@ -112,6 +113,8 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     redo: editor.redo,
   });
 
+  useSpacePlayPause({ enabled: !isImage, toggle: video.togglePlaying });
+
   // The transport owns whether the clip is running and where; the sidebar owns
   // how it sounds, so the volume and mute controls are heard as they are set.
   const previewPlayback = useMemo(
@@ -125,12 +128,12 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
 
   // A refused save (storage full) raises its own alert from the store, so the
   // editor stays dirty and says nothing rather than claiming it wrote.
+  // Saving writes what the preview is already showing, so the clip is left
+  // exactly where it is: an operator tuning a trim mid-review never has to find
+  // their place again.
   const handleSave = () => {
     if (!editor.save()) return;
     pushToast(isImage ? "Image saved." : "Video saved.");
-    // Saved settings are shown rather than described: the clip runs again from
-    // its trim start, under the trim, speed and grading just written.
-    if (!isImage) video.restart();
   };
 
   const handleUpdatePresentation = () => {
@@ -227,9 +230,6 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
           settings={videoSettings}
           onChange={editor.patchVideo}
           duration={duration}
-          playheadTime={() =>
-            video.surfaceRef.current?.getCurrentTime() ?? video.time
-          }
           narrow
         />
       )}

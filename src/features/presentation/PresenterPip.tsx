@@ -14,9 +14,11 @@ import {
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import type { MediaPlayback } from "../../lib/presentChannel";
+import { videoProgressPercent, type VideoProgress } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoSurface } from "../../components/media/VideoSurface";
+import { VideoTimecode } from "../../components/media/VideoTimecode";
 import type { StageFrame } from "./stageContent";
 
 const WIDTH = 320;
@@ -39,6 +41,8 @@ interface PresenterPipProps {
   mediaPlayback: MediaPlayback;
   /** Silences this copy: the projected window is the one playing the sound. */
   muteMedia: boolean;
+  /** Set while a clip is on: how far through its trim window it has got. */
+  videoProgress?: VideoProgress;
   onMediaTime: (time: number, duration: number) => void;
   onMediaEnded: () => void;
   /** Owned by the parent so it can gate presentation shortcuts on focus. */
@@ -74,6 +78,7 @@ export function PresenterPip({
   isLive,
   mediaPlayback,
   muteMedia,
+  videoProgress,
   onMediaTime,
   onMediaEnded,
   rootRef,
@@ -138,6 +143,9 @@ export function PresenterPip({
   };
 
   const { content } = frame;
+  // A run of one has nothing to step between, so the transport that would move
+  // through it is left out rather than shown doing nothing.
+  const navigable = total > 1;
 
   return (
     <div
@@ -264,6 +272,43 @@ export function PresenterPip({
             onEnded={onMediaEnded}
           />
         )}
+        {content.kind === "video" && videoProgress && (
+          <>
+            <VideoTimecode
+              progress={videoProgress}
+              style={{
+                position: "absolute",
+                left: 8,
+                bottom: 10,
+                padding: "2px 7px",
+                borderRadius: 999,
+                fontFamily: fonts.ui,
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "#fff",
+                background: "rgba(0,0,0,0.6)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 3,
+                background: "rgba(255,255,255,0.2)",
+              }}
+            >
+              <div
+                style={{
+                  width: `${videoProgressPercent(videoProgress)}%`,
+                  height: "100%",
+                  background: colors.accent,
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {notes && (
@@ -310,22 +355,34 @@ export function PresenterPip({
           borderTop: `1px solid ${colors.border}`,
         }}
       >
-        <MiniButton
-          icon={ChevronLeft}
-          title="Previous slide (←)"
-          onClick={onPrev}
-        />
+        {navigable && (
+          <MiniButton
+            icon={ChevronLeft}
+            title="Previous slide (←)"
+            onClick={onPrev}
+          />
+        )}
         <MiniButton
           icon={paused ? Play : Pause}
-          title={paused ? "Resume (P)" : "Pause (P)"}
+          title={
+            content.kind === "video"
+              ? paused
+                ? "Play the clip (P)"
+                : "Pause the clip (P)"
+              : paused
+                ? "Resume (P)"
+                : "Pause (P)"
+          }
           active={paused}
           onClick={onTogglePause}
         />
-        <MiniButton
-          icon={ChevronRight}
-          title="Next slide (→)"
-          onClick={onNext}
-        />
+        {navigable && (
+          <MiniButton
+            icon={ChevronRight}
+            title="Next slide (→)"
+            onClick={onNext}
+          />
+        )}
         <span
           style={{
             flex: 1,
@@ -339,8 +396,9 @@ export function PresenterPip({
           }}
           className="ws-ellipsis"
         >
-          {slideIndex + 1}/{total}
-          {currentLabel ? ` · ${currentLabel}` : ""}
+          {navigable ? `${slideIndex + 1}/${total}` : ""}
+          {navigable && currentLabel ? " · " : ""}
+          {currentLabel}
         </span>
         {isLive ? (
           <MiniButton
