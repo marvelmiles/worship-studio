@@ -12,6 +12,7 @@ import { ANIMATION_VARIANTS, buildTransition } from "../../lib/animation";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { isImageBackground } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
+import { PortalSlot } from "../../components/ui/PortalSlot";
 import { BackgroundSurface } from "../../components/media/BackgroundSurface";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import {
@@ -35,6 +36,12 @@ interface StageProps {
   videoRef?: Ref<VideoSurfaceHandle>;
   onVideoTime?: (time: number, duration: number) => void;
   onVideoEnded?: () => void;
+  /**
+   * The clip's own element, held outside this tree so moving between the stage
+   * and the floating presenter never interrupts playback. Without one the stage
+   * mounts a surface of its own, which is how the projected window runs.
+   */
+  videoHost?: HTMLElement | null;
 }
 
 function viewSize(view: PresentationView): CSSProperties {
@@ -95,6 +102,7 @@ export function Stage({
   videoRef,
   onVideoTime,
   onVideoEnded,
+  videoHost,
 }: StageProps) {
   const variant = ANIMATION_VARIANTS[animation] || ANIMATION_VARIANTS.fade;
   const transition = buildTransition(durationMs, easing);
@@ -205,17 +213,23 @@ export function Stage({
                 style={{ background: "transparent" }}
               />
             )}
-            {content.kind === "video" && (
-              <VideoSurface
-                ref={videoRef}
-                item={content.item}
-                playback={playback}
-                forceMuted={forceMutedVideo}
-                onTimeUpdate={onVideoTime}
-                onEnded={onVideoEnded}
-                style={{ pointerEvents: "auto" }}
-              />
-            )}
+            {content.kind === "video" &&
+              (videoHost ? (
+                <PortalSlot
+                  host={videoHost}
+                  style={{ pointerEvents: "auto" }}
+                />
+              ) : (
+                <VideoSurface
+                  ref={videoRef}
+                  item={content.item}
+                  playback={playback}
+                  forceMuted={forceMutedVideo}
+                  onTimeUpdate={onVideoTime}
+                  onEnded={onVideoEnded}
+                  style={{ pointerEvents: "auto" }}
+                />
+              ))}
           </div>
         </motion.div>
       </AnimatePresence>

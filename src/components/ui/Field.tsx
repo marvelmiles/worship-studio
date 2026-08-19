@@ -79,14 +79,22 @@ interface SelectProps {
   onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
   options: Option[];
   style?: CSSProperties;
+  "aria-label"?: string;
 }
 
-export function Select({ value, onChange, options, style: st }: SelectProps) {
+export function Select({
+  value,
+  onChange,
+  options,
+  style: st,
+  "aria-label": ariaLabel,
+}: SelectProps) {
   const { colors: c } = useUITheme();
   return (
     <select
       value={value}
       onChange={onChange}
+      aria-label={ariaLabel}
       style={{ ...inputStyle, appearance: "none", cursor: "pointer", ...st }}
     >
       {options.map((o) => {

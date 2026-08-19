@@ -18,6 +18,8 @@ interface PresentMenuProps {
   variant?: "primary" | "ghost" | "subtle";
   disabled?: boolean;
   title?: string;
+  /** Stretches the trigger across whatever room its row has left. */
+  fill?: boolean;
   /** Renders a custom trigger instead of the default button. */
   children?: ReactNode;
 }
@@ -38,6 +40,7 @@ export function PresentMenu({
   variant = "primary",
   disabled,
   title,
+  fill,
   children,
 }: PresentMenuProps) {
   const { colors } = useUITheme();
@@ -72,6 +75,7 @@ export function PresentMenu({
       disabled={disabled}
       side="bottom"
       align="start"
+      triggerStyle={fill ? { flex: 1, minWidth: 0 } : undefined}
       trigger={
         children ?? (
           <Button
@@ -79,6 +83,7 @@ export function PresentMenu({
             variant={variant}
             disabled={disabled}
             title={title ?? "Present"}
+            style={fill ? { width: "100%" } : undefined}
           >
             <Play size={size === "sm" ? 13 : 14} />
             {label}

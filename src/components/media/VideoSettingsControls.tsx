@@ -55,7 +55,7 @@ export function VideoSettingsControls({
       >
         Playback runs from the trim start to the trim end
         {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write both
-        as {timecodeShape}.
+        as {timecodeShape}. Clearing the end takes it back to the last frame.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
         <Field label={`Start (${timecodeShape})`}>
@@ -69,15 +69,13 @@ export function VideoSettingsControls({
             }
           />
         </Field>
-        <Field
-          label={`End (${settings.trimEnd === null ? "full length" : timecodeShape})`}
-        >
+        <Field label={`End (${timecodeShape})`}>
           <TimecodeInput
             aria-label="Trim end"
-            seconds={settings.trimEnd}
+            seconds={settings.trimEnd ?? (duration || null)}
             withHours={withHours}
             max={duration}
-            placeholder="Full length"
+            placeholder={timecodeShape}
             clearable
             onChange={(trimEnd) => onChange({ trimEnd })}
           />

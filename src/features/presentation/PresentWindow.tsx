@@ -4,9 +4,12 @@ import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
 import {
+  MEDIA_SYNC_TOLERANCE_SECONDS,
   openPresentChannel,
+  syncedPosition,
   type PresentState,
 } from "../../lib/presentChannel";
+import type { VideoSurfaceHandle } from "../../components/media/VideoSurface";
 import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
 import { Stage } from "./Stage";
@@ -26,10 +29,27 @@ export function PresentWindow() {
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
   const lastReloadKey = useRef<string>("");
+  const videoRef = useRef<VideoSurfaceHandle>(null);
 
   useEffect(() => {
     const channel = openPresentChannel((msg) => {
-      if (msg.type === "state") setState(msg.state);
+      if (msg.type === "state") {
+        setState(msg.state);
+        return;
+      }
+      // The operator's playhead, carried forward by the time the message spent
+      // in flight. This window runs its own video element, so it is left to
+      // play on its own and only pulled back when it has actually drifted:
+      // seeking on every reading would stutter the picture instead.
+      if (msg.type !== "media-sync") return;
+      const surface = videoRef.current;
+      if (!surface) return;
+      const expected = syncedPosition(msg.sync);
+      if (
+        Math.abs(surface.getCurrentTime() - expected) >
+        MEDIA_SYNC_TOLERANCE_SECONDS
+      )
+        surface.seekTo(expected);
     });
     channel.postMessage({ type: "request-state" });
     return () => channel.close();
@@ -177,6 +197,7 @@ export function PresentWindow() {
         durationMs={prefs.transitionDuration}
         easing={prefs.easing}
         playback={state.media}
+        videoRef={videoRef}
       />
       {fullscreenButton}
     </div>

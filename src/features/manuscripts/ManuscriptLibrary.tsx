@@ -9,6 +9,11 @@ import { useBgMap } from "../../hooks/useBgMap";
 import type { BgMap } from "../../hooks/useBgMap";
 import { sortPinnedFirst } from "../../lib/pinning";
 import {
+  DEFAULT_LIBRARY_SORT,
+  sortLibrary,
+  type LibrarySortOption,
+} from "../../lib/librarySort";
+import {
   resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
@@ -27,11 +32,12 @@ import {
   KeepOnResetBadge,
   useKeepOnResetAction,
 } from "../../components/ui/KeepOnResetToggle";
+import { PinBadge, usePinAction } from "../../components/ui/PinControl";
 import {
-  PinBadge,
-  PinButton,
-  usePinAction,
-} from "../../components/ui/PinControl";
+  CardActions,
+  cardOpenProps,
+} from "../../components/ui/InteractiveCard";
+import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
@@ -48,6 +54,7 @@ export function ManuscriptLibrary() {
 
   const [query, setQuery] = useState("");
   const [collection, setCollection] = useState("All");
+  const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<Manuscript | null>(null);
 
   const onNew = () => {
@@ -69,10 +76,10 @@ export function ManuscriptLibrary() {
           .filter(Boolean)
           .some((field) => (field as string).toLowerCase().includes(term)),
       );
-    const ordered = base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+    const ordered = sortLibrary(base, sort, (m) => m.title);
     // A search is answered by what matches it; pins only order the library.
     return term ? ordered : sortPinnedFirst(ordered);
-  }, [manuscripts, query, collection]);
+  }, [manuscripts, query, collection, sort]);
 
   const confirmDelete = () => {
     if (deleting) {
@@ -101,6 +108,7 @@ export function ManuscriptLibrary() {
           onChange={setQuery}
           placeholder="Search by title, author, text…"
         />
+        <LibrarySortSelect value={sort} onChange={setSort} />
         <PillTabs
           tabs={["All", ...COLLECTIONS].map((c) => ({ id: c, label: c }))}
           value={collection}
@@ -214,8 +222,11 @@ function ManuscriptCard({
   ];
 
   return (
-    <div className="ws-glass ws-card">
-      <div onClick={onOpen} style={{ cursor: "pointer", position: "relative" }}>
+    <div
+      className="ws-glass ws-card"
+      {...cardOpenProps(manuscript.title, onOpen)}
+    >
+      <div style={{ position: "relative" }}>
         {first ? (
           <SlideCanvas
             slide={first}
@@ -261,11 +272,10 @@ function ManuscriptCard({
           {manuscript.author || "Unknown"}
           {manuscript.collection ? ` · ${manuscript.collection}` : ""}
         </div>
-        <div className="ws-card-actions">
-          <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-          <PinButton kind="manuscript" item={manuscript} library={library} />
+        <CardActions>
+          <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
           <MoreMenu size="sm" items={menuItems} />
-        </div>
+        </CardActions>
       </div>
     </div>
   );

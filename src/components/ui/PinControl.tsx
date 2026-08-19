@@ -9,7 +9,6 @@ import {
   type Pinnable,
   type PinnableKind,
 } from "../../lib/pinning";
-import { Button } from "./Button";
 import type { MoreMenuItem } from "./MoreMenu";
 
 interface PinTarget extends Pinnable {
@@ -47,27 +46,6 @@ function usePinState({ kind, item, library }: PinControlProps): PinState {
         : `Hold this at the top of the library (${used} of ${MAX_PINNED_ITEMS} pinned).`,
     toggle: () => togglePin(kind, item.id),
   };
-}
-
-/**
- * The pin toggle a card leads with, beside Present. Opening the editor is what
- * clicking the card itself does, so the row spends its second slot on the one
- * thing an operator sets from the listing.
- */
-export function PinButton(props: PinControlProps) {
-  const state = usePinState(props);
-  return (
-    <Button
-      size="sm"
-      variant={state.pinned ? "primary" : "ghost"}
-      title={state.title}
-      disabled={state.full}
-      onClick={state.toggle}
-    >
-      <Pin size={13} />
-      {state.pinned ? "Pinned" : "Pin"}
-    </Button>
-  );
 }
 
 /**

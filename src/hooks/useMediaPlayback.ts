@@ -21,6 +21,8 @@ export interface RestartOptions {
 export interface MediaPlaybackController {
   /** Bind to the `VideoSurface` this controller drives. */
   surfaceRef: RefObject<VideoSurfaceHandle>;
+  /** Where the clip is on the element itself, ahead of the next time update. */
+  getTime: () => number;
   playback: MediaPlayback;
   time: number;
   duration: number;
@@ -57,6 +59,11 @@ export function useMediaPlayback(
   });
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
+
+  const getTime = useCallback(
+    () => surfaceRef.current?.getCurrentTime() ?? 0,
+    [],
+  );
 
   const togglePlaying = useCallback(
     () => setPlayback((state) => ({ ...state, playing: !state.playing })),
@@ -131,6 +138,7 @@ export function useMediaPlayback(
 
   return {
     surfaceRef,
+    getTime,
     playback,
     time,
     duration,

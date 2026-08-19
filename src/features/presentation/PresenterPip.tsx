@@ -13,11 +13,10 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
-import type { MediaPlayback } from "../../lib/presentChannel";
 import { videoProgressPercent, type VideoProgress } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
-import { VideoSurface } from "../../components/media/VideoSurface";
+import { PortalSlot } from "../../components/ui/PortalSlot";
 import { VideoTimecode } from "../../components/media/VideoTimecode";
 import type { StageFrame } from "./stageContent";
 
@@ -35,16 +34,14 @@ interface PresenterPipProps {
   paused: boolean;
   isLive: boolean;
   /**
-   * Playback of a clip on the stage, carried over so shrinking the stage into
+   * The clip's own element, shared with the stage, so shrinking the stage into
    * this window never stops what the audience is watching.
    */
-  mediaPlayback: MediaPlayback;
-  /** Silences this copy: the projected window is the one playing the sound. */
-  muteMedia: boolean;
+  videoHost: HTMLElement;
   /** Set while a clip is on: how far through its trim window it has got. */
   videoProgress?: VideoProgress;
-  onMediaTime: (time: number, duration: number) => void;
-  onMediaEnded: () => void;
+  /** Scrubs the clip, on this window, the stage and the audience display. */
+  onSeekVideo: (time: number) => void;
   /** Owned by the parent so it can gate presentation shortcuts on focus. */
   rootRef: RefObject<HTMLDivElement>;
   onPrev: () => void;
@@ -76,11 +73,9 @@ export function PresenterPip({
   total,
   paused,
   isLive,
-  mediaPlayback,
-  muteMedia,
+  videoHost,
   videoProgress,
-  onMediaTime,
-  onMediaEnded,
+  onSeekVideo,
   rootRef,
   onPrev,
   onNext,
@@ -153,6 +148,9 @@ export function PresenterPip({
       tabIndex={0}
       role="region"
       aria-label="Floating presenter"
+      // Marks the region as owning its own keyboard, so the page behind it
+      // leaves Space alone while the presenter is being driven from here.
+      data-presenter-pip=""
       // Any click inside claims focus, which is what arms the shortcuts.
       onPointerDown={() => rootRef.current?.focus()}
       onFocus={() => setFocused(true)}
@@ -263,15 +261,7 @@ export function PresenterPip({
         {content.kind === "image" && (
           <ImageSurface item={content.item} variant="thumb" />
         )}
-        {content.kind === "video" && (
-          <VideoSurface
-            item={content.item}
-            playback={mediaPlayback}
-            forceMuted={muteMedia}
-            onTimeUpdate={onMediaTime}
-            onEnded={onMediaEnded}
-          />
-        )}
+        {content.kind === "video" && <PortalSlot host={videoHost} />}
         {content.kind === "video" && videoProgress && (
           <>
             <VideoTimecode
@@ -289,24 +279,11 @@ export function PresenterPip({
                 background: "rgba(0,0,0,0.6)",
               }}
             />
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                height: 3,
-                background: "rgba(255,255,255,0.2)",
-              }}
-            >
-              <div
-                style={{
-                  width: `${videoProgressPercent(videoProgress)}%`,
-                  height: "100%",
-                  background: colors.accent,
-                }}
-              />
-            </div>
+            <VideoScrubber
+              progress={videoProgress}
+              onSeek={onSeekVideo}
+              accent={colors.accent}
+            />
           </>
         )}
       </div>
@@ -441,6 +418,46 @@ export function PresenterPip({
           : "Click this window to use presentation shortcuts."}
       </div>
     </div>
+  );
+}
+
+interface VideoScrubberProps {
+  progress: VideoProgress;
+  onSeek: (time: number) => void;
+  accent: string;
+}
+
+/**
+ * The clip's position along the bottom of the preview, and the handle that
+ * moves it. Seeking here drives the one video element the presenter shares with
+ * the stage, and the reading it publishes takes the audience display with it,
+ * so all three land on the same frame.
+ */
+function VideoScrubber({ progress, onSeek, accent }: VideoScrubberProps) {
+  const end = Math.max(progress.end, progress.start + 0.1);
+  const position = Math.min(Math.max(progress.time, progress.start), end);
+  const filled = videoProgressPercent(progress);
+
+  return (
+    <input
+      type="range"
+      className="ws-scrubber"
+      aria-label="Clip position"
+      min={progress.start}
+      max={end}
+      step={0.05}
+      value={position}
+      onChange={(event) => onSeek(Number(event.target.value))}
+      onPointerDown={(event) => event.stopPropagation()}
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100%",
+        background: `linear-gradient(90deg, ${accent} 0%, ${accent} ${filled}%, rgba(255,255,255,0.2) ${filled}%)`,
+      }}
+    />
   );
 }
 

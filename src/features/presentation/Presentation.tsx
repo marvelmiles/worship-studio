@@ -6,8 +6,10 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
+import { usePortalHost } from "../../hooks/usePortalHost";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
@@ -15,6 +17,7 @@ import { stripInlineFormatting } from "../../lib/inlineFormat";
 import { stripListMarker } from "../../lib/lists";
 import type { VideoProgress } from "../../lib/media";
 import {
+  MEDIA_SYNC_INTERVAL_MS,
   openPresentChannel,
   type PresentState,
 } from "../../lib/presentChannel";
@@ -24,6 +27,7 @@ import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
 import { PresenterPip } from "./PresenterPip";
 import { VideoControlsBar } from "./VideoControlsBar";
+import { VideoSurface } from "../../components/media/VideoSurface";
 import type { Background, ScripturePassage } from "../../types";
 
 function resolveRootBg(
@@ -64,6 +68,9 @@ export function Presentation() {
     toggleLiveFullscreen,
   } = useGoLive();
   const pipRef = useRef<HTMLDivElement>(null);
+  // One element for the clip, moved between the stage and the floating
+  // presenter rather than rebuilt at each, so popping out never restarts it.
+  const videoHost = usePortalHost();
   // In pip mode the presentation shares the page with the app, so it only
   // claims the keyboard while the floating presenter holds focus.
   const shortcutGate = useCallback(
@@ -187,6 +194,38 @@ export function Presentation() {
     };
   }, [live]);
 
+  /**
+   * The projected window plays a video element of its own, which nothing in the
+   * broadcast state can hold in step: each element buffers and starts on its
+   * own schedule, so it drifts, and pops out of step altogether when the
+   * operator moves between the stage and the floating presenter. Publishing
+   * where this clip actually is, on a tick, lets that window correct itself
+   * against the same clock the operator is watching.
+   */
+  const isVideoSlide = p.isVideoSlide;
+  const videoPlaying = p.mediaPlayback.playing;
+  const videoRate = p.videoSettings?.playbackRate ?? 1;
+  const readVideoTime = p.getVideoTime;
+  useEffect(() => {
+    if (!live || !isVideoSlide) return;
+    const publish = () => {
+      const channel = channelRef.current;
+      if (!channel) return;
+      channel.postMessage({
+        type: "media-sync",
+        sync: {
+          time: readVideoTime(),
+          at: Date.now(),
+          playing: videoPlaying,
+          rate: videoRate,
+        },
+      });
+    };
+    publish();
+    const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [live, isVideoSlide, videoPlaying, videoRate, readVideoTime, mode]);
+
   const backdropBlobUrl = useBlobUrl(p.frame?.backdrop?.blobId);
   const audioSrc = useAssetUrl(p.audioItem);
 
@@ -271,16 +310,11 @@ export function Presentation() {
   };
 
   /**
-   * Moves between the fullscreen stage and the floating presenter. Each holds
-   * its own video element, so the clip's position is handed over on the way
-   * across: without it the new element would open at the trim start and the
-   * clip would look as though popping out had stopped it.
+   * Moves between the fullscreen stage and the floating presenter. The clip's
+   * element belongs to neither, it is only re-parented, so the move needs no
+   * seek to paper over: playback carries on from the frame it was on.
    */
-  const switchMode = (next: "stage" | "pip") => {
-    if (p.isVideoSlide)
-      p.seekVideoTo(p.videoRef.current?.getCurrentTime() ?? p.videoTime);
-    setPresentationMode(next);
-  };
+  const switchMode = (next: "stage" | "pip") => setPresentationMode(next);
 
   /**
    * Shrinks the presentation into the floating presenter so the operator can
@@ -314,11 +348,37 @@ export function Presentation() {
   const notes =
     p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
 
+  // The one video element every surface shares. It lives here, outside both
+  // the stage and the floating presenter, and is only re-parented into
+  // whichever is on screen, so moving between them never interrupts the clip.
+  // Only silenced while the projected window is carrying the sound.
+  const videoLayer =
+    p.frame.content.kind === "video"
+      ? createPortal(
+          <VideoSurface
+            ref={p.videoRef}
+            item={p.frame.content.item}
+            playback={p.mediaPlayback}
+            forceMuted={live}
+            onTimeUpdate={p.onVideoTime}
+            onEnded={p.onVideoEnded}
+            style={{ pointerEvents: "auto" }}
+          />,
+          videoHost,
+        )
+      : null;
+
+  const audioLayer =
+    p.audioItem && audioSrc ? (
+      <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
+    ) : null;
+
   // The floating presenter replaces the fullscreen stage without unmounting
   // this component, so the slide position, timer and audio all carry over.
   if (mode === "pip") {
     return (
       <>
+        {videoLayer}
         <PresenterPip
           title={deck.title}
           currentLabel={currentLabel}
@@ -328,12 +388,9 @@ export function Presentation() {
           total={p.slides.length}
           paused={paused}
           isLive={live}
-          mediaPlayback={p.mediaPlayback}
-          // Only silenced while the projected window is carrying the sound.
-          muteMedia={live}
+          videoHost={videoHost}
           videoProgress={videoProgress}
-          onMediaTime={p.onVideoTime}
-          onMediaEnded={p.onVideoEnded}
+          onSeekVideo={p.seekVideoTo}
           rootRef={pipRef}
           onPrev={() => p.go(-1)}
           onNext={() => p.go(1)}
@@ -346,108 +403,102 @@ export function Presentation() {
           }}
           onExit={handleExit}
         />
-        {p.audioItem && audioSrc && (
-          <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
-        )}
+        {audioLayer}
       </>
     );
   }
 
   return (
-    <div
-      ref={p.rootRef}
-      onPointerMove={wake}
-      onPointerLeave={() => {
-        window.clearTimeout(hideTimer.current);
-        if (!hovering.current) setChromeActive(false);
-      }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 150,
-        ...resolveRootBg(p.frame.backdrop, backdropBlobUrl),
-      }}
-    >
-      <Stage
-        slideIndex={p.slideIndex}
-        content={p.frame.content}
-        animation={p.frame.animation}
-        view={localView}
-        zoom={localZoom}
-        pan={localPan}
-        onPanBy={p.panBy}
-        durationMs={p.prefs.transitionDuration}
-        easing={p.prefs.easing}
-        playback={p.mediaPlayback}
-        forceMutedVideo={live}
-        videoRef={p.videoRef}
-        onVideoTime={p.onVideoTime}
-        onVideoEnded={p.onVideoEnded}
-      />
-
-      <PresentationControls
-        paused={paused}
-        view={p.view}
-        zoom={p.zoom}
-        showInfo={p.showInfo}
-        isFullscreen={p.isFullscreen}
-        visible={controlsVisible}
-        isExternal={isExtended}
-        isLive={live}
-        canRead={canRead}
-        reading={speech.speaking}
-        onToggleRead={handleToggleRead}
-        onHoverChange={onHoverChange}
-        onGoLive={handleGoLive}
-        onShrinkToPip={handleShrinkToPip}
-        onTogglePause={handleTogglePause}
-        onSetView={p.setViewMode}
-        onZoomIn={p.zoomIn}
-        onZoomOut={p.zoomOut}
-        onResetZoom={p.resetZoom}
-        onToggleInfo={p.toggleInfo}
-        onToggleFullscreen={p.toggleFullscreen}
-        onExit={handleExit}
-      />
-
-      {p.isVideoSlide && (
-        <VideoControlsBar
-          playback={p.mediaPlayback}
-          settings={p.videoSettings}
-          time={p.videoTime}
-          duration={p.videoDuration}
-          visible={controlsVisible}
-          onHoverChange={onHoverChange}
-          onTogglePlaying={p.toggleVideoPlaying}
-          onToggleMuted={p.toggleVideoMuted}
-          onVolume={p.setVideoVolume}
-          onSeek={p.seekVideoTo}
-          onRestart={p.restartVideo}
-        />
-      )}
-
-      {p.showInfo && (
-        <PresenterBar
-          title={deck.title}
-          currentLabel={currentLabel}
-          notes={notes}
-          nextFrame={p.nextFrame}
-          endLabel={END_LABELS[deck.kind] || "End"}
+    <>
+      {videoLayer}
+      <div
+        ref={p.rootRef}
+        onPointerMove={wake}
+        onPointerLeave={() => {
+          window.clearTimeout(hideTimer.current);
+          if (!hovering.current) setChromeActive(false);
+        }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 150,
+          ...resolveRootBg(p.frame.backdrop, backdropBlobUrl),
+        }}
+      >
+        <Stage
           slideIndex={p.slideIndex}
-          total={p.slides.length}
-          elapsed={p.elapsed}
-          paused={p.paused}
-          videoProgress={videoProgress}
-          visible={presenterVisible}
-          onHoverChange={onHoverChange}
-          onPrev={() => p.go(-1)}
-          onNext={() => p.go(1)}
+          content={p.frame.content}
+          animation={p.frame.animation}
+          view={localView}
+          zoom={localZoom}
+          pan={localPan}
+          onPanBy={p.panBy}
+          durationMs={p.prefs.transitionDuration}
+          easing={p.prefs.easing}
+          videoHost={videoHost}
         />
-      )}
 
-      {p.audioItem && audioSrc && (
-        <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
-      )}
-    </div>
+        <PresentationControls
+          paused={paused}
+          view={p.view}
+          zoom={p.zoom}
+          showInfo={p.showInfo}
+          isFullscreen={p.isFullscreen}
+          visible={controlsVisible}
+          isExternal={isExtended}
+          isLive={live}
+          canRead={canRead}
+          reading={speech.speaking}
+          onToggleRead={handleToggleRead}
+          onHoverChange={onHoverChange}
+          onGoLive={handleGoLive}
+          onShrinkToPip={handleShrinkToPip}
+          onTogglePause={handleTogglePause}
+          onSetView={p.setViewMode}
+          onZoomIn={p.zoomIn}
+          onZoomOut={p.zoomOut}
+          onResetZoom={p.resetZoom}
+          onToggleInfo={p.toggleInfo}
+          onToggleFullscreen={p.toggleFullscreen}
+          onExit={handleExit}
+        />
+
+        {p.isVideoSlide && (
+          <VideoControlsBar
+            playback={p.mediaPlayback}
+            settings={p.videoSettings}
+            time={p.videoTime}
+            duration={p.videoDuration}
+            visible={controlsVisible}
+            onHoverChange={onHoverChange}
+            onTogglePlaying={p.toggleVideoPlaying}
+            onToggleMuted={p.toggleVideoMuted}
+            onVolume={p.setVideoVolume}
+            onSeek={p.seekVideoTo}
+            onRestart={p.restartVideo}
+          />
+        )}
+
+        {p.showInfo && (
+          <PresenterBar
+            title={deck.title}
+            currentLabel={currentLabel}
+            notes={notes}
+            nextFrame={p.nextFrame}
+            endLabel={END_LABELS[deck.kind] || "End"}
+            slideIndex={p.slideIndex}
+            total={p.slides.length}
+            elapsed={p.elapsed}
+            paused={p.paused}
+            videoProgress={videoProgress}
+            visible={presenterVisible}
+            onHoverChange={onHoverChange}
+            onPrev={() => p.go(-1)}
+            onNext={() => p.go(1)}
+          />
+        )}
+      </div>
+      {audioLayer}
+    </>
   );
 }

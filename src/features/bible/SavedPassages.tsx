@@ -7,6 +7,11 @@ import { useBgMap } from "../../hooks/useBgMap";
 import type { BgMap } from "../../hooks/useBgMap";
 import { sortPinnedFirst } from "../../lib/pinning";
 import {
+  DEFAULT_LIBRARY_SORT,
+  sortLibrary,
+  type LibrarySortOption,
+} from "../../lib/librarySort";
+import {
   resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
@@ -16,11 +21,12 @@ import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
+import { PinBadge, usePinAction } from "../../components/ui/PinControl";
 import {
-  PinBadge,
-  PinButton,
-  usePinAction,
-} from "../../components/ui/PinControl";
+  CardActions,
+  cardOpenProps,
+} from "../../components/ui/InteractiveCard";
+import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 
 export function SavedPassages({ trashView }: { trashView: boolean }) {
@@ -34,6 +40,7 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
   const bgMap = useBgMap();
 
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
 
   const saved = useMemo(
     () => scriptures.filter((passage) => !passage.quick),
@@ -50,10 +57,10 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
         ),
       );
     }
-    const ordered = base.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+    const ordered = sortLibrary(base, sort, (s) => s.title);
     // A search is answered by what matches it; pins only order the library.
     return term || trashView ? ordered : sortPinnedFirst(ordered);
-  }, [saved, query, trashView]);
+  }, [saved, query, trashView, sort]);
 
   return (
     <>
@@ -64,6 +71,7 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
             onChange={setQuery}
             placeholder="Search saved passages…"
           />
+          <LibrarySortSelect value={sort} onChange={setSort} />
         </div>
       )}
 
@@ -140,14 +148,11 @@ function PassageCard({
   const background = resolveBackgroundView(first, passage, theme, bgMap);
 
   return (
-    <div className="ws-glass ws-card">
-      <div
-        onClick={() => !trashView && onOpen()}
-        style={{
-          cursor: trashView ? "default" : "pointer",
-          position: "relative",
-        }}
-      >
+    <div
+      className="ws-glass ws-card"
+      {...cardOpenProps(passage.title, trashView ? undefined : onOpen)}
+    >
+      <div style={{ position: "relative" }}>
         {first && (
           <SlideCanvas
             slide={first}
@@ -173,7 +178,7 @@ function PassageCard({
           {passage.version} · {passage.verses.length} verse
           {passage.verses.length === 1 ? "" : "s"}
         </div>
-        <div className="ws-card-actions">
+        <CardActions>
           {trashView ? (
             <>
               <Button size="sm" variant="ghost" onClick={onRestore}>
@@ -187,8 +192,7 @@ function PassageCard({
             </>
           ) : (
             <>
-              <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-              <PinButton kind="scripture" item={passage} library={library} />
+              <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
               <MoreMenu
                 size="sm"
                 items={[
@@ -204,7 +208,7 @@ function PassageCard({
               />
             </>
           )}
-        </div>
+        </CardActions>
       </div>
     </div>
   );

@@ -92,6 +92,12 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
   const stacked = width < 1080;
   const compact = width < 560;
   const pushToast = useStore((s) => s.pushToast);
+  // A presentation filling the screen owns the keyboard outright; the floating
+  // presenter only does while it holds focus, which the space hook reads off
+  // the event itself.
+  const stagePresenting = useStore(
+    (s) => Boolean(s.presentation) && s.presentationMode === "stage",
+  );
   const editor = useMediaEditor(item);
   const src = useBlobUrl(item.id);
   const leaveGuard = useUnsavedChanges(editor.dirty);
@@ -113,7 +119,10 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     redo: editor.redo,
   });
 
-  useSpacePlayPause({ enabled: !isImage, toggle: video.togglePlaying });
+  useSpacePlayPause({
+    enabled: !isImage && !stagePresenting,
+    toggle: video.togglePlaying,
+  });
 
   // The transport owns whether the clip is running and where; the sidebar owns
   // how it sounds, so the volume and mute controls are heard as they are set.

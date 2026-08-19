@@ -10,10 +10,12 @@ interface SpacePlayPauseOptions {
  * Space plays and pauses the clip an editor is holding, the way it does in
  * every other player, whatever has focus on the page.
  *
- * Two things keep it out of the way. A field being typed in owns the space it
- * is given, and so does any control that already answers to space — a button, a
- * checkbox, a select — so tabbing to Save and pressing space still saves rather
- * than starting the video behind it.
+ * Three things keep it out of the way. A field being typed in owns the space it
+ * is given, and so does any control that already answers to space (a button, a
+ * checkbox, a select), so tabbing to Save and pressing space still saves rather
+ * than starting the video behind it. So does the floating presenter: while it
+ * holds focus the key belongs to what the audience is watching, and the editor's
+ * own preview is left alone until focus comes back to the page.
  */
 export function useSpacePlayPause({
   enabled,
@@ -33,7 +35,7 @@ export function useSpacePlayPause({
       if (
         target?.isContentEditable ||
         target?.closest?.(
-          'input, textarea, select, button, [role="button"], [role="dialog"], [contenteditable="true"]',
+          'input, textarea, select, button, [role="button"], [role="dialog"], [contenteditable="true"], [data-presenter-pip]',
         )
       ) {
         return;

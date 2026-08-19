@@ -42,8 +42,36 @@ export interface PresentState {
   media?: MediaPlayback;
 }
 
+/**
+ * Where the operator's clip actually is, sent on a tick of its own.
+ *
+ * The projected window runs its own video element, so nothing but a shared
+ * clock keeps the two pictures together: a seek alone cannot, because each
+ * element buffers and starts on its own schedule. `at` is the wall clock the
+ * reading was taken at, which lets the receiver add the time the message spent
+ * in flight before deciding whether it has drifted.
+ */
+export interface MediaSync {
+  time: number;
+  at: number;
+  playing: boolean;
+  rate: number;
+}
+
+/** How far the projected clip may drift before it is pulled back into line. */
+export const MEDIA_SYNC_TOLERANCE_SECONDS = 0.35;
+
+/** How often the operator publishes where the clip has got to. */
+export const MEDIA_SYNC_INTERVAL_MS = 500;
+
+/** The playhead a sync describes, carried forward to now. */
+export const syncedPosition = (sync: MediaSync): number =>
+  sync.time +
+  (sync.playing ? ((Date.now() - sync.at) / 1000) * (sync.rate || 1) : 0);
+
 export type PresentMessage =
   | { type: "state"; state: PresentState }
+  | { type: "media-sync"; sync: MediaSync }
   | { type: "request-state" }
   | { type: "bye" };
 

@@ -81,6 +81,12 @@ code {
   border-color: var(--ws-border-strong, rgba(255, 255, 255, 0.12));
 }
 
+/* The whole card opens its editor, so it is reachable by keyboard too. */
+.ws-card:focus-visible {
+  outline: 2px solid var(--ws-accent, #2563eb);
+  outline-offset: 2px;
+}
+
 .ws-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -240,6 +246,57 @@ input[type="range"].ws-slider::-moz-range-track {
 input[type="range"].ws-slider::-moz-range-progress {
   height: 6px;
   border-radius: 99px;
+  background: var(--ws-accent, #2563eb);
+}
+
+/* The thin scrubber laid over a video preview (the floating presenter). It has
+   to read as a progress bar at rest and still be grabbable, so the track stays
+   3px and the handle only appears under the pointer or on focus. */
+input[type="range"].ws-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"].ws-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ws-thumb, #ffffff);
+  border: 2px solid var(--ws-thumb-ring, #2563eb);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+input[type="range"].ws-scrubber:hover::-webkit-slider-thumb,
+input[type="range"].ws-scrubber:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+}
+input[type="range"].ws-scrubber::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--ws-thumb, #ffffff);
+  border: 2px solid var(--ws-thumb-ring, #2563eb);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+input[type="range"].ws-scrubber:hover::-moz-range-thumb,
+input[type="range"].ws-scrubber:focus-visible::-moz-range-thumb {
+  opacity: 1;
+}
+input[type="range"].ws-scrubber::-moz-range-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+input[type="range"].ws-scrubber::-moz-range-progress {
+  height: 3px;
   background: var(--ws-accent, #2563eb);
 }
 

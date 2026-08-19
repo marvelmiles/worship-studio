@@ -13,8 +13,13 @@ import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { formatBytes } from "../../lib/storageStats";
-import { formatDuration, sortMediaByRecency } from "../../lib/media";
+import { formatDuration } from "../../lib/media";
 import { sortPinnedFirst } from "../../lib/pinning";
+import {
+  DEFAULT_LIBRARY_SORT,
+  sortLibrary,
+  type LibrarySortOption,
+} from "../../lib/librarySort";
 import { imageDeckIndex } from "../presentation/useDeck";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -23,11 +28,12 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { LazyMount } from "../../components/ui/LazyMount";
 import { Button } from "../../components/ui/Button";
 import { MoreMenu } from "../../components/ui/MoreMenu";
+import { PinBadge, usePinAction } from "../../components/ui/PinControl";
 import {
-  PinBadge,
-  PinButton,
-  usePinAction,
-} from "../../components/ui/PinControl";
+  CardActions,
+  cardOpenProps,
+} from "../../components/ui/InteractiveCard";
+import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
@@ -87,6 +93,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<MediaItem | null>(null);
 
   const location = useLocation();
@@ -120,10 +127,10 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
     const base = term
       ? library.filter((m) => m.name.toLowerCase().includes(term))
       : library;
-    const ordered = [...base].sort(sortMediaByRecency);
+    const ordered = sortLibrary(base, sort, (m) => m.name);
     // A search is answered by what matches it; pins only order the library.
     return term ? ordered : sortPinnedFirst(ordered);
-  }, [library, query]);
+  }, [library, query, sort]);
 
   // The image ids currently mirrored as backgrounds, so each card's toggle can
   // show whether that image is already in use.
@@ -184,6 +191,7 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
           onChange={setQuery}
           placeholder={`Search ${config.title.toLowerCase()}…`}
         />
+        <LibrarySortSelect value={sort} onChange={setSort} />
       </div>
 
       {list.length === 0 ? (
@@ -266,13 +274,8 @@ function MediaCard({
   const pinAction = usePinAction(item.kind, item, library);
 
   return (
-    <div className="ws-glass ws-card">
-      <div
-        className="ws-thumb"
-        onClick={onOpen}
-        style={{ cursor: "pointer" }}
-        title="Open editor"
-      >
+    <div className="ws-glass ws-card" {...cardOpenProps(item.name, onOpen)}>
+      <div className="ws-thumb" title="Open editor">
         <LazyMount>
           {item.kind === "image" ? (
             <ImageSurface item={item} variant="thumb" />
@@ -297,9 +300,8 @@ function MediaCard({
           {item.width && item.height ? `${item.width}×${item.height} · ` : ""}
           {formatBytes(item.size || 0)}
         </div>
-        <div className="ws-card-actions">
-          <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
-          <PinButton kind={item.kind} item={item} library={library} />
+        <CardActions>
+          <PresentMenu fill onPresent={({ pip }) => onPresent(pip)} />
           <MoreMenu
             size="sm"
             items={[
@@ -325,7 +327,7 @@ function MediaCard({
               },
             ]}
           />
-        </div>
+        </CardActions>
       </div>
     </div>
   );

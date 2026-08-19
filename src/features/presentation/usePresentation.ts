@@ -97,6 +97,7 @@ export function usePresentation(
   const video = useMediaPlayback(videoSettings);
   const {
     surfaceRef: videoRef,
+    getTime: getVideoTime,
     playback: mediaPlayback,
     time: videoTime,
     duration: videoDuration,
@@ -381,6 +382,7 @@ export function usePresentation(
     mediaPlayback,
     videoTime,
     videoDuration,
+    getVideoTime,
     go,
     goTo,
     exit,
