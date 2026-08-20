@@ -5,14 +5,20 @@ import {
   MonitorSmartphone,
   Radio,
   ShieldAlert,
+  Video,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ReceiverLobby } from "./ReceiverPanel";
 import { SenderLobby } from "./SenderPanel";
+import { CameraPanel } from "./CameraPanel";
 import { StreamOverlayPanel } from "./StreamOverlayPanel";
-import { useStreamOverlays } from "./lib/streamOverlayStore";
+import {
+  selectStreamOverlay,
+  useSelectedStreamOverlayId,
+  useStreamOverlays,
+} from "./lib/streamOverlayStore";
 import { useStreamSession } from "./lib/streamSession";
 
 type Role = "choose" | "receive" | "send";
@@ -125,9 +131,72 @@ export function StreamPage() {
         )}
         {role === "send" && <SenderLobby onBack={() => setRole("choose")} />}
 
+        <BroadcastCamerasSection />
         <BroadcastOverlaysSection />
       </div>
     </div>
+  );
+}
+
+/**
+ * The camera roster on the Stream page itself.
+ *
+ * Shown for the same reason the overlay controls below it are: once the
+ * broadcast has been popped out to the floating window, this page is where the
+ * operator is standing, and deciding which of the joined cameras fills the
+ * screen should not mean maximising the stage back over their work first.
+ */
+function BroadcastCamerasSection() {
+  const { colors, fonts } = useUITheme();
+  const session = useStreamSession();
+
+  if (!session.active || session.mode !== "pip") return null;
+
+  return (
+    <section
+      style={{
+        maxWidth: 560,
+        margin: "22px auto 0",
+        background: colors.raise,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 16,
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          marginBottom: 6,
+        }}
+      >
+        <Video size={18} color={colors.accentSoft} />
+        <span
+          style={{
+            fontFamily: fonts.display,
+            fontSize: 17,
+            fontWeight: 600,
+            color: colors.text,
+          }}
+        >
+          Live cameras
+        </span>
+      </div>
+      <p
+        style={{
+          fontFamily: fonts.ui,
+          fontSize: 13,
+          color: colors.sub,
+          margin: "0 0 16px",
+          lineHeight: 1.5,
+        }}
+      >
+        One camera fills the screen. Any other joined camera can sit in a corner
+        of it or wait off screen, ready to be cut to without a reconnection.
+      </p>
+      <CameraPanel />
+    </section>
   );
 }
 
@@ -144,7 +213,7 @@ function BroadcastOverlaysSection() {
   const { colors, fonts } = useUITheme();
   const session = useStreamSession();
   const overlays = useStreamOverlays();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedId = useSelectedStreamOverlayId();
 
   if (!session.active || session.mode !== "pip") return null;
 
@@ -196,7 +265,7 @@ function BroadcastOverlaysSection() {
       <StreamOverlayPanel
         overlays={overlays}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={selectStreamOverlay}
       />
     </section>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Check,
   Expand,
@@ -58,6 +58,8 @@ interface PresentationControlsProps {
   onGoLive: () => void;
   /** Shrinks the presentation into the floating presenter. */
   onShrinkToPip: () => void;
+  /** The second module's controls, sat beside the presentation's own. */
+  secondaryMenu?: ReactNode;
   onTogglePause: () => void;
   onSetView: (view: PresentationView) => void;
   onZoomIn: () => void;
@@ -83,6 +85,7 @@ export function PresentationControls({
   onHoverChange,
   onGoLive,
   onShrinkToPip,
+  secondaryMenu,
   onTogglePause,
   onSetView,
   onZoomIn,
@@ -153,6 +156,7 @@ export function PresentationControls({
         }
         onClick={onShrinkToPip}
       />
+      {secondaryMenu}
       <StageButton
         icon={paused ? Play : Pause}
         title={paused ? "Resume (P)" : "Pause (P)"}

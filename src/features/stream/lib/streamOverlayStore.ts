@@ -91,6 +91,35 @@ function replace(
   if (changed) commit(next);
 }
 
+/**
+ * Which overlay the operator is working on, held here rather than in any one
+ * surface.
+ *
+ * The broadcast is arranged from three places at once: the full stage, the
+ * floating window, and the panel on the Stream page. An operator who clicks an
+ * element in the floating window and then reaches for its settings on the page
+ * has selected one thing, not two, and a selection owned by a component would
+ * give them a different answer on every surface.
+ */
+let selectedId: string | null = null;
+
+export function getSelectedStreamOverlayId(): string | null {
+  return selectedId;
+}
+
+export function selectStreamOverlay(id: string | null): void {
+  if (selectedId === id) return;
+  selectedId = id;
+  for (const listener of listeners) listener();
+}
+
+export function useSelectedStreamOverlayId(): string | null {
+  return useSyncExternalStore(
+    subscribeStreamOverlays,
+    getSelectedStreamOverlayId,
+  );
+}
+
 export function subscribeStreamOverlays(listener: () => void): () => void {
   listeners.add(listener);
   ensureChannel();
@@ -116,10 +145,12 @@ export function removeStreamOverlay(id: string): void {
   const remaining = overlays.filter((overlay) => overlay.id !== id);
   forgetOverlayVideoProgress(id);
   releaseOverlayPassages(removed, remaining);
+  if (selectedId === id) selectedId = null;
   commit(remaining);
 }
 
 export function clearStreamOverlays(): void {
+  selectedId = null;
   if (overlays.length === 0) return;
   for (const overlay of overlays) forgetOverlayVideoProgress(overlay.id);
   releaseOverlayPassages(overlays, []);

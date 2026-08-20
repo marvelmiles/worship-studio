@@ -6,6 +6,7 @@ import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { videoSettingsOf } from "../../lib/media";
+import { targetOwnsKey } from "../../lib/mediaKeys";
 import {
   resolveAudioId,
   resolveAutoPlay,
@@ -190,18 +191,17 @@ export function usePresentation(
   const shortcutGateRef = useRef(shortcutGate);
   shortcutGateRef.current = shortcutGate;
 
-  /** True when this key press is the presentation's to handle. */
+  /**
+   * True when this key press is the presentation's to handle.
+   *
+   * A field being typed in keeps every key, and a focused slider keeps the ones
+   * it answers itself, so dragging the playhead and then nudging it with the
+   * arrows still scrubs. Everything else, space included, reaches the stage:
+   * touching the level slider must not be what stops the space bar pausing the
+   * clip an operator is watching.
+   */
   const ownsKey = useCallback((e: KeyboardEvent): boolean => {
-    const el = e.target as HTMLElement | null;
-    // Never steal keys from a field the user is typing in.
-    if (
-      el &&
-      (el.tagName === "INPUT" ||
-        el.tagName === "TEXTAREA" ||
-        el.isContentEditable)
-    ) {
-      return false;
-    }
+    if (targetOwnsKey(e)) return false;
     return shortcutGateRef.current?.() ?? true;
   }, []);
 

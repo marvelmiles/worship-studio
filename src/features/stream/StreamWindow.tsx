@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
+import { StreamPipLayer } from "./StreamPipLayer";
+import { StreamVideo } from "./StreamVideo";
 import { useMirroredStreamOverlays } from "./lib/streamOverlayStore";
+import { useOpenerLiveComposition } from "./lib/useOpenerComposition";
 import { useOverlayContentSync } from "./lib/useOverlayContentSync";
 
 /**
@@ -10,52 +13,23 @@ import { useOverlayContentSync } from "./lib/useOverlayContentSync";
  * controls, no app chrome.
  *
  * Two links feed it, because the two halves cannot travel the same way. The
- * camera is pulled by reference from the opener window (see streamLive.ts),
- * since a MediaStream cannot be cloned across a channel. The overlays are plain
- * data and arrive over a BroadcastChannel, which is what lets the operator keep
- * rearranging them from the app while this window projects. Either way this
- * window never touches signalling or WebRTC; it only displays.
+ * cameras are pulled by reference from the opener window (see streamLive.ts),
+ * since a MediaStream cannot be cloned across a channel; that reference carries
+ * the whole composition, so a switch of which camera fills the screen and which
+ * sit in the corners reaches the projector without any handshake. The overlays
+ * are plain data and arrive over a BroadcastChannel, which is what lets the
+ * operator keep rearranging them from the app while this window projects. Either
+ * way this window never touches signalling or WebRTC; it only displays.
  */
 export function StreamWindow() {
   const overlays = useMirroredStreamOverlays();
   useOverlayContentSync(overlays);
+  const composition = useOpenerLiveComposition();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
-
-  // The opener registers the stream just before opening this window, but the
-  // reference may not be readable on the very first tick, so retry briefly.
-  useEffect(() => {
-    const pull = () => {
-      try {
-        const s = window.opener?.__wsStreamLive?.getStream() ?? null;
-        if (s) {
-          setStream(s);
-          return true;
-        }
-      } catch {
-        /* opener gone or cross-origin; give up */
-      }
-      return false;
-    };
-    if (pull()) return;
-    let tries = 0;
-    const id = window.setInterval(() => {
-      tries += 1;
-      if (pull() || tries > 40) window.clearInterval(id);
-    }, 150);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (stream && el && el.srcObject !== stream) {
-      el.srcObject = stream;
-      void el.play().catch(() => {});
-    }
-  }, [stream]);
+  const stream = composition.primary;
 
   useEffect(() => {
     document.title = "WorshipStudio · Live camera";
@@ -108,20 +82,12 @@ export function StreamWindow() {
       onPointerDown={claimFocus}
       style={{ position: "fixed", inset: 0, background: "#000" }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        // Fill the whole projector screen. `cover` never distorts; it only trims
-        // the unavoidable overflow when the camera and screen differ in shape.
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          display: "block",
-          background: "#000",
-        }}
-      />
+      {/* Fill the whole projector screen. `cover` never distorts; it only trims
+          the unavoidable overflow when the camera and screen differ in shape. */}
+      <StreamVideo ref={videoRef} stream={stream} />
+
+      {/* The other cameras, in the corners the operator placed them in. */}
+      <StreamPipLayer windows={composition.secondaries} />
 
       {/* This is the copy the room watches, so its clips are the ones heard. */}
       <StreamOverlayLayers overlays={overlays} live />

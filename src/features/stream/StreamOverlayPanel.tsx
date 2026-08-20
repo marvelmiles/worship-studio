@@ -19,6 +19,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { keepsSelectionProps } from "../../lib/selectionScope";
 import {
   OverlayContentPicker,
   type PickableKind,
@@ -102,7 +103,12 @@ export function StreamOverlayPanel({
   const stacked = [...overlays].reverse();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    // Reaching for these controls is not letting go of the element they belong
+    // to, so the frame on the broadcast surface stays up while they are used.
+    <div
+      {...keepsSelectionProps}
+      style={{ display: "flex", flexDirection: "column", gap: 14 }}
+    >
       <div>
         <OverlaySectionLabel>Add to the broadcast</OverlaySectionLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>

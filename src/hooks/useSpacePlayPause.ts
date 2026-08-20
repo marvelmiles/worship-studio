@@ -1,4 +1,8 @@
 import { useEffect, useRef } from "react";
+import { clipOwnsSpace } from "../lib/mediaKeys";
+
+/** Regions that run a presentation of their own, whose keys are not this one's. */
+const RIVAL_SCOPE_SELECTOR = '[role="dialog"], [data-presenter-pip]';
 
 interface SpacePlayPauseOptions {
   /** Off while the surface holds no clip, so the key is left alone. */
@@ -10,12 +14,15 @@ interface SpacePlayPauseOptions {
  * Space plays and pauses the clip an editor is holding, the way it does in
  * every other player, whatever has focus on the page.
  *
- * Three things keep it out of the way. A field being typed in owns the space it
- * is given, and so does any control that already answers to space (a button, a
- * checkbox, a select), so tabbing to Save and pressing space still saves rather
- * than starting the video behind it. So does the floating presenter: while it
- * holds focus the key belongs to what the audience is watching, and the editor's
- * own preview is left alone until focus comes back to the page.
+ * Two things keep it out of the way. A field being typed in owns the space it
+ * is given, and so does any control that already answers to space, so tabbing to
+ * Save and pressing space still saves rather than starting the video behind it.
+ * That second rule is lifted inside the player's own box (see lib/mediaKeys.ts),
+ * where the clip is what the key is reached for.
+ *
+ * A dialog and the floating presenter are left alone outright: while either is
+ * up the key belongs to what it is driving, and the editor's own preview waits
+ * until focus comes back to the page.
  */
 export function useSpacePlayPause({
   enabled,
@@ -28,15 +35,10 @@ export function useSpacePlayPause({
     const onKeyDown = (event: KeyboardEvent) => {
       const current = state.current;
       if (!current.enabled || event.defaultPrevented) return;
-      if (event.key !== " " && event.key !== "Spacebar") return;
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-
-      const target = event.target as HTMLElement | null;
+      if (!clipOwnsSpace(event)) return;
       if (
-        target?.isContentEditable ||
-        target?.closest?.(
-          'input, textarea, select, button, [role="button"], [role="dialog"], [contenteditable="true"], [data-presenter-pip]',
-        )
+        event.target instanceof HTMLElement &&
+        event.target.closest(RIVAL_SCOPE_SELECTOR)
       ) {
         return;
       }

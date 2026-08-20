@@ -16,6 +16,7 @@ import {
   UNSAVED_CHANGES_MESSAGE,
 } from "../../hooks/useUnsavedChanges";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import { formatDuration } from "../../lib/media";
 import { syncedPosition } from "../../lib/presentChannel";
 import { formatBytes } from "../../lib/storageStats";
@@ -221,6 +222,7 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
       >
         <div
           ref={surfaceRef}
+          {...(isImage ? {} : mediaSurfaceProps)}
           style={{
             position: "relative",
             width: "100%",

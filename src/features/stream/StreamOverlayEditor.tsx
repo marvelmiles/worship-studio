@@ -68,6 +68,10 @@ export function StreamOverlayEditor({
     <>
       <SlideElementOverlay<StreamOverlayKind>
         elements={elements}
+        // A broadcast surface is watched far more than it is arranged, so an
+        // element is framed when the operator reaches for it and left alone the
+        // rest of the time.
+        frameOnFocus
         selectedId={selectedId}
         onSelect={(element) => onSelect(element?.id ?? null)}
         onFrameChange={(element, frame) =>

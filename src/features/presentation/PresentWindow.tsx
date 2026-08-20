@@ -10,8 +10,12 @@ import {
   type PresentState,
 } from "../../lib/presentChannel";
 import type { VideoSurfaceHandle } from "../../components/media/VideoSurface";
+import { useOpenerLiveComposition } from "../stream/lib/useOpenerComposition";
+import { useMirroredStreamOverlays } from "../stream/lib/streamOverlayStore";
+import { useOverlayContentSync } from "../stream/lib/useOverlayContentSync";
 import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
+import { SecondaryPip } from "./SecondaryPip";
 import { Stage } from "./Stage";
 
 /**
@@ -30,6 +34,19 @@ export function PresentWindow() {
   const hideTimer = useRef<number>();
   const lastReloadKey = useRef<string>("");
   const videoRef = useRef<VideoSurfaceHandle>(null);
+  const secondaryVideoRef = useRef<VideoSurfaceHandle>(null);
+
+  const secondary = state?.secondary;
+  // A MediaStream cannot travel the broadcast channel, so a corner window
+  // showing the live camera reads it by reference from the window that opened
+  // this one. Only then: nothing else here needs the opener at all.
+  const composition = useOpenerLiveComposition(secondary?.kind === "stream");
+  // The overlays are plain data, so they reach this window the same way they
+  // reach the stream module's own projector: over a channel, live. That is what
+  // makes a passage put on air from the Stream page appear over the camera in
+  // this presentation's corner window without anything being pushed twice.
+  const streamOverlays = useMirroredStreamOverlays();
+  useOverlayContentSync(streamOverlays);
 
   useEffect(() => {
     const channel = openPresentChannel((msg) => {
@@ -42,7 +59,10 @@ export function PresentWindow() {
       // play on its own and only pulled back when it has actually drifted:
       // seeking on every reading would stutter the picture instead.
       if (msg.type !== "media-sync") return;
-      const surface = videoRef.current;
+      const surface =
+        msg.target === "secondary"
+          ? secondaryVideoRef.current
+          : videoRef.current;
       if (!surface) return;
       const expected = syncedPosition(msg.sync);
       if (
@@ -199,6 +219,16 @@ export function PresentWindow() {
         playback={state.media}
         videoRef={videoRef}
       />
+      {secondary && (
+        <SecondaryPip
+          secondary={secondary}
+          stream={composition.primary}
+          playback={secondary.media}
+          videoRef={secondaryVideoRef}
+          overlays={streamOverlays}
+          cameras={composition.secondaries}
+        />
+      )}
       {fullscreenButton}
     </div>
   );

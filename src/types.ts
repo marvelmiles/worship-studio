@@ -14,6 +14,26 @@ export type EasingKind = "ease" | "ease-in-out" | "ease-out" | "linear";
 
 export type PresentationView = "normal" | "cover" | "fill";
 
+/**
+ * Which corner a floating window hugs on the surface it is laid over. Used by
+ * the presentation's secondary module and by the stream's extra cameras, both of
+ * which drop a small window onto a picture someone else owns.
+ */
+export type PipCorner =
+  "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
+/**
+ * Where such a window sits and how big it is. The size is a percentage of the
+ * surface rather than pixels, because that surface is painted at wildly
+ * different sizes at once: the operator's stage, the floating presenter, and the
+ * projector popup. One placement has to be right in all of them.
+ */
+export interface PipPlacement {
+  corner: PipCorner;
+  /** Width of the window as a percentage of the surface it sits on. */
+  size: number;
+}
+
 export type BgType = "gradient" | "solid" | "image";
 
 /** Every kind of content that can be projected live. */

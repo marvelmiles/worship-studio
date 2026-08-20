@@ -80,6 +80,21 @@ Then open the URL Vite prints (default http://localhost:5173).
 - **Presentation mode.** Full‑screen projection, configurable transitions, a
   presenter bar (current slide notes, next‑slide preview, elapsed timer, slide
   counter), black/white screen, pause, and optional looping background audio.
+- **A second module in the corner.** While a manuscript, passage, picture or
+  clip holds the screen, a picture, a clip or the live camera can run in a
+  small window in a corner of it, on the preview and on the audience display
+  alike. Choose what it shows, move it between the four corners, size it,
+  let it be heard or silence it, swap it for something else, or take it away,
+  all without touching the running order. It mirrors its source module live:
+  a passage or picture put on air from the Stream page appears over the camera
+  inside it, a camera switch follows, and a picture or clip retouched in the
+  media editor updates as soon as it is saved (or straight away, via Update
+  presentation, for an edit that has not been saved yet).
+- **Up to three cameras on one broadcast.** The Stream module joins three
+  devices at once. One fills the screen; the others either sit in corner
+  windows over it or wait off screen, ready to be cut to instantly, because
+  every joined camera is already flowing. Switching which is which moves no
+  media and needs no reconnection.
 - **Backup.** Export the whole library to JSON and restore it later
   (validated on import).
 
@@ -121,6 +136,13 @@ In the editor slide list, each verse's first slide shows a small `^N` badge; eve
 | --- | ----------------- |
 | `P` | Pause / resume    |
 | Esc | Exit presentation |
+
+On a clip, the playback keys drive the clip rather than the running order:
+Space and `P` play and pause it, `←` / `→` seek five seconds, and `M` mutes it.
+They work wherever the pointer last left the focus, including on the transport's
+own play, mute and level controls, so adjusting the level is never what stops
+Space from pausing. The one exception is a focused slider, which keeps the
+arrow, Home, End and Page keys it answers to itself.
 
 **View**
 

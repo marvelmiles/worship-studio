@@ -4,6 +4,7 @@ import {
   Maximize2,
   MonitorOff,
   MonitorUp,
+  SwitchCamera,
   X,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -11,12 +12,22 @@ import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { AudioSharingPill } from "./AudioSharingPill";
-import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
+import { streamLiveWindow } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
-import { useStreamOverlays } from "./lib/streamOverlayStore";
+import { StreamOverlayEditor } from "./StreamOverlayEditor";
+import { StreamPipLayer, cameraPipWindow } from "./StreamPipLayer";
+import { StreamVideo } from "./StreamVideo";
+import {
+  selectStreamOverlay,
+  useSelectedStreamOverlayId,
+  useStreamOverlays,
+} from "./lib/streamOverlayStore";
 import {
   endStreamSession,
+  primaryCamera,
+  secondaryCameras,
+  setPrimaryCamera,
   setStreamMode,
   useStreamSession,
 } from "./lib/streamSession";
@@ -25,40 +36,28 @@ const WIDTH = 300;
 const MARGIN = 16;
 
 /**
- * The stream's floating, draggable Picture-in-Picture — the same idea as the
- * presentation's PresenterPip, but for the live camera. It's rendered at the
+ * The stream's floating, draggable Picture-in-Picture: the same idea as the
+ * presentation's PresenterPip, but for the live cameras. It's rendered at the
  * app root from the shared session, so it stays put while the operator moves
- * around the app. From here they can go live / end live, maximise back to the
- * full stage, or stop the device entirely. If the device drops, the session
- * ends and this window disappears with it.
+ * around the app. From here they can cut between the joined cameras, go live /
+ * end live, maximise back to the full stage, or stop everything. If the last
+ * device drops, the session ends and this window disappears with it.
  */
 export function StreamPip() {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const session = useStreamSession();
   const { isLive, isExtended, goLive, endLive } = useGoLive(streamLiveWindow);
-  const audio = useRemoteAudio(session.stream);
+  const primary = primaryCamera(session);
+  const audio = useRemoteAudio(primary?.stream ?? null);
   const overlays = useStreamOverlays();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const selectedOverlayId = useSelectedStreamOverlayId();
   const [pos, setPos] = useState(() => ({
     x: Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN),
     y: MARGIN,
   }));
   const drag = useRef<{ dx: number; dy: number } | null>(null);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (session.stream && el && el.srcObject !== session.stream) {
-      el.srcObject = session.stream;
-      void el.play().catch(() => {});
-    }
-  }, [session.stream]);
-
-  // Keep the external projection pointed at the current stream while live.
-  useEffect(() => {
-    if (isLive) setLiveStream(session.stream);
-  }, [isLive, session.stream]);
 
   // Keep the window on screen when the viewport shrinks under it.
   useEffect(() => {
@@ -102,11 +101,9 @@ export function StreamPip() {
   const handleGoLive = () => {
     if (isLive) {
       endLive();
-      setLiveStream(null);
       pushToast("Ended the live projection.");
       return;
     }
-    setLiveStream(session.stream);
     const result = goLive();
     if (result.ok) {
       pushToast(
@@ -122,8 +119,19 @@ export function StreamPip() {
     }
   };
 
-  const connecting = session.status === "connecting";
-  const disconnected = session.status === "failed";
+  // Cutting to the next camera from a window this small is one control, not a
+  // roster: the full arrangement lives on the maximised stage. Whichever camera
+  // comes next in the joined order takes the screen, and the one leaving it
+  // keeps whatever place it already had.
+  const order = session.cameras;
+  const currentIndex = order.findIndex(
+    (camera) => camera.deviceId === session.primaryId,
+  );
+  const nextCamera =
+    order.length > 1 ? order[(currentIndex + 1) % order.length] : null;
+
+  const connecting = primary?.status === "connecting";
+  const disconnected = primary?.status === "failed";
   // Play the sender's audio in the floating preview, unless the external
   // projection is live and already carrying the sound.
   const previewMuted = isLive;
@@ -144,7 +152,7 @@ export function StreamPip() {
         // Solid rather than a translucent backdrop-filter panel. At the opacity
         // this used the blur was invisible anyway, and a backdrop filter makes
         // the compositor re-blur the region behind a floating window that sits
-        // over a playing video and is dragged around — cost paid every frame,
+        // over a playing video and is dragged around: cost paid every frame,
         // during a service, for nothing on screen.
         background: colors.panelSolid,
         border: `1px solid ${colors.border}`,
@@ -183,10 +191,10 @@ export function StreamPip() {
             color: colors.text,
           }}
         >
-          {session.deviceName || "Phone camera"}
+          {primary?.deviceName || "Phone camera"}
         </span>
         <AudioSharingPill
-          available={session.audioShared}
+          available={Boolean(primary?.audioShared)}
           muted={audio.muted}
           size="sm"
         />
@@ -201,25 +209,30 @@ export function StreamPip() {
           background: "#000",
         }}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={previewMuted}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-          }}
+        <StreamVideo stream={primary?.stream ?? null} muted={previewMuted} />
+        <StreamPipLayer
+          windows={secondaryCameras(session).map(cameraPipWindow)}
+          forceMuted={isLive}
         />
         {/* The overlays at PiP scale, so the operator can see the broadcast
             while working elsewhere in the app. This is their own copy, not the
-            room's, so it also shows the changes they have staged but not
-            applied — otherwise adjusting a live element from the Stream page
-            would have nothing to look at. Clips stay silent here; the
-            projection carries the sound. */}
-        <StreamOverlayLayers overlays={overlays} live muted preview />
+            room's, so it shows the drafts they are still arranging and the
+            changes they have staged but not applied: otherwise an element added
+            from the Stream page while the camera is popped out would have
+            nothing to look at. Clips stay silent here; the projection carries
+            the sound. */}
+        <StreamOverlayLayers
+          overlays={overlays}
+          live
+          muted
+          showDrafts
+          preview
+        />
+        <StreamOverlayEditor
+          overlays={overlays}
+          selectedId={selectedOverlayId}
+          onSelect={selectStreamOverlay}
+        />
         {(connecting || disconnected) && (
           <div
             style={{
@@ -228,6 +241,8 @@ export function StreamPip() {
               display: "grid",
               placeItems: "center",
               background: disconnected ? "rgba(0,0,0,0.55)" : "transparent",
+              // Never in the way of an overlay being placed underneath it.
+              pointerEvents: "none",
               color: "rgba(255,255,255,0.8)",
               fontFamily: fonts.ui,
               fontSize: 12,
@@ -262,6 +277,13 @@ export function StreamPip() {
             onClick={handleGoLive}
           />
         )}
+        {nextCamera && (
+          <MiniButton
+            icon={SwitchCamera}
+            title={`Cut to ${nextCamera.deviceName}`}
+            onClick={() => setPrimaryCamera(nextCamera.deviceId)}
+          />
+        )}
         <span
           style={{
             flex: 1,
@@ -271,7 +293,10 @@ export function StreamPip() {
           }}
         >
           <StreamStatusBadge
-            status={connectionBadgeStatus(session.status, isLive)}
+            status={connectionBadgeStatus(
+              primary?.status ?? "connecting",
+              isLive,
+            )}
             size="sm"
           />
         </span>
@@ -282,7 +307,7 @@ export function StreamPip() {
         />
         <MiniButton
           icon={X}
-          title="Stop. Disconnect this device."
+          title="Stop. Disconnect every camera."
           danger
           onClick={endStreamSession}
         />

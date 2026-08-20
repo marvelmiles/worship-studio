@@ -100,6 +100,7 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
   const presentation = useStore((s) => s.presentation);
   const presentedDeck = useStore((s) => s.presentedDeck);
   const presentedMedia = useStore((s) => s.presentedMedia);
+  const secondaryPresentation = useStore((s) => s.secondaryPresentation);
 
   const history = useDraftHistory<MediaDraft>(draftOf(item));
   const { draft, apply, patch } = history;
@@ -148,11 +149,21 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     [apply, draft],
   );
 
-  const isPresenting =
+  // A picture or a clip can be on the main stage or in the presentation's
+  // corner window, and either way an edit here has somewhere to be pushed to.
+  const onMainStage =
     presentation?.kind === item.kind && presentation.id === item.id;
+  const onSecondary =
+    secondaryPresentation?.kind === item.kind &&
+    secondaryPresentation.id === item.id;
+  const isPresenting = onMainStage || onSecondary;
   // What the audience is being shown, which is the version the operator pushed
   // out rather than whatever the library happens to hold.
-  const presentedItem = isPresenting ? presentedDeck?.item : undefined;
+  const presentedItem = onMainStage
+    ? presentedDeck?.item
+    : onSecondary
+      ? secondaryPresentation?.item
+      : undefined;
 
   const adoptPresentation = useCallback((): boolean => {
     if (!presentedItem) return false;
@@ -223,8 +234,10 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     present,
     isPresenting,
     updatePresentation: () => updateMediaPresentation(preview),
+    // The transport the presentation publishes is the main stage's clip, so a
+    // clip that is only in the corner window has nothing here to sync from.
     presentedVideo:
-      isPresenting && item.kind === "video" ? presentedMedia : null,
+      onMainStage && item.kind === "video" ? presentedMedia : null,
     adoptPresentation,
   };
 }

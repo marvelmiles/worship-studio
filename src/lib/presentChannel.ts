@@ -1,6 +1,7 @@
 import type {
   ContentKind,
   MediaItem,
+  PipPlacement,
   PresentationView,
   SlideDeckDoc,
 } from "../types";
@@ -17,6 +18,28 @@ export interface MediaPlayback {
   seekTime: number;
   seekToken: number;
 }
+
+/**
+ * A second module shown in a corner of the stage while the main one runs: a
+ * picture, a clip, or the live camera the stream module is receiving.
+ *
+ * The picture and the clip travel whole for the same reason the main deck does,
+ * so the operator's version reaches the audience without a save behind it. The
+ * camera cannot travel at all: a MediaStream is not clonable, so the projected
+ * window reads it by reference from its opener (see stream/lib/streamLive.ts)
+ * and this only says that it is the camera being shown.
+ */
+export interface SecondaryPresentState {
+  kind: SecondaryModuleKind;
+  id: string;
+  item?: MediaItem;
+  placement: PipPlacement;
+  muted: boolean;
+  media?: MediaPlayback;
+}
+
+/** What a secondary window can show alongside the main presentation. */
+export type SecondaryModuleKind = "image" | "video" | "stream";
 
 export interface PresentState {
   kind: ContentKind;
@@ -40,6 +63,7 @@ export interface PresentState {
   pan: { x: number; y: number };
   view: PresentationView;
   media?: MediaPlayback;
+  secondary?: SecondaryPresentState;
 }
 
 /**
@@ -69,9 +93,12 @@ export const syncedPosition = (sync: MediaSync): number =>
   sync.time +
   (sync.playing ? ((Date.now() - sync.at) / 1000) * (sync.rate || 1) : 0);
 
+/** Which of the projected window's clips a position reading belongs to. */
+export type MediaSyncTarget = "main" | "secondary";
+
 export type PresentMessage =
   | { type: "state"; state: PresentState }
-  | { type: "media-sync"; sync: MediaSync }
+  | { type: "media-sync"; sync: MediaSync; target?: MediaSyncTarget }
   | { type: "request-state" }
   | { type: "bye" };
 

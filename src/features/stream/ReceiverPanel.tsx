@@ -4,6 +4,7 @@ import {
   MonitorSmartphone,
   RotateCcw,
   Smartphone,
+  Unplug,
   Wifi,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -19,7 +20,15 @@ import { decodeSignal, encodeSignal } from "./lib/streamSignal";
 import { signalingConfigured } from "./lib/firebase";
 import { deriveNetworkRoom } from "./lib/room";
 import { watchBroadcasters, type DeviceEntry } from "./lib/signaling";
-import { startStreamSession, useStreamSession } from "./lib/streamSession";
+import {
+  canJoinCamera,
+  connectStreamCamera,
+  disconnectStreamCamera,
+  findCamera,
+  getStreamSessionState,
+  MAX_STREAM_CAMERAS,
+  useStreamSession,
+} from "./lib/streamSession";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { ShowCode, ReadCode } from "./CodeExchange";
 import { ProjectionSurface } from "./ProjectionSurface";
@@ -113,10 +122,12 @@ function AutoReceivePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [researchNonce]);
 
+  const full = session.active && !canJoinCamera(session);
+
   const connect = (device: DeviceEntry) => {
     const room = roomRef.current;
-    if (!room || session.active) return;
-    void startStreamSession({ room, device, viewerId });
+    if (!room || full) return;
+    void connectStreamCamera({ room, device, viewerId });
   };
 
   return (
@@ -159,7 +170,9 @@ function AutoReceivePanel({
           }}
         >
           On the other device, open Stream and choose Share this camera. It
-          appears here. Pick one to show it.
+          appears here. Pick one to show it, and up to {MAX_STREAM_CAMERAS} in
+          all: the first fills the screen, the rest wait to be cut to or placed
+          in a corner of it.
         </p>
 
         {finding ? (
@@ -183,9 +196,16 @@ function AutoReceivePanel({
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {devices.map((d) => {
-              const isThis = session.active && session.deviceId === d.id;
-              const isConnecting = isThis && session.status === "connecting";
-              const isConnected = isThis && session.status === "live";
+              const camera = findCamera(session, d.id);
+              const isConnecting = camera?.status === "connecting";
+              const isConnected = camera?.status === "live";
+              const role = !camera
+                ? ""
+                : session.primaryId === d.id
+                  ? "Main screen"
+                  : session.secondaryIds.includes(d.id)
+                    ? "In a corner"
+                    : "Ready to cut to";
               return (
                 <div
                   key={d.id}
@@ -213,36 +233,65 @@ function AutoReceivePanel({
                   >
                     <Smartphone size={18} />
                   </span>
-                  <span
-                    style={{
-                      flex: 1,
-                      fontFamily: fonts.ui,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: colors.text,
-                    }}
-                  >
-                    {d.name}
-                  </span>
-                  {isThis ? (
-                    <Button
-                      variant={isConnected ? "ghost" : "primary"}
-                      size="sm"
-                      disabled
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      className="ws-ellipsis"
+                      style={{
+                        display: "block",
+                        fontFamily: fonts.ui,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: colors.text,
+                      }}
                     >
-                      {isConnecting ? (
-                        <Spinner size={14} />
-                      ) : (
-                        <Wifi size={14} />
-                      )}
-                      {isConnecting ? "Connecting…" : "Connected"}
-                    </Button>
+                      {d.name}
+                    </span>
+                    {role && (
+                      <span
+                        style={{
+                          fontFamily: fonts.ui,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: 0.4,
+                          textTransform: "uppercase",
+                          color: colors.dim,
+                        }}
+                      >
+                        {role}
+                      </span>
+                    )}
+                  </span>
+                  {camera ? (
+                    <>
+                      <Button variant="ghost" size="sm" disabled>
+                        {isConnecting ? (
+                          <Spinner size={14} />
+                        ) : (
+                          <Wifi size={14} />
+                        )}
+                        {isConnecting ? "Connecting…" : "Connected"}
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        title="Disconnect this camera"
+                        onClick={() => disconnectStreamCamera(d.id)}
+                      >
+                        <Unplug size={14} />
+                        Drop
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       variant="primary"
                       size="sm"
                       onClick={() => connect(d)}
-                      disabled={session.active}
+                      disabled={full}
+                      title={
+                        full
+                          ? `Already holding ${MAX_STREAM_CAMERAS} cameras. Drop one first.`
+                          : "Connect this camera"
+                      }
                     >
                       <Wifi size={14} />
                       Connect
@@ -348,7 +397,10 @@ function ManualReceiverPanel({
   useEffect(() => {
     return () => {
       if (streamLiveWindow.getState().isLive) streamLiveWindow.endLive();
-      setLiveStream(null);
+      // Only this panel's own single camera is cleared. A one-tap session
+      // running alongside it owns the bridge, and blanking it here would take
+      // down a projection this flow never opened.
+      if (getStreamSessionState().cameras.length === 0) setLiveStream(null);
     };
   }, []);
 

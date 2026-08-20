@@ -5,6 +5,7 @@ import type { SlideElementKind, SlideFrame } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { clampFrame, MIN_FRAME_SIZE } from "../../lib/slideMedia";
+import { keepsSelection } from "../../lib/selectionScope";
 
 /** Corner and edge grips, positioned as fractions of the box. */
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -96,6 +97,18 @@ interface SlideElementOverlayProps<
   Kind extends string,
 > extends SlideElementEditing<Kind> {
   elements: SlideElement<Kind>[];
+  /**
+   * Frame a box only while it holds focus, and let the frame go when focus
+   * leaves the surface.
+   *
+   * The slide editor leaves this off: a slide is opened to be laid out, so every
+   * placement carries a resting dashed outline that says "this is a thing you
+   * can move". A live broadcast is the opposite. Its surface is watched far more
+   * often than it is arranged, and an outline drawn around every element on a
+   * camera the operator is monitoring is clutter over the picture they are
+   * checking. Here the frame is the answer to a click, and nothing else.
+   */
+  frameOnFocus?: boolean;
 }
 
 /**
@@ -162,10 +175,27 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
   onDuplicate,
   onDelete,
   onReorder,
+  frameOnFocus,
 }: SlideElementOverlayProps<Kind>) {
   const { colors } = useUITheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture<Kind> | null>(null);
+
+  /**
+   * Focus has left the surface for good, rather than moved within it.
+   *
+   * A grip, the toolbar and the next box over all sit inside the root, and a
+   * panel of settings for the selected element marks itself as keeping the
+   * selection. Anything else, including the plain picture behind the boxes
+   * (which focuses nothing at all, so there is no related target to inspect),
+   * means the operator has moved on.
+   */
+  const focusLeft = (next: EventTarget | null): boolean => {
+    const element = next instanceof HTMLElement ? next : null;
+    if (!element) return true;
+    if (rootRef.current?.contains(element)) return false;
+    return !keepsSelection(element);
+  };
 
   const begin = (
     event: PointerEvent<HTMLElement>,
@@ -274,7 +304,9 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
           touchAction: "none",
           outline: selected
             ? `2px solid ${colors.accent}`
-            : `1px dashed ${fade(colors.accent, 0.45)}`,
+            : frameOnFocus
+              ? undefined
+              : `1px dashed ${fade(colors.accent, 0.45)}`,
           outlineOffset: 1,
           background: "transparent",
         };
@@ -295,6 +327,14 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
             onPointerCancel={end}
             onKeyDown={(event) => handleKeys(event, element)}
             onFocus={() => onSelect({ id: element.id, kind: element.kind })}
+            onBlur={
+              frameOnFocus
+                ? (event) => {
+                    if (selected && focusLeft(event.relatedTarget))
+                      onSelect(null);
+                  }
+                : undefined
+            }
           >
             {!grabbable &&
               EDGES.map((edge) => (

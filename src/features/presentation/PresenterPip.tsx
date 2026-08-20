@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +23,7 @@ import {
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { videoProgressPercent, type VideoProgress } from "../../lib/media";
+import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { PortalSlot } from "../../components/ui/PortalSlot";
@@ -51,6 +58,10 @@ interface PresenterPipProps {
   onToggleVideoMuted: () => void;
   /** Takes the clip back to its trim start and runs it again. */
   onRestartVideo: () => void;
+  /** The second module's corner window, at this window's scale. */
+  secondaryLayer?: ReactNode;
+  /** Its controls, so the corner can be moved without leaving this window. */
+  secondaryMenu?: ReactNode;
   /** Owned by the parent so it can gate presentation shortcuts on focus. */
   rootRef: RefObject<HTMLDivElement>;
   onPrev: () => void;
@@ -88,6 +99,8 @@ export function PresenterPip({
   onSeekVideo,
   onToggleVideoMuted,
   onRestartVideo,
+  secondaryLayer,
+  secondaryMenu,
   rootRef,
   onPrev,
   onNext,
@@ -254,6 +267,7 @@ export function PresenterPip({
       </div>
 
       <div
+        {...(isVideo ? mediaSurfaceProps : {})}
         style={{
           position: "relative",
           aspectRatio: "16 / 9",
@@ -299,6 +313,7 @@ export function PresenterPip({
             />
           </>
         )}
+        {secondaryLayer}
       </div>
 
       {notes && (
@@ -340,6 +355,7 @@ export function PresenterPip({
         style={{
           display: "flex",
           alignItems: "center",
+          flexWrap: "wrap",
           gap: 5,
           padding: "8px 9px",
           borderTop: `1px solid ${colors.border}`,
@@ -405,10 +421,11 @@ export function PresenterPip({
           {navigable && currentLabel ? " · " : ""}
           {currentLabel}
         </span>
+        {secondaryMenu}
         {isLive ? (
           <MiniButton
             icon={MonitorOff}
-            title="Stop live — close the audience display"
+            title="Stop live, closing the audience display"
             danger
             onClick={onStopLive}
           />

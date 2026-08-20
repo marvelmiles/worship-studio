@@ -6,6 +6,7 @@ import {
   MonitorPlay,
   MonitorX,
   PictureInPicture2,
+  Video,
   Volume2,
   VolumeX,
   X,
@@ -15,14 +16,22 @@ import { useStore } from "../../store/useStore";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useViewport } from "../../hooks/useViewport";
 import { Button } from "../../components/ui/Button";
+import { keepsSelectionProps } from "../../lib/selectionScope";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
 import { AudioSharingPill } from "./AudioSharingPill";
+import { CameraPanel } from "./CameraPanel";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
 import { StreamOverlayEditor } from "./StreamOverlayEditor";
 import { StreamOverlayPanel } from "./StreamOverlayPanel";
-import { useStreamOverlays } from "./lib/streamOverlayStore";
+import { StreamPipLayer, type StreamPipWindow } from "./StreamPipLayer";
+import { StreamVideo } from "./StreamVideo";
+import {
+  selectStreamOverlay,
+  useSelectedStreamOverlayId,
+  useStreamOverlays,
+} from "./lib/streamOverlayStore";
 import { isOnAir } from "./lib/streamOverlay";
 import type { PeerStatus } from "./lib/peer";
 
@@ -30,14 +39,17 @@ import type { PeerStatus } from "./lib/peer";
 const MIN_VIDEO_HEIGHT = 360;
 
 /** Wide enough for the overlay list and its settings without wrapping. */
-const OVERLAY_DRAWER_WIDTH = 330;
+const DRAWER_WIDTH = 330;
+
+/** Which panel, if any, is open beside the picture. */
+type Drawer = "none" | "cameras" | "overlays";
 
 /**
  * The full-screen "stage" view of the projected camera. Purely presentational:
- * it renders whatever stream it's given and reports actions upward. For the
+ * it renders whatever streams it's given and reports actions upward. For the
  * one-tap flow it's rendered at the app root from the shared session (so it
  * overlays the whole app and survives navigation); the QR flow renders it
- * inline without a pop-out.
+ * inline without a pop-out and with a single camera.
  *
  * "Pop out" shrinks it into the floating PiP (via onPopOut). "Go live" opens the
  * external projection window; "Project fullscreen" fills this one in place.
@@ -47,6 +59,8 @@ export function ProjectionSurface({
   status,
   deviceName,
   audioShared = false,
+  secondaries = [],
+  showCameraControls = false,
   onStop,
   onPopOut,
   onLiveChange,
@@ -56,6 +70,10 @@ export function ProjectionSurface({
   deviceName?: string;
   /** Whether the sender is currently sharing its microphone (signalled by the sender). */
   audioShared?: boolean;
+  /** The other joined cameras, drawn in the corners of this one. */
+  secondaries?: StreamPipWindow[];
+  /** Offers the camera roster; the offline QR flow only ever has one camera. */
+  showCameraControls?: boolean;
   onStop: () => void;
   onPopOut?: () => void;
   /** Reports whether the feed is live on the external display, so the sender can reflect it. */
@@ -67,14 +85,12 @@ export function ProjectionSurface({
   const audio = useRemoteAudio(stream);
   const { isTablet } = useViewport();
   const overlays = useStreamOverlays();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [overlaysOpen, setOverlaysOpen] = useState(false);
-  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(
-    null,
-  );
+  const [drawer, setDrawer] = useState<Drawer>("none");
+  const selectedOverlayId = useSelectedStreamOverlayId();
   const disconnected = status === "failed";
+  const overlaysOpen = drawer === "overlays";
   // The count that matters is what the room can see, not what is staged.
   const onAirCount = overlays.filter(isOnAir).length;
 
@@ -83,18 +99,12 @@ export function ProjectionSurface({
     onLiveChange?.(isLive);
   }, [isLive, onLiveChange]);
 
+  // Keep the projection window pointed at the current camera while it's live.
+  // A session-backed surface publishes its own composition, so this is only for
+  // the QR flow, which owns its single stream outright.
   useEffect(() => {
-    const el = videoRef.current;
-    if (stream && el && el.srcObject !== stream) {
-      el.srcObject = stream;
-      void el.play().catch(() => {});
-    }
-  }, [stream]);
-
-  // Keep the projection window pointed at the current stream while it's live.
-  useEffect(() => {
-    if (isLive) setLiveStream(stream);
-  }, [stream, isLive]);
+    if (isLive && !showCameraControls) setLiveStream(stream);
+  }, [stream, isLive, showCameraControls]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -107,15 +117,18 @@ export function ProjectionSurface({
     else void shellRef.current?.requestFullscreen?.().catch(() => {});
   };
 
+  const toggleDrawer = (panel: Exclude<Drawer, "none">) =>
+    setDrawer((open) => (open === panel ? "none" : panel));
+
   // window.open must run inside this click, so this stays synchronous.
   const handleGoLive = () => {
     if (isLive) {
       endLive();
-      setLiveStream(null);
+      if (!showCameraControls) setLiveStream(null);
       pushToast("Ended the live projection.");
       return;
     }
-    setLiveStream(stream);
+    if (!showCameraControls) setLiveStream(stream);
     const result = goLive();
     if (result.ok) {
       pushToast(
@@ -132,7 +145,7 @@ export function ProjectionSurface({
   };
 
   // Play the sender's audio here while it's shown in-app. When projecting to
-  // the external window, mute this copy so the room doesn't hear it twice — the
+  // the external window, mute this copy so the room doesn't hear it twice: the
   // external window carries the sound.
   const previewMuted = isLive;
 
@@ -213,15 +226,32 @@ export function ProjectionSurface({
               {audio.muted ? "Unmute audio" : "Mute audio"}
             </Button>
           )}
-          <Button
-            variant={overlaysOpen ? "primary" : "ghost"}
-            size="sm"
-            onClick={() => setOverlaysOpen((open) => !open)}
-            title="Show passages, manuscripts, pictures, clips and announcements over the camera"
-          >
-            <Layers size={14} />
-            {onAirCount > 0 ? `Overlays (${onAirCount} on air)` : "Overlays"}
-          </Button>
+          {showCameraControls && (
+            <Button
+              variant={drawer === "cameras" ? "primary" : "ghost"}
+              size="sm"
+              onClick={() => toggleDrawer("cameras")}
+              title="Choose which camera fills the screen and which sit in the corners"
+            >
+              <Video size={14} />
+              {secondaries.length > 0
+                ? `Cameras (+${secondaries.length})`
+                : "Cameras"}
+            </Button>
+          )}
+          {/* Opening the settings for what is selected is not letting go of it,
+              so this control keeps the frame up on the surface behind it. */}
+          <span {...keepsSelectionProps} style={{ display: "inline-flex" }}>
+            <Button
+              variant={overlaysOpen ? "primary" : "ghost"}
+              size="sm"
+              onClick={() => toggleDrawer("overlays")}
+              title="Settings for the passages, manuscripts, pictures, clips and announcements over the camera"
+            >
+              <Layers size={14} />
+              {onAirCount > 0 ? `Overlays (${onAirCount} on air)` : "Overlays"}
+            </Button>
+          </span>
           <Button variant="ghost" size="sm" onClick={toggleFullscreen}>
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
@@ -248,8 +278,8 @@ export function ProjectionSurface({
         </div>
       </div>
 
-      {/* Video and, when open, the overlay drawer beside it. They stack on a
-          narrow screen so the drawer never squeezes the camera to a sliver. */}
+      {/* Video and, when open, a drawer beside it. They stack on a narrow
+          screen so the drawer never squeezes the camera to a sliver. */}
       <div
         style={{
           display: "flex",
@@ -267,35 +297,36 @@ export function ProjectionSurface({
             background: "#000",
           }}
         >
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted={previewMuted}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: "block",
-            }}
+          <StreamVideo stream={stream} muted={previewMuted} />
+          {/* The other cameras, exactly where the room will see them. */}
+          <StreamPipLayer
+            windows={secondaries}
+            showLabels
+            forceMuted={isLive}
           />
-          {/* Drafts and handles appear only while the drawer is open. With it
-              closed this surface is a program monitor and shows exactly what
-              the room is seeing; with it open it is the arranging surface. */}
+          {/* This is the operator's own copy, so it shows everything they have
+              put here: what is on air, and the drafts they are still arranging,
+              tagged as such. The Overlays button opens the settings drawer and
+              nothing more, because a control that also blanked half the surface
+              would leave an operator hunting for an element they had only
+              closed a panel on. The room's copies (the projection window and
+              the external display) still take on-air elements alone, which is
+              what keeps a draft off the screen it must never reach. Only the
+              eye and taking an element off air remove it from here. */}
           <StreamOverlayLayers
             overlays={overlays}
             live
             muted={isLive}
-            showDrafts={overlaysOpen}
-            preview={overlaysOpen}
+            showDrafts
+            preview
           />
-          {overlaysOpen && (
-            <StreamOverlayEditor
-              overlays={overlays}
-              selectedId={selectedOverlayId}
-              onSelect={setSelectedOverlayId}
-            />
-          )}
+          {/* Always up, so an element answers a click with its frame wherever
+              the operator is looking, and lets it go when they look elsewhere. */}
+          <StreamOverlayEditor
+            overlays={overlays}
+            selectedId={selectedOverlayId}
+            onSelect={selectStreamOverlay}
+          />
           {disconnected && (
             <div
               style={{
@@ -327,20 +358,23 @@ export function ProjectionSurface({
                     color: "rgba(255,255,255,0.7)",
                   }}
                 >
-                  Press Stop to close this view, then reconnect from the device
-                  list.
+                  {showCameraControls
+                    ? "Open Cameras to switch to another device, or press Stop to close this view."
+                    : "Press Stop to close this view, then reconnect from the device list."}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {overlaysOpen && (
+        {drawer !== "none" && (
           <aside
-            aria-label="Broadcast overlays"
+            aria-label={
+              drawer === "cameras" ? "Connected cameras" : "Broadcast overlays"
+            }
             style={{
               flexShrink: 0,
-              width: isTablet ? "auto" : OVERLAY_DRAWER_WIDTH,
+              width: isTablet ? "auto" : DRAWER_WIDTH,
               maxHeight: isTablet ? "45dvh" : undefined,
               overflowY: "auto",
               padding: 14,
@@ -350,11 +384,15 @@ export function ProjectionSurface({
                 : { borderLeft: `1px solid ${colors.border}` }),
             }}
           >
-            <StreamOverlayPanel
-              overlays={overlays}
-              selectedId={selectedOverlayId}
-              onSelect={setSelectedOverlayId}
-            />
+            {drawer === "cameras" ? (
+              <CameraPanel isLive={isLive} />
+            ) : (
+              <StreamOverlayPanel
+                overlays={overlays}
+                selectedId={selectedOverlayId}
+                onSelect={selectStreamOverlay}
+              />
+            )}
           </aside>
         )}
       </div>

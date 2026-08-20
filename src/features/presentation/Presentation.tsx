@@ -16,17 +16,33 @@ import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { stripInlineFormatting } from "../../lib/inlineFormat";
 import { stripListMarker } from "../../lib/lists";
-import type { VideoProgress } from "../../lib/media";
+import { videoSettingsOf, type VideoProgress } from "../../lib/media";
 import {
   MEDIA_SYNC_INTERVAL_MS,
   openPresentChannel,
   type PresentState,
+  type SecondaryPresentState,
 } from "../../lib/presentChannel";
+import { useMediaPlayback } from "../../hooks/useMediaPlayback";
+import {
+  primaryCamera,
+  secondaryCameras,
+  useStreamSession,
+} from "../stream/lib/streamSession";
+import { cameraPipWindow } from "../stream/StreamPipLayer";
+import { useStreamOverlays } from "../stream/lib/streamOverlayStore";
 import { usePresentation } from "./usePresentation";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
 import { PresenterPip } from "./PresenterPip";
+import { PortalSlot } from "../../components/ui/PortalSlot";
+import {
+  SecondaryPipContent,
+  SecondaryPipFrame,
+  secondaryLabel,
+} from "./SecondaryPip";
+import { SecondaryModuleMenu } from "./SecondaryModuleMenu";
 import { VideoSurface } from "../../components/media/VideoSurface";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import type { Background, ScripturePassage } from "../../types";
@@ -83,6 +99,10 @@ export function Presentation() {
   // One element for the clip, moved between the stage and the floating
   // presenter rather than rebuilt at each, so popping out never restarts it.
   const videoHost = usePortalHost();
+  // The same trick for the corner window: it is rendered once here and only
+  // re-parented between the stage and the floating presenter, so moving between
+  // them never restarts the clip or the camera it is holding.
+  const secondaryHost = usePortalHost();
   // In pip mode the presentation shares the page with the app, so it only
   // claims the keyboard while the floating presenter holds focus.
   const shortcutGate = useCallback(
@@ -108,6 +128,71 @@ export function Presentation() {
     [live, isLiveFullscreen, toggleLiveFullscreen],
   );
   const p = usePresentation(fullscreenOverride, shortcutGate);
+
+  /**
+   * The second module, when the operator has put one in a corner of the stage.
+   *
+   * Its clip runs on a transport of its own rather than the presentation's: the
+   * two are watched together but driven apart, and pausing the sermon's
+   * background clip must never be what pauses the sermon.
+   */
+  const secondary = useStore((s) => s.secondaryPresentation);
+  const streamSession = useStreamSession();
+  const secondaryStream = primaryCamera(streamSession)?.stream ?? null;
+  // A camera in the corner carries what the broadcast carries, so an overlay
+  // put on air from the Stream module appears here as it appears there.
+  const streamOverlays = useStreamOverlays();
+
+  /**
+   * The version of the picture or clip the corner window shows.
+   *
+   * Unlike the main stage, which only moves when the operator pushes a new
+   * version out, this follows the library: a corner window is a second thing
+   * being watched rather than the running order, and an operator who retouches
+   * the clip in it expects to see the retouch. The copy pushed from the editor
+   * still wins while the library is at the revision it was pushed against,
+   * which is what carries an edit that has not been saved yet.
+   */
+  const secondaryLibraryItem = useStore((s) =>
+    secondary && secondary.kind !== "stream"
+      ? s.media.find(
+          (entry) => entry.id === secondary.id && entry.kind === secondary.kind,
+        )
+      : undefined,
+  );
+  const secondaryItem =
+    secondaryLibraryItem &&
+    secondaryLibraryItem.updatedAt !== secondary?.item?.updatedAt
+      ? secondaryLibraryItem
+      : secondary?.item;
+
+  const secondaryClip = secondary?.kind === "video" ? secondaryItem : undefined;
+  const secondaryClipId = secondaryClip?.id;
+  const secondarySettings = useMemo(
+    () => (secondaryClip ? videoSettingsOf(secondaryClip) : undefined),
+    [secondaryClip],
+  );
+  const secondaryVideo = useMediaPlayback(secondarySettings);
+  const { reset: resetSecondaryVideo } = secondaryVideo;
+  useEffect(() => {
+    if (secondaryClipId) resetSecondaryVideo();
+  }, [secondaryClipId, resetSecondaryVideo]);
+
+  const secondaryState: SecondaryPresentState | undefined = useMemo(
+    () =>
+      secondary
+        ? {
+            kind: secondary.kind,
+            id: secondary.id,
+            item: secondaryItem,
+            placement: secondary.placement,
+            muted: secondary.muted,
+            media:
+              secondary.kind === "video" ? secondaryVideo.playback : undefined,
+          }
+        : undefined,
+    [secondary, secondaryItem, secondaryVideo.playback],
+  );
 
   const announced = useRef(false);
   const stateRef = useRef<PresentState | null>(null);
@@ -148,9 +233,11 @@ export function Presentation() {
       pan: p.pan,
       view: p.view,
       media: p.isVideoSlide ? p.mediaPlayback : undefined,
+      secondary: secondaryState,
     };
     channelRef.current?.postMessage({ type: "state", state: stateRef.current });
   }, [
+    secondaryState,
     deckKind,
     deckId,
     deckRev,
@@ -202,6 +289,7 @@ export function Presentation() {
       if (!channel) return;
       channel.postMessage({
         type: "media-sync",
+        target: "main",
         sync: {
           time: readVideoTime(),
           at: Date.now(),
@@ -214,6 +302,37 @@ export function Presentation() {
     const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [live, isVideoSlide, videoPlaying, videoRate, readVideoTime, mode]);
+
+  /** The corner window's clip, held in step the same way and on its own clock. */
+  const secondaryIsClip = secondary?.kind === "video";
+  const secondaryPlaying = secondaryVideo.playback.playing;
+  const secondaryRate = secondarySettings?.playbackRate ?? 1;
+  const readSecondaryTime = secondaryVideo.getTime;
+  useEffect(() => {
+    if (!live || !secondaryIsClip) return;
+    const publish = () => {
+      channelRef.current?.postMessage({
+        type: "media-sync",
+        target: "secondary",
+        sync: {
+          time: readSecondaryTime(),
+          at: Date.now(),
+          playing: secondaryPlaying,
+          rate: secondaryRate,
+        },
+      });
+    };
+    publish();
+    const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [
+    live,
+    secondaryIsClip,
+    secondaryClipId,
+    secondaryPlaying,
+    secondaryRate,
+    readSecondaryTime,
+  ]);
 
   /**
    * Publishes the clip's transport for the rest of the app, which is how the
@@ -395,12 +514,43 @@ export function Presentation() {
       <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
     ) : null;
 
+  // The corner window's content, held outside both surfaces. Silenced here
+  // while the projected window is live, so the room hears it once.
+  const secondaryContent = secondaryState
+    ? createPortal(
+        <SecondaryPipContent
+          secondary={secondaryState}
+          stream={secondaryStream}
+          playback={secondaryVideo.playback}
+          videoRef={secondaryVideo.surfaceRef}
+          onVideoTime={secondaryVideo.onTimeUpdate}
+          onVideoEnded={secondaryVideo.onEnded}
+          forceMuted={live}
+          overlays={streamOverlays}
+          overlayPreview
+          cameras={secondaryCameras(streamSession).map(cameraPipWindow)}
+        />,
+        secondaryHost,
+      )
+    : null;
+
+  // Where that content sits on whichever surface the operator is watching.
+  const secondaryLayer = secondaryState ? (
+    <SecondaryPipFrame
+      placement={secondaryState.placement}
+      label={secondaryLabel(secondaryState)}
+    >
+      <PortalSlot host={secondaryHost} />
+    </SecondaryPipFrame>
+  ) : null;
+
   // The floating presenter replaces the fullscreen stage without unmounting
   // this component, so the slide position, timer and audio all carry over.
   if (mode === "pip") {
     return (
       <>
         {videoLayer}
+        {secondaryContent}
         <PresenterPip
           title={deck.title}
           currentLabel={currentLabel}
@@ -416,6 +566,8 @@ export function Presentation() {
           onSeekVideo={p.seekVideoTo}
           onToggleVideoMuted={p.toggleVideoMuted}
           onRestartVideo={p.restartVideo}
+          secondaryLayer={secondaryLayer}
+          secondaryMenu={<SecondaryModuleMenu variant="mini" />}
           rootRef={pipRef}
           onPrev={() => p.go(-1)}
           onNext={() => p.go(1)}
@@ -436,6 +588,7 @@ export function Presentation() {
   return (
     <>
       {videoLayer}
+      {secondaryContent}
       <div
         ref={p.rootRef}
         style={{
@@ -458,6 +611,8 @@ export function Presentation() {
           videoHost={videoHost}
         />
 
+        {secondaryLayer}
+
         <PresentationControls
           paused={paused}
           view={p.view}
@@ -473,6 +628,7 @@ export function Presentation() {
           onHoverChange={onHoverChange}
           onGoLive={handleGoLive}
           onShrinkToPip={handleShrinkToPip}
+          secondaryMenu={<SecondaryModuleMenu variant="stage" />}
           onTogglePause={handleTogglePause}
           onSetView={p.setViewMode}
           onZoomIn={p.zoomIn}

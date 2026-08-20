@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { Pause, Play, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import { formatTimecode, needsHoursField } from "../../lib/media";
 import { StageButton } from "../ui/Button";
 
@@ -75,6 +76,7 @@ export function VideoTransportBar({
 
   return (
     <div
+      {...mediaSurfaceProps}
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
       style={{

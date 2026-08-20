@@ -1,7 +1,10 @@
 import { ProjectionSurface } from "./ProjectionSurface";
 import { StreamPip } from "./StreamPip";
+import { cameraPipWindow } from "./StreamPipLayer";
 import {
   endStreamSession,
+  primaryCamera,
+  secondaryCameras,
   setSessionViewerLive,
   setStreamMode,
   useStreamSession,
@@ -19,12 +22,16 @@ export function StreamProjectionRoot() {
 
   if (session.mode === "pip") return <StreamPip />;
 
+  const primary = primaryCamera(session);
+
   return (
     <ProjectionSurface
-      stream={session.stream}
-      status={session.status}
-      deviceName={session.deviceName}
-      audioShared={session.audioShared}
+      stream={primary?.stream ?? null}
+      status={primary?.status ?? "connecting"}
+      deviceName={primary?.deviceName}
+      audioShared={primary?.audioShared ?? false}
+      secondaries={secondaryCameras(session).map(cameraPipWindow)}
+      showCameraControls
       onStop={endStreamSession}
       onPopOut={() => setStreamMode("pip")}
       onLiveChange={setSessionViewerLive}
