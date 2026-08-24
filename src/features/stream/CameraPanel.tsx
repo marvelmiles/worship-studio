@@ -1,4 +1,6 @@
 import {
+  Eye,
+  EyeOff,
   MonitorPlay,
   PictureInPicture2,
   Smartphone,
@@ -15,6 +17,7 @@ import { IconButton } from "../../components/ui/Button";
 import { PipPlacementControls } from "../../components/ui/PipPlacementControls";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { AudioSharingPill } from "./AudioSharingPill";
+import { toggleCameraPreview, useCameraPreviewIds } from "./lib/cameraPreview";
 import {
   disconnectStreamCamera,
   hideCameraSecondary,
@@ -47,9 +50,15 @@ interface CameraPanelProps {
 export function CameraPanel({ isLive = false }: CameraPanelProps) {
   const { colors, fonts } = useUITheme();
   const session = useStreamSession();
+  const previewIds = useCameraPreviewIds();
   const pushToast = useStore((s) => s.pushToast);
 
   if (session.cameras.length === 0) return null;
+
+  // With one device joined there is nothing to check against: its picture is
+  // already the one on screen. The previews earn their place from the second
+  // camera on, which is why the control appears with it.
+  const canPreview = session.cameras.length > 1;
 
   const cornersInUse = session.secondaryIds.flatMap((id) => {
     const camera = session.cameras.find((entry) => entry.deviceId === id);
@@ -97,6 +106,8 @@ export function CameraPanel({ isLive = false }: CameraPanelProps) {
           session={session}
           isLive={isLive}
           cornersInUse={cornersInUse}
+          canPreview={canPreview}
+          previewing={previewIds.includes(camera.deviceId)}
           onShowInCorner={() => handleShowInCorner(camera)}
         />
       ))}
@@ -109,12 +120,18 @@ function CameraRow({
   session,
   isLive,
   cornersInUse,
+  canPreview,
+  previewing,
   onShowInCorner,
 }: {
   camera: StreamCamera;
   session: StreamSessionState;
   isLive: boolean;
   cornersInUse: PipCorner[];
+  /** Whether this roster offers previews at all. */
+  canPreview: boolean;
+  /** Whether this camera already has a floating preview open. */
+  previewing: boolean;
   onShowInCorner: () => void;
 }) {
   const { colors, fonts } = useUITheme();
@@ -228,6 +245,21 @@ function CameraRow({
               Show in corner
             </Button>
           ))}
+        {canPreview && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => toggleCameraPreview(camera.deviceId)}
+            title={
+              previewing
+                ? "Close this camera's floating preview"
+                : "Watch this camera in a floating window, without putting it on screen"
+            }
+          >
+            {previewing ? <EyeOff size={14} /> : <Eye size={14} />}
+            {previewing ? "Close preview" : "Preview"}
+          </Button>
+        )}
         <span style={{ flex: 1 }} />
         <AudioSharingPill
           available={camera.audioShared}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   GripHorizontal,
   Maximize2,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
+import { useFloatingWindow } from "../../hooks/useFloatingWindow";
 import { useGoLive } from "../../hooks/useGoLive";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { AudioSharingPill } from "./AudioSharingPill";
@@ -53,50 +54,12 @@ export function StreamPip() {
   const overlays = useStreamOverlays();
   const rootRef = useRef<HTMLDivElement>(null);
   const selectedOverlayId = useSelectedStreamOverlayId();
-  const [pos, setPos] = useState(() => ({
-    x: Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN),
-    y: MARGIN,
-  }));
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
-
-  // Keep the window on screen when the viewport shrinks under it.
-  useEffect(() => {
-    const onResize = () => {
-      const height = rootRef.current?.offsetHeight ?? 220;
-      setPos((p) => ({
-        x: Math.min(p.x, Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN)),
-        y: Math.min(
-          p.y,
-          Math.max(MARGIN, window.innerHeight - height - MARGIN),
-        ),
-      }));
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  const startDrag = (e: React.PointerEvent) => {
-    drag.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const onDrag = (e: React.PointerEvent) => {
-    const offset = drag.current;
-    if (!offset) return;
-    const height = rootRef.current?.offsetHeight ?? 220;
-    setPos({
-      x: Math.max(
-        0,
-        Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx),
-      ),
-      y: Math.max(
-        0,
-        Math.min(window.innerHeight - height, e.clientY - offset.dy),
-      ),
-    });
-  };
-  const endDrag = () => {
-    drag.current = null;
-  };
+  const { position, handleProps } = useFloatingWindow({
+    width: WIDTH,
+    margin: MARGIN,
+    estimatedHeight: 220,
+    elementRef: rootRef,
+  });
 
   const handleGoLive = () => {
     if (isLive) {
@@ -143,8 +106,8 @@ export function StreamPip() {
       aria-label="Floating camera"
       style={{
         position: "fixed",
-        left: pos.x,
-        top: pos.y,
+        left: position.x,
+        top: position.y,
         width: WIDTH,
         zIndex: 200,
         borderRadius: 14,
@@ -161,18 +124,14 @@ export function StreamPip() {
     >
       {/* Drag handle / title bar. */}
       <div
-        onPointerDown={startDrag}
-        onPointerMove={onDrag}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        {...handleProps}
         style={{
+          ...handleProps.style,
           display: "flex",
           alignItems: "center",
           gap: 7,
           padding: "8px 10px",
-          cursor: drag.current ? "grabbing" : "grab",
           borderBottom: `1px solid ${colors.border}`,
-          touchAction: "none",
         }}
       >
         <GripHorizontal

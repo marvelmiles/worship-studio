@@ -311,6 +311,75 @@ export function disconnectStreamCamera(deviceId: string): void {
 }
 
 /**
+ * Admits a camera whose handshake happened somewhere else.
+ *
+ * The QR / paste pairing does its own signalling: it has to, because it runs
+ * with no signalling backend and no network detection at all. What it must not
+ * also do is own the picture. A camera that lives in a route component is
+ * invisible to everything mounted at the app root — the floating window, the
+ * camera roster, the previews — so popping the stage out had nothing to pop out
+ * into, and the control was simply left off that flow's surface.
+ *
+ * Handing the connection over here is what closes that gap: from this point a
+ * paired camera is an ordinary session camera, and every surface in the app
+ * treats it as one. The session takes ownership of the handle with it, so the
+ * flow that created it must not close it afterwards.
+ */
+export function adoptStreamCamera(camera: {
+  deviceId: string;
+  deviceName: string;
+  handle: ReceiverHandle;
+  stream: MediaStream | null;
+  status: PeerStatus;
+  audioShared?: boolean;
+}): boolean {
+  if (findCamera(state, camera.deviceId)) return false;
+  if (state.active && !canJoinCamera(state)) return false;
+
+  peers.set(camera.deviceId, {
+    handle: camera.handle,
+    call: null,
+    answered: true,
+  });
+  // Whatever the rest of the session already told its senders holds for this
+  // one too, so a camera joining a live projection is not told otherwise.
+  camera.handle.setViewerLive(viewerLive);
+
+  const joining: StreamCamera = {
+    deviceId: camera.deviceId,
+    deviceName: camera.deviceName,
+    status: camera.status,
+    stream: camera.stream,
+    audioShared: camera.audioShared ?? false,
+    placement: state.active ? freeCorner() : DEFAULT_PIP_PLACEMENT,
+    muted: true,
+  };
+
+  commit({
+    ...state,
+    active: true,
+    cameras: [...state.cameras, joining],
+    primaryId: state.primaryId ?? camera.deviceId,
+    mode: state.active ? state.mode : "stage",
+  });
+  return true;
+}
+
+/**
+ * Reports what an adopted camera's own connection is doing. Cameras this module
+ * connected are updated from their peer callbacks; an adopted one keeps its
+ * callbacks where they were created, and forwards through here.
+ */
+export function updateStreamCamera(
+  deviceId: string,
+  patch: Partial<
+    Pick<StreamCamera, "stream" | "status" | "audioShared" | "deviceName">
+  >,
+): void {
+  patchCamera(deviceId, patch);
+}
+
+/**
  * Joins another broadcasting device to the session, up to three. The first one
  * becomes the primary and opens the projection; the rest are held connected and
  * off screen until the operator gives them a place.

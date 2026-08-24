@@ -78,12 +78,6 @@ export function setLiveComposition(next: LiveComposition | null): void {
   install();
 }
 
-/** The single-camera case, used by the offline QR flow and by any one caller
- *  that only has a main picture to publish. */
-export function setLiveStream(stream: MediaStream | null): void {
-  setLiveComposition(stream ? { primary: stream, secondaries: [] } : null);
-}
-
 export function getLiveComposition(): LiveComposition {
   return composition;
 }

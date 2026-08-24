@@ -2,8 +2,8 @@ import { useState, type ReactNode } from "react";
 import { MonitorPlay, MonitorUp, Play } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
-import { useStore } from "../../store/useStore";
-import { goLive } from "../../lib/liveWindow";
+import { usePresentActions } from "../../hooks/usePresentActions";
+import { EDITOR_COMMANDS } from "../../lib/shortcuts";
 import { Button } from "./Button";
 import { Popover } from "./Popover";
 
@@ -20,6 +20,11 @@ interface PresentMenuProps {
   title?: string;
   /** Stretches the trigger across whatever room its row has left. */
   fill?: boolean;
+  /**
+   * Shows each option's keyboard shortcut. Only true where those shortcuts are
+   * actually bound, which is inside an editor.
+   */
+  hints?: boolean;
   /** Renders a custom trigger instead of the default button. */
   children?: ReactNode;
 }
@@ -41,30 +46,21 @@ export function PresentMenu({
   disabled,
   title,
   fill,
+  hints,
   children,
 }: PresentMenuProps) {
   const { colors } = useUITheme();
-  const pushToast = useStore((s) => s.pushToast);
+  const present = usePresentActions(onPresent);
   const [open, setOpen] = useState(false);
 
   const startLive = () => {
     setOpen(false);
-    // Opened inside this click: browsers only allow window.open during a real
-    // user gesture, so this cannot be deferred into an effect.
-    const result = goLive();
-    if (!result.ok && result.reason === "blocked") {
-      pushToast(
-        "Popup blocked. Allow popups for this site to go live.",
-        "error",
-      );
-      return;
-    }
-    onPresent({ pip: true });
+    present.startLive();
   };
 
   const startPreview = () => {
     setOpen(false);
-    onPresent({ pip: false });
+    present.startPreview();
   };
 
   return (
@@ -108,6 +104,7 @@ export function PresentMenu({
           icon={MonitorUp}
           title="Go live"
           description="Project to the audience now and keep using the app from the floating presenter."
+          hint={hints ? EDITOR_COMMANDS.goLive.hint : undefined}
           accent
           onClick={startLive}
         />
@@ -115,6 +112,7 @@ export function PresentMenu({
           icon={MonitorPlay}
           title="Preview here"
           description="Open the presentation on this screen only. Nothing is projected."
+          hint={hints ? EDITOR_COMMANDS.preview.hint : undefined}
           onClick={startPreview}
         />
       </div>
@@ -126,12 +124,14 @@ function MenuOption({
   icon: Icon,
   title: optionTitle,
   description,
+  hint,
   accent,
   onClick,
 }: {
   icon: typeof MonitorUp;
   title: string;
   description: string;
+  hint?: string;
   accent?: boolean;
   onClick: () => void;
 }) {
@@ -165,10 +165,13 @@ function MenuOption({
         color={accent ? colors.accentSoft : colors.sub}
         style={{ flexShrink: 0, marginTop: 2 }}
       />
-      <span>
+      <span style={{ flex: 1, minWidth: 0 }}>
         <span
           style={{
-            display: "block",
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 8,
             fontFamily: fonts.ui,
             fontSize: 13.5,
             fontWeight: 700,
@@ -176,6 +179,23 @@ function MenuOption({
           }}
         >
           {optionTitle}
+          {hint && (
+            <kbd
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 10.5,
+                fontWeight: 600,
+                color: colors.dim,
+                background: fade(colors.text, 0.07),
+                border: `1px solid ${colors.border}`,
+                borderRadius: 5,
+                padding: "2px 5px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {hint}
+            </kbd>
+          )}
         </span>
         <span
           style={{

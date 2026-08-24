@@ -18,7 +18,7 @@ import { useViewport } from "../../hooks/useViewport";
 import { Button } from "../../components/ui/Button";
 import { keepsSelectionProps } from "../../lib/selectionScope";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
-import { streamLiveWindow, setLiveStream } from "./lib/streamLive";
+import { streamLiveWindow } from "./lib/streamLive";
 import { useRemoteAudio } from "./lib/useRemoteAudio";
 import { AudioSharingPill } from "./AudioSharingPill";
 import { CameraPanel } from "./CameraPanel";
@@ -46,10 +46,10 @@ type Drawer = "none" | "cameras" | "overlays";
 
 /**
  * The full-screen "stage" view of the projected camera. Purely presentational:
- * it renders whatever streams it's given and reports actions upward. For the
- * one-tap flow it's rendered at the app root from the shared session (so it
- * overlays the whole app and survives navigation); the QR flow renders it
- * inline without a pop-out and with a single camera.
+ * it renders whatever streams it's given and reports actions upward. It is
+ * rendered once at the app root from the shared session, so it overlays the
+ * whole app and survives navigation, and every camera reaches it the same way
+ * however it was paired (see adoptStreamCamera).
  *
  * "Pop out" shrinks it into the floating PiP (via onPopOut). "Go live" opens the
  * external projection window; "Project fullscreen" fills this one in place.
@@ -60,7 +60,6 @@ export function ProjectionSurface({
   deviceName,
   audioShared = false,
   secondaries = [],
-  showCameraControls = false,
   onStop,
   onPopOut,
   onLiveChange,
@@ -72,10 +71,9 @@ export function ProjectionSurface({
   audioShared?: boolean;
   /** The other joined cameras, drawn in the corners of this one. */
   secondaries?: StreamPipWindow[];
-  /** Offers the camera roster; the offline QR flow only ever has one camera. */
-  showCameraControls?: boolean;
   onStop: () => void;
-  onPopOut?: () => void;
+  /** Shrinks the stage into the floating window. Always offered. */
+  onPopOut: () => void;
   /** Reports whether the feed is live on the external display, so the sender can reflect it. */
   onLiveChange?: (live: boolean) => void;
 }) {
@@ -99,13 +97,6 @@ export function ProjectionSurface({
     onLiveChange?.(isLive);
   }, [isLive, onLiveChange]);
 
-  // Keep the projection window pointed at the current camera while it's live.
-  // A session-backed surface publishes its own composition, so this is only for
-  // the QR flow, which owns its single stream outright.
-  useEffect(() => {
-    if (isLive && !showCameraControls) setLiveStream(stream);
-  }, [stream, isLive, showCameraControls]);
-
   useEffect(() => {
     const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener("fullscreenchange", onChange);
@@ -124,11 +115,9 @@ export function ProjectionSurface({
   const handleGoLive = () => {
     if (isLive) {
       endLive();
-      if (!showCameraControls) setLiveStream(null);
       pushToast("Ended the live projection.");
       return;
     }
-    if (!showCameraControls) setLiveStream(stream);
     const result = goLive();
     if (result.ok) {
       pushToast(
@@ -226,19 +215,17 @@ export function ProjectionSurface({
               {audio.muted ? "Unmute audio" : "Mute audio"}
             </Button>
           )}
-          {showCameraControls && (
-            <Button
-              variant={drawer === "cameras" ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => toggleDrawer("cameras")}
-              title="Choose which camera fills the screen and which sit in the corners"
-            >
-              <Video size={14} />
-              {secondaries.length > 0
-                ? `Cameras (+${secondaries.length})`
-                : "Cameras"}
-            </Button>
-          )}
+          <Button
+            variant={drawer === "cameras" ? "primary" : "ghost"}
+            size="sm"
+            onClick={() => toggleDrawer("cameras")}
+            title="Choose which camera fills the screen and which sit in the corners"
+          >
+            <Video size={14} />
+            {secondaries.length > 0
+              ? `Cameras (+${secondaries.length})`
+              : "Cameras"}
+          </Button>
           {/* Opening the settings for what is selected is not letting go of it,
               so this control keeps the frame up on the surface behind it. */}
           <span {...keepsSelectionProps} style={{ display: "inline-flex" }}>
@@ -256,12 +243,15 @@ export function ProjectionSurface({
             {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
           </Button>
-          {onPopOut && (
-            <Button variant="ghost" size="sm" onClick={onPopOut}>
-              <PictureInPicture2 size={14} />
-              Pop out
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onPopOut}
+            title="Shrink the stage into the floating window and keep using the app"
+          >
+            <PictureInPicture2 size={14} />
+            Pop out
+          </Button>
           <Button
             variant={isLive ? "danger" : "primary"}
             size="sm"
@@ -358,9 +348,8 @@ export function ProjectionSurface({
                     color: "rgba(255,255,255,0.7)",
                   }}
                 >
-                  {showCameraControls
-                    ? "Open Cameras to switch to another device, or press Stop to close this view."
-                    : "Press Stop to close this view, then reconnect from the device list."}
+                  Open Cameras to switch to another device, or press Stop to
+                  close this view.
                 </div>
               </div>
             </div>

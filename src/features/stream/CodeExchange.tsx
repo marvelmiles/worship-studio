@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { QrCode as QrIcon, Clipboard, Check, Camera } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { useElementSize } from "../../hooks/useElementSize";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { QrCode } from "./QrCode";
@@ -14,6 +15,16 @@ import { QrScanner } from "./QrScanner";
  *    no webcam. That paste channel is the internet-based fallback, and it needs
  *    no server of our own.
  */
+/**
+ * The handshake code is dense enough that how big it is drawn decides whether
+ * the other device's camera can read it at all, so it takes as much of the
+ * screen as the layout can spare rather than a fixed thumbnail.
+ */
+const MAX_QR_SIZE = 420;
+const MIN_QR_SIZE = 240;
+/** The white tile's own padding, which the code must not be sized into. */
+const QR_TILE_PADDING = 24;
+
 export function ShowCode({
   value,
   caption,
@@ -24,6 +35,14 @@ export function ShowCode({
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [copied, setCopied] = useState(false);
+  // Measured from the column it sits in rather than the window: this card is
+  // one of two beside each other on a laptop and the only thing on screen on a
+  // phone, and the code should fill whichever of those it is given.
+  const columnRef = useRef<HTMLDivElement>(null);
+  const { width: columnWidth } = useElementSize(columnRef);
+  const qrSize = Math.round(
+    Math.max(MIN_QR_SIZE, Math.min(MAX_QR_SIZE, columnWidth - QR_TILE_PADDING)),
+  );
 
   const copy = async () => {
     try {
@@ -37,6 +56,7 @@ export function ShowCode({
 
   return (
     <div
+      ref={columnRef}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -44,7 +64,7 @@ export function ShowCode({
         gap: 12,
       }}
     >
-      <QrCode value={value} />
+      <QrCode value={value} size={qrSize} />
       <p
         style={{
           fontFamily: fonts.ui,
@@ -57,6 +77,20 @@ export function ShowCode({
         }}
       >
         {caption}
+      </p>
+      <p
+        style={{
+          fontFamily: fonts.ui,
+          fontSize: 12,
+          color: colors.dim,
+          textAlign: "center",
+          margin: 0,
+          maxWidth: 320,
+          lineHeight: 1.5,
+        }}
+      >
+        Hold the other device close enough that the code fills its viewfinder,
+        and keep both still until it reads.
       </p>
       <Button variant="ghost" size="sm" onClick={copy}>
         {copied ? <Check size={14} /> : <Clipboard size={14} />}

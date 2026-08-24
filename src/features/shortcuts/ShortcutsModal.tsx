@@ -37,7 +37,9 @@ export function ShortcutsModal() {
           lineHeight: 1.6,
         }}
       >
-        These shortcuts are available while presenting.
+        Every shortcut in the studio, grouped by where it works. Each group
+        says when its keys are live: in an editor, while presenting, or on the
+        Bible page.
       </p>
       {SHORTCUT_GROUPS.map((group) => (
         <div key={group.title} style={{ marginBottom: 6 }}>

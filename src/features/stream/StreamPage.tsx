@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   ArrowRight,
-  Layers,
   MonitorSmartphone,
   Radio,
   ShieldAlert,
@@ -13,12 +12,6 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { ReceiverLobby } from "./ReceiverPanel";
 import { SenderLobby } from "./SenderPanel";
 import { CameraPanel } from "./CameraPanel";
-import { StreamOverlayPanel } from "./StreamOverlayPanel";
-import {
-  selectStreamOverlay,
-  useSelectedStreamOverlayId,
-  useStreamOverlays,
-} from "./lib/streamOverlayStore";
 import { useStreamSession } from "./lib/streamSession";
 
 type Role = "choose" | "receive" | "send";
@@ -132,7 +125,6 @@ export function StreamPage() {
         {role === "send" && <SenderLobby onBack={() => setRole("choose")} />}
 
         <BroadcastCamerasSection />
-        <BroadcastOverlaysSection />
       </div>
     </div>
   );
@@ -194,79 +186,10 @@ function BroadcastCamerasSection() {
       >
         One camera fills the screen. Any other joined camera can sit in a corner
         of it or wait off screen, ready to be cut to without a reconnection.
+        Preview opens a floating window of a camera for you alone, so you can
+        see what it is pointing at before it reaches the broadcast.
       </p>
       <CameraPanel />
-    </section>
-  );
-}
-
-/**
- * The overlay controls on the Stream page itself.
- *
- * Shown only once the camera has been popped out to the floating PiP, which is
- * the state in which the operator is using the rest of the app while the
- * broadcast runs. With the full-screen stage up it covers this page anyway, and
- * its own drawer is the copy in reach, so rendering a second one underneath
- * would only give the same controls two competing selections.
- */
-function BroadcastOverlaysSection() {
-  const { colors, fonts } = useUITheme();
-  const session = useStreamSession();
-  const overlays = useStreamOverlays();
-  const selectedId = useSelectedStreamOverlayId();
-
-  if (!session.active || session.mode !== "pip") return null;
-
-  return (
-    <section
-      style={{
-        maxWidth: 560,
-        margin: "22px auto 0",
-        background: colors.raise,
-        border: `1px solid ${colors.border}`,
-        borderRadius: 16,
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 9,
-          marginBottom: 6,
-        }}
-      >
-        <Layers size={18} color={colors.accentSoft} />
-        <span
-          style={{
-            fontFamily: fonts.display,
-            fontSize: 17,
-            fontWeight: 600,
-            color: colors.text,
-          }}
-        >
-          On the broadcast
-        </span>
-      </div>
-      <p
-        style={{
-          fontFamily: fonts.ui,
-          fontSize: 13,
-          color: colors.sub,
-          margin: "0 0 16px",
-          lineHeight: 1.5,
-        }}
-      >
-        Elements you add are staged first, so nothing reaches the broadcast
-        until you show it. Maximise the floating window to drag them into place,
-        then put them on air when they are ready. Changes to something already
-        on air wait for Apply now, unless you switch that element to auto sync.
-      </p>
-      <StreamOverlayPanel
-        overlays={overlays}
-        selectedId={selectedId}
-        onSelect={selectStreamOverlay}
-      />
     </section>
   );
 }

@@ -15,6 +15,7 @@
  */
 
 import { setStreamAudioEnabled } from "./cameras";
+import { detectDeviceName } from "./deviceName";
 import { withVideoQualityHints } from "./sdp";
 import {
   MAX_VIDEO_BITRATE,
@@ -227,6 +228,12 @@ export async function createReceiver(options: {
   onStatus: (status: PeerStatus) => void;
   /** Fired when the sender reports whether it is currently sharing its microphone. */
   onAudioShared?: (shared: boolean) => void;
+  /**
+   * Fired with the sender's own name for itself. Only the code-paired flow
+   * needs it: the one-tap flow already learns the name from the device list it
+   * picked the camera out of.
+   */
+  onDeviceName?: (name: string) => void;
 }): Promise<ReceiverHandle> {
   const pc = createConnection();
 
@@ -265,6 +272,8 @@ export async function createReceiver(options: {
       const parsed = JSON.parse(event.data as string);
       if (parsed?.type === "audioShared")
         options.onAudioShared?.(Boolean(parsed.on));
+      if (parsed?.type === "deviceName" && typeof parsed.name === "string")
+        options.onDeviceName?.(parsed.name);
     } catch {
       /* ignore anything that isn't our small JSON status message */
     }
@@ -384,11 +393,27 @@ export async function createSender(options: {
       /* channel closing; the receiver keeps its last value */
     }
   };
+  // The code-paired flow has no device list to read a name from, so the sender
+  // says who it is over the channel it already has. Best effort by nature: a
+  // receiver that never hears it keeps whatever label it started with.
+  const pushDeviceName = () => {
+    if (statusChannel?.readyState !== "open") return;
+    void detectDeviceName()
+      .then((name) => {
+        if (statusChannel?.readyState !== "open") return;
+        statusChannel.send(JSON.stringify({ type: "deviceName", name }));
+      })
+      .catch(() => {});
+  };
+  const announce = () => {
+    pushAudioShared();
+    pushDeviceName();
+  };
   pc.addEventListener("datachannel", (event) => {
     statusChannel = event.channel;
     // Send the current mic state on open, covering audio toggled before connect.
-    event.channel.addEventListener("open", pushAudioShared);
-    if (event.channel.readyState === "open") pushAudioShared();
+    event.channel.addEventListener("open", announce);
+    if (event.channel.readyState === "open") announce();
     event.channel.addEventListener("message", (message) => {
       try {
         const parsed = JSON.parse(message.data as string);

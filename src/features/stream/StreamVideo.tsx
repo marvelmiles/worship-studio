@@ -15,12 +15,28 @@ interface StreamVideoProps {
 }
 
 /**
+ * How much of the picture's edge is cropped away.
+ *
+ * Phone encoders pad a frame out to the macroblock size their hardware works
+ * in, and that padding is left as zeroes. Zero in YUV is not black, it is
+ * green, and once the frame is scaled to a surface the sampler blends those
+ * padded rows into the visible edge: the green fringe that shows up down the
+ * side of some phones' feeds on every surface at once.
+ *
+ * Nothing in the video API exposes where the real picture stops, so the fix is
+ * to overscan slightly and let the frame's outermost fraction fall outside the
+ * box. 0.4% of an edge is a few pixels of a 1080p frame and invisible on a
+ * camera feed, while being more than the padding is ever wide.
+ */
+const EDGE_OVERSCAN = 1.008;
+
+/**
  * A live MediaStream in a `<video>`.
  *
  * A stream is attached through `srcObject` rather than a `src`, and re-assigning
  * one the element is already playing restarts the picture, so the write is
  * guarded. Every surface that shows a camera goes through this, which is what
- * keeps that guard in one place rather than in four.
+ * keeps that guard, and the edge crop above, in one place rather than in four.
  */
 export const StreamVideo = forwardRef<HTMLVideoElement, StreamVideoProps>(
   function StreamVideo(
@@ -46,20 +62,30 @@ export const StreamVideo = forwardRef<HTMLVideoElement, StreamVideoProps>(
     }, [stream]);
 
     return (
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={muted}
+      <div
         style={{
+          position: "relative",
           width: "100%",
           height: "100%",
-          objectFit,
-          display: "block",
+          overflow: "hidden",
           background: "#000",
           ...style,
         }}
-      />
+      >
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={muted}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit,
+            display: "block",
+            transform: `scale(${EDGE_OVERSCAN})`,
+          }}
+        />
+      </div>
     );
   },
 );

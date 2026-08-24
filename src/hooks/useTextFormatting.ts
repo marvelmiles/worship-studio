@@ -369,7 +369,14 @@ export function useTextFormatting({
         run((text, start, end) => tabInList(text, start, end, event.shiftKey));
         return;
       }
-      if (event.key === "Enter" && !event.shiftKey) {
+      // A modifier held with Enter belongs to the editor's own commands (see
+      // lib/shortcuts.ts), not to the list being written.
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey
+      ) {
         if (run((text, start, end) => newLineInList(text, start, end)))
           event.preventDefault();
         return;
@@ -387,6 +394,9 @@ export function useTextFormatting({
         else undo();
         return;
       }
+      // Emphasis is bound unshifted, the way a word processor binds it, which
+      // leaves the shifted combinations to the editor's own commands.
+      if (event.shiftKey) return;
       const name = inlineFormatForShortcut(event.key);
       if (!name) return;
       event.preventDefault();

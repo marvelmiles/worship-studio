@@ -108,9 +108,3 @@ export function decodeSignal(
     return null;
   }
 }
-
-/**
- * Roughly the largest byte-mode payload a QR can hold at error-correction
- * level L (version 40). Used to warn before rendering an unscannable code.
- */
-export const QR_BYTE_CAPACITY = 2953;

@@ -9,6 +9,9 @@ import {
   Undo2,
 } from "lucide-react";
 import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useEditorShortcuts } from "../../hooks/useEditorShortcuts";
+import { usePresentActions } from "../../hooks/usePresentActions";
+import { EDITOR_COMMANDS } from "../../lib/shortcuts";
 import { Button, IconButton } from "../ui/Button";
 import { PresentMenu } from "../ui/PresentMenu";
 
@@ -73,11 +76,23 @@ export function EditorTopBar({
   onSyncFromPresentation,
 }: EditorTopBarProps) {
   const blocked = Boolean(invalid);
+  const present = usePresentActions(onPresent);
   const saveTitle = blocked
     ? (invalidReason ?? "Fix the highlighted fields to save")
     : dirty
-      ? "Save changes"
+      ? `Save changes (${EDITOR_COMMANDS.save.hint})`
       : "No changes to save";
+
+  // A refused save still runs, because the handler is what says why: pressing
+  // the shortcut on a document with a bad field should answer, not do nothing.
+  // A clean document has nothing to write, so the key only eats the browser's
+  // own save dialog.
+  useEditorShortcuts({
+    save: dirty || blocked ? onSave : undefined,
+    updatePresentation: onUpdatePresentation,
+    goLive: present.startLive,
+    preview: present.startPreview,
+  });
 
   return (
     <div
@@ -155,11 +170,16 @@ export function EditorTopBar({
         (compact ? (
           <IconButton
             icon={MonitorUp}
-            title="Update presentation"
+            title={`Update presentation (${EDITOR_COMMANDS.updatePresentation.hint})`}
             onClick={onUpdatePresentation}
           />
         ) : (
-          <Button variant="ghost" size="sm" onClick={onUpdatePresentation}>
+          <Button
+            variant="ghost"
+            size="sm"
+            title={`Update presentation (${EDITOR_COMMANDS.updatePresentation.hint})`}
+            onClick={onUpdatePresentation}
+          >
             <MonitorUp size={14} />
             Update presentation
           </Button>
@@ -184,7 +204,7 @@ export function EditorTopBar({
           {dirty ? "Save" : "Saved"}
         </Button>
       )}
-      <PresentMenu onPresent={onPresent} title="Present">
+      <PresentMenu onPresent={onPresent} title="Present" hints>
         {compact ? (
           <IconButton icon={Play} title="Present" active />
         ) : (

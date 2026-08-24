@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { useEffect, useState, type ReactNode, type RefObject } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { useFloatingWindow } from "../../hooks/useFloatingWindow";
 import { fade } from "../../theme/uiTheme";
 import { videoProgressPercent, type VideoProgress } from "../../lib/media";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
@@ -112,55 +107,17 @@ export function PresenterPip({
 }: PresenterPipProps) {
   const { colors, fonts } = useUITheme();
   const [focused, setFocused] = useState(false);
-  const [pos, setPos] = useState(() => ({
-    x: Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN),
-    y: MARGIN,
-  }));
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const { position, handleProps } = useFloatingWindow({
+    width: WIDTH,
+    margin: MARGIN,
+    estimatedHeight: 260,
+    elementRef: rootRef,
+  });
 
   // Focus on mount so the shortcuts work immediately after switching here.
   useEffect(() => {
     rootRef.current?.focus();
   }, [rootRef]);
-
-  // Keep the window on screen when the viewport shrinks under it.
-  useEffect(() => {
-    const onResize = () => {
-      const height = rootRef.current?.offsetHeight ?? 260;
-      setPos((p) => ({
-        x: Math.min(p.x, Math.max(MARGIN, window.innerWidth - WIDTH - MARGIN)),
-        y: Math.min(
-          p.y,
-          Math.max(MARGIN, window.innerHeight - height - MARGIN),
-        ),
-      }));
-    };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [rootRef]);
-
-  const startDrag = (e: React.PointerEvent) => {
-    drag.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  };
-  const onDrag = (e: React.PointerEvent) => {
-    const offset = drag.current;
-    if (!offset) return;
-    const height = rootRef.current?.offsetHeight ?? 260;
-    setPos({
-      x: Math.max(
-        0,
-        Math.min(window.innerWidth - WIDTH, e.clientX - offset.dx),
-      ),
-      y: Math.max(
-        0,
-        Math.min(window.innerHeight - height, e.clientY - offset.dy),
-      ),
-    });
-  };
-  const endDrag = () => {
-    drag.current = null;
-  };
 
   const { content } = frame;
   // A run of one has nothing to step between, so the transport that would move
@@ -186,8 +143,8 @@ export function PresenterPip({
       }}
       style={{
         position: "fixed",
-        left: pos.x,
-        top: pos.y,
+        left: position.x,
+        top: position.y,
         width: WIDTH,
         zIndex: 160,
         borderRadius: 14,
@@ -204,18 +161,14 @@ export function PresenterPip({
       }}
     >
       <div
-        onPointerDown={startDrag}
-        onPointerMove={onDrag}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        {...handleProps}
         style={{
+          ...handleProps.style,
           display: "flex",
           alignItems: "center",
           gap: 7,
           padding: "8px 10px",
-          cursor: drag.current ? "grabbing" : "grab",
           borderBottom: `1px solid ${colors.border}`,
-          touchAction: "none",
         }}
       >
         <GripHorizontal
