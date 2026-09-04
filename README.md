@@ -1,6 +1,8 @@
 # WorshipStudio
 
-WorshipStudio is a church worship presentation studio that runs entirely in the browser. Paste song lyrics, a hymn or a sermon outline and WorshipStudio automatically transforms them into beautifully formatted slides, then projects them full-screen with customizable themes, backgrounds, presenter notes, and full keyboard control. All data is stored locally using IndexedDB, and the app continues to work offline once loaded. Try the live demo at https://worshipstudio.netlify.app/.
+**About:** WorshipStudio is a browser-based church presentation and worship tool. It helps churches display song lyrics, hymns, sermons, Bible verses, images, and videos during services. It also includes a stream module for camera sharing and live broadcasting. Presentations can be customized with themes, backgrounds, presenter notes, and keyboard controls. WorshipStudio works offline and stores data locally in the browser using IndexedDB.
+
+**Live Demo:** https://worshipstudio.netlify.app/
 
 ## Quick start
 
