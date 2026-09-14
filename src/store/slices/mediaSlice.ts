@@ -118,18 +118,53 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
       id,
       updatedAt: touch ? now() : current.updatedAt,
     };
+    const renamedBackgrounds =
+      next.name === current.name
+        ? []
+        : get()
+            .backgrounds.filter((b) => b.type === "video" && b.mediaId === id)
+            .map((b) => ({ ...b, name: next.name }));
     set((state) => ({
       media: state.media.map((m) => (m.id === id ? next : m)),
+      backgrounds: renamedBackgrounds.length
+        ? state.backgrounds.map(
+            (b) => renamedBackgrounds.find((r) => r.id === b.id) ?? b,
+          )
+        : state.backgrounds,
     }));
     void saveRecord("media", next);
+    for (const background of renamedBackgrounds)
+      void saveRecord("backgrounds", background);
     afterWrite(get);
     return true;
   },
 
   removeMedia: async (id) => {
-    const backgroundsUseFile = get().backgrounds.some((b) => b.blobId === id);
-    set((state) => ({ media: state.media.filter((m) => m.id !== id) }));
+    // A video background, or a sound taken from the clip, only plays the clip's
+    // file, so it goes with the clip rather than being left with nothing to play.
+    const videoBackgroundIds = get()
+      .backgrounds.filter((b) => b.type === "video" && b.mediaId === id)
+      .map((b) => b.id);
+    const backgroundsUseFile = get().backgrounds.some(
+      (b) => b.blobId === id && !videoBackgroundIds.includes(b.id),
+    );
+    const videoAudioIds = get()
+      .audio.filter((a) => a.mediaId === id)
+      .map((a) => a.id);
+    set((state) => ({
+      media: state.media.filter((m) => m.id !== id),
+      backgrounds: state.backgrounds.filter(
+        (b) => !videoBackgroundIds.includes(b.id),
+      ),
+      audio: state.audio.filter((a) => !videoAudioIds.includes(a.id)),
+    }));
     await deleteRecord("media", id);
+    await Promise.all([
+      ...videoBackgroundIds.map((backgroundId) =>
+        deleteRecord("backgrounds", backgroundId),
+      ),
+      ...videoAudioIds.map((audioId) => deleteRecord("audio", audioId)),
+    ]);
     if (backgroundsUseFile) {
       await deleteFileBlob(thumbId(id));
     } else {
@@ -168,7 +203,7 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     // An image is "used as a background" when a background references its file.
     const existing = get().backgrounds.filter((b) => b.blobId === item.id);
     if (existing.length > 0) {
-      // Removing the background keeps the shared file alive — the media item
+      // Removing the background keeps the shared file alive, since the media item
       // still owns it (see removeBackground's stillUsed check).
       for (const background of existing)
         void get().removeBackground(background.id);

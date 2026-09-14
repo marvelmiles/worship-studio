@@ -348,8 +348,7 @@ export function ProjectionSurface({
                     color: "rgba(255,255,255,0.7)",
                   }}
                 >
-                  Open Cameras to switch to another device, or press Stop to
-                  close this view.
+                  Open Cameras to switch, or press Stop.
                 </div>
               </div>
             </div>

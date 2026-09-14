@@ -77,7 +77,7 @@ const DEFAULT_MARQUEE_TEXT =
  * only then put on air by hand, so the room never watches a passage being
  * dragged into place or a verse being paged to. Once something *is* on air,
  * further changes to it are held back too and go out together on Apply now
- * (see OverlaySettingsPanel) — unless the operator has asked that element to
+ * (see OverlaySettingsPanel), unless the operator has asked that element to
  * sync as they work.
  */
 export function StreamOverlayPanel({
@@ -159,7 +159,7 @@ export function StreamOverlayPanel({
         <EmptyState
           icon={Layers}
           title="Nothing staged yet"
-          message="Add a passage, a manuscript, a picture, a clip or a scrolling announcement. It stays off air while you place it, until you show it on the broadcast."
+          message="Add an overlay above. It stays off air until you show it."
           compact
           bare
         />

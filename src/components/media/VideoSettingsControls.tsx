@@ -1,5 +1,4 @@
 import type { VideoSettings } from "../../types";
-import { useUITheme } from "../../theme/ThemeProvider";
 import {
   formatDuration,
   needsHoursField,
@@ -9,6 +8,7 @@ import {
 } from "../../lib/media";
 import { Field, Range, SectionTitle, Select, Toggle } from "../ui/Field";
 import { TimecodeInput } from "../ui/TimecodeInput";
+import { InfoTip } from "../ui/InfoTip";
 import { AdjustmentControls } from "./AdjustmentControls";
 
 const FIT_OPTIONS = [
@@ -48,7 +48,6 @@ export function VideoSettingsControls({
   onIssueChange,
   narrow,
 }: VideoSettingsControlsProps) {
-  const { colors, fonts } = useUITheme();
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
   const withHours = needsHoursField(duration);
   const shape = timecodeShape(withHours);
@@ -56,21 +55,18 @@ export function VideoSettingsControls({
 
   return (
     <>
-      <SectionTitle>Trim</SectionTitle>
-      <p
-        style={{
-          fontFamily: fonts.ui,
-          fontSize: 12.5,
-          color: colors.sub,
-          margin: "0 0 12px",
-          lineHeight: 1.5,
-        }}
+      <SectionTitle
+        info={
+          <InfoTip title="Trim">
+            Playback runs from the trim start to the trim end
+            {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write
+            both as {shape}, two digits per field. Clearing the end takes it
+            back to the last frame.
+          </InfoTip>
+        }
       >
-        Playback runs from the trim start to the trim end
-        {duration ? ` (video is ${formatDuration(duration)})` : ""}. Write both
-        as {shape}, two digits per field. Clearing the end takes it back to the
-        last frame.
-      </p>
+        Trim
+      </SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
         <Field label={`Start (${shape})`}>
           <TimecodeInput

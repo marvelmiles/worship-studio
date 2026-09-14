@@ -34,7 +34,7 @@ export interface PipPlacement {
   size: number;
 }
 
-export type BgType = "gradient" | "solid" | "image";
+export type BgType = "gradient" | "solid" | "image" | "video";
 
 /** Every kind of content that can be projected live. */
 export type ContentKind = "manuscript" | "scripture" | "image" | "video";
@@ -345,11 +345,24 @@ export interface Background {
    * usage of the background; documents already using it keep their own copy.
    */
   image?: ImageSettings;
+  /**
+   * The videos module clip a video background plays. The clip's own trim and
+   * grading apply, so tuning it in the video editor retunes the background.
+   */
+  mediaId?: string;
   size?: number;
   light?: boolean;
   builtIn?: boolean;
   /** Missing on bundled backgrounds and legacy uploads. */
   createdAt?: string;
+}
+
+/** How a sound is played wherever it backs a presentation. */
+export interface AudioSettings {
+  trimStart: number;
+  trimEnd: number | null;
+  /** 0 to 100, scaled by the app-wide background audio volume. */
+  volume: number;
 }
 
 export interface AudioItem {
@@ -359,9 +372,19 @@ export interface AudioItem {
   dataUrl?: string;
   blobId?: string;
   size?: number;
+  /** Length in seconds, learned the first time the sound is opened for editing. */
+  duration?: number;
+  /** Missing until the sound is first edited. */
+  settings?: AudioSettings;
+  /**
+   * The videos module clip whose soundtrack this plays. The file stays the
+   * clip's: `blobId` points at it, and removing the sound leaves it alone.
+   */
+  mediaId?: string;
   builtIn?: boolean;
   /** Missing on the bundled default pads. */
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Prefs {

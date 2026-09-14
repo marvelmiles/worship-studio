@@ -5,10 +5,10 @@ import type {
   ResolvedStyle,
   Slide,
 } from "../../types";
-import { colors, UI } from "../../theme/tokens";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import type { ClickPoint } from "../../components/SlideCanvas";
 import { inputStyle } from "../../components/ui/Field";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { SelectionFormatToolbar } from "../../components/controls/SelectionFormatToolbar";
 import { useSlideTextEditor } from "../../hooks/useSlideTextEditor";
 import type { TextFormattingController } from "../../hooks/useTextFormatting";
@@ -112,6 +112,7 @@ export function PreviewPanel({
           style={style}
           lineStyles={lineStyles}
           showLabel
+          playBackground
           selectedLine={selectedLine}
           editing={editing}
           editingTextBoxId={activeTextBoxId}
@@ -130,30 +131,36 @@ export function PreviewPanel({
         rect={editing.selectionRect}
       />
 
-      <div style={{ maxWidth: 820, margin: "18px auto 0", width: "100%" }}>
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 11.5,
-            color: colors.dim,
-            margin: "0 0 8px",
-            lineHeight: 1.5,
-          }}
-        >
-          Type straight onto the slide. Highlight a word or phrase for the
-          formatting toolbar, or restyle it from the inspector. Tab and
-          Shift+Tab move a point in and out, Enter carries the list on.
-          Pictures, clips and text boxes added from the inspector drag anywhere
-          on the slide, resize from their corners and nudge with the arrow keys;
-          a text box and a selected clip are moved by their edges, so their
-          middle stays free to write in and to play from.
-        </p>
+      <div
+        style={{
+          maxWidth: 820,
+          margin: "18px auto 0",
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
         <input
           value={slide.label}
           onChange={(e) => onChangeLabel(e.target.value)}
           placeholder="Slide label"
+          aria-label="Slide label"
           style={{ ...inputStyle, fontSize: 13 }}
         />
+        <InfoTip title="Editing on the slide" variant="modal" size={16}>
+          <p style={{ marginTop: 0 }}>
+            Type straight onto the slide. Highlight a word or phrase for the
+            formatting toolbar, or restyle it from the inspector. Tab and
+            Shift+Tab move a point in and out, and Enter carries the list on.
+          </p>
+          <p style={{ marginBottom: 0 }}>
+            Pictures, clips and text boxes added from the inspector drag
+            anywhere on the slide, resize from their corners and nudge with the
+            arrow keys. A text box and a selected clip are moved by their edges,
+            so their middle stays free to write in and to play from.
+          </p>
+        </InfoTip>
       </div>
     </div>
   );

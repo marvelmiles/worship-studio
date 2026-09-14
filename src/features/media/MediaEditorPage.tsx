@@ -30,6 +30,7 @@ import { VideoSettingsControls } from "../../components/media/VideoSettingsContr
 import { VideoSurface } from "../../components/media/VideoSurface";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import { useMediaEditor } from "./useMediaEditor";
+import { useEditorReturn } from "../assets/assetLibraryNavigation";
 
 const LIBRARY_PATH: Record<MediaKind, string> = {
   image: "/images",
@@ -92,7 +93,7 @@ export function MediaEditorPage({ kind }: { kind: MediaKind }) {
 }
 
 function MediaWorkspace({ item }: { item: MediaItem }) {
-  const navigate = useNavigate();
+  const editorReturn = useEditorReturn(LIBRARY_PATH[item.kind], item.id);
   const { width } = useViewport();
   const stacked = width < 1080;
   const compact = width < 560;
@@ -327,8 +328,12 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
         title={editor.draft.name}
         onTitle={editor.setName}
         compact={compact}
-        backTitle={BACK_TITLE[item.kind]}
-        onBack={() => navigate(LIBRARY_PATH[item.kind])}
+        backTitle={
+          editorReturn.fromLibrary
+            ? "Back to image library"
+            : BACK_TITLE[item.kind]
+        }
+        onBack={editorReturn.back}
         onPresent={editor.present}
         actions={
           compact ? (

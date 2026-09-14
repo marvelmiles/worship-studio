@@ -1,11 +1,16 @@
 import { useCallback, useRef, useState } from "react";
 import type { RefObject } from "react";
-import type { VideoSettings } from "../types";
 import {
   DEFAULT_MEDIA_PLAYBACK,
   type MediaPlayback,
 } from "../lib/presentChannel";
-import type { VideoSurfaceHandle } from "../components/media/VideoSurface";
+import type {
+  MediaSurfaceHandle,
+  PlaybackWindowSettings,
+} from "./useMediaElementPlayback";
+
+/** The part of a clip's or a sound's settings the transport reads. */
+export type TrimWindow = Pick<PlaybackWindowSettings, "trimStart" | "trimEnd">;
 
 export interface MediaPlaybackOptions {
   /** Where the clip is parked and whether it runs when a session begins. */
@@ -28,8 +33,8 @@ export interface RestartOptions {
 }
 
 export interface MediaPlaybackController {
-  /** Bind to the `VideoSurface` this controller drives. */
-  surfaceRef: RefObject<VideoSurfaceHandle>;
+  /** Bind to the `VideoSurface` or `AudioSurface` this controller drives. */
+  surfaceRef: RefObject<MediaSurfaceHandle>;
   /** Where the clip is on the element itself, ahead of the next time update. */
   getTime: () => number;
   playback: MediaPlayback;
@@ -64,10 +69,10 @@ export interface MediaPlaybackController {
  * which own the video element they are steering.
  */
 export function useMediaPlayback(
-  settings?: VideoSettings,
+  settings?: TrimWindow,
   { autoPlay = true }: MediaPlaybackOptions = {},
 ): MediaPlaybackController {
-  const surfaceRef = useRef<VideoSurfaceHandle>(null);
+  const surfaceRef = useRef<MediaSurfaceHandle>(null);
   const [playback, setPlayback] = useState<MediaPlayback>({
     ...DEFAULT_MEDIA_PLAYBACK,
     playing: autoPlay,

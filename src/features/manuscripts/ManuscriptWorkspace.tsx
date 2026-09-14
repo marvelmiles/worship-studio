@@ -23,7 +23,6 @@ export function ManuscriptWorkspace({
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
-  const addCustomBackground = useStore((s) => s.addCustomBackground);
 
   const editor = useDeckEditor(manuscript, upsertManuscript);
   const [textOpen, setTextOpen] = useState(false);
@@ -110,8 +109,7 @@ export function ManuscriptWorkspace({
         >
           <div style={{ textAlign: "center", maxWidth: 320 }}>
             <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
-              This manuscript has no slides yet. Add its text to generate slides
-              automatically.
+              This manuscript has no slides yet.
             </p>
             <Button variant="primary" onClick={() => setTextOpen(true)}>
               <Type size={15} />
@@ -137,7 +135,6 @@ export function ManuscriptWorkspace({
         audio={audio}
         onPatchManuscript={(changes) => editor.patchDoc(changes)}
         onStyleChange={editor.updateDocStyle}
-        onAddColor={addCustomBackground}
       />
     </DeckWorkspace>
   );

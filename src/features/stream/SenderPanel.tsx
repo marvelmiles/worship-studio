@@ -37,6 +37,7 @@ import {
   type ConnectionPhase,
 } from "./lib/useConnectionLifecycle";
 import { ShowCode, ReadCode } from "./CodeExchange";
+import { InfoTip } from "../../components/ui/InfoTip";
 
 /**
  * The sharing lobby. When a signalling backend is configured it defaults to a
@@ -46,8 +47,8 @@ import { ShowCode, ReadCode } from "./CodeExchange";
  * auto detected.
  *
  * On stop or disconnect the active flow is remounted from scratch (via a bumped
- * `key`), so the operator lands back in a fresh waiting lobby — camera reopened,
- * broadcasting again — ready for another viewer, exactly as if they had just
+ * `key`), so the operator lands back in a fresh waiting lobby, camera reopened,
+ * broadcasting again, ready for another viewer, exactly as if they had just
  * chosen "Share this camera". `onBack` leaves the lobby for the choose screen.
  */
 export function SenderLobby({ onBack }: { onBack: () => void }) {
@@ -132,8 +133,8 @@ function AudioToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 }
 
 /**
- * Front/back camera toggle. Reads as a toggle at a glance — the label names the
- * live lens and the icon mirrors when it's the front camera — so the operator can
+ * Front/back camera toggle. Reads as a toggle at a glance, the label names the
+ * live lens and the icon mirrors when it's the front camera, so the operator can
  * see which side is active and that a tap flipped it, the same way the audio
  * button flips between its states.
  */
@@ -164,13 +165,13 @@ function CameraFlipButton({
 }
 
 /**
- * The shared camera card for both sharing flows — the live preview, a neutral
+ * The shared camera card for both sharing flows, the live preview, a neutral
  * "Your camera" heading, and the include-audio, flip-camera and stop controls.
  * The one-tap and QR panels both render it so the camera display and its
  * stop/reconnect controls look and behave identically; only the surrounding
  * connection UI differs. `badge` and `statusLine` are slots each flow fills with
- * its own connection status. `onStop` returns to the choose screen — the single
- * path back for stopping and reconnecting — the same for both flows.
+ * its own connection status. `onStop` returns to the choose screen, the single
+ * path back for stopping and reconnecting, the same for both flows.
  */
 function SharingCameraCard({
   videoRef,
@@ -378,7 +379,7 @@ function AutoBroadcastPanel({
         try {
           const sender = await createSender({
             offerSdp,
-            // Use the current stream — the camera may have been flipped while
+            // Use the current stream, the camera may have been flipped while
             // waiting for a laptop to pick this device.
             stream: streamRef.current ?? stream,
             onStatus: (s) => {
@@ -415,7 +416,7 @@ function AutoBroadcastPanel({
   }, [phase]);
 
   // The viewing device closed the link (it stopped, or the connection dropped).
-  // Reset to a fresh waiting lobby — camera reopened, broadcasting again — so a
+  // Reset to a fresh waiting lobby, camera reopened, broadcasting again, so a
   // new viewer can pick this device up without the operator doing anything.
   useEffect(() => {
     if (phase !== "failed") return;
@@ -514,8 +515,11 @@ function AutoStatusLine({
   if (phase === "waiting")
     return (
       <div style={{ ...base, color: colors.sub }}>
-        <Spinner size={14} /> Waiting for another device to pick this camera. On
-        it, open Stream and choose Show a camera here.
+        <Spinner size={14} /> Waiting for another device
+        <InfoTip title="Waiting for a device">
+          On the other device, open Stream and choose Show a camera here. It
+          picks this camera from there.
+        </InfoTip>
       </div>
     );
   if (phase === "connecting")
@@ -600,7 +604,7 @@ function ManualSenderPanel({
   );
 
   // A failure before the first connection just means the viewer hasn't scanned
-  // the reply yet — keep waiting. Only a drop after connecting is a real
+  // the reply yet, keep waiting. Only a drop after connecting is a real
   // disconnect, which resets to a fresh QR lobby.
   const connectionPhase = useConnectionLifecycle(status, () => {
     pushToast("The other device disconnected.");
@@ -697,23 +701,19 @@ function ManualSenderPanel({
               fontSize: 17,
               fontWeight: 600,
               color: colors.text,
-              marginBottom: 4,
+              marginBottom: 14,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
             }}
           >
-            Scan the other device's code
+            Scan the other device&apos;s code
+            <InfoTip title="Pairing by code" align="center">
+              On the other device, open Stream and choose Show a camera here.
+              Scan the code it shows, or paste it.
+            </InfoTip>
           </div>
-          <p
-            style={{
-              fontFamily: fonts.ui,
-              fontSize: 13,
-              color: colors.sub,
-              margin: "0 0 14px",
-              lineHeight: 1.5,
-            }}
-          >
-            On the other device, open Stream and choose Show a camera here. Scan
-            the code it shows, or paste it.
-          </p>
           <ReadCode
             scanFacing="environment"
             scanLabel="Aim at the code on the other device's screen."

@@ -103,7 +103,7 @@ export function PresentMenu({
         <MenuOption
           icon={MonitorUp}
           title="Go live"
-          description="Project to the audience now and keep using the app from the floating presenter."
+          description="Project to the audience display"
           hint={hints ? EDITOR_COMMANDS.goLive.hint : undefined}
           accent
           onClick={startLive}
@@ -111,7 +111,7 @@ export function PresentMenu({
         <MenuOption
           icon={MonitorPlay}
           title="Preview here"
-          description="Open the presentation on this screen only. Nothing is projected."
+          description="Show on this screen only"
           hint={hints ? EDITOR_COMMANDS.preview.hint : undefined}
           onClick={startPreview}
         />
@@ -203,6 +203,10 @@ function MenuOption({
             fontSize: 11.5,
             lineHeight: 1.45,
             color: colors.sub,
+            display: "block",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
           }}
         >
           {description}

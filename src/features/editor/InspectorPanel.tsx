@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { ArrowDownToLine, Copy, Trash2 } from "lucide-react";
 import type {
@@ -25,6 +26,7 @@ import type { SlideElementCapabilities } from "../../lib/slideElements";
 import { Button } from "../../components/ui/Button";
 import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
 import { PillTabs } from "../../components/ui/PillTabs";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
@@ -34,6 +36,7 @@ import type { TextFormattingController } from "../../hooks/useTextFormatting";
 import { SlideElementsPanel } from "./SlideElementsPanel";
 import type { SlideElementRef } from "./SlideElementOverlay";
 import type { DeckEditor } from "./useDeckEditor";
+import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
 
 interface InspectorPanelProps {
   editor: DeckEditor;
@@ -41,7 +44,8 @@ interface InspectorPanelProps {
   theme: Theme;
   backgrounds: Background[];
   audio: AudioItem[];
-  onAddColor: (value: string, name?: string) => string;
+  /** What this deck is called in labels, e.g. "manuscript". */
+  documentNoun: string;
   /** The line styling is scoped to, or null while the whole slide is the scope. */
   selectedLine: number | null;
   onScopeToLine: (scoped: boolean) => void;
@@ -57,6 +61,7 @@ interface InspectorPanelProps {
 }
 
 type StyleScope = "slide" | "line";
+type AudioScope = "slide" | "document";
 
 export function InspectorPanel({
   editor,
@@ -64,7 +69,7 @@ export function InspectorPanel({
   theme,
   backgrounds,
   audio,
-  onAddColor,
+  documentNoun,
   selectedLine,
   onScopeToLine,
   formatting,
@@ -75,6 +80,11 @@ export function InspectorPanel({
   onAddTextBox,
 }: InspectorPanelProps) {
   const { selectedSlide: slide, selectedIndex } = editor;
+  const openAssetLibrary = useOpenAssetLibrary();
+  const [audioScope, setAudioScope] = useState<AudioScope>("document");
+  const themeAudio = theme.defaultAudioId
+    ? audio.find((item) => item.id === theme.defaultAudioId)
+    : undefined;
 
   // Styling follows the caret: it lands on the text box being written into, or
   // on the slide itself when its own text is the surface.
@@ -191,8 +201,11 @@ export function InspectorPanel({
       </SectionTitle>
       {selectionMode && (
         <ScopeBanner>
-          Styling the highlighted text. Alignment and line height apply to{" "}
-          {selectionLabel.toLowerCase()}.
+          Styling highlighted text
+          <InfoTip title="Highlighted text" align="end">
+            Character styles land on the highlighted words. Alignment and line
+            height apply to {selectionLabel.toLowerCase()}.
+          </InfoTip>
         </ScopeBanner>
       )}
       {!selectionMode && (
@@ -244,23 +257,25 @@ export function InspectorPanel({
         onChange={(key, value) => setTextOverride(key, value)}
       />
 
-      <SectionTitle>Formatting</SectionTitle>
-      <FormatToolbar controller={formatting} block />
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 11.5,
-          color: colors.dim,
-          margin: "8px 0 0",
-          lineHeight: 1.55,
-        }}
+      <SectionTitle
+        info={
+          <InfoTip title="Formatting" variant="modal">
+            <p style={{ marginTop: 0 }}>
+              Write straight onto the slide. Highlight a word, phrase or whole
+              line there, then apply emphasis, turn it into a bulleted,
+              numbered, lettered or roman-numeral list, or change its font, size
+              and colour above.
+            </p>
+            <p style={{ marginBottom: 0 }}>
+              Ctrl+B, Ctrl+I and Ctrl+U work while typing, and Tab and Shift+Tab
+              move a point in and out.
+            </p>
+          </InfoTip>
+        }
       >
-        Write straight onto the slide. Highlight a word, phrase or whole line
-        there, then apply emphasis, turn it into a bulleted, numbered, lettered
-        or roman-numeral list, or change its font, size and colour above.
-        Ctrl+B, Ctrl+I and Ctrl+U work while typing, and Tab and Shift+Tab move
-        a point in and out.
-      </p>
+        Formatting
+      </SectionTitle>
+      <FormatToolbar controller={formatting} block />
 
       <SectionTitle>Background</SectionTitle>
       <BackgroundPicker
@@ -275,16 +290,7 @@ export function InspectorPanel({
             scrim: undefined,
           })
         }
-        onUploaded={(id, image) =>
-          editor.patchSlideOverrides(slide.id, {
-            backgroundId: id,
-            backgroundImage: image,
-            scrim: undefined,
-          })
-        }
-        onAddColor={(value, name) =>
-          setOverride("backgroundId", onAddColor(value, name))
-        }
+        onManage={() => openAssetLibrary("backgrounds", { locked: true })}
         imageSettings={backgroundImage}
         onImageSettingsChange={setBackgroundImage}
         usageLabel="this slide"
@@ -316,13 +322,37 @@ export function InspectorPanel({
       )}
 
       <SectionTitle>Audio</SectionTitle>
-      <AudioPicker
-        audio={audio}
-        value={slide.overrides?.audioId || ""}
-        inheritLabel="Use document / theme audio"
-        onSelect={(id) => setOverride("audioId", id)}
-        onUploaded={(id) => setOverride("audioId", id)}
-      />
+      <div style={{ marginBottom: 10 }}>
+        <PillTabs<AudioScope>
+          tabs={[
+            { id: "slide", label: "This slide" },
+            { id: "document", label: `Whole ${documentNoun}` },
+          ]}
+          value={audioScope}
+          onChange={setAudioScope}
+        />
+      </div>
+      {audioScope === "slide" ? (
+        <AudioPicker
+          key="slide"
+          audio={audio}
+          value={slide.overrides?.audioId || ""}
+          inheritLabel={`Use ${documentNoun} audio`}
+          onSelect={(id) => setOverride("audioId", id)}
+          onManage={() => openAssetLibrary("audio", { locked: true })}
+        />
+      ) : (
+        <AudioPicker
+          key="document"
+          audio={audio}
+          value={doc.defaultAudioId || ""}
+          inheritLabel={
+            themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
+          }
+          onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
+          onManage={() => openAssetLibrary("audio", { locked: true })}
+        />
+      )}
 
       <SectionTitle>Animation</SectionTitle>
       <AnimationPicker
@@ -392,7 +422,11 @@ function ScopeBanner({ children }: { children: ReactNode }) {
     <div
       style={{
         marginBottom: 10,
-        padding: "7px 9px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 6,
+        padding: "5px 6px 5px 9px",
         borderRadius: 9,
         background: fade(colors.accent, 0.1),
         border: `1px solid ${fade(colors.accent, 0.3)}`,

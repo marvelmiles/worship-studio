@@ -3,6 +3,7 @@ import { Check, Plus } from "lucide-react";
 import { colors, UI } from "../../theme/tokens";
 import { Button } from "../ui/Button";
 import { TextInput } from "../ui/Field";
+import { InfoTip } from "../ui/InfoTip";
 
 interface CustomColorPickerProps {
   onAdd: (value: string, name: string) => void;
@@ -89,7 +90,13 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
         ))}
       </div>
 
-      <p style={caption}>Add custom (label required)</p>
+      <p style={{ ...caption, display: "flex", alignItems: "center", gap: 4 }}>
+        Add custom (label required)
+        <InfoTip title="Custom backgrounds">
+          Accepts any CSS background: hex, rgb or rgba, hsl, or a gradient.
+          Presets already include a name.
+        </InfoTip>
+      </p>
       <TextInput
         value={label}
         placeholder="Label (e.g. Soft Cream)"
@@ -144,17 +151,6 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
           Add
         </Button>
       </div>
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 11.5,
-          color: colors.dim,
-          margin: "8px 0 0",
-        }}
-      >
-        Accepts any CSS background: hex, rgb / rgba, hsl, or a gradient. Presets
-        already include a name.
-      </p>
     </div>
   );
 }

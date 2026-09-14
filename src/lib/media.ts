@@ -1,4 +1,6 @@
 import type {
+  AudioItem,
+  AudioSettings,
   Background,
   ImageSettings,
   MediaAdjustments,
@@ -56,6 +58,13 @@ export const imageSettingsOf = (item: MediaItem): ImageSettings => ({
 export const isImageBackground = (background?: Background): boolean =>
   background?.type === "image";
 
+export const isVideoBackground = (background?: Background): boolean =>
+  background?.type === "video" && Boolean(background.mediaId);
+
+/** Pictures and clips are painted by a surface; gradients and solids are plain CSS. */
+export const isMediaBackground = (background?: Background): boolean =>
+  isImageBackground(background) || isVideoBackground(background);
+
 export const backgroundImageSettings = (
   background?: Background,
 ): ImageSettings => ({
@@ -78,6 +87,17 @@ export const snapshotBackgroundImage = (
 export const videoSettingsOf = (item: MediaItem): VideoSettings => ({
   ...DEFAULT_VIDEO_SETTINGS,
   ...(item.video || {}),
+});
+
+export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
+  trimStart: 0,
+  trimEnd: null,
+  volume: 100,
+};
+
+export const audioSettingsOf = (item: AudioItem): AudioSettings => ({
+  ...DEFAULT_AUDIO_SETTINGS,
+  ...(item.settings || {}),
 });
 
 export function buildFilter(adjustments: MediaAdjustments): string {
@@ -287,6 +307,10 @@ export function probeVideoFile(file: Blob): Promise<MediaProbe> {
     video.src = url;
   });
 }
+
+/** A media element reads a sound's headers the same way it reads a clip's. */
+export const probeAudioFile = (file: Blob): Promise<MediaProbe> =>
+  probeVideoFile(file);
 
 export interface ImageProbeResult extends MediaProbe {
   thumbnail: Blob | null;

@@ -15,6 +15,8 @@ import { EDITOR_COMMANDS } from "../../lib/shortcuts";
 import { Button, IconButton } from "../ui/Button";
 import { PresentMenu } from "../ui/PresentMenu";
 
+const ignorePresent = () => {};
+
 interface EditorTopBarProps {
   title: string;
   onTitle: (title: string) => void;
@@ -22,7 +24,8 @@ interface EditorTopBarProps {
   compact: boolean;
   backTitle: string;
   onBack: () => void;
-  onPresent: (options: { pip: boolean }) => void;
+  /** Omitted by editors whose item can't be presented on its own, such as a sound. */
+  onPresent?: (options: { pip: boolean }) => void;
   /** Editor-specific controls, dropped in before the shared ones. */
   actions?: ReactNode;
   dirty: boolean;
@@ -76,7 +79,7 @@ export function EditorTopBar({
   onSyncFromPresentation,
 }: EditorTopBarProps) {
   const blocked = Boolean(invalid);
-  const present = usePresentActions(onPresent);
+  const present = usePresentActions(onPresent ?? ignorePresent);
   const saveTitle = blocked
     ? (invalidReason ?? "Fix the highlighted fields to save")
     : dirty
@@ -90,8 +93,8 @@ export function EditorTopBar({
   useEditorShortcuts({
     save: dirty || blocked ? onSave : undefined,
     updatePresentation: onUpdatePresentation,
-    goLive: present.startLive,
-    preview: present.startPreview,
+    goLive: onPresent ? present.startLive : undefined,
+    preview: onPresent ? present.startPreview : undefined,
   });
 
   return (
@@ -204,16 +207,18 @@ export function EditorTopBar({
           {dirty ? "Save" : "Saved"}
         </Button>
       )}
-      <PresentMenu onPresent={onPresent} title="Present" hints>
-        {compact ? (
-          <IconButton icon={Play} title="Present" active />
-        ) : (
-          <Button variant="primary" size="sm">
-            <Play size={14} />
-            Present
-          </Button>
-        )}
-      </PresentMenu>
+      {onPresent && (
+        <PresentMenu onPresent={onPresent} title="Present" hints>
+          {compact ? (
+            <IconButton icon={Play} title="Present" active />
+          ) : (
+            <Button variant="primary" size="sm">
+              <Play size={14} />
+              Present
+            </Button>
+          )}
+        </PresentMenu>
+      )}
     </div>
   );
 }

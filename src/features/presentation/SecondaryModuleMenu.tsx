@@ -17,6 +17,7 @@ import { sortMediaByRecency } from "../../lib/media";
 import { useThumbUrl } from "../../lib/blobUrls";
 import { Button } from "../../components/ui/Button";
 import { Popover } from "../../components/ui/Popover";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { PillTabs, type PillTab } from "../../components/ui/PillTabs";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { PipPlacementControls } from "../../components/ui/PipPlacementControls";
@@ -151,29 +152,22 @@ function SecondaryModulePanel({ onDone }: { onDone: () => void }) {
         gap: 12,
       }}
     >
-      <div>
-        <div
-          style={{
-            fontFamily: fonts.display,
-            fontSize: 15,
-            fontWeight: 600,
-            color: colors.text,
-          }}
-        >
-          Second module
-        </div>
-        <p
-          style={{
-            fontFamily: fonts.ui,
-            fontSize: 12,
-            lineHeight: 1.5,
-            color: colors.sub,
-            margin: "4px 0 0",
-          }}
-        >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontFamily: fonts.display,
+          fontSize: 15,
+          fontWeight: 600,
+          color: colors.text,
+        }}
+      >
+        Second module
+        <InfoTip title="Second module">
           Runs in a corner of the stage beside whatever is already on it, on the
           preview and on the audience display alike.
-        </p>
+        </InfoTip>
       </div>
 
       {secondary && (

@@ -12,6 +12,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { inputStyle } from "../../components/ui/Field";
 
+import { InfoTip } from "../../components/ui/InfoTip";
 /**
  * The small controls the broadcast overlay settings are built from.
  *
@@ -203,7 +204,9 @@ export function OverlayCheckbox({
       <span style={{ minWidth: 0 }}>
         <span
           style={{
-            display: "block",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
             fontFamily: fonts.ui,
             fontSize: 12.5,
             fontWeight: 600,
@@ -211,21 +214,8 @@ export function OverlayCheckbox({
           }}
         >
           {label}
+          {hint && <InfoTip title={label}>{hint}</InfoTip>}
         </span>
-        {hint && (
-          <span
-            style={{
-              display: "block",
-              fontFamily: fonts.ui,
-              fontSize: 11.5,
-              lineHeight: 1.45,
-              color: colors.dim,
-              marginTop: 2,
-            }}
-          >
-            {hint}
-          </span>
-        )}
       </span>
     </label>
   );
@@ -244,9 +234,9 @@ const swatchButton = (border: string): CSSProperties => ({
 
 /**
  * Any CSS background as one control: a picker for the common case, and the raw
- * value beside it so translucency and gradients — which a colour picker cannot
+ * value beside it so translucency and gradients, which a colour picker cannot
  * express and which are exactly what keeps a panel readable over a moving
- * camera — stay reachable.
+ * camera, stay reachable.
  */
 export function OverlayColorField({
   label,

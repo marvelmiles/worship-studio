@@ -2,6 +2,7 @@ import { useStore } from "../../store/useStore";
 import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
 import { SectionTitle } from "../../components/ui/Field";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { SHORTCUT_GROUPS } from "../../lib/shortcuts";
 
 const keyStyle = {
@@ -27,37 +28,25 @@ export function ShortcutsModal() {
       onClose={close}
       title="Keyboard Shortcuts"
       width={540}
+      info={
+        <InfoTip title="Keyboard shortcuts">
+          Every shortcut in the studio, grouped by where it works. Each group
+          says when its keys are live: in an editor, while presenting, or on the
+          Bible page.
+        </InfoTip>
+      }
     >
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 13,
-          color: colors.sub,
-          marginTop: 0,
-          lineHeight: 1.6,
-        }}
-      >
-        Every shortcut in the studio, grouped by where it works. Each group
-        says when its keys are live: in an editor, while presenting, or on the
-        Bible page.
-      </p>
       {SHORTCUT_GROUPS.map((group) => (
         <div key={group.title} style={{ marginBottom: 6 }}>
-          <SectionTitle>{group.title}</SectionTitle>
-          {group.note && (
-            <p
-              style={{
-                fontFamily: UI,
-                fontSize: 12,
-                color: colors.sub,
-                margin: "4px 0 10px",
-                lineHeight: 1.55,
-                fontStyle: "italic",
-              }}
-            >
-              {group.note}
-            </p>
-          )}
+          <SectionTitle
+            info={
+              group.note ? (
+                <InfoTip title={group.title}>{group.note}</InfoTip>
+              ) : undefined
+            }
+          >
+            {group.title}
+          </SectionTitle>
           {group.shortcuts.map((shortcut, i) => (
             <div
               key={i}

@@ -84,13 +84,13 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
           <EmptyState
             icon={Trash2}
             title="Trash is empty"
-            message="Passages you delete are kept here until you remove them for good."
+            message="Deleted passages wait here until removed for good."
           />
         ) : (
           <EmptyState
             icon={BookOpen}
             title="No saved passages yet"
-            message="Select verses in the reader and save them as styled slides you can present any time."
+            message="Save verses from the reader to present them any time."
           />
         )
       ) : (

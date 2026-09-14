@@ -1,333 +1,85 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  Image as ImageIcon,
-  Music,
-  Palette,
-  Pencil,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import type { AudioItem, Background } from "../../types";
-import { fade, colors, UI } from "../../theme/tokens";
+import { Image as ImageIcon, Music } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { useAssetUrl } from "../../hooks/useAssetUrl";
-import {
-  ATTENTION_CLASS,
-  attentionAttribute,
-  useAttention,
-} from "../../hooks/useAttention";
-import { isImageBackground } from "../../lib/media";
+import { useAttention } from "../../hooks/useAttention";
 import { parseOverlayTarget } from "../../lib/overlayTarget";
-import { Button, IconButton } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
-import { BgSwatch } from "../../components/controls/BgSwatch";
-import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
-import { BackgroundImageEditorModal } from "../../components/media/BackgroundImageEditorModal";
+import { PillTabs } from "../../components/ui/PillTabs";
+import type { PillTab } from "../../components/ui/PillTabs";
+import type { AssetSection } from "./assetLibraryNavigation";
+import { useReopenAssetLibraryOnArrival } from "./assetLibraryNavigation";
+import { BackgroundsPanel } from "./BackgroundsPanel";
+import { AudioPanel } from "./AudioPanel";
 
-type Tab = "backgrounds" | "audio";
+const TABS: PillTab<AssetSection>[] = [
+  { id: "backgrounds", label: "Backgrounds", icon: ImageIcon },
+  { id: "audio", label: "Audio", icon: Music },
+];
 
-const OVERLAY_BUTTON = {
-  width: 24,
-  height: 24,
-  borderRadius: 7,
-  background: "rgba(0,0,0,0.6)",
-  border: "none",
-  color: "#fff",
-  cursor: "pointer",
-  display: "grid",
-  placeItems: "center",
-  padding: 0,
-} as const;
+const LOCKED_TITLE: Record<AssetSection, string> = {
+  backgrounds: "Background Cover Library",
+  audio: "Audio Library",
+};
 
-function AudioRow({
-  item,
-  attention,
-  onRemove,
-}: {
-  item: AudioItem;
-  /** Ringed for a moment because a deep link pointed at this sound. */
-  attention: boolean;
-  onRemove: () => void;
-}) {
-  const url = useAssetUrl(item);
-  return (
-    <div
-      {...attentionAttribute(item.id)}
-      className={attention ? ATTENTION_CLASS : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "11px 8px",
-        borderRadius: 10,
-        borderBottom: `1px solid ${colors.border}`,
-        flexWrap: "wrap",
-      }}
-    >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 9,
-          background: fade(colors.accent, 0.14),
-          color: colors.accentSoft,
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        <Music size={17} />
-      </div>
-      <div
-        style={{
-          flex: 1,
-          minWidth: 120,
-          fontFamily: UI,
-          fontSize: 14,
-          color: colors.text,
-        }}
-      >
-        {item.name}
-        {item.builtIn && (
-          <span style={{ fontSize: 11, color: colors.dim, marginLeft: 8 }}>
-            · default
-          </span>
-        )}
-      </div>
-      {url && (
-        <audio src={url} controls loop preload="none" style={{ height: 32 }} />
-      )}
-      {!item.builtIn && (
-        <IconButton icon={Trash2} danger title="Remove" onClick={onRemove} />
-      )}
-    </div>
-  );
-}
+const isAssetSection = (value?: string): value is AssetSection =>
+  value === "backgrounds" || value === "audio";
 
 export function AssetsModal() {
   const overlay = useStore((s) => s.overlay);
   const overlayContext = useStore((s) => s.overlayContext);
+  const locked = useStore((s) => s.overlaySectionLocked);
   const close = useStore((s) => s.closeOverlay);
   const backgrounds = useStore((s) => s.backgrounds);
-  const audio = useStore((s) => s.audio);
-  const beginUpload = useStore((s) => s.beginUpload);
-  const addCustomBackground = useStore((s) => s.addCustomBackground);
-  const removeBackground = useStore((s) => s.removeBackground);
-  const removeAudio = useStore((s) => s.removeAudio);
 
-  const bgInput = useRef<HTMLInputElement>(null);
-  const audioInput = useRef<HTMLInputElement>(null);
+  useReopenAssetLibraryOnArrival();
+
   const contentRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<Tab>("backgrounds");
-  const [showColor, setShowColor] = useState(false);
-  const [editing, setEditing] = useState<Background | null>(null);
+  const [tab, setTab] = useState<AssetSection>("backgrounds");
 
   // Deep links (a dashboard activity, say) name the tab to open and, when they
   // point at one item, that item: the library is a wall of lookalike swatches,
   // so the one that was clicked is scrolled to and ringed rather than left to
-  // be hunted for.
+  // be hunted for. A video background is found through the clip it plays,
+  // which is what the Videos tab lists.
   const target =
     overlay === "assets" ? parseOverlayTarget(overlayContext) : null;
-  const attentionId = useAttention(target?.itemId ?? null, contentRef);
+  const targetItemId = target?.itemId ?? null;
+  const attentionTarget =
+    backgrounds.find((bg) => bg.type === "video" && bg.id === targetItemId)
+      ?.mediaId ?? targetItemId;
+  const attentionId = useAttention(attentionTarget, contentRef);
   const targetSection = target?.section;
   useEffect(() => {
-    if (targetSection === "backgrounds" || targetSection === "audio")
-      setTab(targetSection);
+    if (isAssetSection(targetSection)) setTab(targetSection);
   }, [targetSection]);
 
-  const tabs: [Tab, string, LucideIcon][] = [
-    ["backgrounds", "Backgrounds", ImageIcon],
-    ["audio", "Audio", Music],
-  ];
+  const sectionLocked = locked && isAssetSection(targetSection);
 
   return (
     <Modal
       open={overlay === "assets"}
       onClose={close}
-      title="Asset Library"
+      title={sectionLocked ? LOCKED_TITLE[tab] : "Asset Library"}
       width={680}
     >
       <div ref={contentRef}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
-          {tabs.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                padding: "8px 15px",
-                borderRadius: 999,
-                cursor: "pointer",
-                fontFamily: UI,
-                fontSize: 13,
-                fontWeight: 600,
-                border: `1px solid ${tab === id ? fade(colors.accent, 0.4) : colors.border}`,
-                background:
-                  tab === id ? fade(colors.accent, 0.16) : "transparent",
-                color: tab === id ? colors.accentSoft : colors.sub,
-              }}
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          ))}
-        </div>
-
+        {!sectionLocked && (
+          <div style={{ marginBottom: 18 }}>
+            <PillTabs<AssetSection> tabs={TABS} value={tab} onChange={setTab} />
+          </div>
+        )}
         {tab === "backgrounds" ? (
-          <>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Button
-                variant="primary"
-                onClick={() => bgInput.current?.click()}
-              >
-                <Upload size={15} />
-                Upload Images
-              </Button>
-              <Button variant="ghost" onClick={() => setShowColor((v) => !v)}>
-                <Palette size={15} />
-                Add Color / CSS
-              </Button>
-            </div>
-            <input
-              ref={bgInput}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                if (files.length) beginUpload("background", files);
-                e.target.value = "";
-              }}
-            />
-            {showColor && (
-              <div style={{ marginTop: 12 }}>
-                <CustomColorPicker
-                  onAdd={(value, name) => {
-                    addCustomBackground(value, name);
-                    setShowColor(false);
-                  }}
-                />
-              </div>
-            )}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
-                gap: 10,
-                marginTop: 16,
-              }}
-            >
-              {backgrounds.map((bg) => (
-                <div
-                  key={bg.id}
-                  {...attentionAttribute(bg.id)}
-                  className={
-                    bg.id === attentionId ? ATTENTION_CLASS : undefined
-                  }
-                  style={{ position: "relative", borderRadius: 11 }}
-                >
-                  <BgSwatch
-                    bg={bg}
-                    style={{
-                      aspectRatio: "16/9",
-                      borderRadius: 9,
-                      overflow: "hidden",
-                      border: `1px solid ${colors.border}`,
-                    }}
-                  />
-                  <div
-                    style={{
-                      fontFamily: UI,
-                      fontSize: 11.5,
-                      color: colors.sub,
-                      marginTop: 5,
-                    }}
-                  >
-                    {bg.name}
-                    {bg.builtIn && (
-                      <span style={{ color: colors.dim }}> · default</span>
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 6,
-                      right: 6,
-                      display: "flex",
-                      gap: 5,
-                    }}
-                  >
-                    {isImageBackground(bg) && !bg.builtIn && (
-                      <button
-                        onClick={() => setEditing(bg)}
-                        aria-label={`Edit ${bg.name}`}
-                        title="Edit image"
-                        style={OVERLAY_BUTTON}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                    )}
-                    {!bg.builtIn && (
-                      <button
-                        onClick={() => removeBackground(bg.id)}
-                        aria-label={`Remove ${bg.name}`}
-                        title="Remove"
-                        style={OVERLAY_BUTTON}
-                      >
-                        <X size={13} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
+          <BackgroundsPanel
+            attentionId={attentionId}
+            targetItemId={attentionTarget}
+          />
         ) : (
-          <>
-            <Button
-              variant="primary"
-              onClick={() => audioInput.current?.click()}
-            >
-              <Upload size={15} />
-              Upload Audio
-            </Button>
-            <input
-              ref={audioInput}
-              type="file"
-              accept="audio/*"
-              multiple
-              hidden
-              onChange={(e) => {
-                const files = Array.from(e.target.files || []);
-                if (files.length) beginUpload("audio", files);
-                e.target.value = "";
-              }}
-            />
-            <div style={{ marginTop: 16 }}>
-              {audio.map((item) => (
-                <AudioRow
-                  key={item.id}
-                  item={item}
-                  attention={item.id === attentionId}
-                  onRemove={() => removeAudio(item.id)}
-                />
-              ))}
-            </div>
-          </>
+          <AudioPanel
+            attentionId={attentionId}
+            targetItemId={attentionTarget}
+          />
         )}
       </div>
-
-      {editing && (
-        <BackgroundImageEditorModal
-          key={editing.id}
-          background={editing}
-          onClose={() => setEditing(null)}
-        />
-      )}
     </Modal>
   );
 }

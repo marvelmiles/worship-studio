@@ -11,6 +11,8 @@ interface ModalProps {
   children: ReactNode;
   width?: number;
   footer?: ReactNode;
+  /** An InfoTip about the dialog, placed after its title. */
+  info?: ReactNode;
 }
 
 export function Modal({
@@ -20,6 +22,7 @@ export function Modal({
   children,
   width = 520,
   footer,
+  info,
 }: ModalProps) {
   const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
@@ -77,6 +80,9 @@ export function Modal({
           >
             {title}
           </h3>
+          {info && (
+            <div style={{ marginRight: "auto", marginLeft: 6 }}>{info}</div>
+          )}
           <IconButton icon={X} onClick={onClose} title="Close" />
         </div>
         <div style={{ padding: 22 }}>{children}</div>

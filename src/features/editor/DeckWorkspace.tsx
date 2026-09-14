@@ -54,6 +54,12 @@ import type {
 
 type MobileTab = "slides" | "edit" | "style";
 
+/** What each kind of deck is called in the inspector's labels. */
+const DOCUMENT_NOUN: Partial<Record<ContentKind, string>> = {
+  manuscript: "manuscript",
+  scripture: "passage",
+};
+
 /** What each kind of deck calls the thing at the top of its editor. */
 const TITLE_LABEL: Partial<Record<ContentKind, string>> = {
   manuscript: "manuscript title",
@@ -105,7 +111,6 @@ export function DeckWorkspace({
   const startPresent = useStore((s) => s.startPresent);
   const updatePresentation = useStore((s) => s.updatePresentation);
   const presentation = useStore((s) => s.presentation);
-  const addCustomBackground = useStore((s) => s.addCustomBackground);
   const pushToast = useStore((s) => s.pushToast);
 
   const tagGroups = useMemo(
@@ -393,7 +398,7 @@ export function DeckWorkspace({
       theme={theme}
       backgrounds={backgrounds}
       audio={audio}
-      onAddColor={addCustomBackground}
+      documentNoun={DOCUMENT_NOUN[kind] ?? "document"}
       selectedLine={selectedLine}
       onScopeToLine={setLineScope}
       formatting={formatting}

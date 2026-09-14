@@ -131,8 +131,7 @@ function ScriptureWorkspace({ passageId }: { passageId: string }) {
               style={{ margin: "0 auto 10px" }}
             />
             <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
-              This passage has no slides. Open passage settings to rebuild them
-              from the verses.
+              This passage has no slides yet.
             </p>
             <Button variant="primary" onClick={() => setSettingsOpen(true)}>
               <Settings2 size={15} />

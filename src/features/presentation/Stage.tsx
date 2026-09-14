@@ -10,7 +10,7 @@ import type {
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { ANIMATION_VARIANTS, buildTransition } from "../../lib/animation";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { isImageBackground } from "../../lib/media";
+import { isMediaBackground } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { PortalSlot } from "../../components/ui/PortalSlot";
 import { BackgroundSurface } from "../../components/media/BackgroundSurface";
@@ -57,8 +57,8 @@ function viewSize(view: PresentationView): CSSProperties {
  * ultrawides) the canvas is letterboxed. This layer paints the area around it
  * edge to edge so the audience never sees bare black bars: the theme
  * background for text slides, and a blurred, cover-scaled copy of the picture
- * for image slides. Picture backgrounds are painted by a BackgroundSurface on
- * top of this layer, so their own settings apply.
+ * for image slides. Picture and clip backgrounds are painted by a
+ * BackgroundSurface on top of this layer, so their own settings apply.
  */
 function backdropLayerStyle(
   background: Background | null,
@@ -82,7 +82,8 @@ function backdropLayerStyle(
 
 function resolveBgStyle(background: Background | null): CSSProperties {
   if (!background) return { background: "#000" };
-  if (background.type === "image") return { background: "#000" };
+  if (background.type === "image" || background.type === "video")
+    return { background: "#000" };
   if (background.type === "solid") return { background: background.color };
   return { background: background.css || "#000" };
 }
@@ -162,7 +163,7 @@ export function Stage({
           ...backdropLayerStyle(backdrop, ambientUrl),
         }}
       >
-        {isImageBackground(backdrop ?? undefined) && (
+        {isMediaBackground(backdrop ?? undefined) && (
           <BackgroundSurface
             background={backdrop ?? undefined}
             settings={backdropImage}

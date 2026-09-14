@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { BookmarkPlus } from "lucide-react";
 import type { ScriptureSelection } from "../../store/useStore";
-import { colors, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { Button } from "../../components/ui/Button";
 import { Field, Range, Toggle } from "../../components/ui/Field";
 import { formatReference } from "./lib/reference";
@@ -46,6 +46,12 @@ export function SavePassageModal({
       onClose={onClose}
       title={`Save ${formatReference(selection.range, selection.version)}`}
       width={480}
+      info={
+        <InfoTip title="Saving a passage">
+          The passage is turned into presentation slides. You can restyle it,
+          change backgrounds and re-chunk verses any time in the passage editor.
+        </InfoTip>
+      }
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -61,18 +67,6 @@ export function SavePassageModal({
         </>
       }
     >
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 13,
-          color: colors.sub,
-          marginTop: 0,
-          lineHeight: 1.6,
-        }}
-      >
-        The passage is turned into presentation slides. You can restyle it,
-        change backgrounds and re-chunk verses any time in the passage editor.
-      </p>
       <Field
         label={`Verses per slide (${versesPerSlide}), makes ${slideCount} slide${slideCount === 1 ? "" : "s"}`}
       >

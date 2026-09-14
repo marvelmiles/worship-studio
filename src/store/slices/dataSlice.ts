@@ -342,7 +342,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         fileIds.push(bg.blobId, thumbId(bg.blobId));
     }
     for (const item of customAud) {
-      if (item.blobId) fileIds.push(item.blobId);
+      if (item.blobId && !item.mediaId) fileIds.push(item.blobId);
     }
     return exportBackup(payload, fileIds, onProgress);
   },

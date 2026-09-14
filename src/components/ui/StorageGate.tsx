@@ -4,6 +4,7 @@ import { useStore } from "../../store/useStore";
 import { colors, DISPLAY, UI, glass, fade } from "../../theme/tokens";
 import { Button } from "./Button";
 import { formatBytes } from "../../lib/storageStats";
+import { InfoTip } from "./InfoTip";
 
 export function StorageGate() {
   const storage = useStore((s) => s.storage);
@@ -131,20 +132,24 @@ export function StorageGate() {
           <Trash2 size={15} />
           Free up storage
         </Button>
-        <p
+        <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            marginTop: 8,
             fontFamily: UI,
             fontSize: 11.5,
             color: colors.dim,
-            marginTop: 10,
-            marginBottom: 0,
-            lineHeight: 1.5,
           }}
         >
-          "Free up storage" clears WorshipStudio's stored data on this device
-          (manuscripts, custom themes, backgrounds and audio) and restores the
-          defaults.
-        </p>
+          What gets cleared
+          <InfoTip title="Free up storage" side="top" align="center">
+            Clears WorshipStudio&apos;s stored data on this device (manuscripts,
+            custom themes, backgrounds and audio) and restores the defaults.
+          </InfoTip>
+        </div>
       </div>
     </div>
   );

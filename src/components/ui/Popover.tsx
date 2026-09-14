@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -11,6 +12,8 @@ import { computePlacement, PLACEMENT_EDGE } from "../../lib/placement";
 import type { Placement, PopoverAlign, PopoverSide } from "../../lib/placement";
 
 export type { PopoverAlign, PopoverSide };
+
+const PANEL_ATTR = "data-popover-panel";
 
 interface PopoverProps {
   open: boolean;
@@ -20,7 +23,10 @@ interface PopoverProps {
   children: ReactNode;
   side?: PopoverSide;
   align?: PopoverAlign;
-  /** Opens on pointer hover as well as click, with a small close delay. */
+  /**
+   * Opens on mouse hover as well as click, with a small close delay. A click or
+   * a tap pins the panel open until it is clicked again or dismissed.
+   */
   openOnHover?: boolean;
   disabled?: boolean;
   /** Applied to the inline-flex wrapper around the trigger. */
@@ -96,6 +102,10 @@ export function Popover({
         panelRef.current?.contains(target)
       )
         return;
+      // A popover opened from inside this one (an info tip in a menu, say)
+      // lives in its own portal; using it must not close the menu behind it.
+      if (target instanceof Element && target.closest(`[${PANEL_ATTR}]`))
+        return;
       onOpenChange(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -111,17 +121,37 @@ export function Popover({
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
+  // A panel opened by hovering is only a peek: it closes when the pointer
+  // leaves. A click or a tap pins it, so it stays until clicked again or
+  // dismissed, which is what makes the same control work with a finger.
+  const pinned = useRef(false);
+  useEffect(() => {
+    if (!open) pinned.current = false;
+  }, [open]);
+
   const cancelClose = () => window.clearTimeout(closeTimer.current);
-  const scheduleClose = () => {
-    if (!openOnHover) return;
+  const scheduleClose = (event: PointerEvent<HTMLElement>) => {
+    // Touch and pen fire pointerleave as the finger lifts, which would close
+    // the panel the tap has just opened.
+    if (!openOnHover || pinned.current || event.pointerType !== "mouse") return;
     cancelClose();
     // Grace period so the pointer can cross the gap to the panel.
     closeTimer.current = window.setTimeout(() => onOpenChange(false), 180);
   };
-  const hoverOpen = () => {
-    if (!openOnHover || disabled) return;
+  const hoverOpen = (event: PointerEvent<HTMLElement>) => {
+    if (!openOnHover || disabled || event.pointerType !== "mouse") return;
     cancelClose();
-    onOpenChange(true);
+    if (!open) onOpenChange(true);
+  };
+  const handleClick = () => {
+    if (disabled) return;
+    cancelClose();
+    if (open && openOnHover && !pinned.current) {
+      pinned.current = true;
+      return;
+    }
+    pinned.current = !open;
+    onOpenChange(!open);
   };
 
   return (
@@ -129,12 +159,8 @@ export function Popover({
       <span
         ref={anchorRef}
         style={{ display: "inline-flex", ...triggerStyle }}
-        onClick={() => !disabled && onOpenChange(!open)}
-        onPointerEnter={(e) => {
-          // Touch taps also fire pointerenter; let the click handle those.
-          if (e.pointerType !== "mouse") return;
-          hoverOpen();
-        }}
+        onClick={handleClick}
+        onPointerEnter={hoverOpen}
         onPointerLeave={scheduleClose}
       >
         {trigger}
@@ -144,6 +170,7 @@ export function Popover({
         createPortal(
           <div
             ref={panelRef}
+            {...{ [PANEL_ATTR]: "" }}
             onPointerEnter={cancelClose}
             onPointerLeave={scheduleClose}
             style={{

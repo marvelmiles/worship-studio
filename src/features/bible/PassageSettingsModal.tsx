@@ -11,6 +11,7 @@ import {
 import { colors, UI } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
 import { Modal } from "../../components/ui/Modal";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { Button } from "../../components/ui/Button";
 import {
   Field,
@@ -148,20 +149,18 @@ export function PassageSettingsModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Passage Settings" width={620}>
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 13,
-          color: colors.sub,
-          marginTop: 0,
-          lineHeight: 1.6,
-        }}
-      >
-        These settings apply to every slide in this passage. Individual slides
-        can still override them in the inspector.
-      </p>
-
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Passage Settings"
+      width={620}
+      info={
+        <InfoTip title="Passage settings">
+          These settings apply to every slide in this passage. Individual slides
+          can still override them in the inspector.
+        </InfoTip>
+      }
+    >
       <SectionTitle>Passage</SectionTitle>
       <div style={GRID}>
         <Field label="Version">

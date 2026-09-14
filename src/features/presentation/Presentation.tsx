@@ -11,7 +11,6 @@ import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
-import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { stripInlineFormatting } from "../../lib/inlineFormat";
@@ -44,6 +43,7 @@ import {
 } from "./SecondaryPip";
 import { SecondaryModuleMenu } from "./SecondaryModuleMenu";
 import { VideoSurface } from "../../components/media/VideoSurface";
+import { AudioSurface } from "../../components/media/AudioSurface";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import type { Background, ScripturePassage } from "../../types";
 
@@ -62,6 +62,7 @@ function resolveRootBg(
     };
   }
   if (bg.type === "solid") return { background: bg.color };
+  if (bg.type === "video") return { background: "#000" };
   return { background: bg.css || "#000" };
 }
 
@@ -367,8 +368,9 @@ export function Presentation() {
     publishPresentedMedia,
   ]);
 
-  const backdropBlobUrl = useBlobUrl(p.frame?.backdrop?.blobId);
-  const audioSrc = useAssetUrl(p.audioItem);
+  const backdropBlobUrl = useBlobUrl(
+    p.frame?.backdrop?.type === "image" ? p.frame.backdrop.blobId : null,
+  );
 
   const canRead = deckKind === "scripture" && speech.supported;
   const handleToggleRead = () => {
@@ -510,8 +512,12 @@ export function Presentation() {
       : null;
 
   const audioLayer =
-    p.audioItem && audioSrc ? (
-      <audio ref={p.audioRef} src={audioSrc} loop={p.prefs.loopAudio} />
+    p.audioItem && p.audioPlayback ? (
+      <AudioSurface
+        item={p.audioItem}
+        loop={p.prefs.loopAudio}
+        playback={p.audioPlayback}
+      />
     ) : null;
 
   // The corner window's content, held outside both surfaces. Silenced here

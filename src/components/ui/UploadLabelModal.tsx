@@ -7,6 +7,7 @@ import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { TextInput } from "./Field";
 import { Spinner } from "./Spinner";
+import { InfoTip } from "./InfoTip";
 
 const stripExtension = (name: string) => name.replace(/\.[^.]+$/, "");
 
@@ -97,6 +98,14 @@ export function UploadLabelModal() {
       onClose={saving ? () => {} : cancel}
       title={title}
       width={520}
+      info={
+        saving ? undefined : (
+          <InfoTip title="Labels">
+            Give {count > 1 ? "each upload" : "this upload"} a label to find it
+            easily later. Labels default to the file name.
+          </InfoTip>
+        )
+      }
       footer={
         <>
           <Button onClick={cancel} disabled={saving}>
@@ -125,20 +134,7 @@ export function UploadLabelModal() {
           {pending.savedCount} of {count} uploaded. Please keep this window
           open.
         </p>
-      ) : (
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 13,
-            color: colors.sub,
-            marginTop: 0,
-            lineHeight: 1.6,
-          }}
-        >
-          Give {count > 1 ? "each upload" : "this upload"} a label to find it
-          easily later. Labels default to the file name.
-        </p>
-      )}
+      ) : null}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {pending.files.map((file, i) => {
           const status = rowStatus(i);

@@ -5,7 +5,8 @@ import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
-import { videoSettingsOf } from "../../lib/media";
+import { audioSettingsOf, videoSettingsOf } from "../../lib/media";
+import type { MediaPlayback } from "../../lib/presentChannel";
 import { targetOwnsKey } from "../../lib/mediaKeys";
 import {
   resolveAudioId,
@@ -71,7 +72,6 @@ export function usePresentation(
   const ctrlNumBuffer = useRef<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const localFullscreen = useFullscreen(rootRef);
   const isFullscreen =
     fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
@@ -340,22 +340,28 @@ export function usePresentation(
     return () => window.clearInterval(timer);
   }, [paused]);
 
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    el.volume = Math.min(1, Math.max(0, prefs.backgroundVolume / 100));
-  }, [prefs.backgroundVolume, audioItem?.id]);
-
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el || !audioItem) return;
-    if (paused) el.pause();
-    else void el.play().catch(() => {});
-  }, [paused, audioItem?.id]);
+  // The sound's own level is scaled by the app-wide background level, so a pad
+  // turned down in its editor stays that much quieter than the others.
+  const audioSettings = useMemo(
+    () => (audioItem ? audioSettingsOf(audioItem) : null),
+    [audioItem],
+  );
+  const audioPlayback = useMemo<MediaPlayback | null>(
+    () =>
+      audioSettings
+        ? {
+            playing: !paused,
+            muted: false,
+            volume: (audioSettings.volume * prefs.backgroundVolume) / 100,
+            seekTime: audioSettings.trimStart,
+            seekToken: 0,
+          }
+        : null,
+    [audioSettings, paused, prefs.backgroundVolume],
+  );
 
   return {
     rootRef,
-    audioRef,
     videoRef,
     deck,
     doc,
@@ -369,6 +375,7 @@ export function usePresentation(
     frame,
     nextFrame,
     audioItem,
+    audioPlayback,
     paused,
     zoom,
     pan,

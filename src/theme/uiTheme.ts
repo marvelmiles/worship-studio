@@ -107,6 +107,16 @@ export interface UITheme {
     border: string;
     text: string;
   };
+  /**
+   * Scannable codes. They stay dark on light whatever the chrome theme is,
+   * because that is the contrast a phone camera reads fastest.
+   */
+  qr: {
+    surface: string;
+    ink: string;
+    /** The three corner finder patterns. */
+    eye: string;
+  };
   /** Distinct hues for icon chips, category bars and charts, in
    *  presentation order. Use chartColor(i) to cycle safely. */
   charts: string[];
@@ -203,6 +213,14 @@ export const studioTheme: UITheme = {
     border: "rgba(255,255,255,.08)",
 
     text: "#ffffff",
+  },
+
+  qr: {
+    surface: "#ffffff",
+
+    ink: "#111827",
+
+    eye: "#1e3a8a",
   },
 
   charts: [

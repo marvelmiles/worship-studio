@@ -24,6 +24,7 @@ import {
 } from "../../lib/resolve";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
+import { revealInScrollParent } from "../../lib/scrollReveal";
 
 interface SortableSlideListProps {
   slides: Slide[];
@@ -49,6 +50,9 @@ interface RowProps {
   shortcutNum?: number;
   fixedShortcut?: { letter: string; label: string };
 }
+
+/** Room kept above a revealed row for the list's sticky "Slides" header. */
+const LIST_HEADER_CLEARANCE = 64;
 
 const kbdKey: React.CSSProperties = {
   display: "inline-flex",
@@ -147,9 +151,15 @@ function SortableRow({
   );
 
   // Keeps the active slide visible when something other than a click selects
-  // it, such as the editor following a running presentation.
+  // it, such as the editor following a presentation stepped on from the
+  // floating presenter. Waiting a frame lets a list that is still laying out
+  // (a slide just inserted, say) settle before it is measured.
   useEffect(() => {
-    if (selected) rowRef.current?.scrollIntoView({ block: "nearest" });
+    if (!selected) return;
+    const frame = requestAnimationFrame(() => {
+      if (rowRef.current) revealInScrollParent(rowRef.current);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [selected]);
 
   const background = resolveBackgroundView(slide, doc, theme, bgMap);
@@ -176,6 +186,7 @@ function SortableRow({
         background: selected ? fade(colors.accent, 0.12) : "transparent",
         border: `1px solid ${selected ? fade(colors.accent, 0.35) : "transparent"}`,
         opacity: isDragging ? 0.4 : 1,
+        scrollMarginTop: LIST_HEADER_CLEARANCE,
       }}
     >
       <div

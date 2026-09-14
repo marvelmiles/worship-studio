@@ -1,15 +1,14 @@
 import type { ManuscriptFormat } from "../../types";
-import { DEFAULT_COLLECTION, SERMON_COLLECTION } from "../../data/collections";
+import { SERMON_COLLECTION } from "../../data/collections";
+
+/** The layout a manuscript is built with until the writer picks another. */
+export const DEFAULT_MANUSCRIPT_FORMAT: ManuscriptFormat = "song";
 
 /**
- * Collections whose documents are prose rather than lyrics. Sermons are the
- * obvious one; General is where announcements, orders of service and anything
- * else written in sentences land, so it reads the same way.
+ * Collections whose documents are prose rather than lyrics. Everything else,
+ * General included, is read one lyric per line until the writer says otherwise.
  */
-const PROSE_COLLECTIONS: readonly string[] = [
-  SERMON_COLLECTION,
-  DEFAULT_COLLECTION,
-];
+const PROSE_COLLECTIONS: readonly string[] = [SERMON_COLLECTION];
 
 export const MANUSCRIPT_FORMAT_OPTIONS: {
   value: ManuscriptFormat;
@@ -23,7 +22,9 @@ export const MANUSCRIPT_FORMAT_OPTIONS: {
 export const defaultFormatForCollection = (
   collection?: string,
 ): ManuscriptFormat =>
-  collection && PROSE_COLLECTIONS.includes(collection) ? "sermon" : "song";
+  collection && PROSE_COLLECTIONS.includes(collection)
+    ? "sermon"
+    : DEFAULT_MANUSCRIPT_FORMAT;
 
 /** The layout to build a manuscript with: its own choice, else its collection's. */
 export const resolveManuscriptFormat = (manuscript: {

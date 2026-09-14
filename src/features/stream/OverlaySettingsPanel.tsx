@@ -91,8 +91,8 @@ const JUMP_SECONDS = 5;
 /**
  * Everything the selected element can be told to do.
  *
- * Two rules shape the layout. The controls that change the service — put it up,
- * apply what I have changed, page to the next block, pause the clip — are at the
+ * Two rules shape the layout. The controls that change the service, put it up,
+ * apply what I have changed, page to the next block, pause the clip, are at the
  * top and never fold away, because they are reached for with a room waiting.
  * Everything that dresses the element is grouped and closed, because it is set
  * once before anything goes on air.
@@ -180,8 +180,8 @@ export function OverlaySettingsPanel({ overlay }: { overlay: StreamOverlay }) {
             }}
           >
             {staged
-              ? "Changes are waiting. The broadcast still shows the last version you applied."
-              : "The broadcast matches what you are looking at."}
+              ? "Changes waiting to be applied"
+              : "Broadcast is up to date"}
           </span>
         </div>
       )}

@@ -5,7 +5,6 @@ import type {
   TextStyle,
   Theme,
 } from "../../types";
-import { colors, UI } from "../../theme/tokens";
 import { COLLECTIONS, DEFAULT_COLLECTION } from "../../data/collections";
 import {
   resolveAutoPlay,
@@ -15,6 +14,7 @@ import {
 } from "../../lib/resolve";
 import { validateName } from "../../lib/validation";
 import { Modal } from "../../components/ui/Modal";
+import { InfoTip } from "../../components/ui/InfoTip";
 import {
   Field,
   Range,
@@ -27,6 +27,7 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
+import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
 
 interface ManuscriptSettingsModalProps {
   open: boolean;
@@ -38,7 +39,6 @@ interface ManuscriptSettingsModalProps {
   audio: AudioItem[];
   onPatchManuscript: (changes: Partial<Manuscript>) => void;
   onStyleChange: (key: keyof TextStyle, value: unknown) => void;
-  onAddColor: (value: string, name?: string) => string;
 }
 
 const GRID = {
@@ -57,8 +57,8 @@ export function ManuscriptSettingsModal({
   audio,
   onPatchManuscript,
   onStyleChange,
-  onAddColor,
 }: ManuscriptSettingsModalProps) {
+  const openAssetLibrary = useOpenAssetLibrary();
   // The same rule the editor header holds its save back on, so a title emptied
   // here is answered where it was emptied rather than only at the top of the page.
   const titleError = validateName(manuscript.title, "manuscript title");
@@ -81,20 +81,13 @@ export function ManuscriptSettingsModal({
       onClose={onClose}
       title="Manuscript Settings"
       width={620}
+      info={
+        <InfoTip title="Manuscript settings">
+          These settings apply to every slide in this manuscript. Individual
+          slides can still override them in the inspector.
+        </InfoTip>
+      }
     >
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 13,
-          color: colors.sub,
-          marginTop: 0,
-          lineHeight: 1.6,
-        }}
-      >
-        These settings apply to every slide in this manuscript. Individual
-        slides can still override them in the inspector.
-      </p>
-
       <SectionTitle>Details</SectionTitle>
       <div style={GRID}>
         <Field label="Title" error={titleError}>
@@ -143,15 +136,7 @@ export function ManuscriptSettingsModal({
             defaultBackgroundImage: image,
           })
         }
-        onUploaded={(id, image) =>
-          onPatchManuscript({
-            defaultBackgroundId: id,
-            defaultBackgroundImage: image,
-          })
-        }
-        onAddColor={(value, name) =>
-          onPatchManuscript({ defaultBackgroundId: onAddColor(value, name) })
-        }
+        onManage={() => openAssetLibrary("backgrounds", { locked: true })}
         imageSettings={backgroundImage}
         onImageSettingsChange={(settings) =>
           onPatchManuscript({ defaultBackgroundImage: settings })
@@ -167,7 +152,7 @@ export function ManuscriptSettingsModal({
           themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
         }
         onSelect={(id) => onPatchManuscript({ defaultAudioId: id || null })}
-        onUploaded={(id) => onPatchManuscript({ defaultAudioId: id })}
+        onManage={() => openAssetLibrary("audio", { locked: true })}
       />
 
       <SectionTitle>Animation</SectionTitle>
@@ -182,7 +167,16 @@ export function ManuscriptSettingsModal({
       />
 
       <SectionTitle>Keyboard Shortcuts</SectionTitle>
-      <Field label="Shortcut mode">
+      <Field
+        label="Shortcut mode"
+        info={
+          <InfoTip title="Shortcut mode">
+            {manuscript.shortcutMode === "all-slides"
+              ? "Ctrl+number shortcuts are assigned to every slide in order: Ctrl+1 for slide 1, Ctrl+2 for slide 2, and so on."
+              : "Ctrl+number shortcuts jump to verses only: Ctrl+1 for Verse 1, Ctrl+2 for Verse 2, and so on. Other sections use fixed shortcuts: Ctrl+C Chorus, Ctrl+B Bridge, Ctrl+I Intro, Ctrl+O Outro, Ctrl+P Pre-Chorus, Ctrl+R Refrain, Ctrl+T Tag."}
+          </InfoTip>
+        }
+      >
         <Select
           value={manuscript.shortcutMode || "first-slide-per-tag"}
           options={[
@@ -199,20 +193,18 @@ export function ManuscriptSettingsModal({
           }
         />
       </Field>
-      <p
-        style={{
-          fontFamily: UI,
-          fontSize: 12,
-          color: colors.dim,
-          margin: "-4px 0 0",
-        }}
-      >
-        {manuscript.shortcutMode === "all-slides"
-          ? "Ctrl+number shortcuts are assigned to every slide in order (Ctrl+1 → slide 1, Ctrl+2 → slide 2…)."
-          : "Ctrl+number shortcuts jump to verses only (Ctrl+1 → Verse 1, Ctrl+2 → Verse 2…). Other sections use fixed shortcuts: Ctrl+C Chorus, Ctrl+B Bridge, Ctrl+I Intro, Ctrl+O Outro, Ctrl+P Pre-Chorus, Ctrl+R Refrain, Ctrl+T Tag."}
-      </p>
 
-      <SectionTitle>Playback</SectionTitle>
+      <SectionTitle
+        info={
+          <InfoTip title="Playback">
+            With auto-play on, slides advance on their own after the seconds
+            below. With it off, slides change only when you navigate, animating
+            in with their chosen animation.
+          </InfoTip>
+        }
+      >
+        Playback
+      </SectionTitle>
       <div style={{ marginBottom: 12 }}>
         <Toggle
           label="Auto-play slides while presenting"
@@ -231,14 +223,6 @@ export function ManuscriptSettingsModal({
           }
         />
       </Field>
-      {!autoPlay && (
-        <p
-          style={{ fontFamily: UI, fontSize: 12, color: colors.dim, margin: 0 }}
-        >
-          Auto-play is off, so slides change only when you navigate, animating
-          in with their chosen animation.
-        </p>
-      )}
     </Modal>
   );
 }

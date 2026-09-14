@@ -34,7 +34,7 @@ export interface OverlayPassageChoice {
  * The first version of this offered saved passages only, which is the one place
  * an operator mid-service usually cannot find what they need: the preacher has
  * just called out a reference nobody prepared. So this is the Bible page's own
- * search, in a modal — a saved passage by name, a reference typed any way it is
+ * search, in a modal, a saved passage by name, a reference typed any way it is
  * normally written ("jn 3:16-22", "1 cor 13", "john 3"), or the words of a verse
  * whose address nobody remembers ("book of life").
  *
@@ -107,7 +107,7 @@ export function OverlayPassagePicker({
           <EmptyState
             icon={BookOpen}
             title="Nothing saved yet"
-            message="Type a reference like John 3:16-22, or search the words of a verse. Passages you save from the Bible page appear here too."
+            message="Search a reference or words, or save one from the Bible."
             compact
             bare
           />

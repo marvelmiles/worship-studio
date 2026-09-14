@@ -6,15 +6,28 @@ import type { SliceCreator } from "../storeTypes";
 export type OverlayName =
   "assets" | "settings" | "themes" | "shortcuts" | "about";
 
+export interface OverlayOptions {
+  /**
+   * Keeps the overlay on the section its context names, hiding the way to the
+   * others. An editor asking for backgrounds gets a library of backgrounds only.
+   */
+  lockSection?: boolean;
+}
+
 export interface UiSlice {
   overlay: OverlayName | null;
   /** Optional target inside the overlay, e.g. a theme id or an assets tab. */
   overlayContext: string | null;
+  overlaySectionLocked: boolean;
   toasts: Toast[];
   alerts: AppAlert[];
   showGuide: boolean;
 
-  openOverlay: (name: OverlayName, context?: string) => void;
+  openOverlay: (
+    name: OverlayName,
+    context?: string,
+    options?: OverlayOptions,
+  ) => void;
   closeOverlay: () => void;
   pushToast: (message: string, kind?: Toast["kind"]) => void;
   dismissToast: (id: string) => void;
@@ -28,13 +41,19 @@ export interface UiSlice {
 export const createUiSlice: SliceCreator<UiSlice> = (set, get) => ({
   overlay: null,
   overlayContext: null,
+  overlaySectionLocked: false,
   toasts: [],
   alerts: [],
   showGuide: false,
 
-  openOverlay: (name, context) =>
-    set({ overlay: name, overlayContext: context ?? null }),
-  closeOverlay: () => set({ overlay: null, overlayContext: null }),
+  openOverlay: (name, context, options) =>
+    set({
+      overlay: name,
+      overlayContext: context ?? null,
+      overlaySectionLocked: Boolean(context && options?.lockSection),
+    }),
+  closeOverlay: () =>
+    set({ overlay: null, overlayContext: null, overlaySectionLocked: false }),
 
   pushToast: (message, kind = "success") =>
     set((state) => ({

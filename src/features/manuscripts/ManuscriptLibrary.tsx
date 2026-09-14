@@ -133,7 +133,7 @@ export function ManuscriptLibrary() {
           <EmptyState
             icon={FileText}
             title="No manuscripts yet"
-            message="Create your first manuscript and its text will turn into styled slides, ready to present."
+            message="Its text turns into styled slides, ready to present."
             action={
               <Button variant="primary" onClick={onNew}>
                 <Plus size={15} />

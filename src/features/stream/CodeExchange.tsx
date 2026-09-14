@@ -6,12 +6,13 @@ import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { QrCode } from "./QrCode";
 import { QrScanner } from "./QrScanner";
+import { InfoTip } from "../../components/ui/InfoTip";
 
 /**
  * Shows one device's handshake code as a QR *and* as copyable text, so it can
  * travel two ways:
  *  - by camera, when both devices are together (the offline path), or
- *  - by any messaging app, when scanning isn't practical — e.g. a laptop with
+ *  - by any messaging app, when scanning isn't practical, such as a laptop with
  *    no webcam. That paste channel is the internet-based fallback, and it needs
  *    no server of our own.
  */
@@ -22,8 +23,8 @@ import { QrScanner } from "./QrScanner";
  */
 const MAX_QR_SIZE = 420;
 const MIN_QR_SIZE = 240;
-/** The white tile's own padding, which the code must not be sized into. */
-const QR_TILE_PADDING = 24;
+/** The card's padding, border and ring, which the code must not be sized into. */
+const QR_TILE_PADDING = 34;
 
 export function ShowCode({
   value,
@@ -65,33 +66,22 @@ export function ShowCode({
       }}
     >
       <QrCode value={value} size={qrSize} />
-      <p
+      <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
           fontFamily: fonts.ui,
           fontSize: 13,
           color: colors.sub,
-          textAlign: "center",
-          margin: 0,
-          maxWidth: 320,
-          lineHeight: 1.5,
         }}
       >
-        {caption}
-      </p>
-      <p
-        style={{
-          fontFamily: fonts.ui,
-          fontSize: 12,
-          color: colors.dim,
-          textAlign: "center",
-          margin: 0,
-          maxWidth: 320,
-          lineHeight: 1.5,
-        }}
-      >
-        Hold the other device close enough that the code fills its viewfinder,
-        and keep both still until it reads.
-      </p>
+        Scan with the other device
+        <InfoTip title="Scanning this code" align="center">
+          {caption} Hold the other device close enough that the code fills its
+          viewfinder, and keep both still until it reads.
+        </InfoTip>
+      </div>
       <Button variant="ghost" size="sm" onClick={copy}>
         {copied ? <Check size={14} /> : <Clipboard size={14} />}
         {copied ? "Copied" : "Copy code instead"}

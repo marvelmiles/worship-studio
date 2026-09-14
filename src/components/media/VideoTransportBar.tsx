@@ -28,6 +28,8 @@ interface VideoTransportBarProps {
    * control, so the bar still fits across a phone.
    */
   compact?: boolean;
+  /** What the play control calls the thing it plays. */
+  mediaNoun?: string;
   /** Where the bar sits over the surface it belongs to. */
   style?: CSSProperties;
 }
@@ -55,6 +57,7 @@ export function VideoTransportBar({
   visible = true,
   onHoverChange,
   compact,
+  mediaNoun = "video",
   style,
 }: VideoTransportBarProps) {
   const { colors, controls, fonts, stage } = useUITheme();
@@ -97,7 +100,9 @@ export function VideoTransportBar({
     >
       <StageButton
         icon={playing ? Pause : Play}
-        title={playing ? "Pause video (Space)" : "Play video (Space)"}
+        title={
+          playing ? `Pause ${mediaNoun} (Space)` : `Play ${mediaNoun} (Space)`
+        }
         onClick={onTogglePlaying}
       />
       <StageButton

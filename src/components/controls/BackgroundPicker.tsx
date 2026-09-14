@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Palette, Pencil, Upload } from "lucide-react";
+import { Library, Palette, Pencil, Upload } from "lucide-react";
 import type { Background, ImageSettings } from "../../types";
 import { colors } from "../../theme/tokens";
 import { useStore } from "../../store/useStore";
@@ -28,6 +28,8 @@ interface BackgroundPickerProps {
   highlightId?: string;
   onUploaded?: (id: string, image?: ImageSettings) => void;
   onAddColor?: (value: string, name?: string) => void;
+  /** Opens the image library, where pictures, colors and videos are added. */
+  onManage?: () => void;
   /** This usage's picture settings for the active background. */
   imageSettings?: ImageSettings | null;
   /**
@@ -47,6 +49,7 @@ export function BackgroundPicker({
   highlightId,
   onUploaded,
   onAddColor,
+  onManage,
   imageSettings,
   onImageSettingsChange,
   usageLabel = "this document",
@@ -144,6 +147,12 @@ export function BackgroundPicker({
       </div>
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+        {onManage && (
+          <Button variant="ghost" size="sm" onClick={onManage}>
+            <Library size={14} />
+            Manage backgrounds
+          </Button>
+        )}
         {onUploaded && (
           <Button
             variant="ghost"

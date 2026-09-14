@@ -1,23 +1,25 @@
 import type { ReactNode } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { InfoTip } from "./InfoTip";
 
 interface PageHeaderProps {
   title: string;
+  /** What the page is for, offered from an info button beside the title. */
   subtitle?: string;
   actions?: ReactNode;
 }
 
 export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   const { colors, fonts } = useUITheme();
-  const UI = fonts.ui;
-  const DISPLAY = fonts.display;
   return (
     <div className="ws-page-head">
-      <div style={{ minWidth: 0 }}>
+      <div
+        style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}
+      >
         <h1
           style={{
             margin: 0,
-            fontFamily: DISPLAY,
+            fontFamily: fonts.display,
             fontSize: "clamp(22px,4vw,30px)",
             fontWeight: 600,
             color: colors.text,
@@ -26,16 +28,9 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
           {title}
         </h1>
         {subtitle && (
-          <p
-            style={{
-              margin: "4px 0 0",
-              fontFamily: UI,
-              fontSize: 13,
-              color: colors.sub,
-            }}
-          >
+          <InfoTip title={title} size={16}>
             {subtitle}
-          </p>
+          </InfoTip>
         )}
       </div>
       {actions && <div className="ws-row-wrap">{actions}</div>}

@@ -14,6 +14,7 @@ import { SenderLobby } from "./SenderPanel";
 import { CameraPanel } from "./CameraPanel";
 import { useStreamSession } from "./lib/streamSession";
 
+import { InfoTip } from "../../components/ui/InfoTip";
 type Role = "choose" | "receive" | "send";
 
 /**
@@ -105,14 +106,14 @@ export function StreamPage() {
             <RoleCard
               icon={MonitorSmartphone}
               title="Show a camera here"
-              body="This device receives another device's camera and can project it on a display."
+              body="Receive and project a camera"
               cta="Receive a camera"
               onClick={() => setRole("receive")}
             />
             <RoleCard
               icon={Radio}
               title="Share this camera"
-              body="This device sends its own camera to another device to be shown or projected."
+              body="Send this camera to another device"
               cta="Share this camera"
               onClick={() => setRole("send")}
             />
@@ -174,21 +175,19 @@ function BroadcastCamerasSection() {
         >
           Live cameras
         </span>
+        <InfoTip title="Live cameras" variant="modal">
+          <p style={{ marginTop: 0 }}>
+            One camera fills the screen. Any other joined camera can sit in a
+            corner of it or wait off screen, ready to be cut to without a
+            reconnection.
+          </p>
+          <p style={{ marginBottom: 0 }}>
+            Preview opens a floating window of a camera for you alone, so you
+            can see what it is pointing at before it reaches the broadcast.
+          </p>
+        </InfoTip>
       </div>
-      <p
-        style={{
-          fontFamily: fonts.ui,
-          fontSize: 13,
-          color: colors.sub,
-          margin: "0 0 16px",
-          lineHeight: 1.5,
-        }}
-      >
-        One camera fills the screen. Any other joined camera can sit in a corner
-        of it or wait off screen, ready to be cut to without a reconnection.
-        Preview opens a floating window of a camera for you alone, so you can
-        see what it is pointing at before it reaches the broadcast.
-      </p>
+      <div style={{ height: 10 }} />
       <CameraPanel />
     </section>
   );

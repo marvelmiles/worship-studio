@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Save, Undo2 } from "lucide-react";
 import type { ImageSettings } from "../../types";
-import { colors, UI } from "../../theme/tokens";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import { Field, TextInput } from "../../components/ui/Field";
 import { ImageLayer } from "../../components/media/ImageLayer";
 import { ImageSettingsControls } from "./ImageSettingsControls";
+import { InfoTip } from "../ui/InfoTip";
 
 interface ImageEditorModalProps {
   title: string;
@@ -63,6 +63,9 @@ export function ImageEditorModal({
       onClose={onClose}
       title={title}
       width={760}
+      info={
+        note ? <InfoTip title="Where changes go">{note}</InfoTip> : undefined
+      }
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
@@ -77,20 +80,6 @@ export function ImageEditorModal({
         </>
       }
     >
-      {note && (
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 12.5,
-            color: colors.sub,
-            margin: "0 0 14px",
-            lineHeight: 1.55,
-          }}
-        >
-          {note}
-        </p>
-      )}
-
       <div
         style={{
           position: "relative",

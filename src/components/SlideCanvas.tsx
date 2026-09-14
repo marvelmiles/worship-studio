@@ -1,7 +1,11 @@
 import type { PointerEvent, ReactNode } from "react";
 import type { Background, ImageSettings, ResolvedStyle, Slide } from "../types";
 import { UI } from "../theme/tokens";
-import { backgroundImageSettings, isImageBackground } from "../lib/media";
+import {
+  backgroundImageSettings,
+  isImageBackground,
+  isVideoBackground,
+} from "../lib/media";
 import { BackgroundSurface } from "./media/BackgroundSurface";
 import { SlideMediaLayers } from "./media/SlideMediaLayers";
 import { SCRIM_GRADIENT } from "./media/ImageLayer";
@@ -43,6 +47,8 @@ interface SlideCanvasProps {
   mediaControlsFor?: string | null;
   /** True on the projector, where placed clips play instead of holding a frame. */
   live?: boolean;
+  /** Plays a video background instead of holding its first frame (the editor's main preview). */
+  playBackground?: boolean;
   /** Drawn over the slide, above the placed media (the editor's drag surface). */
   overlay?: ReactNode;
 }
@@ -80,10 +86,12 @@ export function SlideCanvas({
   onActivateText,
   mediaControlsFor,
   live,
+  playBackground,
   overlay,
 }: SlideCanvasProps) {
   const editable = Boolean(editing);
   const paintsPicture = !noBackground && isImageBackground(bg);
+  const paintsVideo = !noBackground && isVideoBackground(bg);
   // Callers that resolved the settings pass them in; the rest fall back to the
   // asset's own, with the legacy per-slide darken toggle layered on top.
   const pictureSettings = paintsPicture
@@ -93,13 +101,14 @@ export function SlideCanvas({
       })
     : null;
   const bgStyle =
-    noBackground || paintsPicture
+    noBackground || paintsPicture || paintsVideo
       ? {}
       : bg?.type === "solid"
         ? { background: bg.color }
         : { background: bg?.css || "#111" };
 
-  const wantScrim = !noBackground && !paintsPicture && scrim === true;
+  const wantScrim =
+    !noBackground && !paintsPicture && !paintsVideo && scrim === true;
 
   const textBoxes = slide.textBoxes ?? [];
   const bodyLines = slide.lines ?? [];
@@ -133,6 +142,12 @@ export function SlideCanvas({
           background={bg}
           settings={pictureSettings}
           variant="thumb"
+        />
+      )}
+      {paintsVideo && (
+        <BackgroundSurface
+          background={bg}
+          variant={playBackground || live ? "full" : "thumb"}
         />
       )}
       {wantScrim && (

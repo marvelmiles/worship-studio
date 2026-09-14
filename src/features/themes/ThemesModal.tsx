@@ -12,6 +12,7 @@ import {
 import { resolveStyle } from "../../lib/resolve";
 import { validateName } from "../../lib/validation";
 import { Modal } from "../../components/ui/Modal";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { Button } from "../../components/ui/Button";
 import {
   Field,
@@ -293,17 +294,22 @@ export function ThemesModal() {
             />
 
             {draft.builtIn ? (
-              <p
+              <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                   fontFamily: UI,
                   fontSize: 12.5,
                   color: colors.dim,
                   margin: "8px 0 0",
                 }}
               >
-                This is a default theme. You can edit it, but it can't be
-                deleted.
-              </p>
+                Default theme
+                <InfoTip title="Default theme">
+                  You can edit a default theme, but it can&apos;t be deleted.
+                </InfoTip>
+              </div>
             ) : (
               <div
                 style={{

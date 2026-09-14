@@ -24,12 +24,14 @@ export const inputStyle: CSSProperties = {
 
 interface FieldProps {
   label: string;
+  /** An InfoTip explaining the field, placed after the label. */
+  info?: ReactNode;
   /** Why what is in the field can't be used, shown under it in the danger tone. */
   error?: string | null;
   children: ReactNode;
 }
 
-export function Field({ label, error, children }: FieldProps) {
+export function Field({ label, info, error, children }: FieldProps) {
   const { colors: c, fonts } = useUITheme();
   return (
     <label style={{ display: "block", marginBottom: 13 }}>
@@ -43,9 +45,11 @@ export function Field({ label, error, children }: FieldProps) {
           textTransform: "uppercase",
           color: error ? c.danger : c.dim,
           marginBottom: 6,
+          ...(info ? { display: "flex", alignItems: "center", gap: 4 } : {}),
         }}
       >
         {label}
+        {info}
       </span>
       {children}
       {error && (
@@ -236,11 +240,20 @@ export function Toggle({ checked, onChange, label }: ToggleProps) {
   );
 }
 
-export function SectionTitle({ children }: { children: ReactNode }) {
+interface SectionTitleProps {
+  children: ReactNode;
+  /** An InfoTip explaining the section, placed after the title. */
+  info?: ReactNode;
+}
+
+export function SectionTitle({ children, info }: SectionTitleProps) {
   const { colors: c, fonts } = useUITheme();
   return (
     <div
       style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
         fontFamily: fonts.ui,
         fontSize: 12,
         fontWeight: 700,
@@ -253,6 +266,7 @@ export function SectionTitle({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {info}
     </div>
   );
 }

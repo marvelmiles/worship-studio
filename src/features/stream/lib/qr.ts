@@ -7,6 +7,61 @@ import jsQR from "jsqr";
  * a canvas; decoding scans camera frames for the other device's reply.
  */
 
+export interface QrPalette {
+  surface: string;
+  ink: string;
+  /** The three corner finder patterns. */
+  eye: string;
+}
+
+/** Side of a finder pattern, in modules. */
+const FINDER = 7;
+/** Required quiet-zone margin, in modules. */
+const QUIET_ZONE = 4;
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  radius: number,
+): void {
+  // Engines without roundRect (Safari before 16) still get a scannable code.
+  if (!radius || typeof ctx.roundRect !== "function") {
+    ctx.fillRect(x, y, size, size);
+    return;
+  }
+  ctx.beginPath();
+  ctx.roundRect(x, y, size, size, radius);
+  ctx.fill();
+}
+
+/**
+ * A finder pattern drawn as a rounded ring around a rounded core. The 1:1:3:1:1
+ * dark-light-dark proportions scanners look for are kept exactly; only the
+ * corners are softened.
+ */
+function drawEye(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  scale: number,
+  palette: QrPalette,
+): void {
+  const outer = FINDER * scale;
+  ctx.fillStyle = palette.eye;
+  roundedRect(ctx, x, y, outer, scale * 2);
+  ctx.fillStyle = palette.surface;
+  roundedRect(ctx, x + scale, y + scale, outer - scale * 2, scale * 1.3);
+  ctx.fillStyle = palette.eye;
+  roundedRect(ctx, x + scale * 2, y + scale * 2, scale * 3, scale * 0.9);
+}
+
+const inFinder = (row: number, col: number, count: number): boolean =>
+  (row < FINDER && col < FINDER) ||
+  (row < FINDER && col >= count - FINDER) ||
+  (row >= count - FINDER && col < FINDER);
+
 /**
  * Draws `text` as a QR code into `canvas`, returning the size in device pixels
  * it was rendered at, or 0 when the payload will not fit in a QR at all.
@@ -21,11 +76,15 @@ import jsQR from "jsqr";
  * more than it sounds: a handshake code runs past 120 modules a side, and a
  * browser resampling it to a fractional size is the difference between a phone
  * camera resolving the modules and giving up.
+ *
+ * Modules are only rounded once they are big enough for the rounding to show;
+ * on a small grid it would blur module edges without making the code any softer.
  */
 export function drawQr(
   canvas: HTMLCanvasElement,
   text: string,
   targetCssPx: number,
+  palette: QrPalette,
   devicePixelRatio = 1,
 ): number {
   const qr = qrcode(0, "L");
@@ -43,9 +102,11 @@ export function drawQr(
   }
 
   const count = qr.getModuleCount();
-  const quiet = 4; // Required quiet-zone margin, in modules.
-  const total = count + quiet * 2;
-  const scale = Math.max(1, Math.floor((targetCssPx * devicePixelRatio) / total));
+  const total = count + QUIET_ZONE * 2;
+  const scale = Math.max(
+    1,
+    Math.floor((targetCssPx * devicePixelRatio) / total),
+  );
   const dim = total * scale;
 
   canvas.width = dim;
@@ -53,21 +114,25 @@ export function drawQr(
   const ctx = canvas.getContext("2d");
   if (!ctx) return 0;
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = palette.surface;
   ctx.fillRect(0, 0, dim, dim);
-  ctx.fillStyle = "#000000";
+
+  const offset = QUIET_ZONE * scale;
+  const moduleRadius = scale >= 4 ? scale * 0.28 : 0;
+  ctx.fillStyle = palette.ink;
   for (let row = 0; row < count; row++) {
     for (let col = 0; col < count; col++) {
-      if (qr.isDark(row, col)) {
-        ctx.fillRect(
-          (col + quiet) * scale,
-          (row + quiet) * scale,
-          scale,
-          scale,
-        );
-      }
+      if (!qr.isDark(row, col) || inFinder(row, col, count)) continue;
+      const x = offset + col * scale;
+      const y = offset + row * scale;
+      roundedRect(ctx, x, y, scale, moduleRadius);
     }
   }
+
+  const far = offset + (count - FINDER) * scale;
+  drawEye(ctx, offset, offset, scale, palette);
+  drawEye(ctx, far, offset, scale, palette);
+  drawEye(ctx, offset, far, scale, palette);
   return dim;
 }
 

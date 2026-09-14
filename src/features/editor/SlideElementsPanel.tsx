@@ -32,6 +32,7 @@ import { allowsAnySlideElement } from "../../lib/slideElements";
 import { Button } from "../../components/ui/Button";
 import { Field, Range, Select, Toggle } from "../../components/ui/Field";
 import { AdjustmentControls } from "../../components/media/AdjustmentControls";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { SlideMediaPicker } from "./SlideMediaPicker";
 import type { SlideElementRef } from "./SlideElementOverlay";
 import type { DeckEditor } from "./useDeckEditor";
@@ -354,10 +355,22 @@ function VideoPlacementControls({
   duration,
   onChange,
 }: VideoPlacementControlsProps) {
-  const { colors, fonts } = useUITheme();
   return (
     <>
-      <Field label="Speed">
+      <Field
+        label="Speed"
+        info={
+          <InfoTip title="Clip playback">
+            While the clip is selected its own player is live on the slide, so
+            it can be played, scrubbed, muted or thrown fullscreen from there.
+            On the projector it starts itself as the slide comes up
+            {duration === undefined
+              ? ""
+              : ` (${formatDuration(duration)} long)`}
+            .
+          </InfoTip>
+        }
+      >
         <Select
           value={String(settings.playbackRate)}
           options={RATE_OPTIONS}
@@ -385,20 +398,6 @@ function VideoPlacementControls({
         checked={settings.loop}
         onChange={(loop) => onChange({ loop })}
       />
-      <p
-        style={{
-          fontFamily: fonts.ui,
-          fontSize: 11.5,
-          color: colors.dim,
-          margin: "8px 0 0",
-          lineHeight: 1.55,
-        }}
-      >
-        While the clip is selected its own player is live on the slide, so it
-        can be played, scrubbed, muted or thrown fullscreen from there. On the
-        projector it starts itself as the slide comes up
-        {duration === undefined ? "" : ` (${formatDuration(duration)} long)`}.
-      </p>
     </>
   );
 }

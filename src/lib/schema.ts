@@ -202,17 +202,24 @@ const backgroundSchema = z
     id: z.string(),
     name: z.string(),
     category: z.string().optional(),
-    type: z.enum(["gradient", "solid", "image"]),
+    type: z.enum(["gradient", "solid", "image", "video"]),
     css: z.string().optional(),
     color: z.string().optional(),
     dataUrl: z.string().optional(),
     blobId: z.string().optional(),
     image: imageSettingsSchema.optional().catch(undefined),
+    mediaId: z.string().optional(),
     size: z.number().optional(),
     light: z.boolean().optional(),
     builtIn: z.boolean().optional(),
   })
   .passthrough();
+
+const audioSettingsSchema = z.object({
+  trimStart: z.number().min(0),
+  trimEnd: z.number().min(0).nullable(),
+  volume: z.number().min(0).max(100),
+});
 
 const audioSchema = z
   .object({
@@ -221,6 +228,9 @@ const audioSchema = z
     dataUrl: z.string().optional(),
     blobId: z.string().optional(),
     size: z.number().optional(),
+    duration: z.number().optional(),
+    settings: audioSettingsSchema.optional().catch(undefined),
+    mediaId: z.string().optional(),
     builtIn: z.boolean().optional(),
   })
   .passthrough();

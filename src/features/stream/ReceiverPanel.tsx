@@ -31,10 +31,11 @@ import {
   useStreamSession,
 } from "./lib/streamSession";
 import { ShowCode, ReadCode } from "./CodeExchange";
+import { InfoTip } from "../../components/ui/InfoTip";
 
 /**
- * Laptop side — the receiving lobby. With a signalling backend configured it
- * defaults to a live list of phones broadcasting on the same WiFi — tap one to
+ * Laptop side: the receiving lobby. With a signalling backend configured it
+ * defaults to a live list of phones broadcasting on the same WiFi, where one tap is enough to
  * go live and project it, no codes. The QR / paste pairing stays available as an
  * offline fallback.
  *
@@ -112,7 +113,7 @@ function AutoReceivePanel({
       });
     });
 
-    // Only the device watch is torn down here — the live connection lives in the
+    // Only the device watch is torn down here, the live connection lives in the
     // app-wide session, so leaving this panel never drops an active projection.
     return () => {
       cancelled = true;
@@ -158,21 +159,14 @@ function AutoReceivePanel({
           >
             Devices on your WiFi
           </span>
+          <InfoTip title="Devices on your WiFi">
+            On the other device, open Stream and choose Share this camera. It
+            appears here. Pick one to show it, and up to {MAX_STREAM_CAMERAS} in
+            all: the first fills the screen, the rest wait to be cut to or
+            placed in a corner of it.
+          </InfoTip>
         </div>
-        <p
-          style={{
-            fontFamily: fonts.ui,
-            fontSize: 13,
-            color: colors.sub,
-            margin: "0 0 16px",
-            lineHeight: 1.5,
-          }}
-        >
-          On the other device, open Stream and choose Share this camera. It
-          appears here. Pick one to show it, and up to {MAX_STREAM_CAMERAS} in
-          all: the first fills the screen, the rest wait to be cut to or placed
-          in a corner of it.
-        </p>
+        <div style={{ height: 10 }} />
 
         {finding ? (
           <Centered>
@@ -581,19 +575,12 @@ function PairedPanel({
           >
             Paired
           </span>
+          <InfoTip title="Paired">
+            The camera is on the stage. Pop the stage out to keep working in the
+            app while it runs, and pair up to {MAX_STREAM_CAMERAS} devices in
+            all.
+          </InfoTip>
         </div>
-        <p
-          style={{
-            fontFamily: fonts.ui,
-            fontSize: 13,
-            color: colors.sub,
-            margin: 0,
-            lineHeight: 1.5,
-          }}
-        >
-          The camera is on the stage. Pop the stage out to keep working in the
-          app while it runs, and pair up to {MAX_STREAM_CAMERAS} devices in all.
-        </p>
       </div>
 
       <div

@@ -24,6 +24,7 @@ import {
 } from "../../lib/keepOnReset";
 import { fade, mix, colors, DISPLAY, UI } from "../../theme/tokens";
 import { Modal } from "../../components/ui/Modal";
+import { InfoTip } from "../../components/ui/InfoTip";
 import {
   Field,
   Range,
@@ -192,19 +193,16 @@ export function SettingsModal() {
           />
         </div>
 
-        <SectionTitle>Default Themes</SectionTitle>
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 13,
-            color: colors.sub,
-            marginTop: 0,
-            lineHeight: 1.6,
-          }}
+        <SectionTitle
+          info={
+            <InfoTip title="Default themes">
+              Applied to newly created manuscripts and to Bible passages
+              presented or saved from the reader.
+            </InfoTip>
+          }
         >
-          Applied to newly created manuscripts and to Bible passages presented
-          or saved from the reader.
-        </p>
+          Default Themes
+        </SectionTitle>
         <Field label="Manuscripts">
           <Select
             value={prefs.defaultManuscriptThemeId}
@@ -333,21 +331,18 @@ export function SettingsModal() {
           </>
         )}
 
-        <SectionTitle>Data</SectionTitle>
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 13,
-            color: colors.sub,
-            marginTop: 0,
-            lineHeight: 1.6,
-          }}
+        <SectionTitle
+          info={
+            <InfoTip title="Backup and restore">
+              Export everything (manuscripts, scripture passages, images,
+              videos, themes, custom backgrounds, audio and settings) to a
+              single backup file (.zip), then bring it back here on any device.
+              Older JSON backups can still be imported.
+            </InfoTip>
+          }
         >
-          Export everything (manuscripts, scripture passages, images, videos,
-          themes, custom backgrounds, audio and settings) to a single backup
-          file (.zip), then bring it back here on any device. Older JSON backups
-          can still be imported.
-        </p>
+          Data
+        </SectionTitle>
         {busy && (
           <div style={{ marginBottom: 14 }}>
             <ProgressBar
@@ -468,27 +463,23 @@ export function SettingsModal() {
               marginBottom: 0,
             }}
           >
-            Storage is running in memory only, so data won't survive a refresh
-            in this browser.
+            Memory-only storage: data won&apos;t survive a refresh.
           </p>
         )}
 
-        <SectionTitle>Reset</SectionTitle>
-        <p
-          style={{
-            fontFamily: UI,
-            fontSize: 13,
-            color: colors.sub,
-            marginTop: 0,
-            lineHeight: 1.6,
-          }}
+        <SectionTitle
+          info={
+            <InfoTip title="Reset">
+              Restore WorshipStudio to its original state, exactly like the
+              first time you opened it.{" "}
+              {keptItems.length > 0
+                ? `${keptItems.length} of ${MAX_KEPT_ITEMS} "keep on reset" slots are in use, and those items will survive.`
+                : `Manuscripts and custom themes you mark "Keep on reset" (up to ${MAX_KEPT_ITEMS}) survive this.`}
+            </InfoTip>
+          }
         >
-          Restore WorshipStudio to its original state, exactly like the first
-          time you opened it.{" "}
-          {keptItems.length > 0
-            ? `${keptItems.length} of ${MAX_KEPT_ITEMS} "keep on reset" slots are in use, and those items will survive.`
-            : `Manuscripts and custom themes you mark "Keep on reset" (up to ${MAX_KEPT_ITEMS}) survive this.`}
-        </p>
+          Reset
+        </SectionTitle>
         <Button
           variant="danger"
           onClick={() => {

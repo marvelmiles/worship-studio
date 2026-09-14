@@ -61,8 +61,7 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     uploadLabel: "Upload Images",
     accept: "image/*",
     emptyTitle: "No images yet",
-    emptyMessage:
-      "Upload some to present them on screen or use them as slide backgrounds.",
+    emptyMessage: "Upload some to present or use as backgrounds.",
     emptyIcon: ImageIcon,
     editPath: "/images",
   },

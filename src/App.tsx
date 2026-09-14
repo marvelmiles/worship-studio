@@ -33,6 +33,7 @@ import { StreamProjectionRoot } from "./features/stream/StreamProjectionRoot";
 import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
+import { AudioEditorPage } from "./features/assets/AudioEditorPage";
 import { SettingsModal } from "./features/settings/SettingsModal";
 import { ThemesModal } from "./features/themes/ThemesModal";
 import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
@@ -84,7 +85,9 @@ export default function App() {
             ["/editor", "/scripture", "/bible"].some((p) =>
               location.pathname.startsWith(p),
             ) ||
-            /^\/(manuscripts|songs|images|videos)\/./.test(location.pathname)
+            /^\/(manuscripts|songs|images|videos|audio)\/./.test(
+              location.pathname,
+            )
               ? "hidden"
               : "auto",
         }}
@@ -117,6 +120,7 @@ export default function App() {
             <Route path="/images/:mediaId" element={<ImageEditorPage />} />
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/videos/:mediaId" element={<VideoEditorPage />} />
+            <Route path="/audio/:audioId" element={<AudioEditorPage />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route
               path="/editor/:manuscriptId"
