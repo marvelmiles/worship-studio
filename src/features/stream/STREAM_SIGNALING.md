@@ -11,10 +11,29 @@ The Stream module pairs a phone camera with the projecting laptop two ways:
 
 ## How the codes are shown and read
 
-A WebRTC description is far too long for one comfortably scannable QR, so a code
-longer than one frame's worth is split into numbered parts and cycled on screen
-(`lib/qrChunks.ts`). Each frame is a small, low density code. The scanner
-collects the parts, shows how many it has, and decodes once it holds them all.
+**One request, one code.** A pairing code is always a single QR that never
+changes while it is on screen. That only works because the description behind it
+is kept small, in three steps:
+
+1. **Fewer codecs.** The offer names H.264, VP8 and rtx for video and Opus for
+   audio (`lib/peerTuning.ts`), instead of the twenty-odd codecs a browser lists
+   by default. Every WebRTC browser is required to support VP8, so a phone can
+   always answer, and H.264 still wins where the phone encodes it in hardware.
+2. **Fewer candidates.** The transmitted copy drops TCP and link-local
+   candidates, which can never win a LAN pairing (`lib/sdp.ts`). The local
+   description keeps everything it gathered.
+3. **Shared-dictionary compression.** Both devices deflate against the same
+   table of SDP boilerplate (`lib/sdpDictionary.ts`), so a description costs only
+   the bytes unique to this call, and the result is Base45 encoded to stay in the
+   QR alphanumeric mode.
+
+Together these turn a roughly 6 KB description into a code of a few hundred
+characters: a QR of about 80 modules, drawn at medium error correction so it
+reads through screen glare and camera blur.
+
+The dictionary is part of the wire format. Both devices must hold the same one,
+so changing it means bumping `PREFIX` in `lib/streamSignal.ts`; a code from a
+mismatched build is rejected rather than half-decoded.
 
 The scanner (`lib/useQrScanner.ts`) reads the **whole camera frame** as well as
 the centred aiming box, so a code does not have to fit neatly inside the box. It

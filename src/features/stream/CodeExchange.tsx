@@ -1,21 +1,17 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { QrCode as QrIcon, Clipboard, Check, Camera } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useElementSize } from "../../hooks/useElementSize";
-import { useCycleIndex } from "../../hooks/useCycleIndex";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { InfoTip } from "../../components/ui/InfoTip";
 import { QrCode } from "./QrCode";
 import { QrScanner } from "./QrScanner";
-import { splitIntoQrChunks } from "./lib/qrChunks";
-import { smallestQrVersion } from "./lib/qr";
 import type { ScanFacing } from "./lib/useQrScanner";
 
 const MAX_QR_SIZE = 420;
 const MIN_QR_SIZE = 240;
 const QR_TILE_PADDING = 34;
-const QR_PART_INTERVAL_MS = 550;
 const COPIED_FEEDBACK_MS = 1600;
 
 interface ShowCodeProps {
@@ -32,17 +28,6 @@ export const ShowCode = ({ value, caption }: ShowCodeProps) => {
   const qrSize = Math.round(
     Math.max(MIN_QR_SIZE, Math.min(MAX_QR_SIZE, columnWidth - QR_TILE_PADDING)),
   );
-
-  const parts = useMemo(() => splitIntoQrChunks(value), [value]);
-  // Every part shares the largest part's version so the code never changes size between frames.
-  const partVersion = useMemo(() => {
-    const longestPart = parts.reduce((longest, part) =>
-      part.length > longest.length ? part : longest,
-    );
-    return smallestQrVersion(longestPart) ?? undefined;
-  }, [parts]);
-  const partIndex = useCycleIndex(parts.length, QR_PART_INTERVAL_MS);
-  const isMultiPart = parts.length > 1;
 
   const copy = async () => {
     try {
@@ -64,16 +49,7 @@ export const ShowCode = ({ value, caption }: ShowCodeProps) => {
         gap: 12,
       }}
     >
-      <QrCode
-        value={parts[partIndex]}
-        size={qrSize}
-        version={isMultiPart ? partVersion : undefined}
-        caption={
-          isMultiPart
-            ? `Part ${partIndex + 1} of ${parts.length}`
-            : "Scan to pair"
-        }
-      />
+      <QrCode value={value} size={qrSize} />
       <div
         style={{
           display: "flex",
@@ -86,8 +62,8 @@ export const ShowCode = ({ value, caption }: ShowCodeProps) => {
       >
         Scan with the other device
         <InfoTip title="Scanning this code" align="center">
-          {caption} Keep the code in view of the other camera until every part
-          is read. It does not have to fill the scan box.
+          {caption} Hold the code steady in view of the other camera. It does
+          not have to fill the scan box.
         </InfoTip>
       </div>
       <Button variant="ghost" size="sm" onClick={copy}>

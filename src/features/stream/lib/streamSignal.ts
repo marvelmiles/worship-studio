@@ -1,9 +1,12 @@
 import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate";
+import { compactSdp } from "./sdp";
+import { SDP_DICTIONARY } from "./sdpDictionary";
 
 export type SignalKind = "offer" | "answer";
 
-const PREFIX = "WS2";
+const PREFIX = "WS3";
 const KIND_CODE: Record<SignalKind, string> = { offer: "O", answer: "A" };
+const SDP_FIRST_LINE = "v=0";
 
 // Base45 keeps the payload inside QR alphanumeric mode, which is far less dense than byte mode.
 const B45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
@@ -50,16 +53,10 @@ const fromBase45 = (text: string): Uint8Array | null => {
   return Uint8Array.from(out);
 };
 
-const shrinkSdp = (sdp: string): string => {
-  return sdp
-    .split(/\r\n|\n/)
-    .filter((line) => line.trim() !== "")
-    .join("\n");
-};
-
 export const encodeSignal = (kind: SignalKind, sdp: string): string => {
-  const packed = deflateSync(strToU8(KIND_CODE[kind] + shrinkSdp(sdp)), {
+  const packed = deflateSync(strToU8(KIND_CODE[kind] + compactSdp(sdp)), {
     level: 9,
+    dictionary: SDP_DICTIONARY,
   });
   return `${PREFIX}${toBase45(packed)}`;
 };
@@ -72,11 +69,11 @@ export const decodeSignal = (
   const bytes = fromBase45(trimmed.slice(PREFIX.length));
   if (!bytes) return null;
   try {
-    const raw = strFromU8(inflateSync(bytes));
+    const raw = strFromU8(inflateSync(bytes, { dictionary: SDP_DICTIONARY }));
     const kind = raw[0] === "O" ? "offer" : raw[0] === "A" ? "answer" : null;
-    if (!kind) return null;
-    const sdp = raw.slice(1).replace(/\n/g, "\r\n") + "\r\n";
-    return { kind, sdp };
+    const body = raw.slice(1);
+    if (!kind || !body.startsWith(SDP_FIRST_LINE)) return null;
+    return { kind, sdp: body.replace(/\n/g, "\r\n") + "\r\n" };
   } catch {
     return null;
   }

@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { createQrChunkCollector } from "./qrChunks";
 import { createQrFrameDecoder } from "./qrFrameDecoder";
 
 export type ScanFacing = "environment" | "user";
-
-export interface ScanProgress {
-  received: number;
-  total: number;
-}
 
 type AdvancedCameraConstraints = MediaTrackConstraintSet & {
   focusMode?: string;
@@ -40,7 +34,6 @@ export const useQrScanner = ({
 }: UseQrScannerOptions) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
-  const [progress, setProgress] = useState<ScanProgress | null>(null);
   const onResultRef = useRef(onResult);
   const onErrorRef = useRef(onError);
 
@@ -53,7 +46,6 @@ export const useQrScanner = ({
     let isStopped = false;
     let stream: MediaStream | null = null;
     const decoder = createQrFrameDecoder();
-    const collector = createQrChunkCollector();
 
     const releaseCamera = () => {
       stream?.getTracks().forEach((track) => track.stop());
@@ -66,14 +58,9 @@ export const useQrScanner = ({
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           for (const text of await decoder.decode(video)) {
             if (isStopped) return;
-            const result = collector.read(text);
-            if (result.status === "partial") {
-              setProgress({ received: result.received, total: result.total });
-              continue;
-            }
             isStopped = true;
             releaseCamera();
-            onResultRef.current(result.value);
+            onResultRef.current(text);
             return;
           }
         }
@@ -114,5 +101,5 @@ export const useQrScanner = ({
     };
   }, [facing]);
 
-  return { videoRef, isCameraReady, progress };
+  return { videoRef, isCameraReady };
 };

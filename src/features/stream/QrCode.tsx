@@ -2,19 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { ScanLine } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { drawQr, type QrVersion } from "./lib/qr";
+import { drawQr } from "./lib/qr";
 
 interface QrCodeProps {
   value: string;
   size?: number;
-  version?: QrVersion;
   caption?: string;
 }
 
 export const QrCode = ({
   value,
   size = 300,
-  version,
   caption = "Scan to pair",
 }: QrCodeProps) => {
   const { colors, fonts, qr, shadows } = useUITheme();
@@ -26,10 +24,10 @@ export const QrCode = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ratio = window.devicePixelRatio || 1;
-    const drawnPx = drawQr(canvas, value, size, qr, ratio, version);
+    const drawnPx = drawQr(canvas, value, size, qr, ratio);
     setIsTooLarge(drawnPx === 0);
     if (drawnPx > 0) setRenderedCssPx(drawnPx / ratio);
-  }, [value, size, qr, version]);
+  }, [value, size, qr]);
 
   if (isTooLarge) {
     return (

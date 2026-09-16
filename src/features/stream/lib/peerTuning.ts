@@ -2,6 +2,7 @@ import {
   MAX_VIDEO_BITRATE,
   MAX_VIDEO_FRAMERATE,
   PLAYOUT_DELAY_SECONDS,
+  PREFERRED_AUDIO_CODECS,
   PREFERRED_VIDEO_CODECS,
   VIDEO_CONTENT_HINT,
   VIDEO_DEGRADATION_PREFERENCE,
@@ -13,25 +14,39 @@ const ICE_GATHERING_TIMEOUT_MS = 3000;
 export const createPeerConnection = (): RTCPeerConnection =>
   new RTCPeerConnection({ iceServers: [] });
 
-// Reorders instead of filtering, so a sender without a preferred codec can still negotiate.
-export const preferHardwareVideoCodec = (
+const PREFERRED_CODECS: Record<"video" | "audio", readonly string[]> = {
+  video: PREFERRED_VIDEO_CODECS,
+  audio: PREFERRED_AUDIO_CODECS,
+};
+
+// One entry per codec, in the browser's own order, so the offer names a profile the browser actually supports.
+const narrowToPreferredCodecs = (
+  codecs: readonly RTCRtpCodec[],
+  preferred: readonly string[],
+): RTCRtpCodec[] =>
+  preferred.flatMap((mimeType) => {
+    const match = codecs.find(
+      (codec) => codec.mimeType.toLowerCase() === mimeType,
+    );
+    return match ? [match] : [];
+  });
+
+// A short codec list keeps the whole description inside one scannable QR; an unknown codec set is left untouched.
+export const preferCompactCodecs = (
   transceiver: RTCRtpTransceiver,
+  kind: "video" | "audio",
 ): void => {
-  const capabilities = RTCRtpReceiver.getCapabilities?.("video");
+  const capabilities = RTCRtpReceiver.getCapabilities?.(kind);
   if (!capabilities || typeof transceiver.setCodecPreferences !== "function") {
     return;
   }
-  type VideoCodec = (typeof capabilities.codecs)[number];
-  const codecRank = (codec: VideoCodec): number => {
-    const index = PREFERRED_VIDEO_CODECS.indexOf(
-      codec.mimeType.toLowerCase() as (typeof PREFERRED_VIDEO_CODECS)[number],
-    );
-    return index === -1 ? PREFERRED_VIDEO_CODECS.length : index;
-  };
+  const codecs = narrowToPreferredCodecs(
+    capabilities.codecs,
+    PREFERRED_CODECS[kind],
+  );
+  if (codecs.length === 0) return;
   try {
-    transceiver.setCodecPreferences(
-      [...capabilities.codecs].sort((a, b) => codecRank(a) - codecRank(b)),
-    );
+    transceiver.setCodecPreferences(codecs);
   } catch {
     return;
   }

@@ -3,7 +3,7 @@ import { watchConnectionStatus, type PeerStatus } from "./peerStatus";
 import {
   createPeerConnection,
   minimisePlayoutDelay,
-  preferHardwareVideoCodec,
+  preferCompactCodecs,
   waitForIceGathering,
 } from "./peerTuning";
 import {
@@ -46,10 +46,14 @@ export const createReceiver = async (
 ): Promise<ReceiverHandle> => {
   const connection = createPeerConnection();
 
-  preferHardwareVideoCodec(
+  preferCompactCodecs(
     connection.addTransceiver("video", { direction: "recvonly" }),
+    "video",
   );
-  connection.addTransceiver("audio", { direction: "recvonly" });
+  preferCompactCodecs(
+    connection.addTransceiver("audio", { direction: "recvonly" }),
+    "audio",
+  );
   minimisePlayoutDelay(connection);
 
   const statusChannel = connection.createDataChannel(STATUS_CHANNEL_LABEL);

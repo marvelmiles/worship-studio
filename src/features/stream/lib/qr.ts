@@ -6,11 +6,11 @@ export interface QrPalette {
   eye: string;
 }
 
-export type QrVersion = Parameters<typeof qrcode>[0];
-
 const FINDER_MODULES = 7;
 const QUIET_ZONE_MODULES = 4;
-const MAX_QR_VERSION = 40;
+const AUTO_VERSION = 0;
+// Medium correction reads through screen glare and camera blur far better than low, at a few more modules.
+const ERROR_CORRECTION = "M";
 
 const fillRoundedSquare = (
   context: CanvasRenderingContext2D,
@@ -62,8 +62,8 @@ const isInFinderPattern = (row: number, col: number, count: number): boolean =>
   (row >= count - FINDER_MODULES && col < FINDER_MODULES);
 
 // The signal encoder only emits Base45 characters, so alphanumeric mode is safe and packs the most data per module.
-const buildQr = (text: string, version: QrVersion) => {
-  const qr = qrcode(version, "L");
+const buildQr = (text: string) => {
+  const qr = qrcode(AUTO_VERSION, ERROR_CORRECTION);
   qr.addData(text, "Alphanumeric");
   try {
     qr.make();
@@ -73,13 +73,6 @@ const buildQr = (text: string, version: QrVersion) => {
   }
 };
 
-export const smallestQrVersion = (text: string): QrVersion | null => {
-  const qr = buildQr(text, 0);
-  if (!qr) return null;
-  const version = (qr.getModuleCount() - 17) / 4;
-  return Math.min(MAX_QR_VERSION, version) as QrVersion;
-};
-
 // Modules are drawn as whole device pixels so the browser never resamples a dense grid.
 export const drawQr = (
   canvas: HTMLCanvasElement,
@@ -87,9 +80,8 @@ export const drawQr = (
   targetCssPx: number,
   palette: QrPalette,
   devicePixelRatio = 1,
-  version: QrVersion = 0,
 ): number => {
-  const qr = buildQr(text, version);
+  const qr = buildQr(text);
   if (!qr) return 0;
 
   const count = qr.getModuleCount();

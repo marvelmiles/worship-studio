@@ -14,17 +14,13 @@ export const QrScanner = ({
   onError,
 }: QrScannerProps) => {
   const { colors, fonts, stage } = useUITheme();
-  const { videoRef, isCameraReady, progress } = useQrScanner({
+  const { videoRef, isCameraReady } = useQrScanner({
     facing,
     onResult,
     onError,
   });
   const frameColor = isCameraReady ? colors.accentSoft : fade(stage.text, 0.5);
-  const statusText = !isCameraReady
-    ? "Starting camera"
-    : progress
-      ? `Read ${progress.received} of ${progress.total} parts, hold steady`
-      : "Looking for a code";
+  const statusText = isCameraReady ? "Looking for a code" : "Starting camera";
 
   return (
     <div
@@ -89,7 +85,6 @@ export const QrScanner = ({
           pointerEvents: "none",
         }}
       >
-        {progress && <ScanProgressDots {...progress} />}
         <span
           style={{
             padding: "4px 10px",
@@ -104,32 +99,6 @@ export const QrScanner = ({
           {statusText}
         </span>
       </div>
-    </div>
-  );
-};
-
-const ScanProgressDots = ({
-  received,
-  total,
-}: {
-  received: number;
-  total: number;
-}) => {
-  const { colors, stage } = useUITheme();
-  return (
-    <div style={{ display: "flex", gap: 4 }}>
-      {Array.from({ length: total }, (_, index) => (
-        <span
-          key={index}
-          style={{
-            width: 14,
-            height: 4,
-            borderRadius: 99,
-            background:
-              index < received ? colors.accentSoft : fade(stage.text, 0.3),
-          }}
-        />
-      ))}
     </div>
   );
 };
