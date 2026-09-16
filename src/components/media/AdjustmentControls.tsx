@@ -21,10 +21,10 @@ const SLIDERS: {
   { key: "blur", label: "Blur", min: 0, max: 20, suffix: "px" },
 ];
 
-export function AdjustmentControls({
+export const AdjustmentControls = ({
   value,
   onChange,
-}: AdjustmentControlsProps) {
+}: AdjustmentControlsProps) => {
   return (
     <div
       style={{
@@ -46,4 +46,4 @@ export function AdjustmentControls({
       ))}
     </div>
   );
-}
+};

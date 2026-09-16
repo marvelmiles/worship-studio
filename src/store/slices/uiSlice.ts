@@ -7,16 +7,11 @@ export type OverlayName =
   "assets" | "settings" | "themes" | "shortcuts" | "about";
 
 export interface OverlayOptions {
-  /**
-   * Keeps the overlay on the section its context names, hiding the way to the
-   * others. An editor asking for backgrounds gets a library of backgrounds only.
-   */
   lockSection?: boolean;
 }
 
 export interface UiSlice {
   overlay: OverlayName | null;
-  /** Optional target inside the overlay, e.g. a theme id or an assets tab. */
   overlayContext: string | null;
   overlaySectionLocked: boolean;
   toasts: Toast[];

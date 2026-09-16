@@ -9,46 +9,23 @@ import {
 import { TextInput } from "./Field";
 
 interface TimecodeInputProps {
-  /** Position in seconds, or null for a field that is allowed to be empty. */
   seconds: number | null;
   onChange: (seconds: number | null) => void;
-  /** Writes the field as hh:mm:ss instead of mm:ss. */
   withHours: boolean;
   placeholder?: string;
-  /** Lets the field be cleared, which reports null rather than zero. */
   clearable?: boolean;
-  /** Returns why this position can't be used here, or null when it can. */
   validate?: (seconds: number | null) => string | null;
-  /**
-   * Reports what the field is refusing, so the editor around it can hold its
-   * save back rather than writing the last usable value behind the operator's
-   * back. Called with null the moment the field is usable again.
-   */
   onErrorChange?: (message: string | null) => void;
   "aria-label"?: string;
 }
 
-/** What is being typed, the value in force while it was typed, and its fault. */
 interface TypingState {
   text: string;
   seconds: number | null;
   error: string | null;
 }
 
-/**
- * A clip position typed as a timecode rather than a raw number of seconds.
- *
- * What is typed stays as typed while the field is being written into, so `01:3`
- * can be finished into `01:30` and the field can be emptied and started again
- * without rewriting itself under the cursor. A value arriving from anywhere
- * else, an undo or the playhead button, takes the field back: the typed text is
- * only kept while the value it produced is still the one in force.
- *
- * A position that is mistyped or out of bounds is refused rather than corrected:
- * the field says what is wrong and the setting keeps its last usable value, so
- * a trim is never quietly moved somewhere the operator did not ask for.
- */
-export function TimecodeInput({
+export const TimecodeInput = ({
   seconds,
   onChange,
   withHours,
@@ -57,7 +34,7 @@ export function TimecodeInput({
   validate,
   onErrorChange,
   "aria-label": ariaLabel,
-}: TimecodeInputProps) {
+}: TimecodeInputProps) => {
   const { colors, fonts } = useUITheme();
   const [typing, setTyping] = useState<TypingState | null>(null);
   const settled = seconds === null ? "" : formatTimecode(seconds, withHours);
@@ -65,8 +42,6 @@ export function TimecodeInput({
   const value = live ? live.text : settled;
   const error = live?.error ?? null;
 
-  // Read through a ref so a caller passing an inline handler never re-runs the
-  // report, and unmounting clears whatever this field was holding back.
   const report = useRef(onErrorChange);
   report.current = onErrorChange;
   useEffect(() => {
@@ -91,7 +66,6 @@ export function TimecodeInput({
 
     const parsed = parseTimecode(text, withHours);
     if (parsed === null) {
-      // Half a timecode is on its way to being one; anything else is a typo.
       if (isPartialTimecode(text, withHours)) {
         setTyping({ text, seconds, error: null });
         return;
@@ -152,4 +126,4 @@ export function TimecodeInput({
       )}
     </>
   );
-}
+};

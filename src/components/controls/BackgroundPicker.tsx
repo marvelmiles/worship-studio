@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Library, Palette, Pencil, Upload } from "lucide-react";
 import type { Background, ImageSettings } from "../../types";
-import { colors } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import {
   DEFAULT_BACKGROUND_IMAGE_SETTINGS,
@@ -18,30 +18,18 @@ import { BgSwatch } from "./BgSwatch";
 interface BackgroundPickerProps {
   backgrounds: Background[];
   value: string;
-  /**
-   * The chosen background, together with the picture settings the new usage
-   * starts from (a copy of the asset library's, so later library edits stay out
-   * of this document).
-   */
   onSelect: (id: string, image?: ImageSettings) => void;
   inheritLabel?: string;
   highlightId?: string;
   onUploaded?: (id: string, image?: ImageSettings) => void;
   onAddColor?: (value: string, name?: string) => void;
-  /** Opens the image library, where pictures, colors and videos are added. */
   onManage?: () => void;
-  /** This usage's picture settings for the active background. */
   imageSettings?: ImageSettings | null;
-  /**
-   * Saves picture edits against this usage. Without it, editing a picture edits
-   * the asset library entry instead.
-   */
   onImageSettingsChange?: (settings: ImageSettings) => void;
-  /** What a picture edit applies to here, e.g. "this slide". */
   usageLabel?: string;
 }
 
-export function BackgroundPicker({
+export const BackgroundPicker = ({
   backgrounds,
   value,
   onSelect,
@@ -53,7 +41,8 @@ export function BackgroundPicker({
   imageSettings,
   onImageSettingsChange,
   usageLabel = "this document",
-}: BackgroundPickerProps) {
+}: BackgroundPickerProps) => {
+  const { colors } = useUITheme();
   const beginUpload = useStore((s) => s.beginUpload);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showColor, setShowColor] = useState(false);
@@ -233,4 +222,4 @@ export function BackgroundPicker({
       )}
     </>
   );
-}
+};

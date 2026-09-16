@@ -11,11 +11,10 @@ interface ModalProps {
   children: ReactNode;
   width?: number;
   footer?: ReactNode;
-  /** An InfoTip about the dialog, placed after its title. */
   info?: ReactNode;
 }
 
-export function Modal({
+export const Modal = ({
   open,
   onClose,
   title,
@@ -23,12 +22,9 @@ export function Modal({
   width = 520,
   footer,
   info,
-}: ModalProps) {
+}: ModalProps) => {
   const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
-  // Portalled: a modal opened from inside another one (editing a background
-  // picture from the asset library, say) would otherwise be trapped by the
-  // blurred panel around it, which is a containing block for fixed children.
   return createPortal(
     <div
       role="dialog"
@@ -103,4 +99,4 @@ export function Modal({
     </div>,
     document.body,
   );
-}
+};

@@ -16,7 +16,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
-import { fade, colors, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import {
   resolveBackgroundView,
   resolveLineStyle,
@@ -51,7 +52,6 @@ interface RowProps {
   fixedShortcut?: { letter: string; label: string };
 }
 
-/** Room kept above a revealed row for the list's sticky "Slides" header. */
 const LIST_HEADER_CLEARANCE = 64;
 
 const kbdKey: React.CSSProperties = {
@@ -77,7 +77,7 @@ const badgeWrap: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-function ShortcutBadge({
+const ShortcutBadge = ({
   label,
   title,
   highlight,
@@ -85,7 +85,8 @@ function ShortcutBadge({
   label: string;
   title: string;
   highlight?: boolean;
-}) {
+}) => {
+  const { colors } = useUITheme();
   return (
     <span title={title} style={badgeWrap}>
       <span
@@ -115,9 +116,9 @@ function ShortcutBadge({
       </span>
     </span>
   );
-}
+};
 
-function SortableRow({
+const SortableRow = ({
   slide,
   index,
   selId,
@@ -128,7 +129,8 @@ function SortableRow({
   onContextMenu,
   shortcutNum,
   fixedShortcut,
-}: RowProps) {
+}: RowProps) => {
+  const { colors, fonts } = useUITheme();
   const {
     attributes,
     listeners,
@@ -150,10 +152,6 @@ function SortableRow({
     [setNodeRef],
   );
 
-  // Keeps the active slide visible when something other than a click selects
-  // it, such as the editor following a presentation stepped on from the
-  // floating presenter. Waiting a frame lets a list that is still laying out
-  // (a slide just inserted, say) settle before it is measured.
   useEffect(() => {
     if (!selected) return;
     const frame = requestAnimationFrame(() => {
@@ -208,7 +206,7 @@ function SortableRow({
       <div
         style={{
           width: 32,
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 12,
           color: colors.dim,
           display: "flex",
@@ -241,7 +239,7 @@ function SortableRow({
         >
           <div
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 11,
               color: selected ? colors.accentSoft : colors.sub,
               overflow: "hidden",
@@ -277,9 +275,9 @@ function SortableRow({
       </div>
     </div>
   );
-}
+};
 
-export function SortableSlideList({
+export const SortableSlideList = ({
   slides,
   selId,
   setSelId,
@@ -289,8 +287,7 @@ export function SortableSlideList({
   onReorder,
   onContextMenu,
   tagGroups,
-}: SortableSlideListProps) {
-  // Small activation distance so a plain click still selects the slide.
+}: SortableSlideListProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
@@ -340,4 +337,4 @@ export function SortableSlideList({
       </SortableContext>
     </DndContext>
   );
-}
+};

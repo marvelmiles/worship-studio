@@ -29,7 +29,7 @@ import {
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 
-export function SavedPassages({ trashView }: { trashView: boolean }) {
+export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
   const navigate = useNavigate();
   const scriptures = useStore((s) => s.scriptures);
   const themes = useStore((s) => s.themes);
@@ -58,7 +58,6 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
       );
     }
     const ordered = sortLibrary(base, sort, (s) => s.title);
-    // A search is answered by what matches it; pins only order the library.
     return term || trashView ? ordered : sortPinnedFirst(ordered);
   }, [saved, query, trashView, sort]);
 
@@ -116,11 +115,10 @@ export function SavedPassages({ trashView }: { trashView: boolean }) {
       )}
     </>
   );
-}
+};
 
 interface PassageCardProps {
   passage: ScripturePassage;
-  /** Every saved passage, so the pin budget can be read off the library. */
   library: ScripturePassage[];
   themes: Theme[];
   bgMap: BgMap;
@@ -132,7 +130,7 @@ interface PassageCardProps {
   onDelete: () => void;
 }
 
-function PassageCard({
+const PassageCard = ({
   passage,
   library,
   themes,
@@ -143,7 +141,7 @@ function PassageCard({
   onTrash,
   onRestore,
   onDelete,
-}: PassageCardProps) {
+}: PassageCardProps) => {
   const first = passage.slides?.[0];
   const theme =
     themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
@@ -216,4 +214,4 @@ function PassageCard({
       </div>
     </div>
   );
-}
+};

@@ -27,11 +27,7 @@ const NAV: [string, string, LucideIcon][] = [
   ["/stream", "Stream", Radio],
 ];
 
-/** The app-shell top bar: brand link, primary navigation and the overlay
- *  actions (about, assets, themes, shortcuts, settings). Owns its own
- *  active-route detection and compact-viewport behaviour so the shell stays
- *  purely a layout container. */
-export function AppHeader() {
+export const AppHeader = () => {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -172,4 +168,4 @@ export function AppHeader() {
       </div>
     </header>
   );
-}
+};

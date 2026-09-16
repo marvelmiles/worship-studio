@@ -370,10 +370,28 @@ input[type="range"].ws-scrubber::-moz-range-progress {
   min-width: 100cqw;
 }
 
-/* Scrolling text is a motion trigger, so it holds still when asked to. */
+.ws-scan-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: wsScanSweep 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes wsScanSweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ws-marquee-track {
     animation: none;
+  }
+  .ws-scan-sweep {
+    animation-duration: 6s;
   }
 }
 

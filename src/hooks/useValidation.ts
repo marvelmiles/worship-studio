@@ -2,32 +2,16 @@ import { useCallback, useState } from "react";
 import type { ValidationIssue } from "../lib/validation";
 
 export interface Validation {
-  /** Everything currently wrong, derived rules first, then live field errors. */
   issues: ValidationIssue[];
   invalid: boolean;
-  /** What to lead with when a save is refused. */
   message: string | null;
   messageFor: (field: string) => string | null;
-  /**
-   * Reports, or clears, an error raised by a control that validates as it is
-   * typed into and so cannot be derived from the draft (a timecode field keeps
-   * the last usable value, and only the field knows what was typed over it).
-   */
   reportIssue: (field: string, message: string | null) => void;
 }
 
-/**
- * Gathers everything wrong with an editor's draft into one answer, so the save
- * control, the message beside each field and the refusal toast all read from
- * the same place instead of each deciding for themselves.
- *
- * `derived` holds the rules that can be checked against the draft on every
- * render; anything a control has to report for itself arrives through
- * `reportIssue`.
- */
-export function useValidation(
+export const useValidation = (
   derived: Record<string, string | null> = {},
-): Validation {
+): Validation => {
   const [reported, setReported] = useState<Record<string, string>>({});
 
   const reportIssue = useCallback((field: string, message: string | null) => {
@@ -58,4 +42,4 @@ export function useValidation(
       issues.find((issue) => issue.field === field)?.message ?? null,
     reportIssue,
   };
-}
+};

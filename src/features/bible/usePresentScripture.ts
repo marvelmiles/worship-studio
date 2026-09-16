@@ -6,13 +6,7 @@ import type {
 } from "../../store/useStore";
 import { useStore } from "../../store/useStore";
 
-/**
- * The two things any scripture surface can do with a selection: throw it on
- * screen now, or open it in the slide editor first. Both accept a null
- * selection (the builder's "nothing presentable") and no-op, so callers don't
- * have to guard.
- */
-export function usePresentScripture() {
+export const usePresentScripture = () => {
   const navigate = useNavigate();
   const presentScriptureSelection = useStore(
     (s) => s.presentScriptureSelection,
@@ -40,4 +34,4 @@ export function usePresentScripture() {
   );
 
   return { present, edit };
-}
+};

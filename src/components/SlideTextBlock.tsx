@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import type { CSSProperties, PointerEvent, ReactNode } from "react";
 import type { Align, ResolvedStyle, VerticalAlign } from "../types";
-import { colors, fade } from "../theme/tokens";
+import { fade } from "../theme/uiTheme";
+import { useUITheme } from "../theme/ThemeProvider";
 import { lineContentOffsets } from "../lib/inlineDocument";
 import { analyzeLines, listMarkerLabel } from "../lib/lists";
 import type { ListKind, ListLine } from "../lib/lists";
 import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
 import { FormattedText } from "./FormattedText";
 
-/** One indent level, in the same container-query unit the text is sized in. */
 const INDENT_STEP_CQW = 3.2;
 
 const FLEX_VERTICAL: Record<VerticalAlign, string> = {
@@ -24,17 +24,12 @@ interface ListItemLineProps {
   editable: boolean;
 }
 
-/**
- * A line carrying a list marker.
- *
- * Left-aligned text gets the hanging indent an outline is read with: the marker
- * sits in its own column and wrapped text lines up under the words above it.
- * Centred and right-aligned text cannot have that column, since pinning the
- * marker to the edge would drag the words off the alignment the slide is set
- * in, so the marker travels inline with the text and the whole item wraps and
- * aligns as one piece.
- */
-function ListItemLine({ item, align, painted, editable }: ListItemLineProps) {
+const ListItemLine = ({
+  item,
+  align,
+  painted,
+  editable,
+}: ListItemLineProps) => {
   const label = listMarkerLabel(item.kind, item.index, item.level);
   const markerStyle: CSSProperties = {
     fontVariantNumeric: "tabular-nums",
@@ -72,34 +67,21 @@ function ListItemLine({ item, align, painted, editable }: ListItemLineProps) {
       <span style={{ flex: 1, textAlign: "start" }}>{painted}</span>
     </span>
   );
-}
+};
 
 interface SlideTextBlockProps {
   lines: string[];
   style: ResolvedStyle;
-  /** Per-line resolved style, same length/order as `lines`. */
   lineStyles?: ResolvedStyle[];
-  /** Index of the line the inspector is styling, outlined so the scope is visible. */
   selectedLine?: number | null;
-  /** Attached when this block is the surface the editor is typing into. */
   editing?: SlideTextEditing;
-  /** True in the editor, even for a block that does not hold the caret. */
   marked?: boolean;
   verticalAlign?: VerticalAlign;
   padding?: string;
   onPointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
 }
 
-/**
- * One block of slide text, painted from the raw lines behind it.
- *
- * Text is sized in container-query units, so the same block scales from a
- * thumbnail to a fullscreen projection with no per-context font maths. With
- * `editing` attached the block becomes the editing surface itself: the caret
- * sits in the real slide, so what the writer types is already what the room
- * will see.
- */
-export function SlideTextBlock({
+export const SlideTextBlock = ({
   lines,
   style,
   lineStyles,
@@ -109,7 +91,8 @@ export function SlideTextBlock({
   verticalAlign = "middle",
   padding,
   onPointerDown,
-}: SlideTextBlockProps) {
+}: SlideTextBlockProps) => {
+  const { colors } = useUITheme();
   const editable = Boolean(editing);
   const content = useMemo(() => (lines.length ? lines : [""]), [lines]);
   const items = useMemo(() => analyzeLines(content), [content]);
@@ -205,4 +188,4 @@ export function SlideTextBlock({
       </div>
     </div>
   );
-}
+};

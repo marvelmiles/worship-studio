@@ -33,13 +33,7 @@ export interface CollectionUsage {
   count: number;
 }
 
-/**
- * Gathers everything the dashboard renders: the greeting, the headline counts,
- * the manuscripts-by-collection breakdown, the most-used artifacts and the
- * cross-module activity feed. Keeping the derivation here leaves the view
- * components purely presentational.
- */
-export function useDashboardData() {
+export const useDashboardData = () => {
   const navigate = useNavigate();
   const manuscripts = useStore((s) => s.manuscripts);
   const scriptures = useStore((s) => s.scriptures);
@@ -259,4 +253,4 @@ export function useDashboardData() {
     activities,
     storage,
   };
-}
+};

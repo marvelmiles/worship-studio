@@ -9,7 +9,8 @@ import type {
   TextStyle,
   Theme,
 } from "../../types";
-import { fade, colors, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import {
   layerTextStyle,
   resolveBackgroundId,
@@ -44,18 +45,13 @@ interface InspectorPanelProps {
   theme: Theme;
   backgrounds: Background[];
   audio: AudioItem[];
-  /** What this deck is called in labels, e.g. "manuscript". */
   documentNoun: string;
-  /** The line styling is scoped to, or null while the whole slide is the scope. */
   selectedLine: number | null;
   onScopeToLine: (scoped: boolean) => void;
   formatting: TextFormattingController;
-  /** The placement being worked on, shared with the slide's drag surface. */
   selectedElement: SlideElementRef | null;
   onSelectElement: (element: SlideElementRef | null) => void;
-  /** The text box holding the caret, or null while the slide's own text is written. */
   activeTextBoxId: string | null;
-  /** What this document's layout allows onto a slide. */
   elements: SlideElementCapabilities;
   onAddTextBox: () => void;
 }
@@ -63,7 +59,7 @@ interface InspectorPanelProps {
 type StyleScope = "slide" | "line";
 type AudioScope = "slide" | "document";
 
-export function InspectorPanel({
+export const InspectorPanel = ({
   editor,
   doc,
   theme,
@@ -78,7 +74,8 @@ export function InspectorPanel({
   activeTextBoxId,
   elements,
   onAddTextBox,
-}: InspectorPanelProps) {
+}: InspectorPanelProps) => {
+  const { colors, fonts } = useUITheme();
   const { selectedSlide: slide, selectedIndex } = editor;
   const openAssetLibrary = useOpenAssetLibrary();
   const [audioScope, setAudioScope] = useState<AudioScope>("document");
@@ -86,8 +83,6 @@ export function InspectorPanel({
     ? audio.find((item) => item.id === theme.defaultAudioId)
     : undefined;
 
-  // Styling follows the caret: it lands on the text box being written into, or
-  // on the slide itself when its own text is the surface.
   const textBox =
     (slide.textBoxes ?? []).find((box) => box.id === activeTextBoxId) ?? null;
   const lines = textBox ? textBox.lines : (slide.lines ?? []);
@@ -106,8 +101,6 @@ export function InspectorPanel({
       ? layerTextStyle(slideStyle, textBox.style, textBox.lineOverrides?.[line])
       : resolveLineStyle(slide, line, doc, theme);
 
-  // Highlighted text is styled character by character, so the panel shows the
-  // style of the first line it covers with the selection's own style on top.
   const styleLine = selectionMode
     ? Math.min(formatting.lines.first, Math.max(0, lineCount - 1))
     : selectedLine;
@@ -131,12 +124,6 @@ export function InspectorPanel({
   const hasLineOverrides =
     lineMode && Boolean(ownLineOverrides?.[selectedLine]);
 
-  /**
-   * Where a text style lands, following what a word processor does: with text
-   * highlighted, character properties go on that run and paragraph properties
-   * (alignment, line height) go on every line it touches. Otherwise it is the
-   * clicked line, or the whole block the caret is in.
-   */
   const setTextOverride = (key: keyof TextStyle, value: unknown) => {
     if (selectionMode) {
       if (isInlineStyleKey(key)) {
@@ -165,20 +152,9 @@ export function InspectorPanel({
   const setOverride = (key: string, value: unknown) =>
     editor.updateSlideOverride(slide.id, key, value);
 
-  /**
-   * Picture settings belong to this slide alone: they are written next to the
-   * background choice, and the legacy standalone darken flag is folded in so
-   * only one of them can be in force.
-   */
   const setBackgroundImage = (settings: ImageSettings) =>
-    editor.patchSlideOverrides(slide.id, {
-      backgroundImage: settings,
-      scrim: undefined,
-    });
+    editor.patchSlideOverrides(slide.id, { backgroundImage: settings });
 
-  // A deck that places nothing still shows the section while a slide carries a
-  // placement from before, so it can be adjusted or taken off rather than
-  // stranded on the slide with no way to reach it.
   const showElements =
     allowsAnySlideElement(elements) ||
     Boolean(slide.media?.length || slide.textBoxes?.length);
@@ -237,7 +213,7 @@ export function InspectorPanel({
                   : "Reset this line to the slide's style"
               }
               style={{
-                fontFamily: UI,
+                fontFamily: fonts.ui,
                 fontSize: 11.5,
                 color: colors.sub,
                 background: "transparent",
@@ -287,7 +263,6 @@ export function InspectorPanel({
           editor.patchSlideOverrides(slide.id, {
             backgroundId: id,
             backgroundImage: image,
-            scrim: undefined,
           })
         }
         onManage={() => openAssetLibrary("backgrounds", { locked: true })}
@@ -415,9 +390,10 @@ export function InspectorPanel({
       </div>
     </div>
   );
-}
+};
 
-function ScopeBanner({ children }: { children: ReactNode }) {
+const ScopeBanner = ({ children }: { children: ReactNode }) => {
+  const { colors, fonts } = useUITheme();
   return (
     <div
       style={{
@@ -430,7 +406,7 @@ function ScopeBanner({ children }: { children: ReactNode }) {
         borderRadius: 9,
         background: fade(colors.accent, 0.1),
         border: `1px solid ${fade(colors.accent, 0.3)}`,
-        fontFamily: UI,
+        fontFamily: fonts.ui,
         fontSize: 12,
         lineHeight: 1.5,
         color: colors.accentSoft,
@@ -439,4 +415,4 @@ function ScopeBanner({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
-}
+};

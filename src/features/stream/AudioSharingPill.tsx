@@ -1,14 +1,7 @@
 import { MicOff, Volume2, VolumeX } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 
-/**
- * A small pill on a received feed that shows, at a glance, the state of the
- * sender's audio: not shared, shared, or shared-but-muted-here. Shared by the
- * projection surface and the PiP so the indicator reads the same in both. The
- * mute/unmute control lives beside it and is only offered when audio is actually
- * available (see ProjectionSurface).
- */
-export function AudioSharingPill({
+export const AudioSharingPill = ({
   available,
   muted,
   size = "md",
@@ -16,7 +9,7 @@ export function AudioSharingPill({
   available: boolean;
   muted: boolean;
   size?: "sm" | "md";
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const small = size === "sm";
 
@@ -63,4 +56,4 @@ export function AudioSharingPill({
       <Icon size={small ? 11 : 12} /> {label}
     </span>
   );
-}
+};

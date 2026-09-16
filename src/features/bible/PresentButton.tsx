@@ -4,13 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { usePresentScripture } from "./usePresentScripture";
 
-/**
- * "Present" for any scripture surface: the reader's selection bar, a reference
- * jump, a search result. Takes the selection lazily so callers that would have
- * to load or filter verses only pay for it on click, and stops the click from
- * reaching a row that would otherwise navigate.
- */
-export function PresentButton({
+export const PresentButton = ({
   selection,
   label = "Present",
   size = "sm",
@@ -18,21 +12,18 @@ export function PresentButton({
   title,
   disabled,
 }: {
-  /** The passage to present, or a getter for it. Null/empty means nothing to do. */
   selection: ScriptureSelection | null | (() => ScriptureSelection | null);
   label?: string;
   size?: "sm" | "md" | "lg";
   variant?: "primary" | "ghost" | "subtle";
   title?: string;
   disabled?: boolean;
-}) {
+}) => {
   const { present } = usePresentScripture();
 
   return (
     <span
       style={{ display: "inline-flex" }}
-      // Search results and the jump card are themselves clickable rows that
-      // open the reader; presenting must not also navigate.
       onClick={(e) => e.stopPropagation()}
     >
       <PresentMenu
@@ -53,4 +44,4 @@ export function PresentButton({
       </PresentMenu>
     </span>
   );
-}
+};

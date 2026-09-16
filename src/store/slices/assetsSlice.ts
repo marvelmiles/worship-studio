@@ -19,21 +19,11 @@ export interface AssetsSlice {
 
   uploadBackground: (file: File, name?: string) => Promise<string>;
   addCustomBackground: (value: string, name?: string) => string;
-  /** Library-level edit; documents already using the background keep their own copy. */
   updateBackground: (id: string, changes: Partial<Background>) => void;
   removeBackground: (id: string) => Promise<void>;
-  /**
-   * Makes a videos module clip one of the backgrounds, sharing its file. A clip
-   * already attached returns the background it already has.
-   */
   attachVideoBackground: (mediaId: string) => string;
   uploadAudio: (file: File, name?: string) => Promise<string>;
-  /**
-   * Adds a videos module clip's soundtrack to the audio library, sharing its
-   * file. A clip already added returns the sound it already has.
-   */
   addVideoAudio: (mediaId: string) => string;
-  /** False when storage is full, or the sound is gone or bundled, and nothing was written. */
   updateAudio: (id: string, changes: Partial<AudioItem>) => boolean;
   removeAudio: (id: string) => Promise<void>;
 }

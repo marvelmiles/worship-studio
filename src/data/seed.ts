@@ -12,7 +12,7 @@ interface SeedInput {
   body: string;
 }
 
-function buildManuscript(input: SeedInput): Manuscript {
+const buildManuscript = (input: SeedInput): Manuscript => {
   return {
     id: uid(),
     title: input.title,
@@ -30,7 +30,7 @@ function buildManuscript(input: SeedInput): Manuscript {
     style: {},
     slides: parseManuscriptSlides(input.body, { maxLines: 6 }),
   };
-}
+};
 
 const SEED_INPUTS: SeedInput[] = [
   {
@@ -169,6 +169,6 @@ Praise Father, Son, and Holy Ghost`,
   },
 ];
 
-export function seedManuscripts(): Manuscript[] {
+export const seedManuscripts = (): Manuscript[] => {
   return SEED_INPUTS.map(buildManuscript);
-}
+};

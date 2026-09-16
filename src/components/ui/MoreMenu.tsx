@@ -13,10 +13,8 @@ export interface MoreMenuItem {
   onClick?: () => void;
   danger?: boolean;
   disabled?: boolean;
-  /** Drawn as already in force, the way a set pin reads. */
   active?: boolean;
   title?: string;
-  /** A rule between groups; every other field is ignored. */
   divider?: boolean;
 }
 
@@ -25,25 +23,18 @@ interface MoreMenuProps {
   title?: string;
   side?: PopoverSide;
   align?: PopoverAlign;
-  /** Matches the trigger to the buttons beside it; "sm" on a library card. */
   size?: "sm" | "md";
-  /** Gives the trigger the raised surface the controls beside it carry. */
   filled?: boolean;
 }
 
-/**
- * The overflow menu on a library card. Cards lead with the two things an
- * operator reaches for, Present and Edit, and everything else lives behind one
- * ellipsis rather than a row of icons competing for the same glance.
- */
-export function MoreMenu({
+export const MoreMenu = ({
   items,
   title = "More actions",
   side = "bottom",
   align = "end",
   size = "md",
   filled,
-}: MoreMenuProps) {
+}: MoreMenuProps) => {
   const { colors } = useUITheme();
   const [open, setOpen] = useState(false);
 
@@ -97,15 +88,15 @@ export function MoreMenu({
       </div>
     </Popover>
   );
-}
+};
 
-function MoreMenuButton({
+const MoreMenuButton = ({
   item,
   onDone,
 }: {
   item: MoreMenuItem;
   onDone: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const Icon = item.icon;
   const rest = item.active ? fade(colors.accent, 0.12) : "transparent";
@@ -156,4 +147,4 @@ function MoreMenuButton({
       {item.label}
     </button>
   );
-}
+};

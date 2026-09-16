@@ -21,42 +21,24 @@ import type { ListKind } from "../lib/lists";
 import { selectedLines } from "../lib/textRange";
 import type { LineSelection, TextRange } from "../lib/textRange";
 
-/**
- * The editing surface a command runs against. A textarea is one; the slide
- * canvas is another, mapping its rendered runs back onto raw offsets. Anything
- * that can report its text and its caret can be formatted.
- */
 export interface FormattingHost {
   getValue: () => string;
   getSelection: () => TextRange;
   setSelection: (range: TextRange, focus: boolean) => void;
 }
 
-/** A command's result, or null when it does not apply. */
 export type TextCommand = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
 ) => EditResult | null;
 
-/** What a command tells its owner about the edit it just made. */
 export interface TextChangeMeta {
-  /** Caret before the edit, which is where an undo should put it back. */
   caret: TextRange;
-  /** True for a run of ordinary typing, which undoes as one step. */
   typing: boolean;
-  /**
-   * Set by commands that fire repeatedly for one gesture, a slider drag above
-   * all. Consecutive edits sharing a key belong in a single undo step.
-   */
   coalesceKey?: string;
 }
 
-/**
- * An undo stack owned outside this hook, used when the text is one part of a
- * larger document whose history has to cover the rest of it too. Both steps
- * return the caret to restore, or null when the step was not a text edit.
- */
 export interface EditHistory {
   canUndo: boolean;
   canRedo: boolean;
@@ -65,26 +47,19 @@ export interface EditHistory {
 }
 
 export interface TextFormattingController {
-  /** Attach the surface the toolbar should format, as a ref or a custom host. */
   bind: (target: HTMLTextAreaElement | FormattingHost | null) => void;
-  /** False until a surface is attached, used to disable the toolbar. */
   ready: boolean;
-  /** True while text is highlighted, which is what puts panels in selection mode. */
   hasSelection: boolean;
-  /** The lines the selection touches, for paragraph-level styling. */
   lines: LineSelection;
   isActive: (name: InlineFormatName) => boolean;
   toggle: (name: InlineFormatName) => void;
   clear: () => void;
-  /** Character-level style shared by everything highlighted. */
   style: InlineTextStyle;
-  /** Applies one character-level property to the highlighted text. */
   applyStyle: (key: InlineStyleKey, value: unknown) => void;
   list: ListState;
   toggleList: (kind: ListKind) => void;
   indent: () => void;
   outdent: () => void;
-  /** Runs any text command against the bound surface, carrying the caret over. */
   runCommand: (
     command: TextCommand,
     focus?: boolean,
@@ -94,16 +69,13 @@ export interface TextFormattingController {
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
-  /** Wire to the surface's selection events so button states follow the caret. */
   syncSelection: () => void;
-  /** Wire to the surface's onKeyDown for Ctrl+B, Tab, Enter and friends. */
   handleKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
 }
 
 interface Options {
   value: string;
   onChange: (next: string, meta: TextChangeMeta) => void;
-  /** Hands undo and redo to the document's own history instead of keeping one here. */
   history?: EditHistory;
 }
 
@@ -112,9 +84,7 @@ interface Snapshot {
   selection: TextRange;
 }
 
-/** Steps kept per surface, plenty for an editing session and bounded in memory. */
 const HISTORY_LIMIT = 200;
-/** Runs of typing this close together undo as one step, the way Word groups them. */
 const COALESCE_MS = 600;
 
 const textAreaHost = (element: HTMLTextAreaElement): FormattingHost => ({
@@ -135,31 +105,19 @@ const isTextArea = (
   typeof HTMLTextAreaElement !== "undefined" &&
   target instanceof HTMLTextAreaElement;
 
-/**
- * Drives word-processor editing for a text surface: emphasis, character
- * styling, lists and indentation.
- *
- * The surface stays a controlled component. A command rewrites its value
- * through `onChange` and the caret is put back where the command left it once
- * React has re-rendered, so editing feels like Word rather than like a text
- * replacement. Commands run from a side panel restore the selection without
- * stealing focus, so a slider can keep being dragged.
- */
-export function useTextFormatting({
+export const useTextFormatting = ({
   value,
   onChange,
   history,
-}: Options): TextFormattingController {
+}: Options): TextFormattingController => {
   const hostRef = useRef<FormattingHost | null>(null);
   const pendingRef = useRef<(TextRange & { focus: boolean }) | null>(null);
   const pastRef = useRef<Snapshot[]>([]);
   const futureRef = useRef<Snapshot[]>([]);
   const typingRef = useRef({ at: 0, active: false });
-  /** What the last command produced, so an edit from elsewhere is recognisable. */
   const writtenRef = useRef(value);
   const [ready, setReady] = useState(false);
   const [selection, setSelection] = useState<TextRange>({ start: 0, end: 0 });
-  /** Depth of the stacks kept here, so the toolbar re-renders when they move. */
   const [ownDepth, setOwnDepth] = useState({ past: 0, future: 0 });
 
   const syncOwnDepth = useCallback(
@@ -205,9 +163,6 @@ export function useTextFormatting({
     setSelection({ start: pending.start, end: pending.end });
   }, [value]);
 
-  // Text that arrived from anywhere but a command, a switch to another slide
-  // above all, starts a new history: there is nothing here left to undo. A
-  // document that owns its own history keeps it across those switches instead.
   useEffect(() => {
     if (history || value === writtenRef.current) return;
     writtenRef.current = value;
@@ -230,8 +185,6 @@ export function useTextFormatting({
     (command: TextCommand, focus = true, coalesceKey?: string) => {
       const host = hostRef.current;
       if (!host) return false;
-      // The surface is the authority on the caret: it survives a toolbar click
-      // and is always in step with the text the user is looking at.
       const current = host.getValue();
       const { start, end } = host.getSelection();
       const result = command(current, start, end);
@@ -281,7 +234,6 @@ export function useTextFormatting({
     [write, syncOwnDepth],
   );
 
-  /** Restores the caret the document's history handed back, once React catches up. */
   const restore = useCallback((caret: TextRange | null) => {
     if (caret) pendingRef.current = { ...caret, focus: true };
   }, []);
@@ -369,8 +321,6 @@ export function useTextFormatting({
         run((text, start, end) => tabInList(text, start, end, event.shiftKey));
         return;
       }
-      // A modifier held with Enter belongs to the editor's own commands (see
-      // lib/shortcuts.ts), not to the list being written.
       if (
         event.key === "Enter" &&
         !event.shiftKey &&
@@ -386,16 +336,12 @@ export function useTextFormatting({
       const key = event.key.toLowerCase();
       if (key === "z" || key === "y") {
         const redoing = key === "y" || event.shiftKey;
-        // With nothing of our own to step back through, a surface that keeps
-        // its own history (a textarea) is left to use it.
         if (!(redoing ? canRedo : canUndo)) return;
         event.preventDefault();
         if (redoing) redo();
         else undo();
         return;
       }
-      // Emphasis is bound unshifted, the way a word processor binds it, which
-      // leaves the shifted combinations to the editor's own commands.
       if (event.shiftKey) return;
       const name = inlineFormatForShortcut(event.key);
       if (!name) return;
@@ -427,4 +373,4 @@ export function useTextFormatting({
     syncSelection,
     handleKeyDown,
   };
-}
+};

@@ -47,7 +47,7 @@ const GRID = {
   gap: 12,
 } as const;
 
-export function ManuscriptSettingsModal({
+export const ManuscriptSettingsModal = ({
   open,
   onClose,
   manuscript,
@@ -57,10 +57,8 @@ export function ManuscriptSettingsModal({
   audio,
   onPatchManuscript,
   onStyleChange,
-}: ManuscriptSettingsModalProps) {
+}: ManuscriptSettingsModalProps) => {
   const openAssetLibrary = useOpenAssetLibrary();
-  // The same rule the editor header holds its save back on, so a title emptied
-  // here is answered where it was emptied rather than only at the top of the page.
   const titleError = validateName(manuscript.title, "manuscript title");
   const manuscriptStyle = resolveStyle(undefined, manuscript, theme);
   const duration = resolveSlideDuration(manuscript, theme);
@@ -225,4 +223,4 @@ export function ManuscriptSettingsModal({
       </Field>
     </Modal>
   );
-}
+};

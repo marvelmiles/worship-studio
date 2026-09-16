@@ -14,32 +14,18 @@ export type EasingKind = "ease" | "ease-in-out" | "ease-out" | "linear";
 
 export type PresentationView = "normal" | "cover" | "fill";
 
-/**
- * Which corner a floating window hugs on the surface it is laid over. Used by
- * the presentation's secondary module and by the stream's extra cameras, both of
- * which drop a small window onto a picture someone else owns.
- */
 export type PipCorner =
   "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-/**
- * Where such a window sits and how big it is. The size is a percentage of the
- * surface rather than pixels, because that surface is painted at wildly
- * different sizes at once: the operator's stage, the floating presenter, and the
- * projector popup. One placement has to be right in all of them.
- */
 export interface PipPlacement {
   corner: PipCorner;
-  /** Width of the window as a percentage of the surface it sits on. */
   size: number;
 }
 
 export type BgType = "gradient" | "solid" | "image" | "video";
 
-/** Every kind of content that can be projected live. */
 export type ContentKind = "manuscript" | "scripture" | "image" | "video";
 
-/** Text appearance shared by themes, deck documents and slides. */
 export interface TextStyle {
   fontFamily?: string;
   fontSize?: number;
@@ -56,21 +42,9 @@ export interface SlideOverrides extends TextStyle {
   backgroundId?: string;
   audioId?: string;
   animation?: AnimationKind;
-  /** Legacy darken toggle, superseded by `backgroundImage.scrim` and still read for slides saved before it. */
-  scrim?: boolean;
-  /**
-   * This slide's own copy of the background picture's settings, taken when the
-   * picture was chosen. Editing it never reaches the asset library or any other
-   * slide.
-   */
   backgroundImage?: ImageSettings;
 }
 
-/**
- * Where a placed element sits on the slide, in percentages of the slide box so
- * the placement survives every size the slide is painted at (thumbnail,
- * editor, projector).
- */
 export interface SlideFrame {
   x: number;
   y: number;
@@ -78,28 +52,15 @@ export interface SlideFrame {
   height: number;
 }
 
-/**
- * Which library owns the file behind a placement: the media library, or the
- * asset library's picture backgrounds.
- */
 export type SlideMediaSource = "media" | "background";
 
-/**
- * A picture or clip placed on a slide, PowerPoint style: it owns its position,
- * its stacking order (the array index) and its own copy of the media settings,
- * so moving or recolouring it never reaches the library it came from.
- */
 export interface SlideMedia {
   id: string;
   kind: MediaKind;
-  /** The library item that owns the file, in the library named by `source`. */
   mediaId: string;
-  /** Missing on placements saved before asset-library pictures could be placed. */
   source?: SlideMediaSource;
   frame: SlideFrame;
-  /** Corner rounding, in percent of the slide width. */
   radius?: number;
-  /** 0–100. */
   opacity?: number;
   image?: ImageSettings;
   video?: VideoSettings;
@@ -107,23 +68,15 @@ export interface SlideMedia {
 
 export type VerticalAlign = "top" | "middle" | "bottom";
 
-/**
- * A block of text placed on a slide, sized and positioned like a picture. It
- * carries its own lines and its own appearance, layered over whatever the
- * slide, the document and the theme already set.
- */
 export interface SlideTextBox {
   id: string;
   frame: SlideFrame;
   lines: string[];
-  /** Where the text sits inside its box. Defaults to "middle". */
   verticalAlign?: VerticalAlign;
   style?: TextStyle;
-  /** Per-line style overrides, keyed by line index. Layered on top of `style`. */
   lineOverrides?: Record<number, TextStyle>;
 }
 
-/** Everything a slide can carry as a movable, resizable placement. */
 export type SlideElementKind = MediaKind | "text";
 
 export interface Slide {
@@ -132,27 +85,14 @@ export interface Slide {
   label: string;
   lines: string[];
   overrides: SlideOverrides;
-  /** Per-line style overrides, keyed by line index. Layered on top of `overrides`. */
   lineOverrides?: Record<number, TextStyle>;
-  /** Pictures and clips placed on the slide, painted in array order. */
   media?: SlideMedia[];
-  /** Text blocks placed on the slide, painted over the pictures and clips. */
   textBoxes?: SlideTextBox[];
   notes: string;
 }
 
 export type ShortcutMode = "all-slides" | "first-slide-per-tag";
 
-/**
- * Common shape of every document that presents a deck of text slides
- * (manuscripts, scripture passages, and any future slide-based module).
- */
-/**
- * A mark placed on a library item without editing it: pinning it to the top of
- * its listing, or registering it to survive a reset. Marks are tracked apart
- * from `updatedAt` so "recently modified" keeps meaning "recently edited",
- * while the activity feed can still report them. See lib/libraryMarks.ts.
- */
 export type LibraryMarkAction = "pinned" | "unpinned" | "kept" | "unkept";
 
 export interface LibraryMark {
@@ -166,7 +106,6 @@ export interface SlideDeckDoc {
   slides: Slide[];
   defaultThemeId: string;
   defaultBackgroundId?: string;
-  /** This document's own copy of `defaultBackgroundId`'s picture settings. */
   defaultBackgroundImage?: ImageSettings;
   defaultAudioId?: string | null;
   animation?: AnimationKind;
@@ -178,46 +117,19 @@ export interface SlideDeckDoc {
   updatedAt: string;
   deleted?: boolean;
   builtIn?: boolean;
-  /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
   keepOnReset?: boolean;
-  /** Held at the top of its library listing. See lib/pinning.ts. */
   pinned?: boolean;
-  /** The most recent pin or keep-on-reset toggle. Never an edit. */
   mark?: LibraryMark;
 }
 
-/** Deck-level appearance overrides (no slide-only keys). */
-export type ManuscriptStyle = TextStyle;
-
-/**
- * How the parser lays a manuscript out. "song" keeps one lyric per line the way
- * a hymn is projected; "sermon" builds paragraph blocks the way a message reads
- * on the page. Unset means "whatever the collection implies", see
- * lib/manuscript/format.ts.
- */
 export type ManuscriptFormat = "song" | "sermon";
 
-/**
- * Any written document the studio turns into slides: song and hymn lyrics,
- * Sunday sermons, announcements, and general presentations. `body` holds the
- * raw text the parser reads; `collection` groups manuscripts in the library.
- */
 export interface Manuscript extends SlideDeckDoc {
   author?: string;
   collection?: string;
   body: string;
   maxLines?: number;
   format?: ManuscriptFormat;
-}
-
-/**
- * Pre-rename manuscript records (module was "songs"). Read on load and by the
- * backup importer so existing libraries survive the rename.
- */
-export interface LegacyManuscriptFields {
-  artist?: string;
-  category?: string;
-  lyrics?: string;
 }
 
 export type BibleVersionId = "KJV" | "ASV";
@@ -242,7 +154,6 @@ export interface ScripturePassage extends SlideDeckDoc {
   versesPerSlide: number;
   showVerseNumbers: boolean;
   showReference: boolean;
-  /** Ephemeral "present now" passage, hidden from the saved library. */
   quick?: boolean;
 }
 
@@ -277,10 +188,6 @@ export interface VideoSettings extends MediaAdjustments {
   fit: MediaFit;
 }
 
-/**
- * Metadata only, the binary payload lives in the "files" store under this
- * item's id (thumbnail under `${id}:thumb`) and is fetched on demand.
- */
 export interface MediaItem {
   id: string;
   kind: MediaKind;
@@ -296,9 +203,7 @@ export interface MediaItem {
   createdAt: string;
   updatedAt: string;
   builtIn?: boolean;
-  /** Held at the top of its library listing. See lib/pinning.ts. */
   pinned?: boolean;
-  /** The most recent pin toggle. Never an edit. */
   mark?: LibraryMark;
 }
 
@@ -306,11 +211,8 @@ export interface Theme {
   id: string;
   name: string;
   builtIn?: boolean;
-  /** Registered to survive "Reset App to Defaults". See lib/keepOnReset.ts. */
   keepOnReset?: boolean;
-  /** The most recent keep-on-reset toggle. Never an edit. */
   mark?: LibraryMark;
-  /** Missing on built-in/legacy themes that were never edited. */
   createdAt?: string;
   updatedAt?: string;
   fontFamily: string;
@@ -336,53 +238,32 @@ export interface Background {
   type: BgType;
   css?: string;
   color?: string;
-  /** Inline data for bundled/legacy image backgrounds only; uploads use `blobId`. */
   dataUrl?: string;
-  /** Points into the "files" store; resolved to an object URL on demand. */
   blobId?: string;
-  /**
-   * Library-level picture settings for image backgrounds. They seed every new
-   * usage of the background; documents already using it keep their own copy.
-   */
   image?: ImageSettings;
-  /**
-   * The videos module clip a video background plays. The clip's own trim and
-   * grading apply, so tuning it in the video editor retunes the background.
-   */
   mediaId?: string;
   size?: number;
   light?: boolean;
   builtIn?: boolean;
-  /** Missing on bundled backgrounds and legacy uploads. */
   createdAt?: string;
 }
 
-/** How a sound is played wherever it backs a presentation. */
 export interface AudioSettings {
   trimStart: number;
   trimEnd: number | null;
-  /** 0 to 100, scaled by the app-wide background audio volume. */
   volume: number;
 }
 
 export interface AudioItem {
   id: string;
   name: string;
-  /** Inline data for the bundled default pads only; uploads use `blobId`. */
   dataUrl?: string;
   blobId?: string;
   size?: number;
-  /** Length in seconds, learned the first time the sound is opened for editing. */
   duration?: number;
-  /** Missing until the sound is first edited. */
   settings?: AudioSettings;
-  /**
-   * The videos module clip whose soundtrack this plays. The file stays the
-   * clip's: `blobId` points at it, and removing the sound leaves it alone.
-   */
   mediaId?: string;
   builtIn?: boolean;
-  /** Missing on the bundled default pads. */
   createdAt?: string;
   updatedAt?: string;
 }
@@ -404,7 +285,6 @@ export interface Prefs {
   onboarded: boolean;
 }
 
-/** Fully-resolved text style with every field present. */
 export interface ResolvedStyle {
   fontFamily: string;
   fontWeight: number;

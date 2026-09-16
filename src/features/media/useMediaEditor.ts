@@ -11,11 +11,6 @@ import {
 } from "../../lib/media";
 import { imageDeckIndex } from "../presentation/useDeck";
 
-/**
- * The editable side of a library item. Both settings blocks are carried so the
- * draft has one shape whichever kind is open; only the one belonging to the
- * item is ever written back.
- */
 export interface MediaDraft {
   name: string;
   image: ImageSettings;
@@ -28,10 +23,6 @@ const draftOf = (item: MediaItem): MediaDraft => ({
   video: videoSettingsOf(item),
 });
 
-/**
- * Settings dragged or typed rather than clicked. A whole drag is one undo step,
- * the way a run of typing is; a rotate or a flip is a step of its own.
- */
 const CONTINUOUS_KEYS = new Set([
   "brightness",
   "contrast",
@@ -53,7 +44,6 @@ const groupingFor = (changes: object, scope: string) => {
 
 export interface MediaEditor {
   draft: MediaDraft;
-  /** The draft as the library item it would become, for previewing and projecting. */
   preview: MediaItem;
   dirty: boolean;
   canUndo: boolean;
@@ -63,36 +53,16 @@ export interface MediaEditor {
   setName: (name: string) => void;
   patchImage: (changes: Partial<ImageSettings>) => void;
   patchVideo: (changes: Partial<VideoSettings>) => void;
-  /** Back to the settings a fresh upload starts with, as one undo step. */
   resetSettings: () => void;
-  /** Writes the draft to the library. False when the store refused it. */
   save: () => boolean;
   present: (options: { pip: boolean }) => void;
-  /** True while this item is the one being presented. */
   isPresenting: boolean;
-  /** Pushes the draft onto the running presentation. */
   updatePresentation: () => boolean;
-  /**
-   * The transport of the clip the presentation is running, when that clip is
-   * this one. Null for a picture, or while nothing of this item is on.
-   */
   presentedVideo: PresentedMedia | null;
-  /**
-   * Takes the settings the presentation is running with back into the draft, as
-   * one undo step, so the sidebar reads what the audience is being shown.
-   * False when there is nothing being presented to take.
-   */
   adoptPresentation: () => boolean;
 }
 
-/**
- * One editing session over a picture or a clip.
- *
- * Nothing reaches the library until `save` runs, and nothing reaches the
- * audience until `present` or `updatePresentation` does, which is what lets an
- * operator retouch a clip mid-service without the screen moving under them.
- */
-export function useMediaEditor(item: MediaItem): MediaEditor {
+export const useMediaEditor = (item: MediaItem): MediaEditor => {
   const media = useStore((s) => s.media);
   const updateMedia = useStore((s) => s.updateMedia);
   const startPresent = useStore((s) => s.startPresent);
@@ -149,16 +119,12 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     [apply, draft],
   );
 
-  // A picture or a clip can be on the main stage or in the presentation's
-  // corner window, and either way an edit here has somewhere to be pushed to.
   const onMainStage =
     presentation?.kind === item.kind && presentation.id === item.id;
   const onSecondary =
     secondaryPresentation?.kind === item.kind &&
     secondaryPresentation.id === item.id;
   const isPresenting = onMainStage || onSecondary;
-  // What the audience is being shown, which is the version the operator pushed
-  // out rather than whatever the library happens to hold.
   const presentedItem = onMainStage
     ? presentedDeck?.item
     : onSecondary
@@ -168,9 +134,6 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
   const adoptPresentation = useCallback((): boolean => {
     if (!presentedItem) return false;
     const presentedSettings = videoSettingsOf(presentedItem);
-    // The operator's live mute and level are part of what the room is hearing,
-    // so they come across as settings rather than being left behind on a
-    // transport the editor does not share.
     const live =
       presentedItem.kind === "video" && presentedMedia
         ? {
@@ -189,8 +152,6 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
 
   const { markSaved } = history;
   const save = useCallback((): boolean => {
-    // A clip whose end lands before its start would play nothing at all, so an
-    // unusable trim is read as "to the end" rather than saved as written.
     const trimStart = Math.max(0, draft.video.trimStart);
     const trimEnd =
       draft.video.trimEnd !== null && draft.video.trimEnd > trimStart
@@ -211,8 +172,6 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
       const startIndex =
         item.kind === "image" ? imageDeckIndex(media, item.id) : 0;
       startPresent(item.kind, item.id, startIndex, pip ? "pip" : "stage");
-      // The run starts from the library copy; the draft is pushed onto it, so
-      // what the operator is looking at is what the room gets.
       updateMediaPresentation(preview);
     },
     [item, media, preview, startPresent, updateMediaPresentation],
@@ -234,10 +193,8 @@ export function useMediaEditor(item: MediaItem): MediaEditor {
     present,
     isPresenting,
     updatePresentation: () => updateMediaPresentation(preview),
-    // The transport the presentation publishes is the main stage's clip, so a
-    // clip that is only in the corner window has nothing here to sync from.
     presentedVideo:
       onMainStage && item.kind === "video" ? presentedMedia : null,
     adoptPresentation,
   };
-}
+};

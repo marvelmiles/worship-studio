@@ -5,14 +5,6 @@ export interface SectionMeta {
   label: string;
 }
 
-/**
- * Every section name the parser understands, mapped to the slide type that
- * drives shortcuts and to the label the operator sees.
- *
- * Performer cues (choir, soloist, lead) are typed as verses on purpose: in a
- * call-and-response song they are the stanzas, so they earn verse numbering
- * and the Ctrl+number jumps, while keeping their own name on the slide.
- */
 export const SECTION_MAP: Record<string, SectionMeta> = {
   intro: { type: "intro", label: "Intro" },
   prelude: { type: "intro", label: "Prelude" },
@@ -60,43 +52,31 @@ export const SECTION_MAP: Record<string, SectionMeta> = {
 
 export interface SectionHeaderMatch {
   base: string;
-  /** Explicit number carried by the name itself, e.g. "Verse 3". */
   num: number | null;
-  /** Repeat count written into the header, e.g. "Chorus (2x):". */
   repeat: number | null;
-  /** Lyrics typed on the same line, e.g. "Chorus: I am favoured". */
   content: string;
 }
 
-/** `[Chorus]`, `[Verse 2]` — explicit, so any name is accepted. */
 const BRACKET_FORM = /^\[\s*([^\]]{1,32}?)\s*\]$/;
-/** Markdown headings, `# Chorus` / `### Verse 2` — also explicit. */
 const HEADING_FORM = /^#{1,6}\s+(.{1,32}?)\s*#*$/;
-/** `**Chorus**`, `_Verse 2_` — known names only. */
 const EMPHASIS_FORM =
   /^(?:\*{1,3}|_{1,3}|~~)\s*([^*_~]{1,32}?)\s*(?:\*{1,3}|_{1,3}|~~)$/;
-/** `Chorus:` and `Chorus: I am favoured` — known names only. */
 const COLON_FORM = /^([^:]{1,32}?)\s*:\s*(.*)$/;
-/** `Choir- 'go ni fun baba` — a dashed speaker prefix, known names only. */
 const DASH_FORM = /^([a-zA-Z][a-zA-Z0-9 '()/-]{0,31}?)\s*[-–—]\s+(\S.*)$/;
-/** `(Adlibs)` on its own line — known names only. */
 const PAREN_FORM = /^\(\s*([a-zA-Z][^()]{0,30}?)\s*\)$/;
-/** A bare `Chorus` line — known names only. */
 const BARE_FORM = /^([a-zA-Z][a-zA-Z0-9 '/-]{0,31})$/;
 
-/**
- * Splits a name into its base and an optional trailing number, e.g.
- * "Verse 3" / "Verse-3" / "Verse3" -> { base: "Verse", num: 3 }.
- */
-export function splitTagNumber(raw: string): {
+export const splitTagNumber = (
+  raw: string,
+): {
   base: string;
   num: number | null;
-} {
+} => {
   const match = raw.match(/^(.*?)[\s-]*(\d+)$/);
   if (match && match[1].trim())
     return { base: match[1].trim(), num: parseInt(match[2], 10) };
   return { base: raw.trim(), num: null };
-}
+};
 
 const lookup = (name: string): SectionMeta | undefined =>
   SECTION_MAP[splitTagNumber(name).base.toLowerCase().replace(/\s+/g, " ")];
@@ -104,7 +84,7 @@ const lookup = (name: string): SectionMeta | undefined =>
 export const isKnownSection = (name: string): boolean =>
   Boolean(name.trim()) && Boolean(lookup(name));
 
-export function sectionMetaFor(name: string): SectionMeta {
+export const sectionMetaFor = (name: string): SectionMeta => {
   const meta = lookup(name);
   if (meta) return meta;
   const base = splitTagNumber(name).base;
@@ -112,20 +92,19 @@ export function sectionMetaFor(name: string): SectionMeta {
     type: "custom",
     label: base.charAt(0).toUpperCase() + base.slice(1),
   };
-}
+};
 
-/** The label a repeat cue points at, normalised to how the slide is titled. */
-export function canonicalSectionLabel(name: string): string {
+export const canonicalSectionLabel = (name: string): string => {
   const { num } = splitTagNumber(name);
   const label = sectionMetaFor(name).label;
   return num !== null ? `${label} ${num}` : label;
-}
+};
 
-function build(
+const build = (
   nameRaw: string,
   content: string,
   explicit: boolean,
-): SectionHeaderMatch | null {
+): SectionHeaderMatch | null => {
   const { text, count } = extractRepeatCount(nameRaw);
   const name = text.trim();
   if (!name) return null;
@@ -133,16 +112,11 @@ function build(
   const { base, num } = splitTagNumber(name);
   if (!base) return null;
   return { base, num, repeat: count, content: content.trim() };
-}
+};
 
-/**
- * Recognises every way a section gets marked in a lyric document: the app's
- * own `[Verse 2]` tags, Markdown headings, an emphasised, bracketed,
- * colon-terminated or dash-prefixed name, or the bare word on its own line.
- * The looser forms only count when they name a section the app knows, so an
- * ordinary lyric line is never swallowed as a heading.
- */
-export function matchSectionHeader(rawLine: string): SectionHeaderMatch | null {
+export const matchSectionHeader = (
+  rawLine: string,
+): SectionHeaderMatch | null => {
   const line = rawLine.trim();
   if (!line) return null;
 
@@ -171,4 +145,4 @@ export function matchSectionHeader(rawLine: string): SectionHeaderMatch | null {
   if (bare) return build(bare[1], "", false);
 
   return null;
-}
+};

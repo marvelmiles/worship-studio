@@ -17,22 +17,14 @@ import type {
   TextFormattingController,
 } from "./useTextFormatting";
 
-/** What the slide canvas needs to become the editing surface. */
 export interface SlideTextEditing {
   ref: (element: HTMLDivElement | null) => void;
   onKeyDown: (event: ReactKeyboardEvent<HTMLElement>) => void;
-  /** Viewport rect of the current highlight, for the floating toolbar. */
   selectionRect: DOMRect | null;
-  /**
-   * Puts the caret where the surface was clicked. Called once the block that
-   * was clicked has become the editing surface, which is a render after the
-   * click the browser would otherwise have placed the caret from.
-   */
   focusAt: (point: { x: number; y: number }) => void;
 }
 
 interface Options {
-  /** The slide's lines as one block of raw text. */
   text: string;
   formatting: TextFormattingController;
 }
@@ -40,12 +32,7 @@ interface Options {
 const clipboardText = (transfer: DataTransfer | null): string =>
   transfer?.getData("text/plain") ?? "";
 
-/**
- * True while the caret belongs to some other field. Restoring our own highlight
- * would take the document selection off it, so a command run from a panel
- * leaves the DOM alone and only remembers where it acted.
- */
-function typingElsewhere(root: HTMLElement): boolean {
+const typingElsewhere = (root: HTMLElement): boolean => {
   const active = document.activeElement;
   if (!active || active === root || root.contains(active)) return false;
   return (
@@ -53,23 +40,12 @@ function typingElsewhere(root: HTMLElement): boolean {
     active instanceof HTMLTextAreaElement ||
     (active instanceof HTMLElement && active.isContentEditable)
   );
-}
+};
 
-/**
- * Turns the rendered slide into a text editor.
- *
- * The surface is a contentEditable, but the browser is never allowed to write
- * to it: every `beforeinput` is cancelled and replayed against the document
- * model instead, which then re-renders through React. That is what keeps the
- * markers balanced, escapes a typed asterisk, and lets a keystroke and a
- * toolbar command share exactly the same code path. Selections are translated
- * from the painted runs back to raw offsets, so the caret survives every
- * rewrite.
- */
-export function useSlideTextEditor({
+export const useSlideTextEditor = ({
   text,
   formatting,
-}: Options): SlideTextEditing {
+}: Options): SlideTextEditing => {
   const { bind, runCommand, undo, redo, syncSelection, handleKeyDown } =
     formatting;
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -79,8 +55,6 @@ export function useSlideTextEditor({
   const rangeRef = useRef<TextRange>({ start: 0, end: 0 });
   const compositionRef = useRef<TextRange | null>(null);
 
-  // Commands read the document from here, so it has to be whatever the surface
-  // currently shows rather than whatever the last event closed over.
   useEffect(() => {
     textRef.current = text;
   }, [text]);
@@ -90,7 +64,6 @@ export function useSlideTextEditor({
     setElement(node);
   }, []);
 
-  /** The live DOM selection in raw offsets, or the last one seen inside us. */
   const readSelection = useCallback((): TextRange => {
     const root = elementRef.current;
     const selection = root && document.getSelection();
@@ -141,8 +114,6 @@ export function useSlideTextEditor({
         position && root.contains(position.node)
           ? sourceOffsetFromDom(root, position.node, position.offset)
           : null;
-      // A click on the padding around the text lands outside every painted run;
-      // the caret then goes to the end, which is where typing should carry on.
       const at = offset ?? textRef.current.length;
       host.setSelection({ start: at, end: at }, true);
     },
@@ -169,8 +140,6 @@ export function useSlideTextEditor({
     };
   }, [element, syncSelection]);
 
-  // The toolbar hangs off the highlight, so it has to follow it while the
-  // panel scrolls or the window changes shape.
   const highlighted = selectionRect !== null;
   useEffect(() => {
     if (!highlighted) return;
@@ -221,7 +190,6 @@ export function useSlideTextEditor({
 
     const onBeforeInput = (event: InputEvent) => {
       const { inputType } = event;
-      // Composition is left to the IME and reconciled when it commits.
       if (inputType.endsWith("CompositionText")) return;
 
       event.preventDefault();
@@ -299,4 +267,4 @@ export function useSlideTextEditor({
   }, [element, runCommand, readSelection, undo, redo]);
 
   return { ref, onKeyDown: handleKeyDown, selectionRect, focusAt };
-}
+};

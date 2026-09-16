@@ -36,29 +36,22 @@ const fileIdFromEntry = (name: string): string | null =>
     ? decodeURIComponent(name.slice(FILES_PREFIX.length))
     : null;
 
-export async function isZipFile(file: File): Promise<boolean> {
+export const isZipFile = async (file: File): Promise<boolean> => {
   if (file.size < 4) return false;
   const head = new Uint8Array(await file.slice(0, 2).arrayBuffer());
   return head[0] === 0x50 && head[1] === 0x4b;
-}
+};
 
 export interface ExportResult {
   ok: boolean;
   cancelled?: boolean;
 }
 
-/**
- * Streams a zip backup: `data.json` (metadata) plus one stored entry per
- * binary file. With the File System Access API the archive is written straight
- * to disk chunk by chunk, so even multi-GB libraries never accumulate in RAM;
- * otherwise chunks collect into a Blob for a classic download. Blobs are
- * fetched one at a time and released as soon as their bytes are streamed.
- */
-export async function exportBackup(
+export const exportBackup = async (
   payload: unknown,
   fileIds: string[],
   onProgress?: (fraction: number) => void,
-): Promise<ExportResult> {
+): Promise<ExportResult> => {
   const suggestedName = `worshipstudio-backup-${new Date().toISOString().slice(0, 10)}.zip`;
   const picker = getSavePicker();
   let sink: WritableSink | null = null;
@@ -107,7 +100,6 @@ export async function exportBackup(
     const blob = await getFileBlob(fileId);
     done += 1;
     if (!blob) continue;
-    // Media files are already compressed; store them without deflate.
     const entry = new ZipPassThrough(entryNameFor(fileId));
     zip.add(entry);
     const reader = blob.stream().getReader();
@@ -145,7 +137,7 @@ export async function exportBackup(
   }
   onProgress?.(1);
   return { ok: true };
-}
+};
 
 const concat = (chunks: Uint8Array[]): Uint8Array => {
   const total = chunks.reduce((n, c) => n + c.length, 0);
@@ -158,11 +150,7 @@ const concat = (chunks: Uint8Array[]): Uint8Array => {
   return out;
 };
 
-/**
- * Pass 1 of a zip import: stream just far enough to read `data.json` (written
- * first by the exporter), without holding any binary entries.
- */
-export function readBackupPayload(file: File): Promise<unknown | null> {
+export const readBackupPayload = (file: File): Promise<unknown | null> => {
   return new Promise((resolve) => {
     const unzip = new Unzip();
     unzip.register(UnzipInflate);
@@ -201,25 +189,18 @@ export function readBackupPayload(file: File): Promise<unknown | null> {
           }
           unzip.push(value, false);
         }
-      } catch {
-        /* fall through */
-      }
+      } catch {}
       finish(null);
       void reader.cancel().catch(() => {});
     })();
   });
-}
+};
 
-/**
- * Pass 2 of a zip import: stream the archive again and write each accepted
- * binary entry into the "files" store as soon as it completes, so peak memory
- * stays at one file regardless of archive size.
- */
-export function importBackupFiles(
+export const importBackupFiles = (
   file: File,
   acceptId: (id: string) => boolean,
   onProgress?: (bytesRead: number, totalBytes: number) => void,
-): Promise<void> {
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     const unzip = new Unzip();
     unzip.register(UnzipInflate);
@@ -273,4 +254,4 @@ export function importBackupFiles(
       }
     })();
   });
-}
+};

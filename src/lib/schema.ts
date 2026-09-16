@@ -1,14 +1,5 @@
 import { z } from "zod";
 
-/**
- * Validation for imported backups. External data is never trusted: every record
- * is parsed here, and the schemas are shaped so the inferred types line up with
- * the domain types in `types.ts` (see the `Imported*` exports below). Enum-typed
- * fields (align, animation, fit…) use `.catch()` so a single malformed value
- * degrades to a safe default instead of rejecting the whole import, and
- * `.passthrough()` preserves keys newer than this schema.
- */
-
 const alignSchema = z.enum(["left", "center", "right"]);
 
 const animationSchema = z
@@ -34,7 +25,6 @@ const rotateSchema = z.union([
   z.literal(270),
 ]);
 
-/** Shared shape of the text-style fields (themes, deck documents, slides). */
 const textStyleShape = {
   fontFamily: z.string().optional(),
   fontSize: z.number().optional(),
@@ -49,7 +39,6 @@ const textStyleShape = {
 
 const textStyleSchema = z.object(textStyleShape).passthrough();
 
-/** Shared shape of the color-adjustment fields (images and videos). */
 const adjustmentsShape = {
   brightness: z.number().optional(),
   contrast: z.number().optional(),
@@ -76,7 +65,6 @@ const slideOverridesSchema = z
     backgroundId: z.string().optional(),
     audioId: z.string().optional(),
     animation: animationSchema,
-    scrim: z.boolean().optional(),
     backgroundImage: imageSettingsSchema.optional().catch(undefined),
   })
   .passthrough();
@@ -144,11 +132,6 @@ const slideSchema = z
   })
   .passthrough();
 
-/**
- * Backups written before the songs module became manuscripts carry
- * `artist`/`category`/`lyrics`; both spellings are accepted and reconciled by
- * the importer.
- */
 export const manuscriptSchema = z
   .object({
     id: z.string().optional(),
@@ -156,9 +139,6 @@ export const manuscriptSchema = z
     author: z.string().optional(),
     collection: z.string().optional(),
     body: z.string().optional(),
-    artist: z.string().optional(),
-    category: z.string().optional(),
-    lyrics: z.string().optional(),
     slides: z.array(slideSchema).optional(),
     maxLines: z.number().optional(),
     format: z.enum(["song", "sermon"]).optional().catch(undefined),
@@ -205,7 +185,6 @@ const backgroundSchema = z
     type: z.enum(["gradient", "solid", "image", "video"]),
     css: z.string().optional(),
     color: z.string().optional(),
-    dataUrl: z.string().optional(),
     blobId: z.string().optional(),
     image: imageSettingsSchema.optional().catch(undefined),
     mediaId: z.string().optional(),
@@ -225,7 +204,6 @@ const audioSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    dataUrl: z.string().optional(),
     blobId: z.string().optional(),
     size: z.number().optional(),
     duration: z.number().optional(),
@@ -271,8 +249,6 @@ export const mediaSchema = z
     id: z.string().optional(),
     kind: z.enum(["image", "video"]),
     name: z.string(),
-    /** Present only in legacy (v3) exports; newer backups ship blobs in the zip. */
-    dataUrl: z.string().optional(),
     mimeType: z.string().optional(),
     size: z.number().optional(),
     duration: z.number().optional(),
@@ -291,8 +267,6 @@ export const dataFileSchema = z.object({
   version: z.number().optional(),
   exportedAt: z.string().optional(),
   manuscripts: z.array(manuscriptSchema).optional(),
-  /** Pre-rename backups shipped the same records under "songs". */
-  songs: z.array(manuscriptSchema).optional(),
   scriptures: z.array(scriptureSchema).optional(),
   media: z.array(mediaSchema).optional(),
   themes: z.array(themeSchema).optional(),
@@ -301,12 +275,8 @@ export const dataFileSchema = z.object({
   prefs: z.record(z.unknown()).optional(),
 });
 
-export type DataFile = z.infer<typeof dataFileSchema>;
-
 export type ImportedSlide = z.infer<typeof slideSchema>;
 export type ImportedManuscript = z.infer<typeof manuscriptSchema>;
 export type ImportedScripture = z.infer<typeof scriptureSchema>;
 export type ImportedMedia = z.infer<typeof mediaSchema>;
-export type ImportedTheme = z.infer<typeof themeSchema>;
 export type ImportedBackground = z.infer<typeof backgroundSchema>;
-export type ImportedAudio = z.infer<typeof audioSchema>;

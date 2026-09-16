@@ -8,9 +8,7 @@ import { StageButton } from "../ui/Button";
 interface VideoTransportBarProps {
   playing: boolean;
   muted: boolean;
-  /** Output level, 0 to 100. */
   volume: number;
-  /** Where the clip is, and the trim window it is being played inside. */
   time: number;
   start: number;
   end: number;
@@ -19,30 +17,14 @@ interface VideoTransportBarProps {
   onToggleMuted: () => void;
   onVolume: (volume: number) => void;
   onSeek: (time: number) => void;
-  /** False fades the bar out without unmounting it, so the clip keeps running. */
   visible?: boolean;
-  /** Pins the bar open while the pointer rests on it. */
   onHoverChange?: (hovering: boolean) => void;
-  /**
-   * Drops the level slider and the run time, leaving the transport and the mute
-   * control, so the bar still fits across a phone.
-   */
   compact?: boolean;
-  /** What the play control calls the thing it plays. */
   mediaNoun?: string;
-  /** Where the bar sits over the surface it belongs to. */
   style?: CSSProperties;
 }
 
-/**
- * The transport a clip is driven by, wherever it is being watched: play, rewind
- * to the trim start, scrub inside the trimmed window, mute and set the level.
- *
- * One bar serves the projected stage and the media editor's preview, so an
- * operator who learns the controls on a Sunday finds the same ones when they
- * open the clip to trim it on the Monday.
- */
-export function VideoTransportBar({
+export const VideoTransportBar = ({
   playing,
   muted,
   volume,
@@ -59,7 +41,7 @@ export function VideoTransportBar({
   compact,
   mediaNoun = "video",
   style,
-}: VideoTransportBarProps) {
+}: VideoTransportBarProps) => {
   const { colors, controls, fonts, stage } = useUITheme();
   const seekMax = Math.max(end, start + 0.1);
   const position = Math.min(Math.max(time, start), seekMax);
@@ -149,4 +131,4 @@ export function VideoTransportBar({
       )}
     </div>
   );
-}
+};

@@ -8,21 +8,11 @@ import { Modal } from "../../components/ui/Modal";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { inputStyle } from "../../components/ui/Field";
 
-/**
- * What this modal picks from one named library.
- *
- * Pictures and passages are both excluded because neither is a single list any
- * more: a picture is chosen across two libraries (see OverlayImagePicker) and a
- * passage is chosen by reference or by verse text as well as by name (see
- * OverlayPassagePicker).
- */
 export type PickableKind = Exclude<ContentKind, "image" | "scripture">;
 
-/** One thing that can be dropped onto the broadcast, flattened for the list. */
 interface PickableItem {
   id: string;
   name: string;
-  /** Only media carries a preview; a passage or manuscript is named, not shown. */
   media?: MediaItem;
 }
 
@@ -41,25 +31,15 @@ const KIND_EMPTY: Record<PickableKind, string> = {
   video: "Upload a clip in the Media library and it will appear here.",
 };
 
-/**
- * Picks the library item an overlay will show, without leaving the broadcast.
- *
- * Mid-service the operator cannot afford to navigate away from a running
- * camera to go and find a manuscript or a clip, so the library is offered here
- * as a searchable list. It reads the same store slices the Manuscripts and
- * Media pages read, so anything saved anywhere in the app is immediately
- * available to put on screen.
- */
-export function OverlayContentPicker({
+export const OverlayContentPicker = ({
   kind,
   onPick,
   onClose,
 }: {
-  /** Null closes the picker; a kind opens it on that library. */
   kind: PickableKind | null;
   onPick: (kind: PickableKind, item: PickableItem) => void;
   onClose: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const manuscripts = useStore((s) => s.manuscripts);
   const media = useStore((s) => s.media);
@@ -165,4 +145,4 @@ export function OverlayContentPicker({
       )}
     </Modal>
   );
-}
+};

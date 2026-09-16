@@ -8,24 +8,20 @@ export interface MediaSurfaceHandle {
   seekTo: (time: number) => void;
 }
 
-/** What a surface needs to know to play a clip or a sound inside its trim. */
 export interface PlaybackWindowSettings {
   trimStart: number;
   trimEnd: number | null;
   loop: boolean;
   muted: boolean;
-  /** 0 to 100, used while no operator playback is steering the level. */
   volume: number;
   playbackRate: number;
 }
 
 interface MediaElementPlaybackOptions {
   handleRef: ForwardedRef<MediaSurfaceHandle>;
-  /** Changes when a different item is loaded, parking it at its trim start. */
   sourceKey: string;
   src: string | null;
   settings: PlaybackWindowSettings;
-  /** Operator-driven playback; when omitted the element sits paused at its trim start. */
   playback?: MediaPlayback;
   forceMuted?: boolean;
   onTimeUpdate?: (time: number, duration: number) => void;
@@ -39,13 +35,7 @@ export interface MediaElementBindings<E extends HTMLMediaElement> {
   onEnded: () => void;
 }
 
-/**
- * Drives one `<video>` or `<audio>` element from a transport and a trim window:
- * the level, the mute, the speed, play and pause, the operator's seeks, and the
- * loop back to the trim start. Shared by every surface that plays a file, so a
- * trimmed clip and a trimmed sound keep to their windows the same way.
- */
-export function useMediaElementPlayback<E extends HTMLMediaElement>({
+export const useMediaElementPlayback = <E extends HTMLMediaElement>({
   handleRef,
   sourceKey,
   src,
@@ -54,7 +44,7 @@ export function useMediaElementPlayback<E extends HTMLMediaElement>({
   forceMuted,
   onTimeUpdate,
   onEnded,
-}: MediaElementPlaybackOptions): MediaElementBindings<E> {
+}: MediaElementPlaybackOptions): MediaElementBindings<E> => {
   const elementRef = useRef<E>(null);
   const settingsRef = useRef(settings);
   useLayoutEffect(() => {
@@ -94,8 +84,6 @@ export function useMediaElementPlayback<E extends HTMLMediaElement>({
   const seekToken = playback?.seekToken;
   const seekTime = playback?.seekTime;
 
-  // A seek re-asserts the transport too: an element that stopped itself at the
-  // end of its window starts again when the operator scrubs back into it.
   useEffect(() => {
     const el = elementRef.current;
     if (!el || playing === undefined) return;
@@ -107,7 +95,6 @@ export function useMediaElementPlayback<E extends HTMLMediaElement>({
     const el = elementRef.current;
     if (!el || seekToken === undefined || seekTime === undefined) return;
     el.currentTime = seekTime;
-    // Only a new token asks for a seek; the time alone moving is not one.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seekToken, src]);
 
@@ -116,8 +103,6 @@ export function useMediaElementPlayback<E extends HTMLMediaElement>({
     void el.play().catch(() => {});
   };
 
-  // A file only reports its length once its headers are in, and a seek made
-  // before then is dropped, so the trim start is claimed again here.
   const handleLoadedMetadata = () => {
     const el = elementRef.current;
     if (!el) return;
@@ -157,4 +142,4 @@ export function useMediaElementPlayback<E extends HTMLMediaElement>({
     onTimeUpdate: handleTimeUpdate,
     onEnded: handleEnded,
   };
-}
+};

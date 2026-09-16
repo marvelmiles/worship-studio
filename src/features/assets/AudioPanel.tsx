@@ -23,17 +23,11 @@ const TABS: PillTab<AudioTab>[] = [
 const TAB_PREFIX = "asset-audio";
 
 interface AudioPanelProps {
-  /** The sound, or clip, a deep link is ringing, if any. */
   attentionId: string | null;
-  /** The item a deep link names, which picks the tab the panel opens on. */
   targetItemId: string | null;
 }
 
-/**
- * Every sound in the library, and the clips in the videos module whose
- * soundtrack can be added as one.
- */
-export function AudioPanel({ attentionId, targetItemId }: AudioPanelProps) {
+export const AudioPanel = ({ attentionId, targetItemId }: AudioPanelProps) => {
   const media = useStore((s) => s.media);
   const [tab, setTab] = useState<AudioTab>(() =>
     media.some((item) => item.id === targetItemId) ? "videos" : "sounds",
@@ -59,9 +53,9 @@ export function AudioPanel({ attentionId, targetItemId }: AudioPanelProps) {
       </div>
     </>
   );
-}
+};
 
-function SoundsTab({ attentionId }: { attentionId: string | null }) {
+const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   const audio = useStore((s) => s.audio);
   const beginUpload = useStore((s) => s.beginUpload);
   const removeAudio = useStore((s) => s.removeAudio);
@@ -99,9 +93,9 @@ function SoundsTab({ attentionId }: { attentionId: string | null }) {
       </div>
     </>
   );
-}
+};
 
-function VideoSoundsTab({ attentionId }: { attentionId: string | null }) {
+const VideoSoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   const audio = useStore((s) => s.audio);
   const addVideoAudio = useStore((s) => s.addVideoAudio);
   const removeAudio = useStore((s) => s.removeAudio);
@@ -124,17 +118,16 @@ function VideoSoundsTab({ attentionId }: { attentionId: string | null }) {
       emptyMessage="Upload a video and its sound is added to your sounds."
     />
   );
-}
+};
 
 interface AudioRowProps {
   item: AudioItem;
-  /** Ringed for a moment because a deep link pointed at this sound. */
   attention: boolean;
   onEdit: () => void;
   onRemove: () => void;
 }
 
-function AudioRow({ item, attention, onEdit, onRemove }: AudioRowProps) {
+const AudioRow = ({ item, attention, onEdit, onRemove }: AudioRowProps) => {
   const { colors, fonts } = useUITheme();
   const url = useAssetUrl(item);
   return (
@@ -191,4 +184,4 @@ function AudioRow({ item, attention, onEdit, onRemove }: AudioRowProps) {
       )}
     </div>
   );
-}
+};

@@ -2,40 +2,36 @@ import { useEffect, useRef, useState } from "react";
 import { ScanLine } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
-import { drawQr } from "./lib/qr";
+import { drawQr, type QrVersion } from "./lib/qr";
 
-/**
- * Renders a handshake string as a scannable QR code on a light card, with the
- * corner finder patterns rounded and tinted so the code reads as a designed
- * pairing card rather than raw noise.
- *
- * The tile takes whatever size the drawing settled on rather than the one it
- * asked for. A QR is a grid of whole modules, so the crispest code is the one
- * whose modules are a whole number of device pixels; the element is then sized
- * to exactly that, and the browser never resamples the grid.
- */
-export function QrCode({
-  value,
-  size = 300,
-}: {
+interface QrCodeProps {
   value: string;
   size?: number;
-}) {
+  version?: QrVersion;
+  caption?: string;
+}
+
+export const QrCode = ({
+  value,
+  size = 300,
+  version,
+  caption = "Scan to pair",
+}: QrCodeProps) => {
   const { colors, fonts, qr, shadows } = useUITheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [renderedCssPx, setRenderedCssPx] = useState(size);
-  const [tooLarge, setTooLarge] = useState(false);
+  const [isTooLarge, setIsTooLarge] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ratio = window.devicePixelRatio || 1;
-    const drawn = drawQr(canvas, value, size, qr, ratio);
-    setTooLarge(drawn === 0);
-    if (drawn > 0) setRenderedCssPx(drawn / ratio);
-  }, [value, size, qr]);
+    const drawnPx = drawQr(canvas, value, size, qr, ratio, version);
+    setIsTooLarge(drawnPx === 0);
+    if (drawnPx > 0) setRenderedCssPx(drawnPx / ratio);
+  }, [value, size, qr, version]);
 
-  if (tooLarge) {
+  if (isTooLarge) {
     return (
       <p
         style={{
@@ -94,8 +90,8 @@ export function QrCode({
         }}
       >
         <ScanLine size={15} aria-hidden />
-        Scan to pair
+        {caption}
       </figcaption>
     </figure>
   );
-}
+};

@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Undo2 } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -42,20 +42,13 @@ const BACK_TITLE: Record<MediaKind, string> = {
   video: "Back to videos",
 };
 
-/**
- * The editor a picture or a clip opens into: the media itself on the left at
- * the size it will be looked at, every setting in the sidebar beside it, and
- * the studio's own editor header over both, so tuning a clip works the way
- * writing a manuscript does.
- */
-export function MediaEditorPage({ kind }: { kind: MediaKind }) {
+export const MediaEditorPage = ({ kind }: { kind: MediaKind }) => {
+  const { colors, fonts } = useUITheme();
   const { mediaId } = useParams();
   const navigate = useNavigate();
   const item = useStore((s) =>
     s.media.find((entry) => entry.id === mediaId && entry.kind === kind),
   );
-  // Keeps the last known copy so a deletion from elsewhere unmounts cleanly
-  // instead of crashing mid-edit.
   const lastRef = useRef(item);
   if (item) lastRef.current = item;
 
@@ -71,10 +64,10 @@ export function MediaEditorPage({ kind }: { kind: MediaKind }) {
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>
+          <h2 style={{ fontFamily: fonts.display, color: colors.text }}>
             {label} not found
           </h2>
-          <p style={{ fontFamily: UI, color: colors.sub }}>
+          <p style={{ fontFamily: fonts.ui, color: colors.sub }}>
             It may have been deleted.
           </p>
           <Button
@@ -90,17 +83,15 @@ export function MediaEditorPage({ kind }: { kind: MediaKind }) {
   }
 
   return <MediaWorkspace key={lastRef.current.id} item={lastRef.current} />;
-}
+};
 
-function MediaWorkspace({ item }: { item: MediaItem }) {
+const MediaWorkspace = ({ item }: { item: MediaItem }) => {
+  const { colors, fonts } = useUITheme();
   const editorReturn = useEditorReturn(LIBRARY_PATH[item.kind], item.id);
   const { width } = useViewport();
   const stacked = width < 1080;
   const compact = width < 560;
   const pushToast = useStore((s) => s.pushToast);
-  // A presentation filling the screen owns the keyboard outright; the floating
-  // presenter only does while it holds focus, which the space hook reads off
-  // the event itself.
   const stagePresenting = useStore(
     (s) => Boolean(s.presentation) && s.presentationMode === "stage",
   );
@@ -118,13 +109,9 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
   useDocumentTitle(`${editor.draft.name} · WorshipStudio`);
 
   const videoSettings = editor.draft.video;
-  // A preview does not start playing on its own: the editor is opened to look
-  // at a clip, not to have it run.
   const video = useMediaPlayback(videoSettings, { autoPlay: false });
   const duration = item.duration || video.duration || 0;
   const trimEnd = videoSettings.trimEnd ?? duration;
-  // The transport lives over the clip and steps out of the way once the pointer
-  // settles, the way it does on the projected stage.
   const surfaceRef = useRef<HTMLDivElement>(null);
   const chrome = useAutoHideChrome({ enabled: !isImage, surfaceRef });
 
@@ -140,8 +127,6 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     toggle: video.togglePlaying,
   });
 
-  // The transport owns whether the clip is running and where; the sidebar owns
-  // how it sounds, so the volume and mute controls are heard as they are set.
   const previewPlayback = useMemo(
     () => ({
       ...video.playback,
@@ -151,15 +136,6 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     [video.playback, videoSettings.volume, videoSettings.muted],
   );
 
-  // Nothing leaves the editor while a field is refusing what was typed into it.
-  // The save control is already disabled by then; this says why for any other
-  // route in, and keeps a half-typed trim off the audience display.
-  //
-  // Past that, a refused save (storage full) raises its own alert from the
-  // store, so the editor stays dirty and says nothing rather than claiming it
-  // wrote. Saving writes what the preview is already showing, so the clip is
-  // left exactly where it is: an operator tuning a trim mid-review never has to
-  // find their place again.
   const refuse = () =>
     pushToast(validation.message ?? "Fix the highlighted fields.", "error");
 
@@ -180,18 +156,9 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     if (editor.updatePresentation()) pushToast("Presentation updated.");
   };
 
-  /**
-   * Brings the editor into line with what the room is already watching: the
-   * sidebar takes the presented clip's settings, and the preview takes its
-   * transport, down to the frame it is on. An operator who tuned a clip live and
-   * then opened it here stops having two versions of it running against them.
-   */
   const presentedVideo = editor.presentedVideo;
   const handleSyncFromPresentation = () => {
     if (!presentedVideo || !editor.adoptPresentation()) return;
-    // The sidebar carries the mute and the level in this editor, and has just
-    // taken the presentation's; the transport only has to match what the clip
-    // is doing and where it has got to.
     video.adopt({
       playing: presentedVideo.playback.playing,
       muted: false,
@@ -286,7 +253,7 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
     <div style={{ padding: 18 }}>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 12,
           color: colors.dim,
           margin: "0 0 4px",
@@ -404,7 +371,7 @@ function MediaWorkspace({ item }: { item: MediaItem }) {
       />
     </div>
   );
-}
+};
 
 export const ImageEditorPage = () => <MediaEditorPage kind="image" />;
 export const VideoEditorPage = () => <MediaEditorPage kind="video" />;

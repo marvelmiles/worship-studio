@@ -25,29 +25,18 @@ const RATE_OPTIONS = ["0.5", "0.75", "1", "1.25", "1.5", "2"].map((value) => ({
 interface VideoSettingsControlsProps {
   settings: VideoSettings;
   onChange: (changes: Partial<VideoSettings>) => void;
-  /** Length of the clip, shown so the trim points read against something. */
   duration?: number;
-  /**
-   * Reports what a field is refusing, so the editor holding these settings can
-   * keep its save disabled until every one of them is usable.
-   */
   onIssueChange?: (field: string, message: string | null) => void;
-  /** Stacks the paired controls, for a narrow sidebar. */
   narrow?: boolean;
 }
 
-/**
- * Every setting a clip carries: where playback starts and stops, how it sounds
- * and moves, and how it is graded. Shared by the video editor page and any
- * other surface that tunes a library clip.
- */
-export function VideoSettingsControls({
+export const VideoSettingsControls = ({
   settings,
   onChange,
   duration,
   onIssueChange,
   narrow,
-}: VideoSettingsControlsProps) {
+}: VideoSettingsControlsProps) => {
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
   const withHours = needsHoursField(duration);
   const shape = timecodeShape(withHours);
@@ -153,4 +142,4 @@ export function VideoSettingsControls({
       <AdjustmentControls value={settings} onChange={onChange} />
     </>
   );
-}
+};

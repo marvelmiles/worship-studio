@@ -6,7 +6,11 @@ interface GreetingHeaderProps {
   tag: string;
 }
 
-export function GreetingHeader({ label, heading, tag }: GreetingHeaderProps) {
+export const GreetingHeader = ({
+  label,
+  heading,
+  tag,
+}: GreetingHeaderProps) => {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -49,4 +53,4 @@ export function GreetingHeader({ label, heading, tag }: GreetingHeaderProps) {
       </p>
     </div>
   );
-}
+};

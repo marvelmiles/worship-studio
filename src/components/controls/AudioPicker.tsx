@@ -15,7 +15,6 @@ interface AudioPickerProps {
   onSelect: (id: string) => void;
   inheritLabel?: string;
   onUploaded?: (id: string) => void;
-  /** Opens the audio library, where sounds are uploaded and edited. */
   onManage?: () => void;
 }
 
@@ -27,19 +26,14 @@ const PREVIEW_PLAYBACK: MediaPlayback = {
   seekToken: 0,
 };
 
-/**
- * Chooses the sound behind a slide, a document or a theme from a list that can
- * be listened to before it is picked. Previews play the sound the way it will be
- * heard, trim and level included.
- */
-export function AudioPicker({
+export const AudioPicker = ({
   audio,
   value,
   onSelect,
   inheritLabel,
   onUploaded,
   onManage,
-}: AudioPickerProps) {
+}: AudioPickerProps) => {
   const { colors, fonts } = useUITheme();
   const beginUpload = useStore((s) => s.beginUpload);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -240,4 +234,4 @@ export function AudioPicker({
       )}
     </>
   );
-}
+};

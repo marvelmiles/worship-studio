@@ -6,9 +6,7 @@ import type { Collection } from "../../data/collections";
 export interface ManuscriptMetadata {
   title: string | null;
   author: string | null;
-  /** Collection implied by a declared heading, e.g. `SERMON:` -> Sermons. */
   collection: Collection | null;
-  /** Leading lines the heading occupied; the parser skips them. */
   consumed: number;
 }
 
@@ -19,21 +17,13 @@ const EMPTY: ManuscriptMetadata = {
   consumed: 0,
 };
 
-/** Lyric sites end their heading with the word "Lyrics". */
 const LYRICS_SUFFIX = /\s*\blyrics?\b\s*$/i;
 const TRAILING_PARENTHETICAL = /\s*[([][^()[\]]*[)\]]\s*$/;
-/** A separator only counts with space around it, so hyphenated words survive. */
 const NAME_SEPARATOR = /\s+[—–|]\s+|\s+-\s+/;
 const CREDIT_LINE =
   /^\s*(?:artiste?|author|composer|preacher|minister|speaker|written\s+by|performed\s+by|sung\s+by|preached\s+by|delivered\s+by)\s*[:\-–—]?\s*(.+)$/i;
 const BY_LINE = /^\s*by\s+(.{2,60})$/i;
 
-/**
- * Headings that declare what the document is before naming it, the way an
- * order of service is typed: `HYMN: Ancient Words`, `SERMON - The Good
- * Shepherd`. The declared kind also picks the collection the manuscript lands
- * in, so a pasted sermon files itself.
- */
 const DECLARED_KINDS: Record<string, Collection> = {
   hymn: "Hymns",
   song: "Worship",
@@ -59,8 +49,7 @@ const DECLARED_HEADING = new RegExp(
   "i",
 );
 
-/** ALL-CAPS headings are shouting; give them back their shape. */
-function normalizeCase(value: string): string {
+const normalizeCase = (value: string): string => {
   if (/[a-z]/.test(value) || value.length < 4) return value;
   return value
     .toLowerCase()
@@ -68,23 +57,19 @@ function normalizeCase(value: string): string {
       /(^|[\s(/-])([a-z])/g,
       (_m, lead: string, letter: string) => lead + letter.toUpperCase(),
     );
-}
+};
 
 const clean = (value: string): string =>
   normalizeCase(value.trim().replace(/^[\s"'`]+|[\s"'`]+$/g, ""));
 
-function looksLikeSection(line: string): boolean {
+const looksLikeSection = (line: string): boolean => {
   return matchSectionHeader(line) !== null;
-}
+};
 
-/**
- * Reads the credit a writer leaves under the heading, e.g. "By Fanny Crosby"
- * or "Preached by Pastor Ada", and reports the line it was found on.
- */
-function findCredit(
+const findCredit = (
   lines: string[],
   from: number,
-): { author: string; consumed: number } | null {
+): { author: string; consumed: number } | null => {
   for (let i = from; i < lines.length; i++) {
     const candidate = lines[i].trim();
     if (!candidate) continue;
@@ -95,26 +80,16 @@ function findCredit(
     return author ? { author, consumed: i + 1 } : null;
   }
   return null;
-}
+};
 
-/**
- * Reads a manuscript heading off the top of a pasted document: a declared
- * `HYMN: Ancient Words`, a `Title — Author` pair, `Artist – Title Lyrics`, or a
- * bare title sitting above the first section.
- *
- * An undeclared heading only counts when it announces itself, either by ending
- * in "Lyrics", by carrying a spaced separator, or by standing alone above a
- * section header. Anything less certain is left alone and sung as a lyric.
- */
-export function extractManuscriptMetadata(lines: string[]): ManuscriptMetadata {
+export const extractManuscriptMetadata = (
+  lines: string[],
+): ManuscriptMetadata => {
   const first = lines.findIndex((line) => line.trim() !== "");
   if (first === -1) return EMPTY;
 
   const line = lines[first].trim();
 
-  // A declared heading is the writer saying outright what this document is; it
-  // names the manuscript rather than belonging to it, so it never becomes a
-  // slide line.
   const declared = line.match(DECLARED_HEADING);
   const declaredTitle = declared ? clean(declared[2]) : "";
   if (declared && declaredTitle) {
@@ -150,8 +125,6 @@ export function extractManuscriptMetadata(lines: string[]): ManuscriptMetadata {
   if (!heading || (!fromLyricsSite && !separated && !standsAboveSection))
     return EMPTY;
 
-  // "Artist – Title Lyrics" is how lyric sites head a page; a document a
-  // person typed themselves reads "Title — Author".
   const [title, author] = separated
     ? fromLyricsSite
       ? [parts[1], parts[0]]
@@ -174,4 +147,4 @@ export function extractManuscriptMetadata(lines: string[]): ManuscriptMetadata {
   }
 
   return metadata;
-}
+};

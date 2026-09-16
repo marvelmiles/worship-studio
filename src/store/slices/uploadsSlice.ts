@@ -6,9 +6,7 @@ export type UploadKind = "background" | "audio" | "image" | "video";
 export interface PendingUpload {
   kind: UploadKind;
   files: File[];
-  /** Index of the file currently saving, or null before saving starts. */
   savingIndex: number | null;
-  /** How many files have finished saving. */
   savedCount: number;
   onComplete?: (ids: string[]) => void;
 }

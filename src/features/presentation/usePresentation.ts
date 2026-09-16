@@ -31,20 +31,10 @@ interface FullscreenOverride {
   toggle: () => void;
 }
 
-/**
- * `fullscreenOverride`, when given, redirects the fullscreen control (button
- * and the F shortcut) to some other target, used to fullscreen the Go Live
- * popup on the external display instead of this window once live.
- *
- * `shortcutGate` decides whether a key press belongs to the presentation. The
- * fullscreen stage owns the keyboard outright, but the floating presenter
- * shares the page with the rest of the app, so it only claims keys while it
- * holds focus. Returning false leaves the key to whatever the user is doing.
- */
-export function usePresentation(
+export const usePresentation = (
   fullscreenOverride?: FullscreenOverride,
   shortcutGate?: () => boolean,
-) {
+) => {
   const presentation = useStore((s) => s.presentation);
   const audio = useStore((s) => s.audio);
   const prefs = useStore((s) => s.prefs);
@@ -68,7 +58,6 @@ export function usePresentation(
     [slides],
   );
   const tagGroups = useMemo(() => computeTagGroups(textSlides), [textSlides]);
-  // Accumulates digit keys pressed while Ctrl is held; flushed on Ctrl keyup.
   const ctrlNumBuffer = useRef<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -179,7 +168,6 @@ export function usePresentation(
   );
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
-  // A fresh video slide always starts playing from its trim point.
   const curVideoId = currentVideoItem?.id;
   const { reset: resetVideo } = video;
   useEffect(() => {
@@ -187,19 +175,9 @@ export function usePresentation(
     resetVideo();
   }, [curVideoId, resetVideo]);
 
-  // Read through a ref so changing the gate never re-binds the listeners.
   const shortcutGateRef = useRef(shortcutGate);
   shortcutGateRef.current = shortcutGate;
 
-  /**
-   * True when this key press is the presentation's to handle.
-   *
-   * A field being typed in keeps every key, and a focused slider keeps the ones
-   * it answers itself, so dragging the playhead and then nudging it with the
-   * arrows still scrubs. Everything else, space included, reaches the stage:
-   * touching the level slider must not be what stops the space bar pausing the
-   * clip an operator is watching.
-   */
   const ownsKey = useCallback((e: KeyboardEvent): boolean => {
     if (targetOwnsKey(e)) return false;
     return shortcutGateRef.current?.() ?? true;
@@ -210,7 +188,6 @@ export function usePresentation(
       if (!ownsKey(e)) return;
       const key = e.key;
 
-      // Tag navigation: Ctrl+digits accumulate into a buffer, flushed on Ctrl keyup.
       if (e.ctrlKey && /^[0-9]$/.test(key)) {
         e.preventDefault();
         ctrlNumBuffer.current += key;
@@ -251,7 +228,6 @@ export function usePresentation(
       } else if (key === "Escape") {
         exit();
       } else if (key === "p" || key === "P") {
-        // Matches the pause control: on a clip it is the clip that pauses.
         if (isVideoSlide) toggleVideoPlaying();
         else togglePause();
       } else if (key === "f" || key === "F") {
@@ -277,7 +253,6 @@ export function usePresentation(
         if (!buf) return;
         const num = parseInt(buf, 10);
         if (doc && "verses" in doc) {
-          // Scripture decks: the number is the verse number (Ctrl+1, Ctrl+100…).
           const passage = doc as ScripturePassage;
           const index = slideIndexForVerse(passage, num);
           if (index >= 0) goTo(index);
@@ -317,8 +292,6 @@ export function usePresentation(
     ownsKey,
   ]);
 
-  // Publish the live position so the editor's slide list tracks whatever the
-  // operator advances to, from the stage, the floating presenter or a shortcut.
   useEffect(() => {
     setPresentationIndex(slideIndex);
   }, [slideIndex, setPresentationIndex]);
@@ -340,8 +313,6 @@ export function usePresentation(
     return () => window.clearInterval(timer);
   }, [paused]);
 
-  // The sound's own level is scaled by the app-wide background level, so a pad
-  // turned down in its editor stays that much quieter than the others.
   const audioSettings = useMemo(
     () => (audioItem ? audioSettingsOf(audioItem) : null),
     [audioItem],
@@ -411,4 +382,4 @@ export function usePresentation(
     onVideoTime,
     onVideoEnded,
   };
-}
+};

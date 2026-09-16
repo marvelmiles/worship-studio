@@ -2,21 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 interface LazyMountProps {
   children: ReactNode;
-  /** Rendered while off-screen; defaults to nothing (container keeps its size). */
   placeholder?: ReactNode;
   rootMargin?: string;
 }
 
-/**
- * Mounts children only while the container is near the viewport and unmounts
- * them again once it scrolls well away, so long media grids only hold object
- * URLs and decoded frames for what's actually visible.
- */
-export function LazyMount({
+export const LazyMount = ({
   children,
   placeholder,
   rootMargin = "400px",
-}: LazyMountProps) {
+}: LazyMountProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -43,4 +37,4 @@ export function LazyMount({
       {visible ? children : placeholder}
     </div>
   );
-}
+};

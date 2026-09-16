@@ -12,14 +12,14 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-export function ConfirmDialog({
+export const ConfirmDialog = ({
   open,
   title,
   message,
   confirmLabel = "Delete",
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps) => {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   return (
@@ -57,4 +57,4 @@ export function ConfirmDialog({
       </div>
     </Modal>
   );
-}
+};

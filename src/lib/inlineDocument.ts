@@ -13,24 +13,10 @@ import { changeIndent, toggleList } from "./listCommands";
 import { clamp, lineBounds, lineIndexAt } from "./textRange";
 import type { TextRange } from "./textRange";
 
-/**
- * Typing, deleting and pasting inside slide text.
- *
- * The document is plain text carrying Markdown-ish marks, so an edit is never a
- * plain string splice: cutting between `**bold**` and `*italic*` would leave the
- * markers unbalanced, and a typed `*` has to survive as a literal asterisk. Each
- * command therefore parses the affected lines into runs, edits the runs, and
- * writes them back out, which re-emits balanced markers and escapes whatever the
- * writer actually typed. Offsets in and out are raw-text offsets, the same
- * coordinates every other command in lib/ speaks.
- */
-
-/** Formatting a run carries, without its text or its place in the source. */
 type Marks = Omit<SourceSegment, "text" | "sourceStart" | "sourceEnd">;
 
 export interface DocumentLine {
   raw: string;
-  /** Indent and list marker, which belong to the line rather than to its text. */
   prefix: string;
   content: string;
   start: number;
@@ -38,7 +24,7 @@ export interface DocumentLine {
   end: number;
 }
 
-export function documentLines(text: string): DocumentLine[] {
+export const documentLines = (text: string): DocumentLine[] => {
   return lineBounds(text).map((bound) => {
     const raw = text.slice(bound.start, bound.end);
     const prefix = raw.slice(0, prefixLength(raw));
@@ -51,17 +37,16 @@ export function documentLines(text: string): DocumentLine[] {
       end: bound.end,
     };
   });
-}
+};
 
-/** Where each line's own text begins in the joined document. */
-export function lineContentOffsets(lines: string[]): number[] {
+export const lineContentOffsets = (lines: string[]): number[] => {
   let offset = 0;
   return lines.map((line) => {
     const start = offset + prefixLength(line);
     offset += line.length + 1;
     return start;
   });
-}
+};
 
 const lineStarts = (lines: string[]): number[] => {
   let offset = 0;
@@ -83,19 +68,14 @@ const marksOf = (segment: SourceSegment | undefined): Marks => {
   return marks;
 };
 
-/** An escape pair is one visible character written as two source characters. */
 const isPlain = (segment: SourceSegment): boolean =>
   segment.sourceEnd - segment.sourceStart === segment.text.length;
 
-/**
- * The runs covering `[from, to)` of a line's text. A cut always falls between
- * visible characters, so an escape pair is either taken whole or left out.
- */
-function sliceContent(
+const sliceContent = (
   content: string,
   from: number,
   to: number,
-): FormattedSegment[] {
+): FormattedSegment[] => {
   const out: FormattedSegment[] = [];
   for (const segment of parseInlineSegments(content)) {
     const start = Math.max(segment.sourceStart, from);
@@ -115,7 +95,7 @@ function sliceContent(
     });
   }
   return out;
-}
+};
 
 const segmentBefore = (
   content: string,
@@ -135,16 +115,15 @@ const segmentAfter = (
 
 interface ComposedContent {
   text: string;
-  /** Where the caret lands in the written text. */
   caret: number;
 }
 
-function composeContent(
+const composeContent = (
   before: FormattedSegment[],
   insert: string,
   marks: Marks,
   after: FormattedSegment[],
-): ComposedContent {
+): ComposedContent => {
   const inserted: FormattedSegment[] = insert
     ? [{ ...marks, text: insert }]
     : [];
@@ -158,20 +137,14 @@ function composeContent(
       ? ranges[before.length - 1].end
       : ranges[0].start;
   return { text, caret };
-}
+};
 
-/**
- * Replaces `[selectionStart, selectionEnd)` with `insert`, which may carry line
- * breaks. Typed text picks up the formatting of the run it lands in, the way a
- * word processor carries the current mark forward, and a break inside a list
- * opens the next item at the same level.
- */
-export function replaceRange(
+export const replaceRange = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
   insert: string,
-): EditResult {
+): EditResult => {
   const lines = documentLines(text);
   const from = Math.min(selectionStart, selectionEnd);
   const to = Math.max(selectionStart, selectionEnd);
@@ -208,8 +181,6 @@ export function replaceRange(
     ...lines.slice(lastIndex + 1).map((line) => line.raw),
   ];
 
-  // Only a rewrite that moved lines around can leave the numbering wrong, and
-  // renumbering on every keystroke would fight the writer's own ordinals.
   const structural = composed.length > 1 || lastIndex > firstIndex;
   const next = structural
     ? composeLines(renumber(analyzeLines(rewritten)))
@@ -228,13 +199,12 @@ export function replaceRange(
     selectionStart: caret,
     selectionEnd: caret,
   };
-}
+};
 
-/** The visible character ending at `offset`, escape pairs counted as one. */
-function previousVisibleRange(
+const previousVisibleRange = (
   content: string,
   offset: number,
-): TextRange | null {
+): TextRange | null => {
   let previous: SourceSegment | undefined;
   for (const segment of parseInlineSegments(content))
     if (segment.sourceStart < offset) previous = segment;
@@ -243,10 +213,12 @@ function previousVisibleRange(
   const end = Math.min(offset, previous.sourceEnd);
   const start = isPlain(previous) ? end - 1 : previous.sourceStart;
   return start < end ? { start, end } : null;
-}
+};
 
-/** The visible character starting at `offset`. */
-function nextVisibleRange(content: string, offset: number): TextRange | null {
+const nextVisibleRange = (
+  content: string,
+  offset: number,
+): TextRange | null => {
   const next = parseInlineSegments(content).find(
     (segment) => segment.sourceEnd > offset,
   );
@@ -255,18 +227,13 @@ function nextVisibleRange(content: string, offset: number): TextRange | null {
   const start = Math.max(offset, next.sourceStart);
   const end = isPlain(next) ? start + 1 : next.sourceEnd;
   return start < end ? { start, end } : null;
-}
+};
 
-/**
- * Backspace. At the head of a line it undoes the line's own structure first,
- * the way Word drops the bullet before it starts pulling lines together: the
- * list marker goes, then the indent, then the line joins the one above.
- */
-export function deleteBackward(
+export const deleteBackward = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
-): EditResult | null {
+): EditResult | null => {
   if (selectionStart !== selectionEnd)
     return replaceRange(text, selectionStart, selectionEnd, "");
 
@@ -296,14 +263,13 @@ export function deleteBackward(
     line.contentStart + range.end,
     "",
   );
-}
+};
 
-/** Delete. At the end of a line it pulls the next line up, marker and all. */
-export function deleteForward(
+export const deleteForward = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
-): EditResult | null {
+): EditResult | null => {
   if (selectionStart !== selectionEnd)
     return replaceRange(text, selectionStart, selectionEnd, "");
 
@@ -325,4 +291,4 @@ export function deleteForward(
 
   if (index >= lines.length - 1) return null;
   return replaceRange(text, line.end, lines[index + 1].contentStart, "");
-}
+};

@@ -9,14 +9,9 @@ import {
 import type { Getter, SliceCreator } from "../storeTypes";
 
 export interface PinsSlice {
-  /**
-   * Pins or unpins one library item. Refuses once that library's five slots are
-   * taken; unpinning is always allowed.
-   */
   togglePin: (kind: PinnableKind, id: string) => void;
 }
 
-/** What the toast calls the library whose slots are full. */
 const LIBRARY_LABELS: Record<PinnableKind, string> = {
   manuscript: "manuscripts",
   scripture: "passages",
@@ -27,17 +22,15 @@ const LIBRARY_LABELS: Record<PinnableKind, string> = {
 interface PinTarget {
   name: string;
   pinned: boolean;
-  /** Everything competing for the same five slots. */
   siblings: Pinnable[];
   write: (pinned: true | undefined, mark: LibraryMark) => void;
 }
 
-/** Finds the item behind a pin and how to write it back to its own library. */
-function pinTarget(
+const pinTarget = (
   get: Getter,
   kind: PinnableKind,
   id: string,
-): PinTarget | null {
+): PinTarget | null => {
   const state = get();
 
   if (kind === "manuscript") {
@@ -47,7 +40,6 @@ function pinTarget(
       name: manuscript.title,
       pinned: Boolean(manuscript.pinned),
       siblings: state.manuscripts,
-      // A pin is not an edit, so `updatedAt` is left where the last edit put it.
       write: (pinned, mark) =>
         state.upsertManuscript({ ...manuscript, pinned, mark }),
     };
@@ -74,7 +66,7 @@ function pinTarget(
     write: (pinned, mark) =>
       state.updateMedia(item.id, { pinned, mark }, { touch: false }),
   };
-}
+};
 
 export const createPinsSlice: SliceCreator<PinsSlice> = (_set, get) => ({
   togglePin: (kind, id) => {
@@ -90,8 +82,6 @@ export const createPinsSlice: SliceCreator<PinsSlice> = (_set, get) => ({
       return;
     }
 
-    // `undefined` rather than `false` so an unpinned record stays as small as
-    // it was before the feature existed.
     target.write(pinning ? true : undefined, pinMark(pinning));
     get().pushToast(
       pinning ? `Pinned "${target.name}".` : `Unpinned "${target.name}".`,

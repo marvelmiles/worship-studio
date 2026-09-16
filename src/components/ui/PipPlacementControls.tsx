@@ -25,23 +25,16 @@ const CORNER_ICONS: Record<PipCorner, LucideIcon> = {
 interface PipPlacementControlsProps {
   placement: PipPlacement;
   onChange: (patch: Partial<PipPlacement>) => void;
-  /** Corners already taken by another window, offered but marked as such. */
   takenCorners?: PipCorner[];
-  /** Drops the field labels for a row that already sits under a heading. */
   compact?: boolean;
 }
 
-/**
- * Where a corner window sits and how big it is: the one control for it, shared
- * by the presentation's secondary module and by the stream's extra cameras, so
- * an operator who learns it on one finds the same thing on the other.
- */
-export function PipPlacementControls({
+export const PipPlacementControls = ({
   placement,
   onChange,
   takenCorners = [],
   compact,
-}: PipPlacementControlsProps) {
+}: PipPlacementControlsProps) => {
   const { colors, fonts } = useUITheme();
 
   const label = (text: string) => (
@@ -132,4 +125,4 @@ export function PipPlacementControls({
       </div>
     </div>
   );
-}
+};

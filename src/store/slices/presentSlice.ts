@@ -5,7 +5,7 @@ import type {
   PresentTarget,
   SlideDeckDoc,
 } from "../../types";
-import { endLive } from "../../lib/liveWindow";
+import { presentLiveWindow } from "../../lib/liveWindow";
 import type {
   MediaPlayback,
   MediaSync,
@@ -17,19 +17,8 @@ import {
 } from "../../lib/pipPlacement";
 import type { SliceCreator } from "../storeTypes";
 
-/**
- * "stage" takes over the whole screen; "pip" shrinks the presentation into a
- * small floating presenter so the operator can keep using the app while the
- * audience display stays live.
- */
 export type PresentationMode = "stage" | "pip";
 
-/**
- * The exact content the presentation is running on, pinned for the whole run:
- * the document for a manuscript or a passage, the library item for a picture or
- * a clip. Either way the screen only moves when the operator pushes a new
- * version out with `updatePresentation`.
- */
 export interface PresentedDeck {
   kind: ContentKind;
   id: string;
@@ -44,63 +33,27 @@ const pinnedContent = (
 ): PresentedDeck | null =>
   doc ? { kind, id: doc.id, doc } : item ? { kind, id: item.id, item } : null;
 
-/**
- * Where the running presentation's clip actually is, published by the presenter
- * so the rest of the app can pick the same state up.
- *
- * The position is a reading rather than a live value: it carries the wall clock
- * it was taken at, so a consumer works out where the clip has got to with
- * `syncedPosition` instead of the presenter having to publish on a tick and
- * re-render half the app four times a second.
- */
 export interface PresentedMedia {
   playback: MediaPlayback;
   sync: MediaSync;
 }
 
-/**
- * A second module running in a corner of the stage beside the main one: the
- * announcement clip under a sermon, the camera feed beside a passage.
- *
- * It is deliberately not a second presentation. There is one running order, one
- * set of shortcuts and one Go Live; this is a window laid over that stage, whose
- * content the operator can swap, move, resize, silence and drop without ever
- * touching what the main module is doing.
- */
 export interface SecondaryPresentation {
   kind: SecondaryModuleKind;
-  /** Library id of the picture or clip. The live camera has none. */
   id: string;
-  /** The version being shown, pinned the way the main deck's is. */
   item?: MediaItem;
   placement: PipPlacement;
   muted: boolean;
 }
 
-/** The id a live-camera secondary carries, so one field identifies every kind. */
 export const LIVE_CAMERA_ID = "live-camera";
 
 export interface PresentSlice {
   presentation: PresentTarget | null;
   presentationMode: PresentationMode;
-  /**
-   * Slide the presentation is currently on, published by the presenter so the
-   * rest of the app (the editor's slide list) can follow along live.
-   */
   presentationIndex: number;
-  /**
-   * What the presentation renders, taken when it started, whether it is
-   * projected or previewing on this screen. Editing a document mid-service
-   * never moves the screen on its own; the operator pushes changes out
-   * deliberately with `updatePresentation`.
-   */
   presentedDeck: PresentedDeck | null;
-  /** Set only while the presentation is running a clip. */
   presentedMedia: PresentedMedia | null;
-  /**
-   * The second module shown in a corner of the stage, or null when the main one
-   * has the screen to itself.
-   */
   secondaryPresentation: SecondaryPresentation | null;
 
   startPresent: (
@@ -111,22 +64,11 @@ export interface PresentSlice {
   ) => void;
   setPresentationMode: (mode: PresentationMode) => void;
   setPresentationIndex: (index: number) => void;
-  /**
-   * Replaces what the running presentation shows with the operator's current
-   * version. False when this document is not the one being presented.
-   */
   updatePresentation: (kind: ContentKind, doc: SlideDeckDoc) => boolean;
-  /** The same for a picture or a clip, pushed from the media editor. */
   updateMediaPresentation: (item: MediaItem) => boolean;
-  /** Publishes the running clip's transport, or clears it when none is on. */
   publishPresentedMedia: (state: PresentedMedia | null) => void;
 
-  /**
-   * Shows a picture, a clip or the live camera in the corner window, replacing
-   * whatever was there. False when the requested item is not in the library.
-   */
   presentSecondary: (kind: SecondaryModuleKind, id?: string) => boolean;
-  /** Moves or resizes the corner window. */
   patchSecondaryPlacement: (patch: Partial<PipPlacement>) => void;
   setSecondaryMuted: (muted: boolean) => void;
   stopSecondary: () => void;
@@ -165,9 +107,6 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
         presentationIndex: startIndex,
         presentedDeck: pinnedContent(kind, deckDoc, mediaItem),
         presentedMedia: null,
-        // A corner window belongs to the run it was set up for, so a new
-        // presentation opens on the main module alone rather than inheriting
-        // the last service's clip.
         secondaryPresentation: null,
       });
   },
@@ -185,8 +124,6 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
 
   updateMediaPresentation: (item) => {
     const { presentation, secondaryPresentation } = get();
-    // The same picture or clip can be on the main stage, in the corner window,
-    // or both, and an operator pushing their edit out means all of them.
     const onSecondary =
       secondaryPresentation?.kind === item.kind &&
       secondaryPresentation.id === item.id;
@@ -229,8 +166,6 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
         id,
         item,
         placement,
-        // A corner window is a second picture, not a second soundtrack: the
-        // main module keeps the room's ears unless the operator says otherwise.
         muted: true,
       },
     });
@@ -257,9 +192,7 @@ export const createPresentSlice: SliceCreator<PresentSlice> = (set, get) => ({
   stopSecondary: () => set({ secondaryPresentation: null }),
 
   stopPresent: () => {
-    // Ending the presentation always takes the projected window with it,
-    // otherwise the audience keeps seeing a stage nothing is driving.
-    endLive();
+    presentLiveWindow.endLive();
     set({
       presentation: null,
       presentationMode: "stage",

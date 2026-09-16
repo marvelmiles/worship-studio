@@ -24,7 +24,7 @@ const LOCKED_TITLE: Record<AssetSection, string> = {
 const isAssetSection = (value?: string): value is AssetSection =>
   value === "backgrounds" || value === "audio";
 
-export function AssetsModal() {
+export const AssetsModal = () => {
   const overlay = useStore((s) => s.overlay);
   const overlayContext = useStore((s) => s.overlayContext);
   const locked = useStore((s) => s.overlaySectionLocked);
@@ -36,11 +36,6 @@ export function AssetsModal() {
   const contentRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<AssetSection>("backgrounds");
 
-  // Deep links (a dashboard activity, say) name the tab to open and, when they
-  // point at one item, that item: the library is a wall of lookalike swatches,
-  // so the one that was clicked is scrolled to and ringed rather than left to
-  // be hunted for. A video background is found through the clip it plays,
-  // which is what the Videos tab lists.
   const target =
     overlay === "assets" ? parseOverlayTarget(overlayContext) : null;
   const targetItemId = target?.itemId ?? null;
@@ -82,4 +77,4 @@ export function AssetsModal() {
       </div>
     </Modal>
   );
-}
+};

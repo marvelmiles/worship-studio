@@ -17,7 +17,7 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
+export const ContextMenu = ({ x, y, items, onClose }: ContextMenuProps) => {
   const { colors, fonts, glass, shadows } = useUITheme();
   const UI = fonts.ui;
   useEffect(() => {
@@ -85,4 +85,4 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
       )}
     </div>
   );
-}
+};

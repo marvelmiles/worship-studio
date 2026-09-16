@@ -1,27 +1,22 @@
 import { CopyPlus, RefreshCw } from "lucide-react";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 
 interface DuplicatePassageModalProps {
-  /** Title of the already-saved passage; null keeps the modal closed. */
   existingTitle: string | null;
   onOverwrite: () => void;
   onSaveCopy: () => void;
   onClose: () => void;
 }
 
-/**
- * Shown when saving a passage that is already in the library but with
- * different content (other slide settings or verse text). The user chooses:
- * overwrite the saved one, or keep both as a numbered copy.
- */
-export function DuplicatePassageModal({
+export const DuplicatePassageModal = ({
   existingTitle,
   onOverwrite,
   onSaveCopy,
   onClose,
-}: DuplicatePassageModalProps) {
+}: DuplicatePassageModalProps) => {
+  const { colors, fonts } = useUITheme();
   if (!existingTitle) return null;
 
   return (
@@ -46,7 +41,7 @@ export function DuplicatePassageModal({
     >
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13.5,
           color: colors.text,
           marginTop: 0,
@@ -58,7 +53,7 @@ export function DuplicatePassageModal({
       </p>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13,
           color: colors.sub,
           margin: 0,
@@ -70,4 +65,4 @@ export function DuplicatePassageModal({
       </p>
     </Modal>
   );
-}
+};

@@ -1,17 +1,9 @@
-// Fully offline Bible. The holy-bible package stores each translation as one
-// flat array of 31,103 verse strings in reading order, with no book/chapter
-// structure. bibleLayout.ts (generated) says where each chapter starts in that
-// array. This module joins the two: it lazy-loads a translation on first use
-// and answers "give me this chapter" and "which verses contain these words",
-// without ever touching the network.
-
 import type { BibleVerse, BibleVersionId } from "../../../types";
 import {
   CHAPTER_VERSE_COUNTS,
   chapterStartPosition,
 } from "../../../data/bibleLayout";
 
-/** Each supported translation and the bundled verse file it comes from. */
 const VERSE_FILES: Record<
   BibleVersionId,
   () => Promise<{ default: string[] }>
@@ -20,28 +12,21 @@ const VERSE_FILES: Record<
   ASV: () => import("holy-bible/bibles/asv.json"),
 };
 
-/**
- * Raw verse strings need two clean-ups: the ASV wraps translator-supplied
- * words in `like this' quote marks, and both translations use "[]" for the
- * one verse number that is empty in this versification (3 John 1:15).
- */
 const cleanVerseText = (raw: string): string =>
   raw === "[]" ? "" : raw.replace(/`([^`]*?)'/g, "$1").trim();
 
-/** Translations already loaded (and cleaned) this session. */
 const loadedTranslations = new Map<BibleVersionId, Promise<string[]>>();
 
-function loadTranslation(version: BibleVersionId): Promise<string[]> {
+const loadTranslation = (version: BibleVersionId): Promise<string[]> => {
   const loadVerseFile = VERSE_FILES[version] || VERSE_FILES.KJV;
   let loading = loadedTranslations.get(version);
   if (!loading) {
     loading = loadVerseFile().then((file) => file.default.map(cleanVerseText));
-    // Forget failed loads so trying again re-attempts the import.
     loading.catch(() => loadedTranslations.delete(version));
     loadedTranslations.set(version, loading);
   }
   return loading;
-}
+};
 
 export class BibleLoadError extends Error {
   offline: boolean;
@@ -52,8 +37,7 @@ export class BibleLoadError extends Error {
   }
 }
 
-/** A translation chunk failed to load, usually offline before first cache. */
-function translationUnavailable(version: BibleVersionId): BibleLoadError {
+const translationUnavailable = (version: BibleVersionId): BibleLoadError => {
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
   return new BibleLoadError(
     offline
@@ -61,15 +45,14 @@ function translationUnavailable(version: BibleVersionId): BibleLoadError {
       : `Couldn't load the ${version} text. Reload the app and try again.`,
     offline,
   );
-}
+};
 
-/** All verses of one chapter, e.g. getChapterVerses("KJV", 43, 3) → John 3. */
-export async function getChapterVerses(
+export const getChapterVerses = async (
   version: BibleVersionId,
   bookId: number,
   chapter: number,
   _signal?: AbortSignal,
-): Promise<BibleVerse[]> {
+): Promise<BibleVerse[]> => {
   let allVerses: string[];
   try {
     allVerses = await loadTranslation(version);
@@ -89,7 +72,7 @@ export async function getChapterVerses(
   if (!verses.length)
     throw new BibleLoadError("This chapter has no verses.", false);
   return verses;
-}
+};
 
 export interface BibleSearchResult {
   bookId: number;
@@ -100,18 +83,12 @@ export interface BibleSearchResult {
 
 export const SEARCH_PAGE_SIZE = 40;
 
-/**
- * Finds every verse that contains all of the query's words
- * (case-insensitive), returned in reading order one page at a time so the
- * UI can "load more". Scanning the whole translation takes only a few
- * milliseconds, so each page request simply searches again.
- */
-export async function searchBibleVerses(
+export const searchBibleVerses = async (
   version: BibleVersionId,
   query: string,
   page: number,
   _signal?: AbortSignal,
-): Promise<{ results: BibleSearchResult[]; total: number }> {
+): Promise<{ results: BibleSearchResult[]; total: number }> => {
   let allVerses: string[];
   try {
     allVerses = await loadTranslation(version);
@@ -122,9 +99,6 @@ export async function searchBibleVerses(
   const searchWords = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!searchWords.length) return { results: [], total: 0 };
 
-  // The flat array is in reading order, so walking it while counting through
-  // the layout table (book by book, chapter by chapter, verse by verse)
-  // tells us the reference of every verse as we pass it.
   const matches: BibleSearchResult[] = [];
   let position = 0;
   for (let bookId = 1; bookId <= CHAPTER_VERSE_COUNTS.length; bookId++) {
@@ -145,4 +119,4 @@ export async function searchBibleVerses(
     results: matches.slice(pageStart, pageStart + SEARCH_PAGE_SIZE),
     total: matches.length,
   };
-}
+};

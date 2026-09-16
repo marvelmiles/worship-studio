@@ -1,17 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 
-// Set SHOW_UPDATE to true to show the modal on load; bump UPDATE_KEY so
-// returning users see it again.
 export const SHOW_UPDATE = true;
 const UPDATE_KEY = "ws-update-2026-08-03-r5";
 
 const CHANGES: { title: string; body: string }[] = [
-  {
-    title: "Songs Are Now Manuscripts",
-    body: "The Songs module is now Manuscripts, because it does more than lyrics: Sunday sermons, announcements and any presentation you want built from written text. Your existing library, settings and backups carry over automatically, and old /songs links still work. Two collections join the list: Sermons and General.",
-  },
   {
     title: "Word-Style Text Formatting",
     body: "Highlight any word, phrase or line in the slide text or the manuscript editor and apply bold, italic, underline, strikethrough or highlight from the new formatting toolbar in the Inspector. Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+D and Ctrl+H work while you type, and Clear formatting strips the marks back off.",
@@ -58,7 +53,8 @@ const CHANGES: { title: string; body: string }[] = [
   },
 ];
 
-export function UpdateModal() {
+export const UpdateModal = () => {
+  const { colors, fonts, glass } = useUITheme();
   const [open, setOpen] = useState(false);
   const [atBottom, setAtBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -112,7 +108,6 @@ export function UpdateModal() {
           boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
         }}
       >
-        {/* Header */}
         <div
           style={{
             padding: "20px 24px 16px",
@@ -122,7 +117,7 @@ export function UpdateModal() {
         >
           <div
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 11,
               fontWeight: 600,
               letterSpacing: 1.2,
@@ -136,7 +131,7 @@ export function UpdateModal() {
           <h2
             style={{
               margin: 0,
-              fontFamily: DISPLAY,
+              fontFamily: fonts.display,
               fontSize: 22,
               fontWeight: 700,
               color: colors.text,
@@ -149,7 +144,7 @@ export function UpdateModal() {
               margin: "6px 0 0",
               fontSize: 13,
               color: colors.sub,
-              fontFamily: UI,
+              fontFamily: fonts.ui,
             }}
           >
             Scroll through the changes below, then click{" "}
@@ -158,7 +153,6 @@ export function UpdateModal() {
           </p>
         </div>
 
-        {/* Scrollable content */}
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -193,7 +187,7 @@ export function UpdateModal() {
                     fontWeight: 800,
                     color: "#ffffff",
                     flexShrink: 0,
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                   }}
                 >
                   {i + 1}
@@ -201,7 +195,7 @@ export function UpdateModal() {
                 <h3
                   style={{
                     margin: 0,
-                    fontFamily: DISPLAY,
+                    fontFamily: fonts.display,
                     fontSize: 16,
                     fontWeight: 600,
                     color: colors.text,
@@ -216,7 +210,7 @@ export function UpdateModal() {
                   fontSize: 13.5,
                   lineHeight: 1.65,
                   color: colors.sub,
-                  fontFamily: UI,
+                  fontFamily: fonts.ui,
                   paddingLeft: 32,
                 }}
               >
@@ -225,11 +219,9 @@ export function UpdateModal() {
             </div>
           ))}
 
-          {/* Spacer so there's always something to scroll to */}
           <div style={{ height: 8 }} />
         </div>
 
-        {/* Footer */}
         <div
           style={{
             padding: "14px 24px",
@@ -246,7 +238,7 @@ export function UpdateModal() {
               padding: "9px 24px",
               borderRadius: 9,
               border: "none",
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 14,
               fontWeight: 700,
               cursor: atBottom ? "pointer" : "not-allowed",
@@ -276,4 +268,4 @@ export function UpdateModal() {
       </div>
     </div>
   );
-}
+};

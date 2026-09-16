@@ -5,17 +5,15 @@ export interface Capability {
   critical: boolean;
 }
 
-function safe(test: () => boolean): boolean {
+const safe = (test: () => boolean): boolean => {
   try {
     return test();
   } catch {
     return false;
   }
-}
+};
 
-// Checks the browser features WorshipStudio relies on. Anything missing is
-// surfaced to the user as a recommendation to upgrade their browser.
-export function checkCapabilities(): Capability[] {
+export const checkCapabilities = (): Capability[] => {
   return [
     {
       id: "indexeddb",
@@ -98,8 +96,8 @@ export function checkCapabilities(): Capability[] {
       ok: safe(() => typeof fetch !== "undefined"),
     },
   ];
-}
+};
 
-export function missingCapabilities(): Capability[] {
+export const missingCapabilities = (): Capability[] => {
   return checkCapabilities().filter((c) => !c.ok);
-}
+};

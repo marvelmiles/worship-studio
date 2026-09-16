@@ -1,16 +1,11 @@
 import { useState } from "react";
-import {
-  GripHorizontal,
-  MonitorPlay,
-  Volume2,
-  VolumeX,
-  X,
-} from "lucide-react";
+import { GripHorizontal, MonitorPlay, Volume2, VolumeX, X } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useFloatingWindow } from "../../hooks/useFloatingWindow";
 import { IconButton } from "../../components/ui/Button";
 import { StreamStatusBadge, connectionBadgeStatus } from "./StreamStatusBadge";
 import { StreamVideo } from "./StreamVideo";
+import { CameraStatusOverlay } from "./components/CameraStatusOverlay";
 import { closeCameraPreview, useCameraPreviewIds } from "./lib/cameraPreview";
 import {
   findCamera,
@@ -22,17 +17,7 @@ import {
 
 const WIDTH = 268;
 
-/**
- * The floating previews of joined cameras, rendered once at the app root beside
- * the stream's own picture-in-picture.
- *
- * A preview is the operator's own monitor of one device: it is not on the main
- * screen, not in a corner of the broadcast and never reaches the projection. It
- * is what they look at before cutting to a camera, so it can be opened for any
- * device in the roster, dragged anywhere, and left open while they work
- * elsewhere in the app.
- */
-export function CameraPreviewWindows() {
+export const CameraPreviewWindows = () => {
   const previewIds = useCameraPreviewIds();
   const session = useStreamSession();
 
@@ -54,9 +39,9 @@ export function CameraPreviewWindows() {
       })}
     </>
   );
-}
+};
 
-function CameraPreviewWindow({
+const CameraPreviewWindow = ({
   camera,
   session,
   index,
@@ -64,15 +49,13 @@ function CameraPreviewWindow({
   camera: StreamCamera;
   session: StreamSessionState;
   index: number;
-}) {
-  const { colors, fonts } = useUITheme();
+}) => {
+  const { colors, fonts, stage, shadows } = useUITheme();
   const { ref, position, handleProps } = useFloatingWindow({
     width: WIDTH,
     estimatedHeight: 200,
     offsetIndex: index,
   });
-  // Silent by default: a preview is opened to see a camera, and several rooms
-  // of sound at once is never what the operator reached for.
   const [muted, setMuted] = useState(true);
   const isPrimary = session.primaryId === camera.deviceId;
   const disconnected = camera.status === "failed";
@@ -92,7 +75,7 @@ function CameraPreviewWindow({
         overflow: "hidden",
         background: colors.panelSolid,
         border: `1px solid ${colors.border}`,
-        boxShadow: "0 18px 45px rgba(0,0,0,0.5)",
+        boxShadow: shadows.overlay,
       }}
     >
       <div
@@ -106,7 +89,11 @@ function CameraPreviewWindow({
           borderBottom: `1px solid ${colors.border}`,
         }}
       >
-        <GripHorizontal size={14} color={colors.dim} style={{ flexShrink: 0 }} />
+        <GripHorizontal
+          size={14}
+          color={colors.dim}
+          style={{ flexShrink: 0 }}
+        />
         <span
           className="ws-ellipsis"
           style={{
@@ -130,27 +117,15 @@ function CameraPreviewWindow({
         style={{
           position: "relative",
           aspectRatio: "16 / 9",
-          background: "#000",
+          background: stage.surface,
         }}
       >
         <StreamVideo stream={camera.stream} muted={muted} />
-        {(disconnected || !camera.stream) && (
-          <span
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "grid",
-              placeItems: "center",
-              background: disconnected ? "rgba(0,0,0,0.55)" : "transparent",
-              pointerEvents: "none",
-              color: "rgba(255,255,255,0.8)",
-              fontFamily: fonts.ui,
-              fontSize: 12,
-            }}
-          >
-            {disconnected ? "Disconnected" : "Connecting…"}
-          </span>
-        )}
+        <CameraStatusOverlay
+          status={camera.status}
+          hasStream={Boolean(camera.stream)}
+          size="compact"
+        />
       </div>
 
       <div
@@ -208,4 +183,4 @@ function CameraPreviewWindow({
       </div>
     </div>
   );
-}
+};

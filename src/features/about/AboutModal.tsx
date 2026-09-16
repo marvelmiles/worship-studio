@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, Heart, Mail } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
 import { SectionTitle } from "../../components/ui/Field";
 
@@ -74,7 +74,8 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
-export function AboutModal() {
+export const AboutModal = () => {
+  const { colors, fonts } = useUITheme();
   const overlay = useStore((s) => s.overlay);
   const close = useStore((s) => s.closeOverlay);
   const [open, setOpen] = useState<number | null>(0);
@@ -91,7 +92,7 @@ export function AboutModal() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: 0.6,
@@ -103,7 +104,7 @@ export function AboutModal() {
       </div>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 14,
           color: colors.text,
           lineHeight: 1.7,
@@ -118,7 +119,7 @@ export function AboutModal() {
       </p>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 14,
           color: colors.sub,
           lineHeight: 1.7,
@@ -150,7 +151,7 @@ export function AboutModal() {
                   border: "none",
                   cursor: "pointer",
                   textAlign: "left",
-                  fontFamily: UI,
+                  fontFamily: fonts.ui,
                   fontSize: 14,
                   fontWeight: 600,
                   color: isOpen ? colors.accentSoft : colors.text,
@@ -170,7 +171,7 @@ export function AboutModal() {
               {isOpen && (
                 <p
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 13.5,
                     color: colors.sub,
                     lineHeight: 1.7,
@@ -189,7 +190,7 @@ export function AboutModal() {
       <SectionTitle>Scripture Data &amp; Licensing</SectionTitle>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13.5,
           color: colors.sub,
           lineHeight: 1.7,
@@ -211,7 +212,7 @@ export function AboutModal() {
       </p>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13.5,
           color: colors.sub,
           lineHeight: 1.7,
@@ -235,7 +236,7 @@ export function AboutModal() {
       <SectionTitle>Contact</SectionTitle>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13.5,
           color: colors.sub,
           lineHeight: 1.6,
@@ -254,7 +255,7 @@ export function AboutModal() {
           padding: "11px 16px",
           borderRadius: 11,
           textDecoration: "none",
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontWeight: 600,
           fontSize: 14,
           color: "#ffffff",
@@ -266,4 +267,4 @@ export function AboutModal() {
       </a>
     </Modal>
   );
-}
+};

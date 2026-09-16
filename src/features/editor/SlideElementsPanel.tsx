@@ -67,18 +67,16 @@ const HINTS = {
   media:
     "Drag the picture or clip on the slide to move it, its corners to resize it, and the arrow keys to nudge it.",
   text: "Write straight into the box on the slide. Drag its edge to move it, its corners to resize it, and style the words from the Text section above.",
-  /** Nothing can be added, but something placed earlier is still on the slide. */
   locked:
     "This document's layout places nothing new on a slide. Select what is already on this one to adjust or remove it.",
 } as const;
 
-/** "a picture", "a picture or a text box", "a picture, a clip or a text box". */
-function joinPhrases(phrases: string[]): string {
+const joinPhrases = (phrases: string[]): string => {
   if (phrases.length < 2) return phrases[0] ?? "";
   return `${phrases.slice(0, -1).join(", ")} or ${phrases[phrases.length - 1]}`;
-}
+};
 
-function placementHint(capabilities: SlideElementCapabilities): string {
+const placementHint = (capabilities: SlideElementCapabilities): string => {
   const placeable = joinPhrases(
     [
       capabilities.images ? "a picture" : "",
@@ -87,32 +85,25 @@ function placementHint(capabilities: SlideElementCapabilities): string {
     ].filter(Boolean),
   );
   return `Place ${placeable} on the slide, then drag it where the layout needs it. Each one keeps its own size, position and settings, so a slide can be laid out however the message needs.`;
-}
+};
 
 interface SlideElementsPanelProps {
   slide: Slide;
   editor: DeckEditor;
   selected: SlideElementRef | null;
   onSelect: (element: SlideElementRef | null) => void;
-  /** What this document's layout allows onto a slide. */
   capabilities: SlideElementCapabilities;
   onAddTextBox: () => void;
 }
 
-/**
- * The inspector's side of everything placed on a slide: what to add, and every
- * setting for the one being worked on. Position, size and stacking are handled
- * on the slide itself (features/editor/SlideElementOverlay); this panel owns
- * what a drag cannot express.
- */
-export function SlideElementsPanel({
+export const SlideElementsPanel = ({
   slide,
   editor,
   selected,
   onSelect,
   capabilities,
   onAddTextBox,
-}: SlideElementsPanelProps) {
+}: SlideElementsPanelProps) => {
   const { colors, fonts } = useUITheme();
   const library = useStore((s) => s.media);
   const [picking, setPicking] = useState<"image" | "video" | null>(null);
@@ -154,8 +145,6 @@ export function SlideElementsPanel({
     editor.updateSlideTextBox(slide.id, textBox.id, changes);
   };
 
-  // Only media-library uploads record a length; asset-library pictures are
-  // never clips, so nothing is lost by looking there alone.
   const duration =
     media && placedMediaSource(media) === "media"
       ? library.find((item) => item.id === media.mediaId)?.duration
@@ -342,7 +331,7 @@ export function SlideElementsPanel({
       )}
     </>
   );
-}
+};
 
 interface VideoPlacementControlsProps {
   settings: VideoSettings;
@@ -350,11 +339,11 @@ interface VideoPlacementControlsProps {
   onChange: (changes: Partial<VideoSettings>) => void;
 }
 
-function VideoPlacementControls({
+const VideoPlacementControls = ({
   settings,
   duration,
   onChange,
-}: VideoPlacementControlsProps) {
+}: VideoPlacementControlsProps) => {
   return (
     <>
       <Field
@@ -400,4 +389,4 @@ function VideoPlacementControls({
       />
     </>
   );
-}
+};

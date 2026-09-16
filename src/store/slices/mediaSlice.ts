@@ -21,10 +21,6 @@ import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
 export interface MediaUpdateOptions {
-  /**
-   * Moves `updatedAt` to now. Off for writes that aren't edits, such as a pin,
-   * so the library's "recently modified" order keeps meaning "recently edited".
-   */
   touch?: boolean;
 }
 
@@ -32,7 +28,6 @@ export interface MediaSlice {
   media: MediaItem[];
 
   uploadMedia: (kind: MediaKind, file: File, name?: string) => Promise<string>;
-  /** False when storage is full, or the item is gone, and nothing was written. */
   updateMedia: (
     id: string,
     changes: Partial<MediaItem>,
@@ -40,11 +35,6 @@ export interface MediaSlice {
   ) => boolean;
   removeMedia: (id: string) => Promise<void>;
   useImageAsBackground: (id: string) => string;
-  /**
-   * Toggles whether an image is one of the reusable backgrounds. Adds it when it
-   * isn't, removes every background sharing its file when it is. Returns the new
-   * state: true if the image is now a background, false if it was removed.
-   */
   toggleImageBackground: (id: string) => boolean;
 }
 
@@ -140,8 +130,6 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
   },
 
   removeMedia: async (id) => {
-    // A video background, or a sound taken from the clip, only plays the clip's
-    // file, so it goes with the clip rather than being left with nothing to play.
     const videoBackgroundIds = get()
       .backgrounds.filter((b) => b.type === "video" && b.mediaId === id)
       .map((b) => b.id);
@@ -178,8 +166,6 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     if (blockWrite(get)) return "";
     const item = get().media.find((m) => m.id === id && m.kind === "image");
     if (!item) return "";
-    // Shares the stored file instead of duplicating the bytes; deletion of
-    // either owner keeps the blob alive while the other still references it.
     const background: Background = {
       id: uid(),
       name: item.name,
@@ -200,11 +186,8 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     if (blockWrite(get)) return false;
     const item = get().media.find((m) => m.id === id && m.kind === "image");
     if (!item) return false;
-    // An image is "used as a background" when a background references its file.
     const existing = get().backgrounds.filter((b) => b.blobId === item.id);
     if (existing.length > 0) {
-      // Removing the background keeps the shared file alive, since the media item
-      // still owns it (see removeBackground's stillUsed check).
       for (const background of existing)
         void get().removeBackground(background.id);
       return false;

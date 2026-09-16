@@ -1,5 +1,5 @@
 import { Clock } from "lucide-react";
-import { fade } from "../../../theme/tokens";
+import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { timeAgo } from "../utils";
@@ -9,7 +9,7 @@ interface RecentActivitiesProps {
   activities: Activity[];
 }
 
-export function RecentActivities({ activities }: RecentActivitiesProps) {
+export const RecentActivities = ({ activities }: RecentActivitiesProps) => {
   const { colors, glass, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -105,4 +105,4 @@ export function RecentActivities({ activities }: RecentActivitiesProps) {
       </div>
     </div>
   );
-}
+};

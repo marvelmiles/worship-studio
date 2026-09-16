@@ -5,10 +5,6 @@ import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
 export interface ThemeUpdateOptions {
-  /**
-   * Moves `updatedAt` to now. Off for writes that aren't edits, such as
-   * keep-on-reset, so "recently modified" keeps meaning "recently edited".
-   */
   touch?: boolean;
 }
 

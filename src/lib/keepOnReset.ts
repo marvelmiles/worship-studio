@@ -1,17 +1,5 @@
 import type { AudioItem, Background, Manuscript, Theme } from "../types";
 
-/**
- * "Keep on reset": manuscripts and custom themes the user registers to survive
- * "Reset App to Defaults". Everything else goes back to first-run state.
- *
- * A kept item keeps its own configuration exactly as it was. What it *points
- * at* can't always be kept, though: a reset wipes custom backgrounds, audio
- * and uploaded files. So a kept manuscript that used a theme which also
- * survived still uses it, and one whose theme was wiped falls back to the
- * default manuscript theme. The same applies to backgrounds and audio.
- */
-
-/** Manuscripts and custom themes share one budget. */
 export const MAX_KEPT_ITEMS = 5;
 
 export type KeepableKind = "manuscript" | "theme";
@@ -22,10 +10,6 @@ interface Keepable {
   deleted?: boolean;
 }
 
-/**
- * Built-in manuscripts and themes are restored by a reset anyway, and trashed
- * manuscripts aren't worth a slot, so neither can hold one.
- */
 export const canKeep = (item: Keepable): boolean =>
   !item.builtIn && !item.deleted;
 
@@ -36,22 +20,10 @@ export const keptManuscripts = (manuscripts: Manuscript[]): Manuscript[] =>
   manuscripts.filter(isKept);
 export const keptThemes = (themes: Theme[]): Theme[] => themes.filter(isKept);
 
-/** How many of the five slots are in use, across both kinds. */
 export const keptCount = (manuscripts: Manuscript[], themes: Theme[]): number =>
   keptManuscripts(manuscripts).length + keptThemes(themes).length;
 
-export const keptSlotsLeft = (
-  manuscripts: Manuscript[],
-  themes: Theme[],
-): number => Math.max(0, MAX_KEPT_ITEMS - keptCount(manuscripts, themes));
-
-/**
- * Repoints a kept manuscript at things that still exist after the reset.
- * Anything that survived is left alone, so a kept manuscript paired with a kept
- * theme keeps that pairing; a reference to something wiped falls back to the
- * default.
- */
-export function rehomeKeptManuscript(
+export const rehomeKeptManuscript = (
   manuscript: Manuscript,
   surviving: {
     themeIds: Set<string>;
@@ -59,12 +31,10 @@ export function rehomeKeptManuscript(
     audioIds: Set<string>;
     defaultThemeId: string;
   },
-): Manuscript {
+): Manuscript => {
   const themeOk = surviving.themeIds.has(manuscript.defaultThemeId);
   const slides = manuscript.slides.map((slide) => {
     const { backgroundId, audioId } = slide.overrides;
-    // Slide-level overrides pointing at wiped assets are dropped rather than
-    // redirected: the slide falls back to what the manuscript/theme provides.
     const staleBackground =
       backgroundId && !surviving.backgroundIds.has(backgroundId);
     const staleAudio = audioId && !surviving.audioIds.has(audioId);
@@ -92,17 +62,16 @@ export function rehomeKeptManuscript(
         : null,
     slides,
   };
-}
+};
 
-/** The theme equivalent: a kept theme whose custom background was wiped falls back to a built-in one. */
-export function rehomeKeptTheme(
+export const rehomeKeptTheme = (
   theme: Theme,
   surviving: {
     backgroundIds: Set<string>;
     audioIds: Set<string>;
     defaultBackgroundId: string;
   },
-): Theme {
+): Theme => {
   return {
     ...theme,
     backgroundId: surviving.backgroundIds.has(theme.backgroundId)
@@ -113,13 +82,9 @@ export function rehomeKeptTheme(
         ? theme.defaultAudioId
         : null,
   };
-}
+};
 
-/**
- * Works out the manuscripts and themes a reset should end up with: the built-in
- * defaults, plus every kept item repointed at what survived alongside it.
- */
-export function survivingAfterReset(options: {
+export const survivingAfterReset = (options: {
   manuscripts: Manuscript[];
   themes: Theme[];
   seedManuscripts: Manuscript[];
@@ -132,10 +97,7 @@ export function survivingAfterReset(options: {
   themes: Theme[];
   keptManuscripts: Manuscript[];
   keptThemes: Theme[];
-} {
-  // The UI stops at five, but an imported backup can carry records marked by
-  // someone else, so the cap is enforced here too. Themes take precedence: a
-  // kept manuscript paired with a kept theme should keep that pairing.
+} => {
   const keptThemeList = keptThemes(options.themes).slice(0, MAX_KEPT_ITEMS);
   const manuscriptBudget = Math.max(0, MAX_KEPT_ITEMS - keptThemeList.length);
   const themes = [...options.builtInThemes, ...keptThemeList];
@@ -147,8 +109,6 @@ export function survivingAfterReset(options: {
     options.builtInThemes[0]?.backgroundId ||
     options.builtInBackgrounds[0]?.id ||
     "";
-  // The fallback theme must itself be surviving, or kept manuscripts would
-  // point at nothing; a missing default lands on the first built-in theme.
   const defaultThemeId = themeIds.has(options.defaultThemeId)
     ? options.defaultThemeId
     : options.builtInThemes[0]?.id || "";
@@ -173,4 +133,4 @@ export function survivingAfterReset(options: {
     keptManuscripts: rehomedManuscripts,
     keptThemes: rehomedThemes,
   };
-}
+};

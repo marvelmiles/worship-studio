@@ -30,8 +30,6 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
   refreshStorage: async () => {
     const estimate = await estimateQuota();
     const state = get();
-    // Binary payloads live in the "files" store as Blobs; their footprint is
-    // the recorded file size, never a serialized copy.
     const fileBytes =
       state.media.reduce((n, m) => n + (m.size || 0), 0) +
       state.backgrounds.reduce(

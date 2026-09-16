@@ -10,15 +10,10 @@ interface BackgroundVideoLayerProps {
   style?: CSSProperties;
 }
 
-/**
- * A clip playing behind the words: silent, looping inside its trim, and graded
- * the way it was tuned in the video editor. The room hears the background audio,
- * never the clip.
- */
-export function BackgroundVideoLayer({
+export const BackgroundVideoLayer = ({
   item,
   style,
-}: BackgroundVideoLayerProps) {
+}: BackgroundVideoLayerProps) => {
   const settings = useMemo(
     () => ({ ...videoSettingsOf(item), loop: true, muted: true }),
     [item],
@@ -41,4 +36,4 @@ export function BackgroundVideoLayer({
       style={style}
     />
   );
-}
+};

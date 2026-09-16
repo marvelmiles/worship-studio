@@ -47,18 +47,11 @@ const COPY: Record<
 const matches = (name: string, term: string): boolean =>
   !term || name.toLowerCase().includes(term);
 
-/**
- * Picks a picture or clip to place on a slide. Pictures come from both places
- * the studio keeps them: the media library, and the picture backgrounds in the
- * asset library, so one already behind a slide can be placed on another without
- * being uploaded twice. Files uploaded from here land in the media library like
- * any other, so the same file can be reused instead of being stored again.
- */
-export function SlideMediaPicker({
+export const SlideMediaPicker = ({
   kind,
   onPick,
   onClose,
-}: SlideMediaPickerProps) {
+}: SlideMediaPickerProps) => {
   const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
@@ -91,8 +84,6 @@ export function SlideMediaPicker({
     onClose();
   };
 
-  // The upload flow labels the files first, so the freshly saved records are
-  // read back from the store once it reports the ids it wrote.
   const upload = (files: File[]) => {
     if (!files.length) return;
     beginUpload(kind, files, (ids) => {
@@ -191,16 +182,15 @@ export function SlideMediaPicker({
       )}
     </Modal>
   );
-}
+};
 
-/** A run of tiles under its heading, which only appears once there are two. */
-function PickerGroup({
+const PickerGroup = ({
   title,
   children,
 }: {
   title: string | null;
   children: ReactNode;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <div style={{ marginBottom: 16 }}>
@@ -230,9 +220,9 @@ function PickerGroup({
       </div>
     </div>
   );
-}
+};
 
-function PickerTile({
+const PickerTile = ({
   name,
   meta,
   onPick,
@@ -242,7 +232,7 @@ function PickerTile({
   meta?: string;
   onPick: () => void;
   children: ReactNode;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -294,4 +284,4 @@ function PickerTile({
       </div>
     </button>
   );
-}
+};

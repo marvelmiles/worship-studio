@@ -5,7 +5,7 @@ interface ProgressBarProps {
   label?: string;
 }
 
-export function ProgressBar({ value, label }: ProgressBarProps) {
+export const ProgressBar = ({ value, label }: ProgressBarProps) => {
   const { colors, controls, fonts, fills } = useUITheme();
   const pct = Math.max(0, Math.min(100, value));
   return (
@@ -47,4 +47,4 @@ export function ProgressBar({ value, label }: ProgressBarProps) {
       </div>
     </div>
   );
-}
+};

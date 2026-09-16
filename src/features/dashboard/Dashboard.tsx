@@ -8,7 +8,7 @@ import { RecentActivities } from "./components/RecentActivities";
 import { ManuscriptsByCategory } from "./components/ManuscriptsByCategory";
 import { MostUsedArtifacts } from "./components/MostUsedArtifacts";
 
-export function Dashboard() {
+export const Dashboard = () => {
   useDocumentTitle("Dashboard · WorshipStudio");
   const {
     greeting,
@@ -62,4 +62,4 @@ export function Dashboard() {
       </div>
     </div>
   );
-}
+};

@@ -8,11 +8,6 @@ import {
 import type { SliceCreator } from "../storeTypes";
 
 export interface KeepOnResetSlice {
-  /**
-   * Registers (or un-registers) a manuscript or custom theme as "keep on
-   * reset". Refuses once all five slots are taken; un-registering is always
-   * allowed.
-   */
   toggleKeepOnReset: (kind: KeepableKind, id: string) => void;
 }
 
@@ -40,11 +35,7 @@ export const createKeepOnResetSlice: SliceCreator<KeepOnResetSlice> = (
       return;
     }
 
-    // `undefined` rather than `false` so un-kept records stay as small as they
-    // were before the feature existed.
     const keepOnReset = registering ? true : undefined;
-    // Keeping an item is not an edit, so `updatedAt` is left where the last
-    // edit put it and the toggle is recorded as a mark instead.
     const mark = keepMark(registering);
     let label: string;
     if (kind === "manuscript") {

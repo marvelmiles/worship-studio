@@ -8,12 +8,12 @@ interface AnimationPickerProps {
   inheritLabel?: string;
 }
 
-export function AnimationPicker({
+export const AnimationPicker = ({
   label = "Animation",
   value,
   onSelect,
   inheritLabel,
-}: AnimationPickerProps) {
+}: AnimationPickerProps) => {
   const options = [
     ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
     ...ANIMATION_OPTIONS,
@@ -27,4 +27,4 @@ export function AnimationPicker({
       />
     </Field>
   );
-}
+};

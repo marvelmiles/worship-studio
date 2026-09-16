@@ -9,36 +9,25 @@ import {
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { ReceiverLobby } from "./ReceiverPanel";
-import { SenderLobby } from "./SenderPanel";
+import { ReceiverLobby } from "./receiver/ReceiverLobby";
+import { SenderLobby } from "./sender/SenderLobby";
 import { CameraPanel } from "./CameraPanel";
 import { useStreamSession } from "./lib/streamSession";
-
 import { InfoTip } from "../../components/ui/InfoTip";
+
 type Role = "choose" | "receive" | "send";
 
-/**
- * Internal camera streaming over the local WiFi, browser only. Either device
- * can play either role: one shows an incoming camera and can project it, the
- * other shares its own camera. They pair automatically on the same WiFi, or by
- * scanning a QR code, or by pasting a code shared through any app. Nothing
- * leaves the local network once connected.
- */
-export function StreamPage() {
+const STREAM_SUBTITLE = "Share and project cameras over WiFi.";
+
+export const StreamPage = () => {
   useDocumentTitle("Stream · WorshipStudio");
   const { colors, fonts } = useUITheme();
   const [role, setRole] = useState<Role>("choose");
 
-  // getUserMedia and WebRTC both require a secure context. localhost counts;
-  // a plain http:// LAN address does not, so say so plainly instead of failing
-  // deep inside the camera call.
   if (!window.isSecureContext) {
     return (
       <div className="ws-page">
-        <PageHeader
-          title="Stream"
-          subtitle="Share a camera between devices over your WiFi."
-        />
+        <PageHeader title="Stream" subtitle={STREAM_SUBTITLE} />
         <div
           style={{
             maxWidth: 560,
@@ -85,10 +74,7 @@ export function StreamPage() {
 
   return (
     <div className="ws-page">
-      <PageHeader
-        title="Stream"
-        subtitle="Share a camera between devices over your WiFi, then project it on a display."
-      />
+      <PageHeader title="Stream" subtitle={STREAM_SUBTITLE} />
 
       <div
         style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 20 }}
@@ -129,17 +115,9 @@ export function StreamPage() {
       </div>
     </div>
   );
-}
+};
 
-/**
- * The camera roster on the Stream page itself.
- *
- * Shown for the same reason the overlay controls below it are: once the
- * broadcast has been popped out to the floating window, this page is where the
- * operator is standing, and deciding which of the joined cameras fills the
- * screen should not mean maximising the stage back over their work first.
- */
-function BroadcastCamerasSection() {
+const BroadcastCamerasSection = () => {
   const { colors, fonts } = useUITheme();
   const session = useStreamSession();
 
@@ -191,9 +169,9 @@ function BroadcastCamerasSection() {
       <CameraPanel />
     </section>
   );
-}
+};
 
-function RoleCard({
+const RoleCard = ({
   icon: Icon,
   title,
   body,
@@ -205,7 +183,7 @@ function RoleCard({
   body: string;
   cta: string;
   onClick: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -273,4 +251,4 @@ function RoleCard({
       </span>
     </button>
   );
-}
+};

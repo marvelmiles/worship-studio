@@ -6,24 +6,25 @@ interface FullscreenControls {
   toggle: () => void;
 }
 
-/** Tracks and controls fullscreen for a target element. */
-export function useFullscreen(ref: RefObject<HTMLElement>): FullscreenControls {
+export const useFullscreen = (
+  ref: RefObject<HTMLElement>,
+): FullscreenControls => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
+    const handleChange = () =>
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
   }, []);
 
   const toggle = useCallback(() => {
-    try {
-      if (document.fullscreenElement) void document.exitFullscreen?.();
-      else void ref.current?.requestFullscreen?.();
-    } catch {
-      /* fullscreen can be blocked by the browser; ignore */
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => {});
+      return;
     }
+    void ref.current?.requestFullscreen?.().catch(() => {});
   }, [ref]);
 
   return { isFullscreen, toggle };
-}
+};

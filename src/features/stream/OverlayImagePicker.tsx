@@ -19,7 +19,6 @@ export interface OverlayImageChoice extends OverlayImageRef {
 }
 
 interface PickableImage extends OverlayImageChoice {
-  /** Rendered as the row's preview, since the two libraries draw differently. */
   preview: ReactNode;
 }
 
@@ -33,16 +32,7 @@ const SOURCE_EMPTY: Record<SlideMediaSource, string> = {
   background: "Add a picture background in the asset library to use it here.",
 };
 
-/**
- * Picks a picture for the broadcast from either library that holds one.
- *
- * Pictures live in two places in this app: uploads in the media module, and
- * picture backgrounds in the asset library. Mid-service an operator reaching
- * for a logo, a lower-third plate or a sponsor card has no reason to remember
- * which one it was filed under, so both are offered side by side and the
- * choice carries its own source back (see OverlayPicture, which resolves it).
- */
-export function OverlayImagePicker({
+export const OverlayImagePicker = ({
   open,
   title = "Add a picture",
   onPick,
@@ -53,9 +43,8 @@ export function OverlayImagePicker({
   title?: string;
   onPick: (choice: OverlayImageChoice) => void;
   onClose: () => void;
-  /** Offers a "no picture" action, for the settings that allow one. */
   onClear?: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -186,4 +175,4 @@ export function OverlayImagePicker({
       )}
     </Modal>
   );
-}
+};

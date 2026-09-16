@@ -1,17 +1,13 @@
 import { BookOpen, RotateCcw } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import type { BibleBook } from "../../data/bibleBooks";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Button } from "../../components/ui/Button";
 import { Spinner } from "../../components/ui/Spinner";
 import { useBibleChapter } from "./useBibleChapter";
 import { tileStyle } from "./tileStyle";
 
-/**
- * Third step of the Bible read tab: the verse-number grid for one chapter,
- * with a shortcut to read the whole chapter instead.
- */
-export function VersesStep({
+export const VersesStep = ({
   version,
   book,
   chapter,
@@ -23,7 +19,8 @@ export function VersesStep({
   chapter: number;
   onOpenVerse: (verse: number) => void;
   onReadWholeChapter: () => void;
-}) {
+}) => {
+  const { colors, fonts } = useUITheme();
   const { verses, loading, error, retry } = useBibleChapter(
     version,
     book.id,
@@ -46,7 +43,7 @@ export function VersesStep({
       >
         <h2
           style={{
-            fontFamily: DISPLAY,
+            fontFamily: fonts.display,
             fontSize: 22,
             fontWeight: 600,
             color: colors.text,
@@ -63,7 +60,7 @@ export function VersesStep({
       </div>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13,
           color: colors.sub,
           margin: "0 0 16px",
@@ -80,7 +77,7 @@ export function VersesStep({
         <div style={{ padding: 26, textAlign: "center" }}>
           <p
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               color: colors.sub,
               marginTop: 0,
               lineHeight: 1.6,
@@ -118,4 +115,4 @@ export function VersesStep({
       )}
     </div>
   );
-}
+};

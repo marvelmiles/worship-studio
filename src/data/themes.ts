@@ -1,11 +1,5 @@
 import type { Theme } from "../types";
 
-/**
- * Presented scripture reads as two sizes: the passage itself, and the
- * reference line under it naming book, chapter and verse. The reference sits
- * two steps down the font-size scale so it reads as a caption without
- * shrinking away from the back of the room.
- */
 export const SCRIPTURE_PASSAGE_FONT_SIZE = 6.7;
 export const SCRIPTURE_REFERENCE_FONT_SIZE = 6.5;
 

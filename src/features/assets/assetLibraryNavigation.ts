@@ -7,17 +7,10 @@ import { overlayTarget } from "../../lib/overlayTarget";
 export type AssetSection = "backgrounds" | "audio";
 
 export interface OpenAssetLibraryOptions {
-  /** The item to scroll to and ring once the library is open. */
   itemId?: string | null;
-  /** Shows this section alone, the way an editor's "Manage" button asks for it. */
   locked?: boolean;
 }
 
-/**
- * Where an editor opened from the asset library goes back to: the page the
- * library was open over, with the library reopened on the section it was left
- * on, so tuning a clip or a sound is a round trip rather than a detour.
- */
 const returnStateSchema = z.object({
   returnTo: z.object({
     path: z.string().startsWith("/"),
@@ -28,7 +21,7 @@ const returnStateSchema = z.object({
 
 export type AssetLibraryReturn = z.infer<typeof returnStateSchema>["returnTo"];
 
-export function useOpenAssetLibrary() {
+export const useOpenAssetLibrary = () => {
   const openOverlay = useStore((s) => s.openOverlay);
   return useCallback(
     (section: AssetSection, options: OpenAssetLibraryOptions = {}) =>
@@ -37,13 +30,9 @@ export function useOpenAssetLibrary() {
       }),
     [openOverlay],
   );
-}
+};
 
-/**
- * Leaves the library for an item's editor, carrying the way back with it. The
- * library is closed first so the editor is not opened underneath it.
- */
-export function useOpenAssetEditor() {
+export const useOpenAssetEditor = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const closeOverlay = useStore((s) => s.closeOverlay);
@@ -61,7 +50,7 @@ export function useOpenAssetEditor() {
     },
     [closeOverlay, locked, location.pathname, location.search, navigate],
   );
-}
+};
 
 const reopenStateSchema = z.object({
   reopenAssets: z.object({
@@ -72,25 +61,15 @@ const reopenStateSchema = z.object({
 });
 
 export interface EditorReturn {
-  /** True when the editor was opened from the asset library. */
   fromLibrary: boolean;
   back: () => void;
 }
 
-/**
- * The editor side of the round trip. Without a library to return to, `back`
- * goes to `fallbackPath`, which is where the editor's own module lives, opening
- * the library on `fallbackSection` when the editor has no module page of its own.
- *
- * The library is reopened by the page arrived at rather than from here, so a
- * navigation held back by an unsaved-changes prompt never opens it over the
- * editor that is still on screen.
- */
-export function useEditorReturn(
+export const useEditorReturn = (
   fallbackPath: string,
   itemId: string,
   fallbackSection?: AssetSection,
-): EditorReturn {
+): EditorReturn => {
   const navigate = useNavigate();
   const location = useLocation();
   const parsed = returnStateSchema.safeParse(location.state);
@@ -108,10 +87,9 @@ export function useEditorReturn(
   }, [fallbackPath, fallbackSection, itemId, navigate, returnTo]);
 
   return { fromLibrary: Boolean(returnTo), back };
-}
+};
 
-/** Reopens the asset library on a page an editor returned to. */
-export function useReopenAssetLibraryOnArrival(): void {
+export const useReopenAssetLibraryOnArrival = (): void => {
   const navigate = useNavigate();
   const location = useLocation();
   const openLibrary = useOpenAssetLibrary();
@@ -126,4 +104,4 @@ export function useReopenAssetLibraryOnArrival(): void {
       state: null,
     });
   }, [location, navigate, openLibrary]);
-}
+};

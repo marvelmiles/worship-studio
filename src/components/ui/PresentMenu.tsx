@@ -8,37 +8,18 @@ import { Button } from "./Button";
 import { Popover } from "./Popover";
 
 interface PresentMenuProps {
-  /**
-   * Starts the presentation. `pip` asks for the floating presenter (used by
-   * Go Live, so the operator keeps the app) instead of the fullscreen stage.
-   */
   onPresent: (options: { pip: boolean }) => void;
   label?: string;
   size?: "sm" | "md" | "lg";
   variant?: "primary" | "ghost" | "subtle";
   disabled?: boolean;
   title?: string;
-  /** Stretches the trigger across whatever room its row has left. */
   fill?: boolean;
-  /**
-   * Shows each option's keyboard shortcut. Only true where those shortcuts are
-   * actually bound, which is inside an editor.
-   */
   hints?: boolean;
-  /** Renders a custom trigger instead of the default button. */
   children?: ReactNode;
 }
 
-/**
- * The Present control used across the app. Presenting is two different jobs
- * and the button used to guess which one you meant, so it now asks:
- *
- * - **Go live** projects to the audience display straight away and leaves you
- *   in the floating presenter, so you can keep working in the app.
- * - **Preview** opens the presentation on this screen only, nothing is
- *   projected.
- */
-export function PresentMenu({
+export const PresentMenu = ({
   onPresent,
   label = "Present",
   size = "sm",
@@ -48,7 +29,7 @@ export function PresentMenu({
   fill,
   hints,
   children,
-}: PresentMenuProps) {
+}: PresentMenuProps) => {
   const { colors } = useUITheme();
   const present = usePresentActions(onPresent);
   const [open, setOpen] = useState(false);
@@ -118,9 +99,9 @@ export function PresentMenu({
       </div>
     </Popover>
   );
-}
+};
 
-function MenuOption({
+const MenuOption = ({
   icon: Icon,
   title: optionTitle,
   description,
@@ -134,7 +115,7 @@ function MenuOption({
   hint?: string;
   accent?: boolean;
   onClick: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -214,4 +195,4 @@ function MenuOption({
       </span>
     </button>
   );
-}
+};

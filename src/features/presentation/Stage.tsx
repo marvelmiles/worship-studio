@@ -36,34 +36,20 @@ interface StageProps {
   videoRef?: Ref<VideoSurfaceHandle>;
   onVideoTime?: (time: number, duration: number) => void;
   onVideoEnded?: () => void;
-  /**
-   * The clip's own element, held outside this tree so moving between the stage
-   * and the floating presenter never interrupts playback. Without one the stage
-   * mounts a surface of its own, which is how the projected window runs.
-   */
   videoHost?: HTMLElement | null;
 }
 
-function viewSize(view: PresentationView): CSSProperties {
+const viewSize = (view: PresentationView): CSSProperties => {
   if (view === "fill") return { width: "100vw", height: "100vh" };
   if (view === "cover")
     return { width: "max(100vw,177.78vh)", height: "max(100vh,56.25vw)" };
   return { width: "min(100vw,177.78vh)", height: "min(100vh,56.25vw)" };
-}
+};
 
-/**
- * Slides are laid out on a 16:9 canvas, so on any screen that isn't exactly
- * 16:9 (most TVs once the browser's own chrome is accounted for, projectors,
- * ultrawides) the canvas is letterboxed. This layer paints the area around it
- * edge to edge so the audience never sees bare black bars: the theme
- * background for text slides, and a blurred, cover-scaled copy of the picture
- * for image slides. Picture and clip backgrounds are painted by a
- * BackgroundSurface on top of this layer, so their own settings apply.
- */
-function backdropLayerStyle(
+const backdropLayerStyle = (
   background: Background | null,
   ambientUrl: string | null,
-): CSSProperties {
+): CSSProperties => {
   if (background) return resolveBgStyle(background);
   if (ambientUrl) {
     return {
@@ -71,24 +57,22 @@ function backdropLayerStyle(
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundColor: "#000",
-      // Blurring samples pixels from outside the element, so the layer is
-      // scaled up slightly to keep the blur from feathering in at the edges.
       filter: "blur(48px) brightness(0.55) saturate(1.1)",
       transform: "scale(1.12)",
     };
   }
   return { background: "#000" };
-}
+};
 
-function resolveBgStyle(background: Background | null): CSSProperties {
+const resolveBgStyle = (background: Background | null): CSSProperties => {
   if (!background) return { background: "#000" };
   if (background.type === "image" || background.type === "video")
     return { background: "#000" };
   if (background.type === "solid") return { background: background.color };
   return { background: background.css || "#000" };
-}
+};
 
-export function Stage({
+export const Stage = ({
   slideIndex,
   content,
   animation,
@@ -104,7 +88,7 @@ export function Stage({
   onVideoTime,
   onVideoEnded,
   videoHost,
-}: StageProps) {
+}: StageProps) => {
   const variant = ANIMATION_VARIANTS[animation] || ANIMATION_VARIANTS.fade;
   const transition = buildTransition(durationMs, easing);
 
@@ -115,8 +99,6 @@ export function Stage({
   const backdrop = content.kind === "text" ? content.background : null;
   const backdropImage =
     content.kind === "text" ? content.backgroundImage : null;
-  // Image slides have no theme behind them, so the picture itself becomes the
-  // ambient backdrop rather than leaving the surrounding area black.
   const ambientUrl = useBlobUrl(
     content.kind === "image" ? content.item.id : null,
   );
@@ -207,8 +189,6 @@ export function Stage({
               />
             )}
             {content.kind === "image" && (
-              // Transparent so a "contain"-fitted picture shows the ambient
-              // backdrop in its own letterbox area instead of black.
               <ImageSurface
                 item={content.item}
                 style={{ background: "transparent" }}
@@ -236,4 +216,4 @@ export function Stage({
       </AnimatePresence>
     </div>
   );
-}
+};

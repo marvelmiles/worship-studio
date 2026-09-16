@@ -19,16 +19,6 @@ import { prefixLength } from "./lists";
 import { lineBounds, resolveRange } from "./textRange";
 import type { TextRange } from "./textRange";
 
-/**
- * Rewrites slide text from parsed segments.
- *
- * Applying a font or colour to a highlighted phrase is not a string insertion:
- * the run may already carry marks, may sit inside another styled span, and may
- * only partly overlap one. So a command parses the line, edits the segments,
- * and writes the line back out. Everything stays plain text, and the caret is
- * carried across because the writer reports where each segment landed.
- */
-
 export interface EditResult {
   text: string;
   selectionStart: number;
@@ -40,7 +30,6 @@ interface MarkToken {
   token: string;
 }
 
-/** Nesting order, so bold + italic always writes the `***…***` form. */
 const MARK_TOKENS: MarkToken[] = [
   { key: "bold", token: "**" },
   { key: "italic", token: "*" },
@@ -59,12 +48,7 @@ const markSignature = (segment: FormattedSegment): string =>
     .map(({ token }) => token)
     .join("");
 
-/**
- * True when a character would be read back as a marker. Word-boundary tokens
- * only need escaping where they could actually open, so an underscore inside
- * file_name survives untouched.
- */
-function needsEscape(text: string, index: number): boolean {
+const needsEscape = (text: string, index: number): boolean => {
   const char = text[index];
   if (char === "\\") return true;
   if (text.startsWith(SPAN_OPEN, index)) return true;
@@ -74,33 +58,25 @@ function needsEscape(text: string, index: number): boolean {
     return !WORD_CHARACTER.test(text[index - 1] ?? "");
   }
   return false;
-}
+};
 
-function escapeText(text: string): string {
+const escapeText = (text: string): string => {
   let out = "";
   for (let index = 0; index < text.length; index += 1) {
     if (needsEscape(text, index)) out += "\\";
     out += text[index];
   }
   return out;
-}
+};
 
 interface WrittenText {
   text: string;
-  /** Where each segment's own text landed in the output. */
   ranges: TextRange[];
 }
 
-/**
- * Serialises segments back to plain text, grouping by style span first and by
- * emphasis second so neighbouring runs share one set of tokens.
- *
- * Whitespace at either edge of a run is written outside its tokens. A marker
- * with a space against its inner side never opens or closes (see
- * lib/inlineFormat.ts), so `== how sweet==` would come back as literal
- * punctuation on the slide instead of a highlight.
- */
-export function writeInlineSegments(segments: FormattedSegment[]): WrittenText {
+export const writeInlineSegments = (
+  segments: FormattedSegment[],
+): WrittenText => {
   const ranges: TextRange[] = segments.map(() => ({ start: 0, end: 0 }));
   let text = "";
 
@@ -150,12 +126,6 @@ export function writeInlineSegments(segments: FormattedSegment[]): WrittenText {
         text += joined.slice(bodyEnd);
       }
 
-      /**
-       * Where an offset in the run's own text landed in the output. A boundary
-       * that falls on a token sits inside the pair when it closes a segment and
-       * outside it when it opens one, so a caret left there keeps typing in the
-       * mark the writer was already in.
-       */
       const place = (offset: number, atEnd: boolean): number => {
         if (!marked) return base + offset;
         if (offset < leadLength || (offset === leadLength && atEnd))
@@ -187,10 +157,12 @@ export function writeInlineSegments(segments: FormattedSegment[]): WrittenText {
   }
 
   return { text, ranges };
-}
+};
 
-/** Splits the segment holding `offset` so a boundary falls between segments. */
-function splitAt(segments: SourceSegment[], offset: number): SourceSegment[] {
+const splitAt = (
+  segments: SourceSegment[],
+  offset: number,
+): SourceSegment[] => {
   const out: SourceSegment[] = [];
   for (const segment of segments) {
     const isPlain =
@@ -210,7 +182,7 @@ function splitAt(segments: SourceSegment[], offset: number): SourceSegment[] {
     );
   }
   return out;
-}
+};
 
 const patchStyle = (
   style: InlineTextStyle | undefined,
@@ -223,22 +195,20 @@ const patchStyle = (
   return Object.keys(next).length ? (next as InlineTextStyle) : undefined;
 };
 
-/** How a covered run is rewritten: the unit every selection command is built on. */
 export type SegmentPatch = (segment: FormattedSegment) => FormattedSegment;
 
 interface LineEdit {
   text: string;
-  /** Range of the edited run in the rewritten line. */
   start: number;
   end: number;
 }
 
-function editLine(
+const editLine = (
   line: string,
   from: number,
   to: number,
   patch: SegmentPatch,
-): LineEdit {
+): LineEdit => {
   let segments = parseInlineSegments(line);
   segments = splitAt(segments, from);
   segments = splitAt(segments, to);
@@ -257,24 +227,14 @@ function editLine(
     start: ranges[covered[0]].start,
     end: ranges[covered[covered.length - 1]].end,
   };
-}
+};
 
-/**
- * Rewrites every run the selection covers, or the word under a collapsed
- * caret. Each line is handled on its own, because a mark never spans a line
- * break in slide text, and a line's list marker is never part of the run.
- *
- * Going through the parsed runs rather than splicing tokens into the string is
- * what keeps markers balanced: a phrase that already carries emphasis, sits
- * inside a styled span, or is only half covered still comes back out as text
- * the renderer resolves away, so the writer never sees a `**` on the slide.
- */
-export function applyToSelection(
+export const applyToSelection = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
   patch: SegmentPatch,
-): EditResult {
+): EditResult => {
   const unchanged = { text, selectionStart, selectionEnd };
   const range = resolveRange(text, selectionStart, selectionEnd);
   if (!range) return unchanged;
@@ -310,14 +270,13 @@ export function applyToSelection(
     selectionStart: start ?? range.start,
     selectionEnd: end,
   };
-}
+};
 
-/** The runs a selection covers, blank ones left out, for reading shared state. */
-export function coveredSegments(
+export const coveredSegments = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
-): SourceSegment[] {
+): SourceSegment[] => {
   const range = resolveRange(text, selectionStart, selectionEnd);
   if (!range) return [];
 
@@ -330,75 +289,63 @@ export function coveredSegments(
       segment.sourceEnd <= range.end &&
       segment.text.trim() !== "",
   );
-}
+};
 
-/**
- * Applies one character-level property to the highlighted text, or to the word
- * under a collapsed caret.
- */
-export function applyInlineStyle(
+export const applyInlineStyle = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
   key: InlineStyleKey,
   value: unknown,
-): EditResult {
+): EditResult => {
   return applyToSelection(text, selectionStart, selectionEnd, (segment) => ({
     ...segment,
     style: patchStyle(segment.style, key, value),
   }));
-}
+};
 
-/** Turns one emphasis mark on or off across the highlighted text. */
-export function applyInlineMark(
+export const applyInlineMark = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
   mark: InlineMarkName,
   on: boolean,
-): EditResult {
+): EditResult => {
   return applyToSelection(text, selectionStart, selectionEnd, (segment) => {
     const next: FormattedSegment = { ...segment };
     if (on) next[mark] = true;
     else delete next[mark];
     return next;
   });
-}
+};
 
-/** Drops every emphasis mark and character style from the highlighted text. */
-export function clearInlineFormatting(
+export const clearInlineFormatting = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
-): EditResult {
+): EditResult => {
   return applyToSelection(text, selectionStart, selectionEnd, (segment) => ({
     text: segment.text,
   }));
-}
+};
 
-/** True when every run the selection covers already carries the mark. */
-export function isInlineMarkActive(
+export const isInlineMarkActive = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
   mark: InlineMarkName,
-): boolean {
+): boolean => {
   const covered = coveredSegments(text, selectionStart, selectionEnd);
   return (
     covered.length > 0 && covered.every((segment) => Boolean(segment[mark]))
   );
-}
+};
 
-/**
- * The character-level style in force across the whole selection. A property
- * only appears when every covered run agrees on it, the way a word processor
- * leaves a mixed selection's font box blank.
- */
-export function inlineStyleAt(
+export const inlineStyleAt = (
   text: string,
   selectionStart: number,
   selectionEnd: number,
-): InlineTextStyle {
+): InlineTextStyle => {
   const covered = coveredSegments(text, selectionStart, selectionEnd);
   if (!covered.length) return {};
 
@@ -410,4 +357,4 @@ export function inlineStyleAt(
       shared[key] = first;
   }
   return shared as InlineTextStyle;
-}
+};

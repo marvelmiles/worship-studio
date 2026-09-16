@@ -1,4 +1,4 @@
-export default async function clearEverything() {
+const clearEverything = async () => {
   try {
     localStorage.clear();
   } catch (err) {
@@ -80,4 +80,6 @@ export default async function clearEverything() {
   alert("All browser storage has been cleared.\nThe page will now reload.");
 
   window.location.replace(window.location.pathname);
-}
+};
+
+export default clearEverything;

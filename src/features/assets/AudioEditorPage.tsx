@@ -39,19 +39,13 @@ interface AudioDraft {
 
 const CONTINUOUS_KEYS = new Set(["volume", "trimStart", "trimEnd"]);
 
-/**
- * The editor a library sound opens into: a player in the middle and its trim
- * and level beside it, under the same header every other editor wears.
- */
-export function AudioEditorPage() {
+export const AudioEditorPage = () => {
   const { audioId } = useParams();
   const navigate = useNavigate();
   const { colors, fonts } = useUITheme();
   const item = useStore((s) =>
     s.audio.find((entry) => entry.id === audioId && !entry.builtIn),
   );
-  // Keeps the last known copy so a deletion from elsewhere unmounts cleanly
-  // instead of crashing mid-edit.
   const lastRef = useRef(item);
   if (item) lastRef.current = item;
 
@@ -82,9 +76,9 @@ export function AudioEditorPage() {
   }
 
   return <AudioWorkspace key={lastRef.current.id} item={lastRef.current} />;
-}
+};
 
-function AudioWorkspace({ item }: { item: AudioItem }) {
+const AudioWorkspace = ({ item }: { item: AudioItem }) => {
   const { colors, fonts } = useUITheme();
   const { width } = useViewport();
   const stacked = width < 1080;
@@ -114,8 +108,6 @@ function AudioWorkspace({ item }: { item: AudioItem }) {
   const duration = item.duration || player.duration || 0;
   const trimEnd = settings.trimEnd ?? duration;
 
-  // The transport owns whether the sound is running and where; the sidebar owns
-  // how loud it is, so the level is heard as it is set.
   const previewPlayback = useMemo(
     () => ({ ...player.playback, volume: settings.volume }),
     [player.playback, settings.volume],
@@ -158,8 +150,6 @@ function AudioWorkspace({ item }: { item: AudioItem }) {
       pushToast(validation.message ?? "Fix the highlighted fields.", "error");
       return;
     }
-    // A window whose end lands before its start would play nothing at all, so
-    // an unusable end is read as "to the end" rather than saved as written.
     const trimStart = Math.max(0, settings.trimStart);
     const end =
       settings.trimEnd !== null && settings.trimEnd > trimStart
@@ -357,4 +347,4 @@ function AudioWorkspace({ item }: { item: AudioItem }) {
       />
     </div>
   );
-}
+};

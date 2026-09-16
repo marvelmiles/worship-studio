@@ -1,11 +1,12 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { ManuscriptWorkspace } from "./ManuscriptWorkspace";
 
-export function ManuscriptEditor() {
+export const ManuscriptEditor = () => {
+  const { colors, fonts } = useUITheme();
   const { manuscriptId } = useParams();
   const navigate = useNavigate();
   const manuscript = useStore((s) =>
@@ -23,10 +24,10 @@ export function ManuscriptEditor() {
         }}
       >
         <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: DISPLAY, color: colors.text }}>
+          <h2 style={{ fontFamily: fonts.display, color: colors.text }}>
             Manuscript not found
           </h2>
-          <p style={{ fontFamily: UI, color: colors.sub }}>
+          <p style={{ fontFamily: fonts.ui, color: colors.sub }}>
             It may have been deleted.
           </p>
           <Button variant="primary" onClick={() => navigate("/manuscripts")}>
@@ -39,4 +40,4 @@ export function ManuscriptEditor() {
   }
 
   return <ManuscriptWorkspace key={manuscript.id} manuscript={manuscript} />;
-}
+};

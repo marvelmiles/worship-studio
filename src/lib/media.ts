@@ -37,10 +37,6 @@ export const DEFAULT_VIDEO_SETTINGS: VideoSettings = {
   fit: "contain",
 };
 
-/**
- * Backgrounds start where they have always been painted: covering the slide,
- * with the darken overlay on for legibility.
- */
 export const DEFAULT_BACKGROUND_IMAGE_SETTINGS: ImageSettings = {
   ...DEFAULT_ADJUSTMENTS,
   rotate: 0,
@@ -61,7 +57,6 @@ export const isImageBackground = (background?: Background): boolean =>
 export const isVideoBackground = (background?: Background): boolean =>
   background?.type === "video" && Boolean(background.mediaId);
 
-/** Pictures and clips are painted by a surface; gradients and solids are plain CSS. */
 export const isMediaBackground = (background?: Background): boolean =>
   isImageBackground(background) || isVideoBackground(background);
 
@@ -72,11 +67,6 @@ export const backgroundImageSettings = (
   ...(background?.image || {}),
 });
 
-/**
- * The settings a new usage of a background starts from. Copying them at the
- * moment the picture is chosen is what keeps a later edit in the asset library
- * out of the documents that already use it.
- */
 export const snapshotBackgroundImage = (
   background?: Background,
 ): ImageSettings | undefined =>
@@ -100,7 +90,7 @@ export const audioSettingsOf = (item: AudioItem): AudioSettings => ({
   ...(item.settings || {}),
 });
 
-export function buildFilter(adjustments: MediaAdjustments): string {
+export const buildFilter = (adjustments: MediaAdjustments): string => {
   const parts: string[] = [];
   if (adjustments.brightness !== 100)
     parts.push(`brightness(${adjustments.brightness}%)`);
@@ -113,50 +103,44 @@ export function buildFilter(adjustments: MediaAdjustments): string {
   if (adjustments.sepia > 0) parts.push(`sepia(${adjustments.sepia}%)`);
   if (adjustments.blur > 0) parts.push(`blur(${adjustments.blur}px)`);
   return parts.length ? parts.join(" ") : "none";
-}
+};
 
-/** The turns and flips a picture carries, for composing into a transform. */
-export function imageTransformParts(settings: ImageSettings): string[] {
+export const imageTransformParts = (settings: ImageSettings): string[] => {
   const parts: string[] = [];
   if (settings.rotate) parts.push(`rotate(${settings.rotate}deg)`);
   if (settings.flipH) parts.push("scaleX(-1)");
   if (settings.flipV) parts.push("scaleY(-1)");
   return parts;
-}
+};
 
-/** Stable newest-first ordering (createdAt, so edits don't reshuffle decks mid-show). */
 export const sortMediaByRecency = (a: MediaItem, b: MediaItem): number =>
   b.createdAt > a.createdAt ? 1 : b.createdAt < a.createdAt ? -1 : 0;
 
-/** Where a clip has got to, against the trim window it is being played inside. */
 export interface VideoProgress {
   time: number;
   start: number;
   end: number;
 }
 
-/** The clip's position clamped into its trim window. */
 export const videoPosition = ({ time, start, end }: VideoProgress): number =>
   Math.min(Math.max(time, start), Math.max(end, start));
 
-/** The share of the trim window already played, 0 to 100. */
-export function videoProgressPercent(progress: VideoProgress): number {
+export const videoProgressPercent = (progress: VideoProgress): number => {
   const span = Math.max(progress.end - progress.start, 0);
   if (!span) return 0;
   return ((videoPosition(progress) - progress.start) / span) * 100;
-}
+};
 
 const SECONDS_PER_HOUR = 3600;
 
 const pad = (value: number): string => String(value).padStart(2, "0");
 
-/** True once a clip is long enough to need an hours field in its timecodes. */
 export const needsHoursField = (seconds?: number): boolean =>
   seconds !== undefined &&
   Number.isFinite(seconds) &&
   seconds >= SECONDS_PER_HOUR;
 
-export function formatDuration(seconds?: number): string {
+export const formatDuration = (seconds?: number): string => {
   if (seconds === undefined || !Number.isFinite(seconds)) return "";
   const total = Math.max(0, Math.round(seconds));
   const hours = Math.floor(total / SECONDS_PER_HOUR);
@@ -165,13 +149,9 @@ export function formatDuration(seconds?: number): string {
   return hours > 0
     ? `${hours}:${pad(minutes)}:${pad(secs)}`
     : `${minutes}:${pad(secs)}`;
-}
+};
 
-/**
- * A position in a clip written the way an editor types it: `mm:ss`, or
- * `hh:mm:ss` once the clip runs past an hour.
- */
-export function formatTimecode(seconds: number, withHours: boolean): string {
+export const formatTimecode = (seconds: number, withHours: boolean): string => {
   const total = Math.max(0, Math.round(seconds));
   const hours = Math.floor(total / SECONDS_PER_HOUR);
   const minutes = Math.floor((total % SECONDS_PER_HOUR) / 60);
@@ -179,70 +159,46 @@ export function formatTimecode(seconds: number, withHours: boolean): string {
   return withHours
     ? `${pad(hours)}:${pad(minutes)}:${pad(secs)}`
     : `${pad(minutes)}:${pad(secs)}`;
-}
+};
 
-/** How a timecode has to be written, for labels and error messages. */
 export const timecodeShape = (withHours: boolean): string =>
   withHours ? "hh:mm:ss" : "mm:ss";
 
 const TIMECODE_PATTERN = /^\d{2}:\d{2}$/;
 const TIMECODE_WITH_HOURS_PATTERN = /^\d{2}:\d{2}:\d{2}$/;
 
-/**
- * Reads a typed timecode back into seconds, insisting on two digits per field:
- * `01:30`, or `00:01:30` once the clip runs past an hour. Null for anything
- * else, so a half-typed field is left alone rather than snapping to a position
- * nobody asked for.
- */
-export function parseTimecode(
+export const parseTimecode = (
   value: string,
   withHours: boolean,
-): number | null {
+): number | null => {
   const text = value.trim();
   const pattern = withHours ? TIMECODE_WITH_HOURS_PATTERN : TIMECODE_PATTERN;
   if (!pattern.test(text)) return null;
   const parts = text.split(":").map(Number);
-  // Everything below the leading field is a sixtieth of the one above it, so
-  // `90` seconds is a typo rather than a minute and a half.
   if (parts.slice(1).some((part) => part > 59)) return null;
   return parts.reduce((total, part) => total * 60 + part, 0);
-}
+};
 
-// What a finished timecode can still grow out of: every field is two digits,
-// and the ones below the first run 00 to 59, so their tens digit is 0 to 5.
-// `01:5` is on its way somewhere, `1:30` and `01:6` are not.
 const PARTIAL_TIMECODE_PATTERN = /^(\d{0,2}|\d{2}:([0-5]\d?)?)$/;
 const PARTIAL_TIMECODE_WITH_HOURS_PATTERN =
   /^(\d{0,2}|\d{2}:([0-5]\d?)?|\d{2}:[0-5]\d:([0-5]\d?)?)$/;
 
-/**
- * True while what has been typed could still be finished into a timecode, so a
- * field being written into is left alone instead of being told off for every
- * keystroke on the way to `01:30`.
- */
 export const isPartialTimecode = (value: string, withHours: boolean): boolean =>
   (withHours
     ? PARTIAL_TIMECODE_WITH_HOURS_PATTERN
     : PARTIAL_TIMECODE_PATTERN
   ).test(value.trim());
 
-/** What a trim point is checked against: the clip it belongs to. */
 export interface TrimBounds {
-  /** The clip's length. Unknown until its headers are in, and then skipped. */
   duration?: number;
   withHours: boolean;
 }
 
-/**
- * The rules both trim points answer to: a position lives inside the clip, and
- * the window between them has to be worth playing. Returns the message to show
- * the operator, or null when the position is usable.
- */
-export function validateTrimStart(
+export const validateTrimStart = (
   seconds: number | null,
   trimEnd: number | null,
   { duration, withHours }: TrimBounds,
-): string | null {
+): string | null => {
   if (seconds === null)
     return `Enter a start time as ${timecodeShape(withHours)}.`;
   if (seconds < 0)
@@ -253,21 +209,20 @@ export function validateTrimStart(
   if (seconds === trimEnd) return "The start and end can't be the same.";
   if (seconds > trimEnd) return "The start has to come before the end.";
   return null;
-}
+};
 
-export function validateTrimEnd(
+export const validateTrimEnd = (
   seconds: number | null,
   trimStart: number,
   { duration, withHours }: TrimBounds,
-): string | null {
-  // An empty end is the clip's last frame, which is always a usable window.
+): string | null => {
   if (seconds === null) return null;
   if (duration && seconds > duration)
     return `The end can't be past the clip's length (${formatTimecode(duration, withHours)}).`;
   if (seconds === trimStart) return "The start and end can't be the same.";
   if (seconds < trimStart) return "The end has to come after the start.";
   return null;
-}
+};
 
 export interface MediaProbe {
   duration?: number;
@@ -278,12 +233,7 @@ export interface MediaProbe {
 const THUMB_MAX_DIM = 640;
 const THUMB_QUALITY = 0.82;
 
-/**
- * Reads duration/dimensions from a video File without decoding it into JS
- * memory: `preload="metadata"` over a temporary object URL only parses the
- * container headers. The URL is always revoked and the element detached.
- */
-export function probeVideoFile(file: Blob): Promise<MediaProbe> {
+export const probeVideoFile = (file: Blob): Promise<MediaProbe> => {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement("video");
@@ -306,9 +256,8 @@ export function probeVideoFile(file: Blob): Promise<MediaProbe> {
     video.onerror = () => finish({});
     video.src = url;
   });
-}
+};
 
-/** A media element reads a sound's headers the same way it reads a clip's. */
 export const probeAudioFile = (file: Blob): Promise<MediaProbe> =>
   probeVideoFile(file);
 
@@ -316,11 +265,7 @@ export interface ImageProbeResult extends MediaProbe {
   thumbnail: Blob | null;
 }
 
-/**
- * Decodes an image File once to read its dimensions and produce a small JPEG
- * thumbnail for grid views, so lists never load the full-resolution original.
- */
-export async function probeImageFile(file: Blob): Promise<ImageProbeResult> {
+export const probeImageFile = async (file: Blob): Promise<ImageProbeResult> => {
   try {
     const bitmap = await createImageBitmap(file);
     const { width, height } = bitmap;
@@ -345,11 +290,11 @@ export async function probeImageFile(file: Blob): Promise<ImageProbeResult> {
   } catch {
     return { thumbnail: null };
   }
-}
+};
 
-export function isAcceptedMediaFile(
+export const isAcceptedMediaFile = (
   kind: "image" | "video",
   file: File,
-): boolean {
+): boolean => {
   return file.type.startsWith(`${kind}/`);
-}
+};

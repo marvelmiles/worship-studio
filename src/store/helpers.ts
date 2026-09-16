@@ -12,17 +12,15 @@ export const customBackgrounds = (items: Background[]) =>
 export const customAudio = (items: AudioItem[]) =>
   items.filter((a) => !a.builtIn);
 
-// Returns true (and alerts) when an additive write must be blocked.
-export function blockWrite(get: Getter): boolean {
+export const blockWrite = (get: Getter): boolean => {
   if (get().storage?.blocked) {
     get().pushAlert(BLOCK_MSG, "error", "storage-block");
     return true;
   }
   return false;
-}
+};
 
-// Recompute usage after an additive write and warn if we're in the warning band.
-export function afterWrite(get: Getter): void {
+export const afterWrite = (get: Getter): void => {
   void get()
     .refreshStorage()
     .then((info) => {
@@ -31,10 +29,9 @@ export function afterWrite(get: Getter): void {
         get().pushAlert(WARN_MSG, "warning", "storage-warn");
       else if (info.level === "ok") get().clearAlert("storage-warn");
     });
-}
+};
 
-// Recompute usage after a delete and lift block/warn alerts once recovered.
-export function afterDelete(get: Getter): void {
+export const afterDelete = (get: Getter): void => {
   void get()
     .refreshStorage()
     .then((info) => {
@@ -42,21 +39,20 @@ export function afterDelete(get: Getter): void {
       get().clearAlert("storage-block");
       if (info.level === "ok") get().clearAlert("storage-warn");
     });
-}
+};
 
-export function mergeById<T extends { id: string }>(
+export const mergeById = <T extends { id: string }>(
   existing: T[],
   incoming: T[],
   importedWins: boolean,
-): T[] {
+): T[] => {
   const map = new Map<string, T>();
   for (const item of importedWins ? existing : incoming) map.set(item.id, item);
   for (const item of importedWins ? incoming : existing) map.set(item.id, item);
   return [...map.values()];
-}
+};
 
-/** Puts built-in themes first, ordered by their position in THEMES, then custom themes. */
-export function sortBuiltInFirst(themes: Theme[]): Theme[] {
+export const sortBuiltInFirst = (themes: Theme[]): Theme[] => {
   const order = THEMES.map((t) => t.id);
   return [...themes].sort((a, b) => {
     const ai = order.indexOf(a.id);
@@ -66,12 +62,12 @@ export function sortBuiltInFirst(themes: Theme[]): Theme[] {
     if (bi !== -1) return 1;
     return 0;
   });
-}
+};
 
-export function ensureBuiltInThemes(themes: Theme[]): Theme[] {
+export const ensureBuiltInThemes = (themes: Theme[]): Theme[] => {
   const present = new Set(themes.map((t) => t.id));
   return sortBuiltInFirst([
     ...themes,
     ...THEMES.filter((t) => !present.has(t.id)),
   ]);
-}
+};

@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
 import type { Background, LibraryMark } from "../../types";
-import { fade } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
 import { formatDate } from "../../lib/id";
 import { describeMark, latestMark } from "../../lib/libraryMarks";
 
@@ -14,7 +14,6 @@ export interface UsedItem {
 
 export type UsageTab = "background" | "theme" | "sound";
 
-/** One row in the Recent Activities feed, gathered from every module. */
 export interface Activity {
   key: string;
   title: string;
@@ -24,24 +23,18 @@ export interface Activity {
   open: () => void;
 }
 
-/** True when a doc was created and never meaningfully edited afterwards. */
-export function isCreation(createdAt?: string, updatedAt?: string): boolean {
+export const isCreation = (createdAt?: string, updatedAt?: string): boolean => {
   if (!createdAt) return false;
   if (!updatedAt) return true;
   return +new Date(updatedAt) - +new Date(createdAt) < 5000;
-}
+};
 
-/**
- * What an item's row in the feed says, and when it happened. A pin or a
- * keep-on-reset is reported in its own words when it is the most recent thing
- * to have happened to the item; anything older falls back to the edit itself.
- */
-export function itemActivity(
+export const itemActivity = (
   createdAt: string | undefined,
   updatedAt: string | undefined,
   mark: LibraryMark | undefined,
   verbs: { created: string; edited: string },
-): { at: string; verb: string } {
+): { at: string; verb: string } => {
   const editedAt = updatedAt || createdAt || "";
   const marked = latestMark(editedAt, mark);
   if (marked) return { at: marked.at, verb: describeMark(marked) };
@@ -49,9 +42,9 @@ export function itemActivity(
     at: editedAt,
     verb: isCreation(createdAt, updatedAt) ? verbs.created : verbs.edited,
   };
-}
+};
 
-export function timeAgo(iso: string): string {
+export const timeAgo = (iso: string): string => {
   const diff = Date.now() - new Date(iso).getTime();
   if (diff < 60_000) return "just now";
   const m = Math.floor(diff / 60_000);
@@ -61,12 +54,9 @@ export function timeAgo(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d ago`;
   return formatDate(iso);
-}
+};
 
-/** Time-of-day greeting. Neutral and inspirational through the week (the
- *  studio is used far beyond Sunday services); on Sundays the tone leans
- *  church/Christian inspirational. */
-export function greeting(): { label: string; heading: string; tag: string } {
+export const greeting = (): { label: string; heading: string; tag: string } => {
   const now = new Date();
   const h = now.getHours();
   const sunday = now.getDay() === 0;
@@ -117,24 +107,22 @@ export function greeting(): { label: string; heading: string; tag: string } {
     heading: "Let your light shine",
     tag: "Even a quiet evening can carry a joyful song.",
   };
-}
+};
 
-export function rank(counts: Record<string, number>): [string, number][] {
+export const rank = (counts: Record<string, number>): [string, number][] => {
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-}
+};
 
-/** Shared accent scheme for ranking bars: the top-ranked row gets the boldest
- *  fill and a glow, lower ranks fade progressively. */
-export function rankBarStyle(
+export const rankBarStyle = (
   accent: string,
   accentSoft: string,
   index: number,
-): CSSProperties {
+): CSSProperties => {
   const strength = Math.max(0.35, 1 - index * 0.16);
   return {
     background: `linear-gradient(90deg,${fade(accent, strength)},${fade(accentSoft, strength)})`,
     boxShadow: index === 0 ? `0 0 10px ${fade(accent, 0.35)}` : "none",
   };
-}
+};

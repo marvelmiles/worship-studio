@@ -22,28 +22,12 @@ import {
 import { buildScriptureSelection } from "../bible/lib/scriptureSelection";
 import { createOverlayPassage } from "./lib/overlayPassage";
 
-/** The passage document an inserted overlay will point at. */
 export interface OverlayPassageChoice {
   contentId: string;
   label: string;
 }
 
-/**
- * Finds the scripture to put on the broadcast, from anywhere it might be.
- *
- * The first version of this offered saved passages only, which is the one place
- * an operator mid-service usually cannot find what they need: the preacher has
- * just called out a reference nobody prepared. So this is the Bible page's own
- * search, in a modal, a saved passage by name, a reference typed any way it is
- * normally written ("jn 3:16-22", "1 cor 13", "john 3"), or the words of a verse
- * whose address nobody remembers ("book of life").
- *
- * Whatever is chosen, one click inserts it. A reference or a verse hit gets a
- * passage document of its own (see lib/overlayPassage) so it never collides with
- * the Bible page's quick present, and it arrives one verse per slide, which the
- * overlay then breaks into as many blocks as its frame needs.
- */
-export function OverlayPassagePicker({
+export const OverlayPassagePicker = ({
   open,
   onClose,
   onPick,
@@ -51,18 +35,14 @@ export function OverlayPassagePicker({
   open: boolean;
   onClose: () => void;
   onPick: (choice: OverlayPassageChoice) => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const version = useStore((s) => s.prefs.bibleVersion);
   const scriptures = useStore((s) => s.scriptures);
   const [query, setQuery] = useState("");
 
-  /** Set when the query reads as a reference, e.g. "jn 3:16" or bare "john". */
   const reference = useMemo(() => parseReference(query), [query]);
 
-  // A chapter and verse is an exact address, so the word search would only add
-  // noise ("jn 3:16" appears in no verse). A bare book name is not: "mark" is
-  // both a book and a word people search for, so both answers are offered.
   const search = useBibleSearch(version, reference?.hasChapter ? "" : query);
 
   const saved = useMemo(() => {
@@ -185,8 +165,6 @@ export function OverlayPassagePicker({
                         key={heading}
                         heading={heading}
                         onInsert={() =>
-                          // The result carries its own verse text, so inserting
-                          // it needs nothing more loaded.
                           insertSelection(
                             buildScriptureSelection({
                               version,
@@ -232,15 +210,9 @@ export function OverlayPassagePicker({
       </div>
     </Modal>
   );
-}
+};
 
-/**
- * The reference typed into the box, ready to insert. It loads the chapter it
- * names so the operator can read what they are about to put on the broadcast
- * before it goes anywhere, and so a chapter-only reference can carry all of its
- * verses through.
- */
-function ReferenceResult({
+const ReferenceResult = ({
   reference,
   version,
   onInsert,
@@ -248,7 +220,7 @@ function ReferenceResult({
   reference: ParsedReference;
   version: BibleVersionId;
   onInsert: (selection: ScriptureSelection | null) => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const { verses, loading, error } = useBibleChapter(
     version,
@@ -303,9 +275,15 @@ function ReferenceResult({
       )}
     </ResultRow>
   );
-}
+};
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <div style={{ marginBottom: 18 }}>
@@ -325,9 +303,15 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       {children}
     </div>
   );
-}
+};
 
-function Note({ children, danger }: { children: ReactNode; danger?: boolean }) {
+const Note = ({
+  children,
+  danger,
+}: {
+  children: ReactNode;
+  danger?: boolean;
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <p
@@ -341,10 +325,9 @@ function Note({ children, danger }: { children: ReactNode; danger?: boolean }) {
       {children}
     </p>
   );
-}
+};
 
-/** One thing that can be put on the broadcast. Clicking it inserts it. */
-function ResultRow({
+const ResultRow = ({
   heading,
   meta,
   emphasis,
@@ -354,13 +337,11 @@ function ResultRow({
 }: {
   heading: string;
   meta?: string;
-  /** The reference card, which leads the results. */
   emphasis?: boolean;
-  /** Set while the verses behind the result are still loading. */
   disabled?: boolean;
   onInsert: () => void;
   children: ReactNode;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -419,4 +400,4 @@ function ResultRow({
       {children}
     </button>
   );
-}
+};

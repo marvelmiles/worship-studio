@@ -11,7 +11,6 @@ import { Field, inputStyle, Range, Select } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
 import { ManuscriptFormatGuideModal } from "./ManuscriptFormatGuideModal";
 
-/** Sermon paragraphs need more room than a stanza of lyrics does. */
 const LINE_RANGE: Record<ManuscriptFormat, { min: number; max: number }> = {
   song: { min: 2, max: 10 },
   sermon: { min: 4, max: 16 },
@@ -33,12 +32,12 @@ interface ManuscriptTextModalProps {
   ) => void;
 }
 
-export function ManuscriptTextModal({
+export const ManuscriptTextModal = ({
   open,
   onClose,
   manuscript,
   onRegenerate,
-}: ManuscriptTextModalProps) {
+}: ManuscriptTextModalProps) => {
   const [body, setBody] = useState(manuscript.body);
   const [format, setFormat] = useState<ManuscriptFormat>(
     manuscript.format ?? DEFAULT_MANUSCRIPT_FORMAT,
@@ -48,8 +47,6 @@ export function ManuscriptTextModal({
   const formatting = useTextFormatting({ value: body, onChange: setBody });
   const isSermon = format === "sermon";
 
-  // Watching the fields rather than the record: the workspace hands over a new
-  // draft object on every keystroke elsewhere, which would reset the textarea.
   const {
     body: storedBody,
     maxLines: storedMaxLines,
@@ -150,4 +147,4 @@ export function ManuscriptTextModal({
       )}
     </Modal>
   );
-}
+};

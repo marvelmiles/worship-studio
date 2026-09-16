@@ -33,21 +33,10 @@ const TABS: PillTab<SecondaryModuleKind>[] = [
 ];
 
 interface SecondaryModuleMenuProps {
-  /** "stage" matches the presentation's own controls; "mini" the floating presenter. */
   variant: "stage" | "mini";
 }
 
-/**
- * The controls for the second module running in a corner of the stage: what it
- * shows, where it sits, how big it is, whether it is heard, and taking it away
- * again.
- *
- * One panel serves the full stage and the floating presenter, because it is the
- * same decision from either: the operator who put a clip in the corner during a
- * sermon is the one who moves it out of the preacher's way ten seconds later,
- * and they should not have to leave whichever surface they are working on.
- */
-export function SecondaryModuleMenu({ variant }: SecondaryModuleMenuProps) {
+export const SecondaryModuleMenu = ({ variant }: SecondaryModuleMenuProps) => {
   const [open, setOpen] = useState(false);
   const secondary = useStore((s) => s.secondaryPresentation);
   const active = Boolean(secondary);
@@ -73,9 +62,9 @@ export function SecondaryModuleMenu({ variant }: SecondaryModuleMenuProps) {
       <SecondaryModulePanel onDone={() => setOpen(false)} />
     </Popover>
   );
-}
+};
 
-function MiniTrigger({ active, title }: { active: boolean; title: string }) {
+const MiniTrigger = ({ active, title }: { active: boolean; title: string }) => {
   const { colors } = useUITheme();
   return (
     <button
@@ -98,9 +87,9 @@ function MiniTrigger({ active, title }: { active: boolean; title: string }) {
       <Combine size={15} />
     </button>
   );
-}
+};
 
-function SecondaryModulePanel({ onDone }: { onDone: () => void }) {
+const SecondaryModulePanel = ({ onDone }: { onDone: () => void }) => {
   const { colors, fonts } = useUITheme();
   const media = useStore((s) => s.media);
   const pushToast = useStore((s) => s.pushToast);
@@ -286,9 +275,9 @@ function SecondaryModulePanel({ onDone }: { onDone: () => void }) {
       )}
     </div>
   );
-}
+};
 
-function CameraChoice({
+const CameraChoice = ({
   connected,
   name,
   chosen,
@@ -298,7 +287,7 @@ function CameraChoice({
   name?: string;
   chosen: boolean;
   onChoose: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -326,9 +315,9 @@ function CameraChoice({
       </Button>
     </div>
   );
-}
+};
 
-function MediaChoice({
+const MediaChoice = ({
   item,
   chosen,
   onChoose,
@@ -336,7 +325,7 @@ function MediaChoice({
   item: MediaItem;
   chosen: boolean;
   onChoose: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const thumbUrl = useThumbUrl(item.hasThumb ? item.id : null);
   return (
@@ -396,4 +385,4 @@ function MediaChoice({
       </span>
     </button>
   );
-}
+};

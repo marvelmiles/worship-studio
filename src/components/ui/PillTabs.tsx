@@ -11,22 +11,17 @@ interface PillTabsProps<T extends string> {
   tabs: PillTab<T>[];
   value: T;
   onChange: (id: T) => void;
-  /** Names the tab list for assistive technology. */
   ariaLabel?: string;
-  /**
-   * Prefix for the ids that tie each tab to its panel. A panel rendered with
-   * `pillTabPanelProps` under the same prefix is announced as the tab's panel.
-   */
   idPrefix?: string;
 }
 
-export function PillTabs<T extends string>({
+export const PillTabs = <T extends string>({
   tabs,
   value,
   onChange,
   ariaLabel,
   idPrefix,
-}: PillTabsProps<T>) {
+}: PillTabsProps<T>) => {
   return (
     <div
       className="ws-row-wrap"
@@ -61,4 +56,4 @@ export function PillTabs<T extends string>({
       })}
     </div>
   );
-}
+};

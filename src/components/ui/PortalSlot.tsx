@@ -6,14 +6,7 @@ interface PortalSlotProps {
   style?: CSSProperties;
 }
 
-/**
- * Where a `usePortalHost` element sits right now.
- *
- * Adopting the host before paint, in the same commit that removed it from its
- * previous slot, is what keeps a playing video from being paused by the browser
- * for having left the document.
- */
-export function PortalSlot({ host, style }: PortalSlotProps) {
+export const PortalSlot = ({ host, style }: PortalSlotProps) => {
   const slotRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -23,4 +16,4 @@ export function PortalSlot({ host, style }: PortalSlotProps) {
   return (
     <div ref={slotRef} style={{ position: "absolute", inset: 0, ...style }} />
   );
-}
+};

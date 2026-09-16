@@ -18,20 +18,14 @@ const FIT_OPTIONS = [
 interface ImageSettingsControlsProps {
   settings: ImageSettings;
   onChange: (changes: Partial<ImageSettings>) => void;
-  /** Stacks the fit and overlay controls, for a narrow sidebar. */
   narrow?: boolean;
 }
 
-/**
- * Every setting a picture carries, wherever it is being edited: the media
- * library's own editor page, the modal the asset library and the slide
- * backgrounds open, and anywhere else a picture is tuned.
- */
-export function ImageSettingsControls({
+export const ImageSettingsControls = ({
   settings,
   onChange,
   narrow,
-}: ImageSettingsControlsProps) {
+}: ImageSettingsControlsProps) => {
   const rotateBy = (delta: 90 | -90) =>
     onChange({
       rotate: ((((settings.rotate + delta) % 360) + 360) %
@@ -98,4 +92,4 @@ export function ImageSettingsControls({
       <AdjustmentControls value={settings} onChange={onChange} />
     </>
   );
-}
+};

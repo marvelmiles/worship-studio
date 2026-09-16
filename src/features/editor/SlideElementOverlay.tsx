@@ -7,7 +7,6 @@ import { fade } from "../../theme/uiTheme";
 import { clampFrame, MIN_FRAME_SIZE } from "../../lib/slideMedia";
 import { keepsSelection } from "../../lib/selectionScope";
 
-/** Corner and edge grips, positioned as fractions of the box. */
 type HandleId = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
 
 const HANDLES: { id: HandleId; x: number; y: number; cursor: string }[] = [
@@ -21,7 +20,6 @@ const HANDLES: { id: HandleId; x: number; y: number; cursor: string }[] = [
   { id: "w", x: 0, y: 0.5, cursor: "ew-resize" },
 ];
 
-/** The draggable band drawn along each edge, in pixels. */
 const EDGE_BAND = 11;
 const EDGES: { id: string; style: CSSProperties }[] = [
   { id: "top", style: { top: 0, left: 0, right: 0, height: EDGE_BAND } },
@@ -30,12 +28,9 @@ const EDGES: { id: string; style: CSSProperties }[] = [
   { id: "right", style: { top: 0, bottom: 0, right: 0, width: EDGE_BAND } },
 ];
 
-/** Percent of the slide one arrow-key press moves a placement. */
 const NUDGE = 1;
 const NUDGE_FAST = 5;
-/** A box at least this far from the top has room for its toolbar above it. */
 const TOOLBAR_ABOVE_FROM = 14;
-/** Marks the draggable box, so a grip can hand focus back to the box it belongs to. */
 const BOX_ATTRIBUTE = "data-slide-element";
 
 const LABELS: Record<string, string> = {
@@ -54,15 +49,6 @@ interface Gesture<Kind extends string> {
   slideHeight: number;
 }
 
-/**
- * Identifies one placement, which is all a command needs to find it again.
- *
- * `Kind` is a type parameter because this overlay is the drag/resize surface for
- * more than the slide editor: the live broadcast lays passages, manuscripts and
- * announcement bands over a camera and needs the same gestures over its own
- * vocabulary of elements. It defaults to the slide editor's kinds, so every
- * existing caller is unchanged.
- */
 export interface SlideElementRef<Kind extends string = SlideElementKind> {
   id: string;
   kind: Kind;
@@ -72,17 +58,13 @@ export interface SlideElement<
   Kind extends string = SlideElementKind,
 > extends SlideElementRef<Kind> {
   frame: SlideFrame;
-  /** Accessible name for this box; defaults to one derived from `kind`. */
   label?: string;
-  /** Whether the middle of the box drags it; defaults by kind (see interiorDrags). */
   dragFromInterior?: boolean;
 }
 
-/** Everything a host supplies to make placements interactive. */
 export interface SlideElementEditing<Kind extends string = SlideElementKind> {
   selectedId: string | null;
   onSelect: (element: SlideElementRef<Kind> | null) => void;
-  /** Called continuously while dragging; `gesture` groups it into one undo step. */
   onFrameChange: (
     element: SlideElementRef<Kind>,
     frame: SlideFrame,
@@ -97,31 +79,15 @@ interface SlideElementOverlayProps<
   Kind extends string,
 > extends SlideElementEditing<Kind> {
   elements: SlideElement<Kind>[];
-  /**
-   * Frame a box only while it holds focus, and let the frame go when focus
-   * leaves the surface.
-   *
-   * The slide editor leaves this off: a slide is opened to be laid out, so every
-   * placement carries a resting dashed outline that says "this is a thing you
-   * can move". A live broadcast is the opposite. Its surface is watched far more
-   * often than it is arranged, and an outline drawn around every element on a
-   * camera the operator is monitoring is clutter over the picture they are
-   * checking. Here the frame is the answer to a click, and nothing else.
-   */
   frameOnFocus?: boolean;
 }
 
-/**
- * Resizes a frame by one grip. The edges being dragged move; the opposite ones
- * stay put, and an edge pushed past its opposite stops at the minimum size
- * instead of turning the box inside out.
- */
-function resizeFrame(
+const resizeFrame = (
   start: SlideFrame,
   handle: HandleId,
   dx: number,
   dy: number,
-): SlideFrame {
+): SlideFrame => {
   const frame = { ...start };
 
   if (handle.includes("w")) {
@@ -139,18 +105,8 @@ function resizeFrame(
   }
 
   return clampFrame(frame);
-}
+};
 
-/**
- * True while the middle of a placement should drag it. Text is written inside
- * its box and a selected clip shows its player, so those hand their middle back
- * to what is underneath and are moved by their edges instead, the way a text
- * box behaves in a slide editor.
- *
- * An element may state it outright, which is what a host with its own kinds
- * does: a broadcast overlay is never typed into, so all of its kinds drag from
- * the middle regardless of what they contain.
- */
 const interiorDrags = <Kind extends string>(
   element: SlideElement<Kind>,
   selected: boolean,
@@ -158,16 +114,7 @@ const interiorDrags = <Kind extends string>(
   element.dragFromInterior ??
   (element.kind === "image" || (element.kind === "video" && !selected));
 
-/**
- * The editor's handle on everything placed on a slide: pictures, clips and text
- * boxes. It sits over the canvas rather than inside it, so the slide itself
- * renders exactly the same whether it is being edited or projected: only this
- * layer knows about selection, dragging and resizing.
- *
- * Everything outside a placement stays click-through, which is what keeps the
- * slide's own text editable while placements are on it.
- */
-export function SlideElementOverlay<Kind extends string = SlideElementKind>({
+export const SlideElementOverlay = <Kind extends string = SlideElementKind>({
   elements,
   selectedId,
   onSelect,
@@ -176,20 +123,11 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
   onDelete,
   onReorder,
   frameOnFocus,
-}: SlideElementOverlayProps<Kind>) {
+}: SlideElementOverlayProps<Kind>) => {
   const { colors } = useUITheme();
   const rootRef = useRef<HTMLDivElement>(null);
   const gesture = useRef<Gesture<Kind> | null>(null);
 
-  /**
-   * Focus has left the surface for good, rather than moved within it.
-   *
-   * A grip, the toolbar and the next box over all sit inside the root, and a
-   * panel of settings for the selected element marks itself as keeping the
-   * selection. Anything else, including the plain picture behind the boxes
-   * (which focuses nothing at all, so there is no related target to inspect),
-   * means the operator has moved on.
-   */
   const focusLeft = (next: EventTarget | null): boolean => {
     const element = next instanceof HTMLElement ? next : null;
     if (!element) return true;
@@ -202,8 +140,6 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
     element: SlideElement<Kind>,
     handle: HandleId | "move",
   ) => {
-    // Without this the click lands in the text underneath and moves the caret.
-    // Focus is then given to the box by hand, so the arrow keys reach it.
     event.preventDefault();
     event.stopPropagation();
     const slide = rootRef.current?.getBoundingClientRect();
@@ -387,7 +323,7 @@ export function SlideElementOverlay<Kind extends string = SlideElementKind>({
       })}
     </div>
   );
-}
+};
 
 interface ToolbarProps {
   below: boolean;
@@ -397,13 +333,13 @@ interface ToolbarProps {
   onBackward: () => void;
 }
 
-function Toolbar({
+const Toolbar = ({
   below,
   onDuplicate,
   onDelete,
   onForward,
   onBackward,
-}: ToolbarProps) {
+}: ToolbarProps) => {
   const { colors } = useUITheme();
   const buttons = [
     { icon: ChevronUp, label: "Bring forward", fn: onForward, danger: false },
@@ -459,4 +395,4 @@ function Toolbar({
       ))}
     </div>
   );
-}
+};

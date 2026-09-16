@@ -20,11 +20,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // Correctness: the Rules of Hooks must never be broken.
       "react-hooks/rules-of-hooks": "error",
-      // Advisory: dependency completeness and the React-Compiler-era rules are
-      // valuable guidance but flag idiomatic patterns across the codebase, so
-      // they warn rather than block. Existing suppressions stay meaningful.
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/refs": "warn",
@@ -33,6 +29,7 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [
         "error",

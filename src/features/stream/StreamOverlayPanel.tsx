@@ -64,23 +64,7 @@ const ADD_BUTTONS: { kind: PickableKind; label: string }[] = [
 const DEFAULT_MARQUEE_TEXT =
   "Welcome. Please silence your phones during the service.";
 
-/**
- * The operator's controls for what sits over the live camera.
- *
- * Rendered in two places from one implementation: as a drawer on the projection
- * stage, and as a section on the Stream page so it is still reachable once the
- * camera has been popped out to the floating PiP and the operator is using the
- * rest of the app. Everything it does goes through the app-wide overlay store,
- * so both copies and all four broadcast surfaces stay in step.
- *
- * Nothing added here goes out on its own. An element is staged, arranged, and
- * only then put on air by hand, so the room never watches a passage being
- * dragged into place or a verse being paged to. Once something *is* on air,
- * further changes to it are held back too and go out together on Apply now
- * (see OverlaySettingsPanel), unless the operator has asked that element to
- * sync as they work.
- */
-export function StreamOverlayPanel({
+export const StreamOverlayPanel = ({
   overlays,
   selectedId,
   onSelect,
@@ -88,23 +72,17 @@ export function StreamOverlayPanel({
   overlays: StreamOverlay[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-}) {
+}) => {
   const [picking, setPicking] = useState<PickableKind | null>(null);
   const [pickingPicture, setPickingPicture] = useState(false);
   const [pickingPassage, setPickingPassage] = useState(false);
   const selected =
     overlays.find((overlay) => overlay.id === selectedId) ?? null;
-  // Status, not the eye: a hidden element that was put on air still has an
-  // on-air status for "take all off air" to clear.
   const anyOnAir = overlays.some((overlay) => overlay.status === "live");
 
-  // The list reads front-to-back: the last overlay painted is the one on top,
-  // so it belongs at the head of a layers list.
   const stacked = [...overlays].reverse();
 
   return (
-    // Reaching for these controls is not letting go of the element they belong
-    // to, so the frame on the broadcast surface stays up while they are used.
     <div
       {...keepsSelectionProps}
       style={{ display: "flex", flexDirection: "column", gap: 14 }}
@@ -254,9 +232,9 @@ export function StreamOverlayPanel({
       />
     </div>
   );
-}
+};
 
-function TextAction({
+const TextAction = ({
   label,
   onClick,
   children,
@@ -264,7 +242,7 @@ function TextAction({
   label: string;
   onClick: () => void;
   children: string;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -284,9 +262,9 @@ function TextAction({
       {children}
     </button>
   );
-}
+};
 
-function OverlayRow({
+const OverlayRow = ({
   overlay,
   selected,
   onSelect,
@@ -294,12 +272,10 @@ function OverlayRow({
   overlay: StreamOverlay;
   selected: boolean;
   onSelect: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const Icon = KIND_ICON[overlay.kind];
   const visibility = overlayVisibility(overlay);
-  // The on-air control reflects the status switch itself, so hiding something
-  // never silently rewrites what taking it off air would do.
   const live = overlay.status === "live";
   return (
     <div
@@ -373,7 +349,7 @@ function OverlayRow({
       />
     </div>
   );
-}
+};
 
 const VISIBILITY_LABEL: Record<OverlayVisibility, string> = {
   live: "On air",
@@ -381,23 +357,13 @@ const VISIBILITY_LABEL: Record<OverlayVisibility, string> = {
   hidden: "Hidden",
 };
 
-/**
- * Says what the element is doing right now, across both switches. "Hidden"
- * takes precedence over the other two: an element switched off is not on air
- * whatever its status says, and reading "On air" next to something the room
- * cannot see would be the one genuinely dangerous thing this panel could claim.
- *
- * An element with work waiting on it says so here rather than only in its own
- * settings, so an operator scanning the list can see that what they arranged
- * has not gone out yet.
- */
-function StatusChip({
+const StatusChip = ({
   visibility,
   staged,
 }: {
   visibility: OverlayVisibility;
   staged: boolean;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const onAir = visibility === "live";
   const waiting = onAir && staged;
@@ -429,9 +395,9 @@ function StatusChip({
       {waiting ? "Not applied" : VISIBILITY_LABEL[visibility]}
     </span>
   );
-}
+};
 
-function RowButton({
+const RowButton = ({
   icon: Icon,
   label,
   onClick,
@@ -443,7 +409,7 @@ function RowButton({
   onClick: () => void;
   danger?: boolean;
   accent?: boolean;
-}) {
+}) => {
   const { colors } = useUITheme();
   return (
     <button
@@ -466,4 +432,4 @@ function RowButton({
       <Icon size={13} />
     </button>
   );
-}
+};

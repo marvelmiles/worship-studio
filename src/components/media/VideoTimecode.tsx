@@ -10,12 +10,7 @@ interface VideoTimecodeProps {
   style?: CSSProperties;
 }
 
-/**
- * Where a clip is against where it ends, written the way every player writes
- * it. Shown wherever a presentation is being watched rather than driven: the
- * presenter bar and the floating presenter both carry one.
- */
-export function VideoTimecode({ progress, style }: VideoTimecodeProps) {
+export const VideoTimecode = ({ progress, style }: VideoTimecodeProps) => {
   return (
     <span
       style={{
@@ -27,4 +22,4 @@ export function VideoTimecode({ progress, style }: VideoTimecodeProps) {
       {formatDuration(videoPosition(progress))} / {formatDuration(progress.end)}
     </span>
   );
-}
+};

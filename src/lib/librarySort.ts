@@ -1,15 +1,3 @@
-/**
- * Ordering for the library listings (manuscripts, passages, images, videos).
- *
- * The listing order is the operator's to choose and nothing else moves it: the
- * default reads newest-first off `createdAt`, so saving an edit mid-service
- * never reshuffles the grid under the cursor. "Recently modified" is the one
- * option that answers to `updatedAt`, which moves only when a document is
- * written in an editor: pinning an item, or keeping it through a reset, is
- * recorded as a mark instead (see lib/libraryMarks.ts) and leaves this order
- * alone.
- */
-
 export type LibrarySortOption =
   "newest" | "oldest" | "modified" | "ascending" | "descending";
 
@@ -18,11 +6,6 @@ export interface LibrarySortChoice {
   label: string;
 }
 
-/**
- * The choices offered by one library, named after the field that library
- * actually orders by, so a manuscript listing offers "Title A-Z" while an image
- * listing offers "Name A-Z".
- */
 export const librarySortChoices = (nameLabel: string): LibrarySortChoice[] => [
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
@@ -44,16 +27,11 @@ const compareText = (a: string, b: string): number =>
 const compareStamps = (a: string, b: string): number =>
   a < b ? -1 : a > b ? 1 : 0;
 
-/**
- * Returns a new list in the chosen order. Every comparison falls back to the
- * creation stamp and then the name, so two items sharing a timestamp keep a
- * fixed place instead of swapping between renders.
- */
-export function sortLibrary<T extends SortableLibraryItem>(
+export const sortLibrary = <T extends SortableLibraryItem>(
   items: T[],
   option: LibrarySortOption,
   nameOf: (item: T) => string,
-): T[] {
+): T[] => {
   const settle = (a: T, b: T): number =>
     compareStamps(b.createdAt, a.createdAt) ||
     compareText(nameOf(a), nameOf(b));
@@ -75,4 +53,4 @@ export function sortLibrary<T extends SortableLibraryItem>(
   };
 
   return [...items].sort(compare);
-}
+};

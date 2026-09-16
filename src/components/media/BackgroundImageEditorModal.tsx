@@ -6,9 +6,7 @@ import {
 } from "../../lib/media";
 import { ImageEditorModal } from "./ImageEditorModal";
 
-/** Where the edit is written, and what to call it in the editor. */
 export interface BackgroundImageUsage {
-  /** What the change applies to, e.g. "this slide". */
   label: string;
   settings: ImageSettings;
   onChange: (settings: ImageSettings) => void;
@@ -16,24 +14,15 @@ export interface BackgroundImageUsage {
 
 interface BackgroundImageEditorModalProps {
   background: Background;
-  /**
-   * Edits the copy held by one slide, manuscript or passage. Left out, the
-   * asset library entry itself is edited instead.
-   */
   usage?: BackgroundImageUsage;
   onClose: () => void;
 }
 
-/**
- * Opens the picture editor on a background, in one of the two scopes the
- * library supports: the document's own copy, or the asset library entry that
- * seeds every future use of the picture.
- */
-export function BackgroundImageEditorModal({
+export const BackgroundImageEditorModal = ({
   background,
   usage,
   onClose,
-}: BackgroundImageEditorModalProps) {
+}: BackgroundImageEditorModalProps) => {
   const updateBackground = useStore((s) => s.updateBackground);
   const pushToast = useStore((s) => s.pushToast);
 
@@ -72,4 +61,4 @@ export function BackgroundImageEditorModal({
       onClose={onClose}
     />
   );
-}
+};

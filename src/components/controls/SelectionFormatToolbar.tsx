@@ -9,25 +9,17 @@ import type { TextFormattingController } from "../../hooks/useTextFormatting";
 
 interface SelectionFormatToolbarProps {
   controller: TextFormattingController;
-  /** Viewport rect of the highlight the toolbar hangs off, null to hide it. */
   rect: DOMRect | null;
 }
 
-/**
- * The formatting toolbar as a popover over highlighted slide text, the way a
- * word processor offers its marks where the words are. It renders into a portal
- * so a scrolling panel can never clip it, and swallows pointer presses so the
- * highlight it acts on is still there when the command runs.
- */
-export function SelectionFormatToolbar({
+export const SelectionFormatToolbar = ({
   controller,
   rect,
-}: SelectionFormatToolbarProps) {
+}: SelectionFormatToolbarProps) => {
   const { colors } = useUITheme();
   const panelRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
 
-  // Measured before paint, so the toolbar never flashes at the wrong spot.
   useLayoutEffect(() => {
     const panel = panelRef.current;
     if (!rect || !panel) {
@@ -67,4 +59,4 @@ export function SelectionFormatToolbar({
     </div>,
     document.body,
   );
-}
+};

@@ -1,6 +1,5 @@
 import type { AudioItem } from "../types";
 
-// Royalty-free, soft ambient worship pads synthesized as seamless loops.
 export const DEFAULT_AUDIO: AudioItem[] = [
   {
     id: "snd-warm-pad-c",

@@ -4,7 +4,7 @@ import type { Toast } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 
-export function Toaster() {
+export const Toaster = () => {
   const toasts = useStore((s) => s.toasts);
   const dismiss = useStore((s) => s.dismissToast);
 
@@ -32,15 +32,15 @@ export function Toaster() {
       ))}
     </div>
   );
-}
+};
 
-function ToastItem({
+const ToastItem = ({
   toast,
   onDismiss,
 }: {
   toast: Toast;
   onDismiss: () => void;
-}) {
+}) => {
   const { colors, fonts, glass, shadows } = useUITheme();
   const UI = fonts.ui;
   useEffect(() => {
@@ -92,4 +92,4 @@ function ToastItem({
       </button>
     </div>
   );
-}
+};

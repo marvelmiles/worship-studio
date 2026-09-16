@@ -14,18 +14,10 @@ export interface FloatingWindowPosition {
 }
 
 interface FloatingWindowOptions {
-  /** The window's fixed width, used to keep it inside the viewport. */
   width: number;
-  /** Gap kept from the viewport edge when it opens or is pushed back in. */
   margin?: number;
-  /** Height assumed before the element has been measured. */
   estimatedHeight?: number;
-  /**
-   * Cascades repeat windows down and left so a second one does not open
-   * exactly on top of the first.
-   */
   offsetIndex?: number;
-  /** An existing ref for the window element, when the caller needs one too. */
   elementRef?: RefObject<HTMLDivElement>;
 }
 
@@ -33,7 +25,6 @@ interface FloatingWindow {
   ref: RefObject<HTMLDivElement>;
   position: FloatingWindowPosition;
   dragging: boolean;
-  /** Spread onto the title bar that drags the window. */
   handleProps: {
     onPointerDown: (event: ReactPointerEvent) => void;
     onPointerMove: (event: ReactPointerEvent) => void;
@@ -45,22 +36,13 @@ interface FloatingWindow {
 
 const CASCADE = 26;
 
-/**
- * A small window that floats over the app and is dragged by its title bar: the
- * floating presenter, the stream's picture-in-picture and the camera previews
- * are all one of these.
- *
- * It opens in the top right corner and stays inside the viewport, both while it
- * is dragged and when the browser window is resized under it, so a floating
- * window can never be left where its controls cannot be reached.
- */
-export function useFloatingWindow({
+export const useFloatingWindow = ({
   width,
   margin = 16,
   estimatedHeight = 240,
   offsetIndex = 0,
   elementRef,
-}: FloatingWindowOptions): FloatingWindow {
+}: FloatingWindowOptions): FloatingWindow => {
   const ownRef = useRef<HTMLDivElement>(null);
   const ref = elementRef ?? ownRef;
   const [position, setPosition] = useState<FloatingWindowPosition>(() => ({
@@ -144,4 +126,4 @@ export function useFloatingWindow({
       style: { cursor: dragging ? "grabbing" : "grab", touchAction: "none" },
     },
   };
-}
+};

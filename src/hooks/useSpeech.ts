@@ -3,14 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export const speechSupported =
   typeof window !== "undefined" && "speechSynthesis" in window;
 
-/**
- * Reads a queue of text chunks aloud with the Web Speech API. One utterance
- * per chunk so callers can highlight/advance as each chunk starts.
- */
-export function useSpeech() {
+export const useSpeech = () => {
   const [speaking, setSpeaking] = useState(false);
   const [chunkIndex, setChunkIndex] = useState<number | null>(null);
-  // Bumped on every stop/speak so stale utterance callbacks become no-ops.
   const session = useRef(0);
 
   const stop = useCallback(() => {
@@ -57,4 +52,4 @@ export function useSpeech() {
   useEffect(() => stop, [stop]);
 
   return { supported: speechSupported, speaking, chunkIndex, speak, stop };
-}
+};

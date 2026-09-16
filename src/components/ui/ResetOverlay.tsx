@@ -1,7 +1,8 @@
 import { useStore } from "../../store/useStore";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 
-export function ResetOverlay() {
+export const ResetOverlay = () => {
+  const { colors, fonts } = useUITheme();
   const resetting = useStore((s) => s.resetting);
   if (!resetting) return null;
 
@@ -32,7 +33,7 @@ export function ResetOverlay() {
         />
         <div
           style={{
-            fontFamily: DISPLAY,
+            fontFamily: fonts.display,
             fontSize: 22,
             fontWeight: 600,
             color: colors.text,
@@ -42,7 +43,7 @@ export function ResetOverlay() {
         </div>
         <p
           style={{
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 14,
             color: colors.sub,
             lineHeight: 1.6,
@@ -54,4 +55,4 @@ export function ResetOverlay() {
       </div>
     </div>
   );
-}
+};

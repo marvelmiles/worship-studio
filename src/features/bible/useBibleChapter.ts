@@ -8,11 +8,11 @@ interface ChapterState {
   error: string | null;
 }
 
-export function useBibleChapter(
+export const useBibleChapter = (
   version: BibleVersionId,
   bookId: number,
   chapter: number,
-) {
+) => {
   const [state, setState] = useState<ChapterState>({
     verses: [],
     loading: true,
@@ -38,4 +38,4 @@ export function useBibleChapter(
   }, [version, bookId, chapter, attempt]);
 
   return { ...state, retry };
-}
+};

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Check, Clock, Film, Music } from "lucide-react";
 import { useStore, type UploadKind } from "../../store/useStore";
-import { colors, fade, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "./Modal";
 import { Button } from "./Button";
 import { TextInput } from "./Field";
@@ -22,7 +23,8 @@ const visualKinds: UploadKind[] = ["background", "image"];
 
 type RowStatus = "saved" | "saving" | "waiting" | "naming";
 
-function StatusBadge({ status }: { status: RowStatus }) {
+const StatusBadge = ({ status }: { status: RowStatus }) => {
+  const { colors } = useUITheme();
   if (status === "naming") return null;
   const box = (background: string, color: string, child: ReactNode) => (
     <div
@@ -45,9 +47,10 @@ function StatusBadge({ status }: { status: RowStatus }) {
   if (status === "saving")
     return box("transparent", colors.accent, <Spinner size={16} />);
   return box("transparent", colors.dim, <Clock size={15} />);
-}
+};
 
-export function UploadLabelModal() {
+export const UploadLabelModal = () => {
+  const { colors, fonts } = useUITheme();
   const pending = useStore((s) => s.pendingUpload);
   const commit = useStore((s) => s.commitUpload);
   const cancel = useStore((s) => s.cancelUpload);
@@ -124,7 +127,7 @@ export function UploadLabelModal() {
       {saving && count > 1 ? (
         <p
           style={{
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 13,
             color: colors.sub,
             marginTop: 0,
@@ -189,7 +192,7 @@ export function UploadLabelModal() {
                 />
                 <div
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 11.5,
                     color: colors.dim,
                     marginTop: 3,
@@ -208,4 +211,4 @@ export function UploadLabelModal() {
       </div>
     </Modal>
   );
-}
+};

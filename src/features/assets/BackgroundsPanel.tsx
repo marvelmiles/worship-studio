@@ -32,7 +32,6 @@ const TABS: PillTab<BackgroundTab>[] = [
 
 const TAB_PREFIX = "asset-backgrounds";
 
-/** The tab a background lives under. */
 const tabOf = (background: Background): BackgroundTab =>
   background.type === "image"
     ? "images"
@@ -41,21 +40,14 @@ const tabOf = (background: Background): BackgroundTab =>
       : "colors";
 
 interface BackgroundsPanelProps {
-  /** The background, or clip, a deep link is ringing, if any. */
   attentionId: string | null;
-  /** The item a deep link names, which picks the tab the panel opens on. */
   targetItemId: string | null;
 }
 
-/**
- * Every background in the library, one kind at a time: uploaded pictures,
- * colors and gradients, and clips from the videos module. Each tab holds both
- * its list and the way to add to it.
- */
-export function BackgroundsPanel({
+export const BackgroundsPanel = ({
   attentionId,
   targetItemId,
-}: BackgroundsPanelProps) {
+}: BackgroundsPanelProps) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const media = useStore((s) => s.media);
   const [tab, setTab] = useState<BackgroundTab>(() => {
@@ -82,9 +74,9 @@ export function BackgroundsPanel({
       </div>
     </>
   );
-}
+};
 
-function ImagesTab({ attentionId }: { attentionId: string | null }) {
+const ImagesTab = ({ attentionId }: { attentionId: string | null }) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
   const imageInput = useRef<HTMLInputElement>(null);
@@ -136,9 +128,9 @@ function ImagesTab({ attentionId }: { attentionId: string | null }) {
       )}
     </>
   );
-}
+};
 
-function ColorsTab({ attentionId }: { attentionId: string | null }) {
+const ColorsTab = ({ attentionId }: { attentionId: string | null }) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const addCustomBackground = useStore((s) => s.addCustomBackground);
   const colorsAndGradients = useMemo(
@@ -158,9 +150,9 @@ function ColorsTab({ attentionId }: { attentionId: string | null }) {
       />
     </>
   );
-}
+};
 
-function VideosTab({ attentionId }: { attentionId: string | null }) {
+const VideosTab = ({ attentionId }: { attentionId: string | null }) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const attachVideoBackground = useStore((s) => s.attachVideoBackground);
   const removeBackground = useStore((s) => s.removeBackground);
@@ -183,7 +175,7 @@ function VideosTab({ attentionId }: { attentionId: string | null }) {
       emptyMessage="Upload a video and it is attached as a background."
     />
   );
-}
+};
 
 interface BackgroundGridProps {
   backgrounds: Background[];
@@ -191,11 +183,11 @@ interface BackgroundGridProps {
   onEditImage?: (background: Background) => void;
 }
 
-function BackgroundGrid({
+const BackgroundGrid = ({
   backgrounds,
   attentionId,
   onEditImage,
-}: BackgroundGridProps) {
+}: BackgroundGridProps) => {
   const { colors, fonts } = useUITheme();
   const removeBackground = useStore((s) => s.removeBackground);
 
@@ -274,4 +266,4 @@ function BackgroundGrid({
       ))}
     </div>
   );
-}
+};

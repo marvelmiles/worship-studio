@@ -9,10 +9,10 @@ interface ManuscriptsByCategoryProps {
   largest: number;
 }
 
-export function ManuscriptsByCategory({
+export const ManuscriptsByCategory = ({
   data,
   largest,
-}: ManuscriptsByCategoryProps) {
+}: ManuscriptsByCategoryProps) => {
   const { colors, glass, controls, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -73,4 +73,4 @@ export function ManuscriptsByCategory({
       ))}
     </div>
   );
-}
+};

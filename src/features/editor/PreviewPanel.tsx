@@ -20,22 +20,17 @@ interface PreviewPanelProps {
   style: ResolvedStyle;
   lineStyles?: ResolvedStyle[];
   background: Background;
-  /** This slide's picture settings for `background`. */
   backgroundImage: ImageSettings | null;
-  /** The block being written into, as one editable run of text. */
   text: string;
   formatting: TextFormattingController;
   onChangeLabel: (label: string) => void;
-  /** Line the inspector is scoped to, outlined on the slide. */
   selectedLine: number | null;
-  /** The text box holding the caret, or null for the slide's own text. */
   activeTextBoxId: string | null;
   onActivateTextBox: (boxId: string | null) => void;
-  /** Selection and drag handling for everything placed on this slide. */
   elementEditing: SlideElementEditing;
 }
 
-export function PreviewPanel({
+export const PreviewPanel = ({
   slide,
   style,
   lineStyles,
@@ -48,7 +43,7 @@ export function PreviewPanel({
   activeTextBoxId,
   onActivateTextBox,
   elementEditing,
-}: PreviewPanelProps) {
+}: PreviewPanelProps) => {
   const editing = useSlideTextEditor({ text, formatting });
   const { focusAt } = editing;
   const pendingPoint = useRef<ClickPoint | null>(null);
@@ -69,9 +64,6 @@ export function PreviewPanel({
     [slide.media, slide.textBoxes],
   );
 
-  // A block only becomes editable once it is the surface being written into,
-  // which is a render after the click. The caret is put back where the click
-  // landed as soon as that render lands, so clicking into a box feels native.
   useEffect(() => {
     const point = pendingPoint.current;
     pendingPoint.current = null;
@@ -79,8 +71,6 @@ export function PreviewPanel({
   }, [activeTextBoxId, slide.id, focusAt]);
 
   const activateText = (boxId: string | null, point: ClickPoint) => {
-    // A block already holding the caret had it placed by the browser; only a
-    // block taking over needs the click point replaying into it.
     if (boxId !== activeTextBoxId) pendingPoint.current = point;
     onActivateTextBox(boxId);
   };
@@ -164,4 +154,4 @@ export function PreviewPanel({
       </div>
     </div>
   );
-}
+};

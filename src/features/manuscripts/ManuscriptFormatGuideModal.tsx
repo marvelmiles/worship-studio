@@ -17,22 +17,14 @@ const FORMAT_TABS: PillTab<ManuscriptFormat>[] = [
 interface ManuscriptFormatGuideModalProps {
   open: boolean;
   onClose: () => void;
-  /**
-   * The format picked in the text editor, which the guide opens on. Mount the
-   * guide once per opening so each opening starts from it.
-   */
   format: ManuscriptFormat;
 }
 
-/**
- * How the text editor reads what is pasted into it, kept out of the way of the
- * text itself and opened from the info button beside the format picker.
- */
-export function ManuscriptFormatGuideModal({
+export const ManuscriptFormatGuideModal = ({
   open,
   onClose,
   format,
-}: ManuscriptFormatGuideModalProps) {
+}: ManuscriptFormatGuideModalProps) => {
   const [tab, setTab] = useState<ManuscriptFormat>(format);
 
   return (
@@ -121,15 +113,15 @@ export function ManuscriptFormatGuideModal({
       <RegenerateWarning />
     </Modal>
   );
-}
+};
 
-function GuideSection({
+const GuideSection = ({
   title,
   children,
 }: {
   title: string;
   children: ReactNode;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <section style={{ marginBottom: 14 }}>
@@ -157,14 +149,14 @@ function GuideSection({
       </p>
     </section>
   );
-}
+};
 
-function Mark({ children }: { children: ReactNode }) {
+const Mark = ({ children }: { children: ReactNode }) => {
   const { colors } = useUITheme();
   return <code style={{ color: colors.accentSoft }}>{children}</code>;
-}
+};
 
-function RegenerateWarning() {
+const RegenerateWarning = () => {
   const { colors, fonts } = useUITheme();
   const tone = feedbackTone(colors.danger);
   return (
@@ -189,4 +181,4 @@ function RegenerateWarning() {
       styling and overrides.
     </div>
   );
-}
+};

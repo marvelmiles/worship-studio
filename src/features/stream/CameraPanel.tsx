@@ -33,21 +33,10 @@ import {
 } from "./lib/streamSession";
 
 interface CameraPanelProps {
-  /** Whether the feed is on the external display, for the status wording. */
   isLive?: boolean;
 }
 
-/**
- * The joined cameras and what each one is doing: which fills the screen, which
- * sit in the corners, and which are connected but off screen waiting to be cut
- * to.
- *
- * All three are one list rather than three, because during a service the
- * question is never "which list is this device in", it is "put that camera on
- * the screen". Every row therefore carries the same controls, and the state a
- * camera is in only changes which of them are lit.
- */
-export function CameraPanel({ isLive = false }: CameraPanelProps) {
+export const CameraPanel = ({ isLive = false }: CameraPanelProps) => {
   const { colors, fonts } = useUITheme();
   const session = useStreamSession();
   const previewIds = useCameraPreviewIds();
@@ -55,9 +44,6 @@ export function CameraPanel({ isLive = false }: CameraPanelProps) {
 
   if (session.cameras.length === 0) return null;
 
-  // With one device joined there is nothing to check against: its picture is
-  // already the one on screen. The previews earn their place from the second
-  // camera on, which is why the control appears with it.
   const canPreview = session.cameras.length > 1;
 
   const cornersInUse = session.secondaryIds.flatMap((id) => {
@@ -113,9 +99,9 @@ export function CameraPanel({ isLive = false }: CameraPanelProps) {
       ))}
     </div>
   );
-}
+};
 
-function CameraRow({
+const CameraRow = ({
   camera,
   session,
   isLive,
@@ -128,12 +114,10 @@ function CameraRow({
   session: StreamSessionState;
   isLive: boolean;
   cornersInUse: PipCorner[];
-  /** Whether this roster offers previews at all. */
   canPreview: boolean;
-  /** Whether this camera already has a floating preview open. */
   previewing: boolean;
   onShowInCorner: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const isPrimary = session.primaryId === camera.deviceId;
   const slot = session.secondaryIds.indexOf(camera.deviceId);
@@ -266,10 +250,6 @@ function CameraRow({
           muted={isPrimary ? false : camera.muted}
           size="sm"
         />
-        {/* The main screen's sound is the whole feed's, and is switched at the
-            track rather than at one element, so it stays with the header's own
-            control (see useRemoteAudio). What is offered here is the corner
-            window's, which is a separate decision and normally silence. */}
         {camera.audioShared && !isPrimary && (
           <IconButton
             icon={camera.muted ? VolumeX : Volume2}
@@ -303,4 +283,4 @@ function CameraRow({
       )}
     </div>
   );
-}
+};

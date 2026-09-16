@@ -9,18 +9,10 @@ interface CardOpenProps {
   style?: CSSProperties;
 }
 
-/**
- * Makes a whole library card the target that opens its editor, keyboard
- * included, rather than only the thumbnail. Pass no handler (a trashed record,
- * say) and the card is left inert.
- *
- * Anything else the card can do lives inside `CardActions`, which keeps its own
- * clicks and keys to itself so pressing Present never also opens the editor.
- */
-export function cardOpenProps(
+export const cardOpenProps = (
   label: string,
   onOpen?: () => void,
-): CardOpenProps {
+): CardOpenProps => {
   if (!onOpen) return {};
   return {
     role: "button",
@@ -34,10 +26,9 @@ export function cardOpenProps(
     },
     style: { cursor: "pointer" },
   };
-}
+};
 
-/** The row of controls on a card, isolated from the card's own activation. */
-export function CardActions({ children }: { children: ReactNode }) {
+export const CardActions = ({ children }: { children: ReactNode }) => {
   return (
     <div
       className="ws-card-actions"
@@ -47,4 +38,4 @@ export function CardActions({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
-}
+};

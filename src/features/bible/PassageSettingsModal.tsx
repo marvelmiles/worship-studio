@@ -8,7 +8,7 @@ import {
   bookById,
   isBibleVersion,
 } from "../../data/bibleBooks";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Modal } from "../../components/ui/Modal";
 import { InfoTip } from "../../components/ui/InfoTip";
@@ -41,12 +41,13 @@ const GRID = {
   gap: 12,
 } as const;
 
-export function PassageSettingsModal({
+export const PassageSettingsModal = ({
   open,
   onClose,
   passage,
   editor,
-}: PassageSettingsModalProps) {
+}: PassageSettingsModalProps) => {
+  const { colors, fonts } = useUITheme();
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
@@ -54,9 +55,6 @@ export function PassageSettingsModal({
   const rebuildScriptureSlides = useStore((s) => s.rebuildScriptureSlides);
   const pushToast = useStore((s) => s.pushToast);
 
-  // Passages saved by older releases may carry a translation that is no
-  // longer available (copyrighted versions were removed when scripture went
-  // fully offline), rebuilding those falls back to the default.
   const safeVersion = (value: BibleVersionId) =>
     isBibleVersion(value) ? value : DEFAULT_BIBLE_VERSION;
   const [version, setVersion] = useState<BibleVersionId>(
@@ -100,9 +98,6 @@ export function PassageSettingsModal({
     ? resolveBackgroundImage(undefined, passage, effectiveBackground)
     : null;
 
-  // A range that runs backwards is refused rather than quietly turned around:
-  // an operator who picked the wrong end should be told, not given verses they
-  // did not ask for halfway through a service.
   const rangeError =
     verseStart > verseEnd
       ? "The first verse has to come before the last one."
@@ -243,7 +238,7 @@ export function PassageSettingsModal({
       </Button>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 12,
           color: colors.danger,
           opacity: 0.85,
@@ -321,4 +316,4 @@ export function PassageSettingsModal({
       />
     </Modal>
   );
-}
+};

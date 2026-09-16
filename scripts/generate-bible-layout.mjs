@@ -1,24 +1,15 @@
-// Generates src/data/bibleLayout.ts from the holy-bible package's verse index.
-//
-// The holy-bible package (MIT) ships each translation as a flat array of verse
-// strings in canonical order (Genesis 1:1 → Revelation 22:21) plus an index
-// mapping zero-padded verse ids (BBCCCVVV) to array positions. This script
-// derives the verses-per-chapter layout from that index, verifies the array
-// order really is canonical (so chapter lookup can be plain offset arithmetic),
-// and cross-checks the book list against src/data/bibleBooks.ts.
-//
-// Re-run after upgrading holy-bible:  pnpm run generate:bible-layout
-
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const map = JSON.parse(
-  readFileSync(join(root, "node_modules/holy-bible/indexes/verse-index-map.json"), "utf8")
+  readFileSync(
+    join(root, "node_modules/holy-bible/indexes/verse-index-map.json"),
+    "utf8",
+  ),
 );
 
-// layout[bookId - 1][chapter - 1] = number of verse slots in that chapter.
 const layout = [];
 for (const key of Object.keys(map)) {
   const id = Number(key);
@@ -29,29 +20,30 @@ for (const key of Object.keys(map)) {
   chapters[chapter - 1] = Math.max(chapters[chapter - 1] ?? 0, verse);
 }
 
-if (layout.length !== 66) throw new Error(`Expected 66 books, got ${layout.length}`);
+if (layout.length !== 66)
+  throw new Error(`Expected 66 books, got ${layout.length}`);
 
-// Verify the flat verse arrays follow canonical order exactly.
 let index = 0;
 for (let b = 1; b <= 66; b++) {
   for (let c = 1; c <= layout[b - 1].length; c++) {
     for (let v = 1; v <= layout[b - 1][c - 1]; v++) {
       const key = String(b * 1e6 + c * 1000 + v).padStart(8, "0");
       if (map[key] !== index) {
-        throw new Error(`Corpus not in canonical order at ${b}:${c}:${v} (index ${index})`);
+        throw new Error(
+          `Corpus not in canonical order at ${b}:${c}:${v} (index ${index})`,
+        );
       }
       index++;
     }
   }
 }
 
-// Cross-check chapter counts against the app's book metadata.
 const booksSrc = readFileSync(join(root, "src/data/bibleBooks.ts"), "utf8");
 for (const m of booksSrc.matchAll(/book\((\d+), "([^"]+)", (\d+)/g)) {
   const [, id, name, chapters] = m;
   if (layout[Number(id) - 1].length !== Number(chapters)) {
     throw new Error(
-      `${name}: bibleBooks.ts says ${chapters} chapters, index says ${layout[Number(id) - 1].length}`
+      `${name}: bibleBooks.ts says ${chapters} chapters, index says ${layout[Number(id) - 1].length}`,
     );
   }
 }

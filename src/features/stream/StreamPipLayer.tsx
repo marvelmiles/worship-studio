@@ -11,7 +11,6 @@ export interface StreamPipWindow {
   muted: boolean;
 }
 
-/** A joined camera as a corner window, named by the device it comes from. */
 export const cameraPipWindow = (camera: {
   deviceId: string;
   deviceName: string;
@@ -28,12 +27,7 @@ export const cameraPipWindow = (camera: {
 
 interface StreamPipLayerProps {
   windows: StreamPipWindow[];
-  /**
-   * Names each window on the operator's own surfaces. The projector shows the
-   * picture and nothing else, so it leaves this off.
-   */
   showLabels?: boolean;
-  /** Silences every window regardless of its own setting. */
   forceMuted?: boolean;
 }
 
@@ -64,19 +58,11 @@ const LABEL_STYLE: CSSProperties = {
   pointerEvents: "none",
 };
 
-/**
- * The extra cameras, drawn in the corners of whichever picture is underneath.
- *
- * Placement is in percentages of that picture (see lib/pipPlacement.ts), so one
- * arrangement is right on the operator's stage, in the floating window and on
- * the projector at once without any of them measuring anything. Windows sharing
- * a corner stack sideways rather than covering each other.
- */
-export function StreamPipLayer({
+export const StreamPipLayer = ({
   windows,
   showLabels,
   forceMuted,
-}: StreamPipLayerProps) {
+}: StreamPipLayerProps) => {
   if (windows.length === 0) return null;
 
   const stacked = new Map<PipCorner, number>();
@@ -105,4 +91,4 @@ export function StreamPipLayer({
       })}
     </>
   );
-}
+};

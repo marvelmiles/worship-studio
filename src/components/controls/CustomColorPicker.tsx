@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Plus } from "lucide-react";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { themeVar } from "../../theme/cssVars";
 import { Button } from "../ui/Button";
 import { TextInput } from "../ui/Field";
 import { InfoTip } from "../ui/InfoTip";
@@ -28,17 +29,18 @@ const PALETTE: { value: string; name: string }[] = [
   { value: "#f5ecd7", name: "Parchment" },
 ];
 
-const caption = {
-  fontFamily: UI,
+const captionStyle = {
+  fontFamily: themeVar.fontUi,
   fontSize: 10.5,
   fontWeight: 700,
   letterSpacing: 0.5,
   textTransform: "uppercase" as const,
-  color: colors.dim,
+  color: themeVar.dim,
   margin: "0 0 7px",
 };
 
-export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
+export const CustomColorPicker = ({ onAdd }: CustomColorPickerProps) => {
+  const { colors } = useUITheme();
   const [color, setColor] = useState("#1b1733");
   const [css, setCss] = useState("");
   const [label, setLabel] = useState("");
@@ -65,7 +67,7 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
         marginBottom: 12,
       }}
     >
-      <p style={caption}>Presets</p>
+      <p style={captionStyle}>Presets</p>
       <div
         style={{
           display: "grid",
@@ -90,7 +92,14 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
         ))}
       </div>
 
-      <p style={{ ...caption, display: "flex", alignItems: "center", gap: 4 }}>
+      <p
+        style={{
+          ...captionStyle,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
         Add custom (label required)
         <InfoTip title="Custom backgrounds">
           Accepts any CSS background: hex, rgb or rgba, hsl, or a gradient.
@@ -153,4 +162,4 @@ export function CustomColorPicker({ onAdd }: CustomColorPickerProps) {
       </div>
     </div>
   );
-}
+};

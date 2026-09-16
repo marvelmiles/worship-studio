@@ -1,5 +1,6 @@
 import { useStore } from "../../store/useStore";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { themeVar } from "../../theme/cssVars";
 import { Modal } from "../../components/ui/Modal";
 import { SectionTitle } from "../../components/ui/Field";
 import { InfoTip } from "../../components/ui/InfoTip";
@@ -9,16 +10,17 @@ const keyStyle = {
   fontFamily: "ui-monospace, monospace",
   fontSize: 12,
   fontWeight: 600,
-  color: colors.text,
+  color: themeVar.text,
   background: "rgba(255,255,255,0.07)",
-  border: `1px solid ${colors.border}`,
+  border: `1px solid ${themeVar.border}`,
   borderRadius: 6,
   padding: "3px 8px",
   minWidth: 22,
   textAlign: "center" as const,
 };
 
-export function ShortcutsModal() {
+export const ShortcutsModal = () => {
+  const { colors, fonts } = useUITheme();
   const overlay = useStore((s) => s.overlay);
   const close = useStore((s) => s.closeOverlay);
 
@@ -63,7 +65,11 @@ export function ShortcutsModal() {
               }}
             >
               <span
-                style={{ fontFamily: UI, fontSize: 13.5, color: colors.text }}
+                style={{
+                  fontFamily: fonts.ui,
+                  fontSize: 13.5,
+                  color: colors.text,
+                }}
               >
                 {shortcut.description}
               </span>
@@ -89,4 +95,4 @@ export function ShortcutsModal() {
       ))}
     </Modal>
   );
-}
+};

@@ -31,55 +31,31 @@ const MARGIN = 16;
 interface PresenterPipProps {
   title: string;
   currentLabel: string;
-  /** Presenter notes for the current slide, shown only when there are any. */
   notes?: string;
   frame: StageFrame;
   slideIndex: number;
   total: number;
   paused: boolean;
   isLive: boolean;
-  /**
-   * The clip's own element, shared with the stage, so shrinking the stage into
-   * this window never stops what the audience is watching.
-   */
   videoHost: HTMLElement;
-  /** Set while a clip is on: how far through its trim window it has got. */
   videoProgress?: VideoProgress;
-  /** Whether the clip is currently silenced, for the transport's mute control. */
   videoMuted: boolean;
-  /** Scrubs the clip, on this window, the stage and the audience display. */
   onSeekVideo: (time: number) => void;
-  /** Silences the clip without stopping it, for a spoken introduction over it. */
   onToggleVideoMuted: () => void;
-  /** Takes the clip back to its trim start and runs it again. */
   onRestartVideo: () => void;
-  /** The second module's corner window, at this window's scale. */
   secondaryLayer?: ReactNode;
-  /** Its controls, so the corner can be moved without leaving this window. */
   secondaryMenu?: ReactNode;
-  /** Owned by the parent so it can gate presentation shortcuts on focus. */
   rootRef: RefObject<HTMLDivElement>;
   onPrev: () => void;
   onNext: () => void;
   onTogglePause: () => void;
   onOpenStage: () => void;
   onGoLive: () => void;
-  /** Ends the projection but keeps the presentation running here. */
   onStopLive: () => void;
   onExit: () => void;
 }
 
-/**
- * A small, draggable presenter that floats over the app while a presentation
- * runs, so the operator can keep working (searching the next manuscript, editing a
- * passage) without dropping what the audience sees.
- *
- * It is focusable: while it holds focus the presentation keyboard shortcuts
- * are live, so Ctrl+3, the arrow keys and so on drive the stage from here.
- * Focus goes back to the page the moment the user clicks anything else, which
- * is what keeps those keys from hijacking normal typing.
- */
-export function PresenterPip({
+export const PresenterPip = ({
   title,
   currentLabel,
   notes,
@@ -104,7 +80,7 @@ export function PresenterPip({
   onGoLive,
   onStopLive,
   onExit,
-}: PresenterPipProps) {
+}: PresenterPipProps) => {
   const { colors, fonts } = useUITheme();
   const [focused, setFocused] = useState(false);
   const { position, handleProps } = useFloatingWindow({
@@ -114,14 +90,11 @@ export function PresenterPip({
     elementRef: rootRef,
   });
 
-  // Focus on mount so the shortcuts work immediately after switching here.
   useEffect(() => {
     rootRef.current?.focus();
   }, [rootRef]);
 
   const { content } = frame;
-  // A run of one has nothing to step between, so the transport that would move
-  // through it is left out rather than shown doing nothing.
   const navigable = total > 1;
   const isVideo = content.kind === "video";
 
@@ -131,10 +104,7 @@ export function PresenterPip({
       tabIndex={0}
       role="region"
       aria-label="Floating presenter"
-      // Marks the region as owning its own keyboard, so the page behind it
-      // leaves Space alone while the presenter is being driven from here.
       data-presenter-pip=""
-      // Any click inside claims focus, which is what arms the shortcuts.
       onPointerDown={() => rootRef.current?.focus()}
       onFocus={() => setFocused(true)}
       onBlur={(e) => {
@@ -417,7 +387,7 @@ export function PresenterPip({
       </div>
     </div>
   );
-}
+};
 
 interface VideoScrubberProps {
   progress: VideoProgress;
@@ -425,13 +395,7 @@ interface VideoScrubberProps {
   accent: string;
 }
 
-/**
- * The clip's position along the bottom of the preview, and the handle that
- * moves it. Seeking here drives the one video element the presenter shares with
- * the stage, and the reading it publishes takes the audience display with it,
- * so all three land on the same frame.
- */
-function VideoScrubber({ progress, onSeek, accent }: VideoScrubberProps) {
+const VideoScrubber = ({ progress, onSeek, accent }: VideoScrubberProps) => {
   const end = Math.max(progress.end, progress.start + 0.1);
   const position = Math.min(Math.max(progress.time, progress.start), end);
   const filled = videoProgressPercent(progress);
@@ -457,9 +421,9 @@ function VideoScrubber({ progress, onSeek, accent }: VideoScrubberProps) {
       }}
     />
   );
-}
+};
 
-function MiniButton({
+const MiniButton = ({
   icon: Icon,
   title,
   onClick,
@@ -471,7 +435,7 @@ function MiniButton({
   onClick: () => void;
   active?: boolean;
   danger?: boolean;
-}) {
+}) => {
   const { colors } = useUITheme();
   return (
     <button
@@ -494,4 +458,4 @@ function MiniButton({
       <Icon size={15} />
     </button>
   );
-}
+};

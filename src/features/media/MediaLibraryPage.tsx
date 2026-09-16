@@ -48,7 +48,6 @@ interface MediaPageConfig {
   emptyTitle: string;
   emptyMessage: string;
   emptyIcon: LucideIcon;
-  /** Where one of these opens for editing. */
   editPath: string;
 }
 
@@ -56,8 +55,7 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
   image: {
     kind: "image",
     title: "Images",
-    subtitle:
-      "Upload, edit and project images. Presenting one flips through the library like a slideshow.",
+    subtitle: "Upload, edit and project images.",
     uploadLabel: "Upload Images",
     accept: "image/*",
     emptyTitle: "No images yet",
@@ -68,8 +66,7 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
   video: {
     kind: "video",
     title: "Videos",
-    subtitle:
-      "Upload, trim and project videos with full playback control while live.",
+    subtitle: "Upload, trim and play videos live.",
     uploadLabel: "Upload Videos",
     accept: "video/*",
     emptyTitle: "No videos yet",
@@ -79,7 +76,7 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
   },
 };
 
-export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
+export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
   const config = CONFIGS[kind];
   useDocumentTitle(`${config.title} · WorshipStudio`);
 
@@ -101,10 +98,6 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
   const openEditor = (item: MediaItem) =>
     navigate(`${config.editPath}/${item.id}`);
 
-  // Deep-links written before the editor had a page of its own still arrive
-  // carrying an item id. Both hand-offs replace this entry rather than stacking
-  // one, so Back returns where the link was followed from instead of bouncing
-  // straight into the editor again.
   const openId = (location.state as { openId?: string } | null)?.openId;
   const handedOff = useRef<string | null>(null);
   useEffect(() => {
@@ -128,12 +121,9 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
       ? library.filter((m) => m.name.toLowerCase().includes(term))
       : library;
     const ordered = sortLibrary(base, sort, (m) => m.name);
-    // A search is answered by what matches it; pins only order the library.
     return term ? ordered : sortPinnedFirst(ordered);
   }, [library, query, sort]);
 
-  // The image ids currently mirrored as backgrounds, so each card's toggle can
-  // show whether that image is already in use.
   const backgroundImageIds = useMemo(
     () =>
       new Set(
@@ -249,11 +239,10 @@ export function MediaLibraryPage({ kind }: { kind: MediaKind }) {
       />
     </div>
   );
-}
+};
 
 interface MediaCardProps {
   item: MediaItem;
-  /** Everything of this kind, so the pin budget can be read off the library. */
   library: MediaItem[];
   isBackground: boolean;
   onOpen: () => void;
@@ -262,7 +251,7 @@ interface MediaCardProps {
   onDelete: () => void;
 }
 
-function MediaCard({
+const MediaCard = ({
   item,
   library,
   isBackground,
@@ -270,7 +259,7 @@ function MediaCard({
   onPresent,
   onToggleBackground,
   onDelete,
-}: MediaCardProps) {
+}: MediaCardProps) => {
   return (
     <div className="ws-glass ws-card" {...cardOpenProps(item.name, onOpen)}>
       <div className="ws-thumb" title="Open editor">
@@ -331,7 +320,7 @@ function MediaCard({
       </div>
     </div>
   );
-}
+};
 
 export const ImagesPage = () => <MediaLibraryPage kind="image" />;
 export const VideosPage = () => <MediaLibraryPage kind="video" />;

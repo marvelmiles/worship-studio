@@ -5,11 +5,7 @@ import { searchBibleVerses, type BibleSearchResult } from "./lib/offlineBible";
 const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 450;
 
-/**
- * Debounced full-text verse search. Results accumulate across pages;
- * changing the query or version starts over from page one.
- */
-export function useBibleSearch(version: BibleVersionId, query: string) {
+export const useBibleSearch = (version: BibleVersionId, query: string) => {
   const term = query.trim();
   const enabled = term.length >= MIN_QUERY_LENGTH;
 
@@ -32,7 +28,6 @@ export function useBibleSearch(version: BibleVersionId, query: string) {
       return;
     }
     const controller = new AbortController();
-    // Fresh queries debounce while the user types; load-more fires at once.
     const timer = window.setTimeout(
       () => {
         setLoading(true);
@@ -71,4 +66,4 @@ export function useBibleSearch(version: BibleVersionId, query: string) {
     hasMore: enabled && results.length < total,
     loadMore,
   };
-}
+};

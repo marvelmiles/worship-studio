@@ -1,16 +1,8 @@
-// Renders the PNG icon set from public/icon.svg.
-//   node scripts/generate-icons.mjs
-//
-// Rounded icons (icon-192/512) come straight from the SVG. Maskable and
-// Apple touch icons are full-bleed squares (the platform applies its own
-// mask), so those variants drop the rounded corners + border ring and
-// shrink the artwork into the safe zone.
 import { readFileSync, writeFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 
 const icon = readFileSync("public/icon.svg", "utf8");
 
-/** Full-bleed square variant with the artwork scaled about the center. */
 function squareVariant(artScale) {
   return icon
     .replaceAll(' rx="116"', "")

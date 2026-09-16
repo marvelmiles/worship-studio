@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 
-/** The small dark buttons laid over a library card's preview. */
 export const CARD_OVERLAY_BUTTON: CSSProperties = {
   width: 24,
   height: 24,

@@ -20,21 +20,6 @@ export const DEFAULT_PREFS: Prefs = {
   onboarded: false,
 };
 
-/** Preference name from before the songs module became manuscripts. */
-interface LegacyPrefs {
-  defaultSongThemeId?: string;
-}
-
-/** Carries pre-rename preferences over to their current names. */
-export function normalizeStoredPrefs(
-  stored: Partial<Prefs> & LegacyPrefs,
-): Partial<Prefs> {
-  const { defaultSongThemeId, ...rest } = stored;
-  const themeId = stored.defaultManuscriptThemeId ?? defaultSongThemeId;
-  // Left out entirely when neither name is stored, so the default stands.
-  return themeId ? { ...rest, defaultManuscriptThemeId: themeId } : rest;
-}
-
 export interface PrefsSlice {
   prefs: Prefs;
 

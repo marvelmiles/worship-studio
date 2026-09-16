@@ -7,27 +7,12 @@ import {
   SERMON_TITLE_FRAME,
 } from "../slideTextBox";
 
-/**
- * Sermon layout: a message is prose, not lyrics, so it is built the way an
- * article reads. Paragraphs stay whole instead of being cut into one line per
- * sentence, points keep their heading, and the topic, the text it is preached
- * from and the preacher's name open the deck on a title slide.
- *
- * Every slide carries its words in a text box rather than in the slide's own
- * lines, so a message can be laid out the way a presentation is: the block is
- * dragged and resized to leave room for whatever else the slide needs, and more
- * boxes can be added beside it.
- */
-
-/** Body text size, in the container-query units the canvas paints in. */
 const BODY_SIZE = 3.1;
 const HEADING_SIZE = 4.3;
 const TITLE_SIZE = 6.2;
 const CREDIT_SIZE = 3.4;
 const BODY_LINE_HEIGHT = 1.5;
-/** Characters that fit on one rendered line at the body size. */
 const CHARS_PER_LINE = 58;
-/** Blank spacer between two blocks on the same slide, in body lines. */
 const BLOCK_GAP_WEIGHT = 0.8;
 const MIN_SLIDE_WEIGHT = 3;
 const LABEL_MAX_CHARS = 32;
@@ -55,11 +40,6 @@ interface SermonPreamble {
   theme: string | null;
 }
 
-/**
- * The lines an order-of-service style sermon opens with. They are details about
- * the message rather than the message itself, so they head the deck instead of
- * being preached as body text.
- */
 const PREAMBLE_FIELDS: PreambleField[] = [
   {
     pattern:
@@ -78,7 +58,6 @@ const PREAMBLE_FIELDS: PreambleField[] = [
   },
 ];
 
-/** Kept on the title slide rather than dropped, so nothing pasted is lost. */
 const DETAIL_LINE =
   /^(?:date|venue|series|occasion|service|programme|program|location|time)\s*[:\-–—]\s*(.+)$/i;
 
@@ -86,9 +65,7 @@ type BlockKind = "heading" | "paragraph" | "list";
 
 interface Block {
   kind: BlockKind;
-  /** Rendered as written, so inline emphasis survives into the slide. */
   lines: string[];
-  /** Height of the block in body-text lines. */
   weight: number;
 }
 
@@ -100,7 +77,6 @@ interface Section {
 }
 
 export interface SermonBuildOptions {
-  /** Roughly how many rendered lines one slide should hold. */
   maxLines: number;
   title: string | null;
   author: string | null;
@@ -115,15 +91,13 @@ const plain = (value: string): string =>
 const isBlank = (line: string): boolean =>
   line.trim() === "" || HORIZONTAL_RULE.test(line);
 
-/** How many rendered lines a run of text takes at a given font size. */
-function weightFor(text: string, fontSize: number): number {
+const weightFor = (text: string, fontSize: number): number => {
   const scale = fontSize / BODY_SIZE;
   const charsPerLine = Math.max(12, Math.round(CHARS_PER_LINE / scale));
   return Math.max(1, Math.ceil(plain(text).length / charsPerLine)) * scale;
-}
+};
 
-/** True for a line a writer meant as a point or section title, not as prose. */
-function isHeadingLine(raw: string): boolean {
+const isHeadingLine = (raw: string): boolean => {
   const line = raw.trim();
   if (!line) return false;
   if (MARKDOWN_HEADING.test(line)) return true;
@@ -131,7 +105,6 @@ function isHeadingLine(raw: string): boolean {
 
   const bare = plain(line);
   if (!bare || wordCount(bare) > 12) return false;
-  // Shouting a line is how a typed sermon marks its points.
   if (/[A-Z]/.test(bare) && !/[a-z]/.test(bare)) return true;
   if (TRAILING_COLON.test(bare) && wordCount(bare) <= 10) return true;
   if (NAMED_HEADING.test(bare)) return true;
@@ -142,24 +115,22 @@ function isHeadingLine(raw: string): boolean {
     wordCount(enumerated[1]) <= 10 &&
     !SENTENCE_END.test(enumerated[1].trim()),
   );
-}
+};
 
-/** The heading as it should appear on the slide, keeping its own emphasis. */
-function headingContent(raw: string): string {
+const headingContent = (raw: string): string => {
   const line = raw.trim();
   const markdown = line.match(MARKDOWN_HEADING);
   return (markdown ? markdown[1] : line).trim();
-}
+};
 
-function headingLabel(raw: string): string {
+const headingLabel = (raw: string): string => {
   const label = plain(headingContent(raw)).replace(/[:.\-–—]\s*$/, "");
   return label.length > LABEL_MAX_CHARS
     ? `${label.slice(0, LABEL_MAX_CHARS - 1).trimEnd()}…`
     : label;
-}
+};
 
-/** Groups the document into runs of consecutive non-blank lines. */
-function splitBlocks(lines: string[]): string[][] {
+const splitBlocks = (lines: string[]): string[][] => {
   const blocks: string[][] = [];
   let current: string[] = [];
   const flush = () => {
@@ -175,14 +146,9 @@ function splitBlocks(lines: string[]): string[][] {
   }
   flush();
   return blocks;
-}
+};
 
-/**
- * Splits an oversized paragraph at sentence boundaries so a slide break never
- * lands mid-sentence, falling back to word boundaries for a sentence that is
- * itself longer than a slide.
- */
-function splitByWords(text: string, maxChars: number): string[] {
+const splitByWords = (text: string, maxChars: number): string[] => {
   const pieces: string[] = [];
   let current = "";
   for (const word of text.split(/\s+/)) {
@@ -194,9 +160,9 @@ function splitByWords(text: string, maxChars: number): string[] {
   }
   if (current) pieces.push(current);
   return pieces;
-}
+};
 
-function splitParagraph(text: string, maxChars: number): string[] {
+const splitParagraph = (text: string, maxChars: number): string[] => {
   if (text.length <= maxChars) return [text];
   const sentences = text.match(/[^.!?…]+(?:[.!?…]+["')\]]*\s*|$)/g) ?? [text];
   const pieces: string[] = [];
@@ -212,14 +178,9 @@ function splitParagraph(text: string, maxChars: number): string[] {
   return pieces.flatMap((piece) =>
     piece.length > maxChars * 1.5 ? splitByWords(piece, maxChars) : [piece],
   );
-}
+};
 
-/**
- * Turns one run of lines into a block. Soft-wrapped prose is rejoined into a
- * single paragraph, while a run carrying list markers keeps its own lines so
- * the canvas can number and indent them.
- */
-function toBlock(lines: string[]): Block {
+const toBlock = (lines: string[]): Block => {
   if (lines.length === 1 && isHeadingLine(lines[0])) {
     const content = headingContent(lines[0]);
     return {
@@ -246,14 +207,15 @@ function toBlock(lines: string[]): Block {
     lines: [paragraph],
     weight: weightFor(paragraph, BODY_SIZE),
   };
-}
+};
 
-/** Reads the details a sermon is headed with off the top of the document. */
-function readPreamble(lines: string[]): {
+const readPreamble = (
+  lines: string[],
+): {
   preamble: SermonPreamble;
   details: string[];
   consumed: number;
-} {
+} => {
   const preamble: SermonPreamble = {
     reference: null,
     preacher: null,
@@ -283,23 +245,16 @@ function readPreamble(lines: string[]): {
   }
 
   return { preamble, details, consumed };
-}
+};
 
-/**
- * The topic a sermon opens with when it was typed without a declared heading:
- * a short line standing on its own above the message. A line naming a part of
- * the sermon ("Introduction", "Point 1") is a section, not the topic, so it is
- * left where the writer put it.
- */
-function leadingTitle(
+const leadingTitle = (
   lines: string[],
-): { title: string; consumed: number } | null {
+): { title: string; consumed: number } | null => {
   const index = lines.findIndex((line) => line.trim() !== "");
   if (index === -1) return null;
 
   const line = lines[index].trim();
   const next = lines[index + 1];
-  // A title stands alone: prose running straight on underneath is a paragraph.
   if (next !== undefined && next.trim() !== "") return null;
 
   const content = plain(headingContent(line));
@@ -308,7 +263,7 @@ function leadingTitle(
   if (SENTENCE_END.test(content)) return null;
 
   return { title: content, consumed: index + 1 };
-}
+};
 
 const mergePreambles = (
   first: SermonPreamble,
@@ -319,12 +274,12 @@ const mergePreambles = (
   theme: first.theme ?? second.theme,
 });
 
-function buildTitleSlide(
+const buildTitleSlide = (
   title: string | null,
   preamble: SermonPreamble,
   details: string[],
   author: string | null,
-): Slide | null {
+): Slide | null => {
   const headline = title || preamble.theme;
   const preacher = preamble.preacher || author;
   const credits = [
@@ -367,10 +322,9 @@ function buildTitleSlide(
     ],
     notes: "",
   };
-}
+};
 
-/** Groups blocks under the heading that introduced them. */
-function buildSections(blocks: Block[]): Section[] {
+const buildSections = (blocks: Block[]): Section[] => {
   const sections: Section[] = [];
   const usedLabels = new Map<string, number>();
 
@@ -406,11 +360,10 @@ function buildSections(blocks: Block[]): Section[] {
   return sections.filter(
     (section) => section.heading !== null || section.blocks.length > 0,
   );
-}
+};
 
 interface SlideDraft {
   lines: string[];
-  /** Index of the heading line, styled larger than the body around it. */
   headingLine: number | null;
 }
 
@@ -420,14 +373,7 @@ const paragraphPiece = (text: string): Block => ({
   weight: weightFor(text, BODY_SIZE),
 });
 
-/**
- * Fills slides with as many whole blocks as the budget allows.
- *
- * A heading never ends up alone on a slide: when the paragraph under it does not
- * fit beside it, the paragraph is broken at a sentence to fill the room that is
- * left and carries on overleaf, which is what a printed page does.
- */
-function chunkSection(section: Section, budget: number): SlideDraft[] {
+const chunkSection = (section: Section, budget: number): SlideDraft[] => {
   const maxChars = Math.round(budget * CHARS_PER_LINE);
   const queue: Block[] = section.blocks.flatMap((block) =>
     block.kind === "paragraph"
@@ -468,8 +414,6 @@ function chunkSection(section: Section, budget: number): SlideDraft[] {
         flush();
         continue;
       }
-      // Only the heading is on the slide, so the paragraph is trimmed to what
-      // fits rather than leaving a heading with nothing under it.
       if (piece.kind === "paragraph" && room >= 1) {
         const parts = splitParagraph(
           piece.lines[0],
@@ -490,14 +434,14 @@ function chunkSection(section: Section, budget: number): SlideDraft[] {
   flush();
 
   return drafts.length ? drafts : [{ lines: [], headingLine: null }];
-}
+};
 
-function toSlide(
+const toSlide = (
   draft: SlideDraft,
   section: Section,
   index: number,
   total: number,
-): Slide {
+): Slide => {
   const lineOverrides: Record<number, TextStyle> = {};
   if (draft.headingLine !== null)
     lineOverrides[draft.headingLine] = {
@@ -511,8 +455,6 @@ function toSlide(
     label:
       total > 1 ? `${section.label} · ${index + 1}/${total}` : section.label,
     lines: [],
-    // Left on the slide rather than on the box: the box inherits them, so
-    // restyling the slide still reaches the words inside it.
     overrides: {
       align: "left",
       fontSize: BODY_SIZE,
@@ -530,25 +472,18 @@ function toSlide(
     ],
     notes: "",
   };
-}
+};
 
 export interface SermonDeck {
   slides: Slide[];
-  /** The topic, when the sermon named one the document heading had not. */
   title: string | null;
-  /** The preacher credited in the document, if any. */
   author: string | null;
 }
 
-/**
- * Builds a sermon deck from the body of the document (everything the manuscript
- * heading did not already claim), reporting the topic and preacher it found on
- * the way so the manuscript itself can be named after them.
- */
-export function buildSermonSlides(
+export const buildSermonSlides = (
   lines: string[],
   options: SermonBuildOptions,
-): SermonDeck {
+): SermonDeck => {
   const budget = Math.max(MIN_SLIDE_WEIGHT, options.maxLines);
   const opening = readPreamble(lines);
   let preamble = opening.preamble;
@@ -556,8 +491,6 @@ export function buildSermonSlides(
   let title = options.title;
   let body = lines.slice(opening.consumed);
 
-  // Nothing declared the document, so the topic is read off the top of it and
-  // whatever is credited underneath is read with it.
   if (!title) {
     const lead = leadingTitle(body);
     if (lead) {
@@ -582,4 +515,4 @@ export function buildSermonSlides(
   }
 
   return { slides, title, author: preamble.preacher };
-}
+};

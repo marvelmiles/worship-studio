@@ -19,20 +19,17 @@ interface KeepableItem {
 }
 
 interface KeepOnResetState {
-  /** False for items that can't hold a slot at all. */
   available: boolean;
   kept: boolean;
-  /** True when every slot is taken and this item isn't in one. */
   full: boolean;
   title: string;
   toggle: () => void;
 }
 
-/** One reading of the keep-on-reset budget, shared by every control below. */
-function useKeepOnResetState(
+const useKeepOnResetState = (
   kind: KeepableKind,
   item: KeepableItem,
-): KeepOnResetState {
+): KeepOnResetState => {
   const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
   const toggleKeepOnReset = useStore((s) => s.toggleKeepOnReset);
@@ -52,23 +49,17 @@ function useKeepOnResetState(
         : `Keep on reset: survives "Reset App to Defaults" (${used} of ${MAX_KEPT_ITEMS} used).`,
     toggle: () => toggleKeepOnReset(kind, item.id),
   };
-}
+};
 
-/**
- * Registers a manuscript or custom theme as "keep on reset". Renders nothing
- * for items that can't hold a slot (built-ins and trashed manuscripts come
- * back, or don't come back, regardless).
- */
-export function KeepOnResetToggle({
+export const KeepOnResetToggle = ({
   kind,
   item,
   variant = "icon",
 }: {
   kind: KeepableKind;
   item: KeepableItem;
-  /** "icon" for dense card rows, "button" for a labelled control in a panel. */
   variant?: "icon" | "button";
-}) {
+}) => {
   const state = useKeepOnResetState(kind, item);
   if (!state.available) return null;
 
@@ -96,16 +87,12 @@ export function KeepOnResetToggle({
       {state.kept ? "Kept on reset" : "Keep on reset"}
     </Button>
   );
-}
+};
 
-/**
- * The same control as an entry in a card's overflow menu. Its icon and label
- * carry the current state, so the row needs no highlight of its own.
- */
-export function useKeepOnResetAction(
+export const useKeepOnResetAction = (
   kind: KeepableKind,
   item: KeepableItem,
-): MoreMenuItem | null {
+): MoreMenuItem | null => {
   const state = useKeepOnResetState(kind, item);
   if (!state.available) return null;
   return {
@@ -115,14 +102,13 @@ export function useKeepOnResetAction(
     title: state.title,
     onClick: state.toggle,
   };
-}
+};
 
-/** The chip shown on cards, so a kept item reads as kept at a glance. */
-export function KeepOnResetBadge({
+export const KeepOnResetBadge = ({
   item,
 }: {
   item: { keepOnReset?: boolean; builtIn?: boolean; deleted?: boolean };
-}) {
+}) => {
   const { colors } = useUITheme();
   if (!item.keepOnReset || !canKeep(item)) return null;
   return (
@@ -145,4 +131,4 @@ export function KeepOnResetBadge({
       <ShieldCheck size={10} />
     </span>
   );
-}
+};

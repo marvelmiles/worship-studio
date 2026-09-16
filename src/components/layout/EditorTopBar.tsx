@@ -8,7 +8,7 @@ import {
   Save,
   Undo2,
 } from "lucide-react";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useEditorShortcuts } from "../../hooks/useEditorShortcuts";
 import { usePresentActions } from "../../hooks/usePresentActions";
 import { EDITOR_COMMANDS } from "../../lib/shortcuts";
@@ -20,45 +20,25 @@ const ignorePresent = () => {};
 interface EditorTopBarProps {
   title: string;
   onTitle: (title: string) => void;
-  /** Collapses the labelled buttons to icons on a narrow screen. */
   compact: boolean;
   backTitle: string;
   onBack: () => void;
-  /** Omitted by editors whose item can't be presented on its own, such as a sound. */
   onPresent?: (options: { pip: boolean }) => void;
-  /** Editor-specific controls, dropped in before the shared ones. */
   actions?: ReactNode;
   dirty: boolean;
-  /** Why the title can't be used, shown under it and holding the save back. */
   titleError?: string | null;
-  /**
-   * True while anything in the editor is refusing to be saved. The save control
-   * says what is wrong rather than writing a document the operator would have
-   * to find and fix later.
-   */
   invalid?: boolean;
-  /** The first thing wrong, used as the disabled save control's reason. */
   invalidReason?: string | null;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onSave: () => void;
-  /** Only set while this document is the one being presented. */
   onUpdatePresentation?: () => void;
-  /**
-   * Takes the running presentation's state back into the editor. Only set when
-   * there is something live to take, which is a clip this editor is presenting.
-   */
   onSyncFromPresentation?: () => void;
 }
 
-/**
- * The header every editor in the studio wears: where you came from, what you
- * are editing, undo and redo, and the three things you do with the result:
- * push it to the running presentation, save it, present it.
- */
-export function EditorTopBar({
+export const EditorTopBar = ({
   title,
   onTitle,
   compact,
@@ -77,7 +57,8 @@ export function EditorTopBar({
   onSave,
   onUpdatePresentation,
   onSyncFromPresentation,
-}: EditorTopBarProps) {
+}: EditorTopBarProps) => {
+  const { colors, fonts } = useUITheme();
   const blocked = Boolean(invalid);
   const present = usePresentActions(onPresent ?? ignorePresent);
   const saveTitle = blocked
@@ -86,10 +67,6 @@ export function EditorTopBar({
       ? `Save changes (${EDITOR_COMMANDS.save.hint})`
       : "No changes to save";
 
-  // A refused save still runs, because the handler is what says why: pressing
-  // the shortcut on a document with a bad field should answer, not do nothing.
-  // A clean document has nothing to write, so the key only eats the browser's
-  // own save dialog.
   useEditorShortcuts({
     save: dirty || blocked ? onSave : undefined,
     updatePresentation: onUpdatePresentation,
@@ -121,7 +98,7 @@ export function EditorTopBar({
             border: "none",
             borderBottom: `1px solid ${titleError ? colors.danger : "transparent"}`,
             outline: "none",
-            fontFamily: DISPLAY,
+            fontFamily: fonts.display,
             fontSize: compact ? 17 : 20,
             fontWeight: 600,
             color: colors.text,
@@ -133,7 +110,7 @@ export function EditorTopBar({
             style={{
               display: "block",
               marginTop: 3,
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 11.5,
               lineHeight: 1.4,
               color: colors.danger,
@@ -221,4 +198,4 @@ export function EditorTopBar({
       )}
     </div>
   );
-}
+};

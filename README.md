@@ -95,8 +95,18 @@ Then open the URL Vite prints (default http://localhost:5173).
   windows over it or wait off screen, ready to be cut to instantly, because
   every joined camera is already flowing. Switching which is which moves no
   media and needs no reconnection.
-- **Backup.** Export the whole library to JSON and restore it later
-  (validated on import).
+- **Pairing a camera.** On the same WiFi a phone appears in the laptop's
+  device list and one tap connects it. Offline, the two devices swap codes by
+  camera instead: a long code is shown as several small QR frames in turn, which
+  a laptop webcam reads far more reliably than one dense code, and the scanner
+  searches the whole camera frame rather than only the aiming box.
+- **A broadcast that survives a sleeping phone.** The sharing device holds a
+  screen wake lock, a brief network drop reads as Reconnecting rather than
+  ending the stream, and a one-tap camera is reconnected automatically (ICE
+  restart) when the phone comes back. If the operating system stopped the
+  camera while the page was hidden, it is reopened on return.
+- **Backup.** Export the whole library (including images, videos and audio) to a
+  single `.zip` and restore it later, validated on import.
 
 ### Keyboard shortcuts (presentation)
 
@@ -159,21 +169,29 @@ arrow, Home, End and Page keys it answers to itself.
 
 ```
 src/
-  theme/        design tokens (colours, fonts, glass surface)
-  lib/          parser, style/bg resolution, IndexedDB storage, zod schema, helpers
-  data/         built-in backgrounds, themes, collections, seed manuscripts
+  theme/        the UI theme (uiTheme.ts), its provider and the --ws-* CSS variables
+  lib/          parser, style/bg resolution, storage, zod schema, helpers
+  data/         built-in backgrounds, themes, collections, fonts, seed manuscripts
   store/        Zustand store (state + actions + persistence)
   components/   SlideCanvas + reusable UI primitives (Button, Field, Modal, ContextMenu)
-  hooks/        slide text editing (useTextFormatting, useSlideTextEditor), useDocumentTitle
+  hooks/        shared behaviour (text editing, media playback, wake lock, viewport)
   features/
     dashboard/  Dashboard
     manuscripts/ Manuscript library, editor, text + settings modals
-    editor/     Shared deck workspace + SortableSlideList (dnd-kit)
-    presentation/ Presentation overlay (Framer Motion)
+    editor/     Shared deck workspace, its edit hooks (deckEditor/) and slide list
+    bible/      Reader, passage editor and the reader's selection/save hooks
+    media/      Image and video libraries and editors
+    presentation/ Presentation overlay (Framer Motion) and its projection hooks
+    settings/   Settings modal, split per section
+    stream/     Camera sharing: sender/, receiver/, stage/, overlays and lib/
     assets/     Asset Library modal
   App.tsx       layout shell, routes, global overlays
   main.tsx      entry (Router)
 ```
+
+Components are functions declared as `const`, files stay focused, and anything
+shared lives in a hook, a component or a `lib/` module rather than being
+repeated.
 
 ## Notes & intentional scope choices
 
@@ -181,7 +199,9 @@ These are deliberate engineering decisions, called out honestly:
 
 - **Styling uses a design‑token inline‑style system, not Tailwind.** The look is
   fully self‑contained and needs no PostCSS/Tailwind build step, which keeps the
-  project reliable to install and run. The tokens live in `src/theme/tokens.ts`.
+  project reliable to install and run. The theme lives in `src/theme/uiTheme.ts`
+  and reaches components through `useUITheme()`; the same values are published as
+  `--ws-*` CSS variables for stylesheets and module-level styles.
 - **Editing is live‑bound rather than React Hook Form.** A presentation editor
   benefits from instant preview on every keystroke, so fields write straight to
   the store. Zod is still used where it adds real value: validating imported
@@ -192,12 +212,38 @@ These are deliberate engineering decisions, called out honestly:
   install; for app‑store‑grade installability on every platform you may want to
   add raster PNG icons (e.g. 192/512) and reference them in
   `vite.config.ts`.
-- **The presenter view is an in‑window bar**, not a separate second‑monitor
-  window. It shows current notes, the next slide, timer and counter.
-- **Backgrounds support solid colours, gradients and uploaded images.** Video
-  backgrounds are not included.
-- The service worker is enabled for `build`/`preview` only (not `dev`), so the
-  dev server stays simple. Run `pnpm build && pnpm preview` to try offline mode.
+- **The presenter view is an in‑window bar or a floating window**, not a
+  separate second‑monitor app. It shows current notes, the next slide, timer and
+  counter, and can be popped out while you work elsewhere.
+- **Only the current backup format is read.** Backups are `.zip` archives; the
+  much older inline‑JSON exports are no longer imported.
+- The service worker is enabled in development too, so install and offline
+  behaviour can be checked without a production build.
+
+## Environment variables
+
+Every variable is optional: without them the Stream module still pairs by QR or
+pasted code, which needs no server at all. Copy `.env.example` to `.env` to
+enable one‑tap pairing over your WiFi through Firebase Realtime Database, which
+relays only the WebRTC handshake (see
+`src/features/stream/STREAM_SIGNALING.md`):
+
+| Variable                     | What it is            |
+| ---------------------------- | --------------------- |
+| `VITE_FIREBASE_API_KEY`      | Firebase web API key  |
+| `VITE_FIREBASE_PROJECT_ID`   | Firebase project id   |
+| `VITE_FIREBASE_APP_ID`       | Firebase web app id   |
+| `VITE_FIREBASE_DATABASE_URL` | Realtime Database URL |
+
+Camera sharing also needs a secure context: serve the app over `https://` (or
+`localhost`) on both devices, or the browser will not open a camera at all.
+
+## Deployment
+
+`pnpm build` emits a static `dist/` that any static host serves. The repo ships
+a `netlify.toml`; on other hosts, publish `dist/` and route unknown paths to
+`index.html` so client-side routing works. Set the Firebase variables above in
+the host's environment if you want one‑tap pairing in production.
 
 ## License
 

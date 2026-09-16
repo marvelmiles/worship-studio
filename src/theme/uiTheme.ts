@@ -1,16 +1,13 @@
 import type { CSSProperties } from "react";
 
-/** Returns the color at the given opacity, e.g. fade(theme.colors.accent, 0.2). */
-export function fade(hex: string, alpha: number): string {
+export const fade = (hex: string, alpha: number): string => {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
-}
+};
 
-/** Blends two hex colors. amount 0 → a, amount 1 → b. Used to derive legible
- *  light text tints from a saturated palette color. */
-export function mix(a: string, b: string, amount: number): string {
+export const mix = (a: string, b: string, amount: number): string => {
   const channels = (hex: string) =>
     [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
   const [ra, ga, ba] = channels(a);
@@ -20,56 +17,41 @@ export function mix(a: string, b: string, amount: number): string {
       .toString(16)
       .padStart(2, "0");
   return `#${blend(ra, rb)}${blend(ga, gb)}${blend(ba, bb)}`;
-}
+};
 
-/** A semantic (danger/warning/info/success) surface derived entirely from a
- *  single palette color, so feedback UI tracks the theme from one source. */
 export interface FeedbackTone {
-  /** Solid palette color: icon glyphs, badge fills. */
   base: string;
-  /** Translucent tinted surface (pairs with a backdrop blur). */
   bg: string;
-  /** Translucent hairline border for the surface. */
   border: string;
-  /** Pale, legible text/icon color for use on `bg`. */
   text: string;
 }
 
-/** Builds a FeedbackTone from a palette color (e.g. theme.colors.danger). */
-export function feedbackTone(hex: string): FeedbackTone {
+export const feedbackTone = (hex: string): FeedbackTone => {
   return {
     base: hex,
     bg: fade(hex, 0.15),
     border: fade(hex, 0.42),
     text: mix(hex, "#ffffff", 0.72),
   };
-}
+};
 
 export interface UIThemeColors {
-  /** App shell background. */
   bg: string;
-  /** Slightly raised background (wells, sidebars). */
   bg2: string;
-  /** Translucent card surface (pairs with backdrop blur). */
   panel: string;
-  /** Opaque card surface (menus, dropdown options). */
   panelSolid: string;
-  /** Hover / active raise on top of panels. */
   raise: string;
   border: string;
   borderStrong: string;
   accent: string;
   accentSoft: string;
-  /** Text sitting on the accent color. */
   onAccent: string;
   text: string;
   sub: string;
   dim: string;
   danger: string;
   success: string;
-  /** Cautionary state (approaching a limit, degraded but not failing). */
   warning: string;
-  /** Neutral, informational emphasis. Stays in the accent (blue) family. */
   info: string;
 }
 
@@ -77,48 +59,31 @@ export interface UITheme {
   name: string;
   colors: UIThemeColors;
   fonts: { ui: string; display: string };
-  /** Frosted glass card surface. */
   glass: CSSProperties;
   fills: {
-    /** Horizontal accent fill for progress / usage bars. */
     accentBar: string;
-    /** Large hero CTA card fill (dashboard "New Manuscript"). */
     ctaCard: string;
     successBar: string;
     dangerBar: string;
   };
   controls: {
-    /** Unfilled slider / progress track. */
     track: string;
-    /** Toggle background when off. */
     toggleOff: string;
-    /** Slider thumb fill + ring. */
     thumb: string;
     thumbRing: string;
   };
-  /** Live-stage (projection) chrome. The stage surface stays pure black no
-   *  matter the chrome theme so projected content is never tinted. */
   stage: {
     surface: string;
-    /** Translucent HUD chip/bar floating over projected content. */
     overlay: string;
-    /** Higher-opacity HUD (bottom presenter bar, video controls). */
     overlayStrong: string;
     border: string;
     text: string;
   };
-  /**
-   * Scannable codes. They stay dark on light whatever the chrome theme is,
-   * because that is the contrast a phone camera reads fastest.
-   */
   qr: {
     surface: string;
     ink: string;
-    /** The three corner finder patterns. */
     eye: string;
   };
-  /** Distinct hues for icon chips, category bars and charts, in
-   *  presentation order. Use chartColor(i) to cycle safely. */
   charts: string[];
   shadows: {
     cta: string;
@@ -240,15 +205,11 @@ export const studioTheme: UITheme = {
   },
 };
 
-/** Cycles through the theme's categorical palette. */
-export function chartColor(theme: UITheme, index: number): string {
+export const chartColor = (theme: UITheme, index: number): string => {
   return theme.charts[index % theme.charts.length];
-}
+};
 
-/** Flattens a theme into `--ws-*` CSS custom properties so static stylesheets
- *  (index.css) and any non-React chrome track the active theme from the same
- *  source of truth. Applied to the document root by the UIThemeProvider. */
-export function themeCssVars(theme: UITheme): Record<string, string> {
+export const themeCssVars = (theme: UITheme): Record<string, string> => {
   const c = theme.colors;
   const { glass } = theme;
   const glassRadius =
@@ -285,4 +246,4 @@ export function themeCssVars(theme: UITheme): Record<string, string> {
     "--ws-thumb": theme.controls.thumb,
     "--ws-thumb-ring": theme.controls.thumbRing,
   };
-}
+};

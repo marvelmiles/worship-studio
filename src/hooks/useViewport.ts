@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BREAKPOINTS } from "../theme/tokens";
+import { BREAKPOINTS } from "../theme/breakpoints";
 
 interface Viewport {
   width: number;
@@ -7,17 +7,16 @@ interface Viewport {
   isTablet: boolean;
 }
 
-function read(): Viewport {
+const read = (): Viewport => {
   const width = typeof window === "undefined" ? 1280 : window.innerWidth;
   return {
     width,
     isMobile: width <= BREAKPOINTS.mobile,
     isTablet: width <= BREAKPOINTS.tablet,
   };
-}
+};
 
-/** Tracks viewport width and derived breakpoints for responsive layouts. */
-export function useViewport(): Viewport {
+export const useViewport = (): Viewport => {
   const [viewport, setViewport] = useState<Viewport>(read);
 
   useEffect(() => {
@@ -34,4 +33,4 @@ export function useViewport(): Viewport {
   }, []);
 
   return viewport;
-}
+};

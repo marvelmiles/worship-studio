@@ -13,17 +13,8 @@ import { fade } from "../../theme/uiTheme";
 import { inputStyle } from "../../components/ui/Field";
 
 import { InfoTip } from "../../components/ui/InfoTip";
-/**
- * The small controls the broadcast overlay settings are built from.
- *
- * They are deliberately their own set rather than the library's Field/Range
- * pair: the overlay settings live in a 330px drawer beside a running camera,
- * where the app's form spacing would push the controls an operator needs mid
- * service below the fold. Everything here is one line tall wherever it can be,
- * and reads the active theme so it stays in step with the rest of the app.
- */
 
-export function OverlaySectionLabel({ children }: { children: string }) {
+export const OverlaySectionLabel = ({ children }: { children: string }) => {
   const { colors, fonts } = useUITheme();
   return (
     <div
@@ -40,9 +31,9 @@ export function OverlaySectionLabel({ children }: { children: string }) {
       {children}
     </div>
   );
-}
+};
 
-function ControlLabel({ children }: { children: ReactNode }) {
+const ControlLabel = ({ children }: { children: ReactNode }) => {
   const { colors, fonts } = useUITheme();
   return (
     <span
@@ -56,9 +47,9 @@ function ControlLabel({ children }: { children: ReactNode }) {
       {children}
     </span>
   );
-}
+};
 
-export function OverlaySlider({
+export const OverlaySlider = ({
   label,
   value,
   min,
@@ -74,7 +65,7 @@ export function OverlaySlider({
   step?: number;
   suffix?: string;
   onChange: (value: number) => void;
-}) {
+}) => {
   const { colors } = useUITheme();
   return (
     <label style={{ display: "block" }}>
@@ -103,9 +94,9 @@ export function OverlaySlider({
       />
     </label>
   );
-}
+};
 
-export function OverlaySelect({
+export const OverlaySelect = ({
   label,
   value,
   options,
@@ -115,7 +106,7 @@ export function OverlaySelect({
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
-}) {
+}) => {
   const { colors } = useUITheme();
   return (
     <label style={{ display: "block" }}>
@@ -145,14 +136,9 @@ export function OverlaySelect({
       </select>
     </label>
   );
-}
+};
 
-/**
- * A checkbox that says what it does when it is on, not just what it is called.
- * Every switch in this panel changes what a room full of people is looking at,
- * so the consequence is spelled out rather than left to the label.
- */
-export function OverlayCheckbox({
+export const OverlayCheckbox = ({
   label,
   hint,
   checked,
@@ -162,7 +148,7 @@ export function OverlayCheckbox({
   hint?: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <label
@@ -219,7 +205,7 @@ export function OverlayCheckbox({
       </span>
     </label>
   );
-}
+};
 
 const swatchButton = (border: string): CSSProperties => ({
   width: 30,
@@ -232,13 +218,7 @@ const swatchButton = (border: string): CSSProperties => ({
   overflow: "hidden",
 });
 
-/**
- * Any CSS background as one control: a picker for the common case, and the raw
- * value beside it so translucency and gradients, which a colour picker cannot
- * express and which are exactly what keeps a panel readable over a moving
- * camera, stay reachable.
- */
-export function OverlayColorField({
+export const OverlayColorField = ({
   label,
   value,
   onChange,
@@ -248,10 +228,8 @@ export function OverlayColorField({
   value: string;
   onChange: (value: string) => void;
   clearLabel?: string;
-}) {
+}) => {
   const { colors } = useUITheme();
-  // A colour input only understands #rrggbb; anything richer keeps its own
-  // value and is edited as text.
   const pickerValue = /^#[0-9a-f]{6}$/i.test(value) ? value : "#000000";
   return (
     <div>
@@ -293,10 +271,9 @@ export function OverlayColorField({
       </div>
     </div>
   );
-}
+};
 
-/** Names the chosen picture, or offers to choose one. */
-export function OverlayImageField({
+export const OverlayImageField = ({
   label,
   pictureName,
   onChoose,
@@ -306,7 +283,7 @@ export function OverlayImageField({
   pictureName: string | null;
   onChoose: () => void;
   onClear: () => void;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   return (
     <div>
@@ -360,14 +337,9 @@ export function OverlayImageField({
       </div>
     </div>
   );
-}
+};
 
-/**
- * A named set of settings that starts closed. The controls an operator reaches
- * for mid-service are the ones outside these; type and colour are set once,
- * before the element goes up, and would otherwise bury them.
- */
-export function OverlaySettingsGroup({
+export const OverlaySettingsGroup = ({
   title,
   icon: Icon,
   defaultOpen = false,
@@ -377,7 +349,7 @@ export function OverlaySettingsGroup({
   icon: LucideIcon;
   defaultOpen?: boolean;
   children: ReactNode;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -429,4 +401,4 @@ export function OverlaySettingsGroup({
       )}
     </div>
   );
-}
+};

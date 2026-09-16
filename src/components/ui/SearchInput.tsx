@@ -10,12 +10,12 @@ interface SearchInputProps {
   style?: CSSProperties;
 }
 
-export function SearchInput({
+export const SearchInput = ({
   value,
   onChange,
   placeholder = "Search…",
   style,
-}: SearchInputProps) {
+}: SearchInputProps) => {
   const { colors } = useUITheme();
   return (
     <div style={{ position: "relative", flex: 1, minWidth: 200, ...style }}>
@@ -31,4 +31,4 @@ export function SearchInput({
       />
     </div>
   );
-}
+};

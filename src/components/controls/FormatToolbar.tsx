@@ -39,7 +39,6 @@ const ORDER: InlineFormatName[] = [
   "highlight",
 ];
 
-/** A sample of each ordered kind, so the menu shows what it will produce. */
 const LIST_SAMPLES: Record<ListKind, string> = {
   bullet: "•",
   decimal: "1. 2. 3.",
@@ -51,22 +50,15 @@ const LIST_SAMPLES: Record<ListKind, string> = {
 
 interface FormatToolbarProps {
   controller: TextFormattingController;
-  /** Full width with a surrounding surface, for panels rather than inline rows. */
   block?: boolean;
   style?: CSSProperties;
 }
 
-/**
- * Word-style formatting for whatever text the user has highlighted: emphasis,
- * lists and indentation. Buttons keep focus in the editor so the selection they
- * act on is never lost, and light up while the caret sits inside text that
- * already carries the mark.
- */
-export function FormatToolbar({
+export const FormatToolbar = ({
   controller,
   block,
   style,
-}: FormatToolbarProps) {
+}: FormatToolbarProps) => {
   const { colors } = useUITheme();
   const [listMenu, setListMenu] = useState(false);
   const { list } = controller;
@@ -166,9 +158,9 @@ export function FormatToolbar({
       />
     </div>
   );
-}
+};
 
-function Divider() {
+const Divider = () => {
   const { colors } = useUITheme();
   return (
     <span
@@ -181,14 +173,14 @@ function Divider() {
       }}
     />
   );
-}
+};
 
 interface ListStyleMenuProps {
   active: ListKind | null;
   onPick: (kind: ListKind) => void;
 }
 
-function ListStyleMenu({ active, onPick }: ListStyleMenuProps) {
+const ListStyleMenu = ({ active, onPick }: ListStyleMenuProps) => {
   const { colors, fonts } = useUITheme();
   return (
     <div
@@ -252,7 +244,7 @@ function ListStyleMenu({ active, onPick }: ListStyleMenuProps) {
       })}
     </div>
   );
-}
+};
 
 interface FormatButtonProps {
   icon: LucideIcon;
@@ -263,14 +255,14 @@ interface FormatButtonProps {
   onClick?: () => void;
 }
 
-function FormatButton({
+const FormatButton = ({
   icon: Icon,
   label,
   active,
   disabled,
   width = 30,
   onClick,
-}: FormatButtonProps) {
+}: FormatButtonProps) => {
   const { colors } = useUITheme();
   const rest = active ? fade(colors.accent, 0.18) : "transparent";
   return (
@@ -280,7 +272,6 @@ function FormatButton({
       aria-label={label}
       aria-pressed={active}
       disabled={disabled}
-      // Keeps the caret and selection in the editor while the command runs.
       onMouseDown={(event: MouseEvent) => event.preventDefault()}
       onClick={onClick}
       style={{
@@ -307,4 +298,4 @@ function FormatButton({
       <Icon size={15} />
     </button>
   );
-}
+};

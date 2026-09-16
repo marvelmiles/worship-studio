@@ -1,4 +1,4 @@
-import type { LegacyManuscriptFields, Manuscript } from "../../types";
+import type { Manuscript } from "../../types";
 import { DEFAULT_COLLECTION } from "../../data/collections";
 import { now, uid } from "../../lib/id";
 import { parseManuscriptSlides } from "../../lib/parser";
@@ -8,40 +8,16 @@ import type { SliceCreator } from "../storeTypes";
 
 export const UNTITLED_MANUSCRIPT = "Untitled Manuscript";
 
-const LEGACY_UNTITLED = "Untitled Song";
-
-/** True while a manuscript still carries the name it was created with. */
 export const isUntitledManuscript = (title: string): boolean => {
   const trimmed = title.trim();
-  return (
-    !trimmed || trimmed === UNTITLED_MANUSCRIPT || trimmed === LEGACY_UNTITLED
-  );
+  return !trimmed || trimmed === UNTITLED_MANUSCRIPT;
 };
-
-/**
- * Brings a stored record up to the current shape. Libraries written before the
- * songs module became manuscripts carry `lyrics`/`artist`/`category`; they are
- * read here once and carried over under the current names.
- */
-export function normalizeStoredManuscript(
-  record: Manuscript & LegacyManuscriptFields,
-): Manuscript {
-  const { lyrics, artist, category, ...rest } = record;
-  return {
-    ...rest,
-    body: record.body ?? lyrics ?? "",
-    author: record.author ?? artist,
-    collection: record.collection ?? category ?? DEFAULT_COLLECTION,
-  };
-}
 
 export interface ManuscriptsSlice {
   manuscripts: Manuscript[];
 
-  /** False when storage is full and the write was refused. */
   upsertManuscript: (manuscript: Manuscript) => boolean;
   createManuscript: () => Manuscript | null;
-  /** Permanent: the library confirms with the user before calling this. */
   deleteManuscript: (id: string) => void;
 }
 

@@ -21,7 +21,6 @@ export type StageContent =
       style: ResolvedStyle;
       lineStyles: ResolvedStyle[];
       background: Background;
-      /** This slide's picture settings, null unless the background is an image. */
       backgroundImage: ImageSettings | null;
     }
   | { kind: "image"; item: MediaItem }
@@ -30,16 +29,15 @@ export type StageContent =
 export interface StageFrame {
   content: StageContent;
   animation: AnimationKind;
-  /** Root backdrop behind the letterboxed stage area. */
   backdrop: Background | null;
 }
 
-export function buildStageFrame(
+export const buildStageFrame = (
   deck: Deck,
   deckSlide: DeckSlide | undefined,
   bgMap: Record<string, Background>,
   fallbackAnimation: AnimationKind,
-): StageFrame | null {
+): StageFrame | null => {
   if (!deckSlide) return null;
 
   if (deckSlide.kind === "text") {
@@ -68,4 +66,4 @@ export function buildStageFrame(
     animation: fallbackAnimation,
     backdrop: null,
   };
-}
+};

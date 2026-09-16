@@ -1,18 +1,17 @@
 import type { BibleBook } from "../../data/bibleBooks";
-import { colors, DISPLAY, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { tileStyle } from "./tileStyle";
 
-/** Second step of the Bible read tab: the chapter-number grid for one book. */
-export function ChaptersStep({
+export const ChaptersStep = ({
   book,
   chapter,
   onOpenChapter,
 }: {
   book: BibleBook;
-  /** Currently remembered chapter, shown highlighted. */
   chapter: number;
   onOpenChapter: (chapter: number) => void;
-}) {
+}) => {
+  const { colors, fonts } = useUITheme();
   return (
     <div
       style={{
@@ -25,7 +24,7 @@ export function ChaptersStep({
     >
       <h2
         style={{
-          fontFamily: DISPLAY,
+          fontFamily: fonts.display,
           fontSize: 22,
           fontWeight: 600,
           color: colors.text,
@@ -36,7 +35,7 @@ export function ChaptersStep({
       </h2>
       <p
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 13,
           color: colors.sub,
           margin: "0 0 16px",
@@ -63,4 +62,4 @@ export function ChaptersStep({
       </div>
     </div>
   );
-}
+};

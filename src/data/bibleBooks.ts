@@ -5,10 +5,6 @@ export interface BibleVersion {
   name: string;
 }
 
-// Only public-domain translations are offered: their full text is bundled
-// with the app (via the MIT-licensed holy-bible package) and can be
-// distributed freely. Copyrighted translations (NIV, ESV, NLT, NKJV…) cannot
-// legally ship inside the bundle, so they are intentionally absent.
 export const BIBLE_VERSIONS: BibleVersion[] = [
   { id: "KJV", name: "King James Version" },
   { id: "ASV", name: "American Standard Version" },
@@ -16,7 +12,6 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
 
 export const DEFAULT_BIBLE_VERSION: BibleVersionId = "KJV";
 
-/** Narrows any stored/legacy version string to a supported translation. */
 export const isBibleVersion = (value: string): value is BibleVersionId =>
   BIBLE_VERSIONS.some((v) => v.id === value);
 
@@ -113,6 +108,3 @@ export const BIBLE_BOOKS: BibleBook[] = [
 
 export const bookById = (id: number): BibleBook | undefined =>
   BIBLE_BOOKS.find((b) => b.id === id);
-
-export const OLD_TESTAMENT = BIBLE_BOOKS.filter((b) => b.testament === "old");
-export const NEW_TESTAMENT = BIBLE_BOOKS.filter((b) => b.testament === "new");

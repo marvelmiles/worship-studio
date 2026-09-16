@@ -1,55 +1,54 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { QrCode as QrIcon, Clipboard, Check, Camera } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useElementSize } from "../../hooks/useElementSize";
+import { useCycleIndex } from "../../hooks/useCycleIndex";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
+import { InfoTip } from "../../components/ui/InfoTip";
 import { QrCode } from "./QrCode";
 import { QrScanner } from "./QrScanner";
-import { InfoTip } from "../../components/ui/InfoTip";
+import { splitIntoQrChunks } from "./lib/qrChunks";
+import { smallestQrVersion } from "./lib/qr";
+import type { ScanFacing } from "./lib/useQrScanner";
 
-/**
- * Shows one device's handshake code as a QR *and* as copyable text, so it can
- * travel two ways:
- *  - by camera, when both devices are together (the offline path), or
- *  - by any messaging app, when scanning isn't practical, such as a laptop with
- *    no webcam. That paste channel is the internet-based fallback, and it needs
- *    no server of our own.
- */
-/**
- * The handshake code is dense enough that how big it is drawn decides whether
- * the other device's camera can read it at all, so it takes as much of the
- * screen as the layout can spare rather than a fixed thumbnail.
- */
 const MAX_QR_SIZE = 420;
 const MIN_QR_SIZE = 240;
-/** The card's padding, border and ring, which the code must not be sized into. */
 const QR_TILE_PADDING = 34;
+const QR_PART_INTERVAL_MS = 550;
+const COPIED_FEEDBACK_MS = 1600;
 
-export function ShowCode({
-  value,
-  caption,
-}: {
+interface ShowCodeProps {
   value: string;
   caption: string;
-}) {
+}
+
+export const ShowCode = ({ value, caption }: ShowCodeProps) => {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
-  const [copied, setCopied] = useState(false);
-  // Measured from the column it sits in rather than the window: this card is
-  // one of two beside each other on a laptop and the only thing on screen on a
-  // phone, and the code should fill whichever of those it is given.
+  const [isCopied, setIsCopied] = useState(false);
   const columnRef = useRef<HTMLDivElement>(null);
   const { width: columnWidth } = useElementSize(columnRef);
   const qrSize = Math.round(
     Math.max(MIN_QR_SIZE, Math.min(MAX_QR_SIZE, columnWidth - QR_TILE_PADDING)),
   );
 
+  const parts = useMemo(() => splitIntoQrChunks(value), [value]);
+  // Every part shares the largest part's version so the code never changes size between frames.
+  const partVersion = useMemo(() => {
+    const longestPart = parts.reduce((longest, part) =>
+      part.length > longest.length ? part : longest,
+    );
+    return smallestQrVersion(longestPart) ?? undefined;
+  }, [parts]);
+  const partIndex = useCycleIndex(parts.length, QR_PART_INTERVAL_MS);
+  const isMultiPart = parts.length > 1;
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      setIsCopied(true);
+      window.setTimeout(() => setIsCopied(false), COPIED_FEEDBACK_MS);
     } catch {
       pushToast("Couldn't copy. Long-press the code to select it.", "error");
     }
@@ -65,7 +64,16 @@ export function ShowCode({
         gap: 12,
       }}
     >
-      <QrCode value={value} size={qrSize} />
+      <QrCode
+        value={parts[partIndex]}
+        size={qrSize}
+        version={isMultiPart ? partVersion : undefined}
+        caption={
+          isMultiPart
+            ? `Part ${partIndex + 1} of ${parts.length}`
+            : "Scan to pair"
+        }
+      />
       <div
         style={{
           display: "flex",
@@ -78,35 +86,38 @@ export function ShowCode({
       >
         Scan with the other device
         <InfoTip title="Scanning this code" align="center">
-          {caption} Hold the other device close enough that the code fills its
-          viewfinder, and keep both still until it reads.
+          {caption} Keep the code in view of the other camera until every part
+          is read. It does not have to fill the scan box.
         </InfoTip>
       </div>
       <Button variant="ghost" size="sm" onClick={copy}>
-        {copied ? <Check size={14} /> : <Clipboard size={14} />}
-        {copied ? "Copied" : "Copy code instead"}
+        {isCopied ? <Check size={14} /> : <Clipboard size={14} />}
+        {isCopied ? "Copied" : "Copy code instead"}
       </Button>
     </div>
   );
+};
+
+interface ReadCodeProps {
+  scanFacing?: ScanFacing;
+  scanLabel: string;
+  onCode: (text: string) => boolean;
 }
 
-/**
- * Reads the other device's code, by scanning its QR or pasting the text it
- * shared. Calls `onCode` with the raw string; the caller decodes and applies.
- */
-export function ReadCode({
+export const ReadCode = ({
   scanFacing = "environment",
   scanLabel,
   onCode,
-}: {
-  scanFacing?: "environment" | "user";
-  scanLabel: string;
-  onCode: (text: string) => void;
-}) {
+}: ReadCodeProps) => {
   const { colors, fonts } = useUITheme();
   const pushToast = useStore((s) => s.pushToast);
   const [mode, setMode] = useState<"scan" | "paste">("scan");
-  const [pasted, setPasted] = useState("");
+  const [pastedCode, setPastedCode] = useState("");
+  const [scanAttempt, setScanAttempt] = useState(0);
+
+  const handleScan = (text: string) => {
+    if (!onCode(text)) setScanAttempt((attempt) => attempt + 1);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -139,10 +150,11 @@ export function ReadCode({
           }}
         >
           <QrScanner
+            key={scanAttempt}
             facing={scanFacing}
-            onResult={onCode}
-            onError={(m) => {
-              pushToast(m, "error");
+            onResult={handleScan}
+            onError={(message) => {
+              pushToast(message, "error");
               setMode("paste");
             }}
           />
@@ -162,8 +174,8 @@ export function ReadCode({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <textarea
-            value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
+            value={pastedCode}
+            onChange={(event) => setPastedCode(event.target.value)}
             placeholder="Paste the code the other device shared with you"
             rows={4}
             style={{
@@ -183,8 +195,8 @@ export function ReadCode({
           <Button
             variant="primary"
             size="sm"
-            disabled={!pasted.trim()}
-            onClick={() => onCode(pasted.trim())}
+            disabled={!pastedCode.trim()}
+            onClick={() => onCode(pastedCode.trim())}
           >
             <Check size={14} />
             Use this code
@@ -193,4 +205,4 @@ export function ReadCode({
       )}
     </div>
   );
-}
+};

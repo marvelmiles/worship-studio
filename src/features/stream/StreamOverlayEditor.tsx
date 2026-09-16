@@ -1,10 +1,7 @@
 import { useMemo } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { SlideElementOverlay } from "../editor/SlideElementOverlay";
-import type {
-  SlideElement,
-  SlideElementRef,
-} from "../editor/SlideElementOverlay";
+import type { SlideElement } from "../editor/SlideElementOverlay";
 import { editedOverlay, isOnAir, isVisible } from "./lib/streamOverlay";
 import type { StreamOverlay, StreamOverlayKind } from "./lib/streamOverlay";
 import {
@@ -14,24 +11,7 @@ import {
   setStreamOverlayFrame,
 } from "./lib/streamOverlayStore";
 
-export type StreamOverlayRef = SlideElementRef<StreamOverlayKind>;
-
-/**
- * The operator's drag surface for the overlays on a live broadcast.
- *
- * All it does is bind the slide editor's element overlay to the broadcast's
- * overlay store. The gestures — drag, eight resize grips, arrow-key nudge,
- * bring-forward/send-backward, duplicate, delete — are the ones a writer already
- * knows from laying out a slide, so placing a passage over a camera behaves
- * exactly like placing a picture on a slide, and there is one implementation of
- * that behaviour rather than two.
- *
- * It sits above StreamOverlayLayers and paints nothing the broadcast will show
- * — only the handles and the draft markers, which exist on the operator's copy
- * alone. That split is what keeps the projected output identical to the one
- * being arranged.
- */
-export function StreamOverlayEditor({
+export const StreamOverlayEditor = ({
   overlays,
   selectedId,
   onSelect,
@@ -39,10 +19,7 @@ export function StreamOverlayEditor({
   overlays: StreamOverlay[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
-}) {
-  // Handles follow what is actually drawn: the arranging surface paints staged
-  // edits, so the box under a handle is the edited one. A hidden element has
-  // nothing to grab, so it leaves the surface until the eye brings it back.
+}) => {
   const drawn = useMemo(
     () => overlays.filter(isVisible).map(editedOverlay),
     [overlays],
@@ -55,8 +32,6 @@ export function StreamOverlayEditor({
         kind: overlay.kind,
         frame: overlay.frame,
         label: `${overlay.label}${isOnAir(overlay) ? ", on air" : ", draft"}`,
-        // Nothing on a broadcast is typed into in place, so every kind is
-        // grabbed by its middle rather than only by its edges.
         dragFromInterior: true,
       })),
     [drawn],
@@ -68,9 +43,6 @@ export function StreamOverlayEditor({
     <>
       <SlideElementOverlay<StreamOverlayKind>
         elements={elements}
-        // A broadcast surface is watched far more than it is arranged, so an
-        // element is framed when the operator reaches for it and left alone the
-        // rest of the time.
         frameOnFocus
         selectedId={selectedId}
         onSelect={(element) => onSelect(element?.id ?? null)}
@@ -89,18 +61,9 @@ export function StreamOverlayEditor({
       <DraftMarkers overlays={drafts} />
     </>
   );
-}
+};
 
-/**
- * Tags every staged overlay on the operator's surface.
- *
- * A draft is painted exactly as it will look on air, which is what makes it
- * worth arranging but also means the two are indistinguishable on screen. This
- * is the one thing that tells them apart at a glance, so the operator is never
- * left wondering whether the room is already looking at what they are still
- * moving around.
- */
-function DraftMarkers({ overlays }: { overlays: StreamOverlay[] }) {
+const DraftMarkers = ({ overlays }: { overlays: StreamOverlay[] }) => {
   const { colors, fonts } = useUITheme();
   if (overlays.length === 0) return null;
 
@@ -136,4 +99,4 @@ function DraftMarkers({ overlays }: { overlays: StreamOverlay[] }) {
       ))}
     </div>
   );
-}
+};

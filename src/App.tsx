@@ -1,11 +1,5 @@
 import { useEffect } from "react";
-import {
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-  useParams,
-} from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { fade } from "./theme/uiTheme";
 import { useUITheme } from "./theme/ThemeProvider";
 import { useStore } from "./store/useStore";
@@ -40,13 +34,7 @@ import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
 
-/** Pre-rename editor URLs (bookmarks, history) land on the manuscript route. */
-function LegacyManuscriptRedirect() {
-  const { manuscriptId } = useParams();
-  return <Navigate to={`/manuscripts/${manuscriptId}`} replace />;
-}
-
-export default function App() {
+const App = () => {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   const load = useStore((s) => s.load);
@@ -82,12 +70,10 @@ export default function App() {
           minHeight: 0,
           overflowX: "hidden",
           overflowY:
-            ["/editor", "/scripture", "/bible"].some((p) =>
+            ["/scripture", "/bible"].some((p) =>
               location.pathname.startsWith(p),
             ) ||
-            /^\/(manuscripts|songs|images|videos|audio)\/./.test(
-              location.pathname,
-            )
+            /^\/(manuscripts|images|videos|audio)\/./.test(location.pathname)
               ? "hidden"
               : "auto",
         }}
@@ -102,18 +88,6 @@ export default function App() {
               path="/manuscripts/:manuscriptId"
               element={<ManuscriptEditor />}
             />
-            <Route
-              path="/songs"
-              element={<Navigate to="/manuscripts" replace />}
-            />
-            <Route
-              path="/songs/:manuscriptId"
-              element={<LegacyManuscriptRedirect />}
-            />
-            <Route
-              path="/library"
-              element={<Navigate to="/manuscripts" replace />}
-            />
             <Route path="/bible" element={<BiblePage />} />
             <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
             <Route path="/images" element={<ImagesPage />} />
@@ -122,10 +96,6 @@ export default function App() {
             <Route path="/videos/:mediaId" element={<VideoEditorPage />} />
             <Route path="/audio/:audioId" element={<AudioEditorPage />} />
             <Route path="/stream" element={<StreamPage />} />
-            <Route
-              path="/editor/:manuscriptId"
-              element={<LegacyManuscriptRedirect />}
-            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
@@ -148,4 +118,6 @@ export default function App() {
       <Toaster />
     </div>
   );
-}
+};
+
+export default App;

@@ -12,7 +12,6 @@ export const ANIMATION_OPTIONS: { value: AnimationKind; label: string }[] = [
   { value: "slide-down", label: "Slide Down" },
 ];
 
-/** Enter-animation keyframes per animation kind (initial -> animate). */
 export const ANIMATION_VARIANTS: Record<
   AnimationKind,
   { initial: Target; animate: Target }
@@ -52,9 +51,9 @@ const EASE_MAP: Record<EasingKind, "easeInOut" | "easeOut" | "linear"> = {
   linear: "linear",
 };
 
-export function buildTransition(
+export const buildTransition = (
   durationMs: number,
   easing: EasingKind,
-): Transition {
+): Transition => {
   return { duration: durationMs / 1000, ease: EASE_MAP[easing] || "easeInOut" };
-}
+};

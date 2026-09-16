@@ -9,33 +9,26 @@ import type {
   PlaybackWindowSettings,
 } from "./useMediaElementPlayback";
 
-/** The part of a clip's or a sound's settings the transport reads. */
 export type TrimWindow = Pick<PlaybackWindowSettings, "trimStart" | "trimEnd">;
 
 export interface MediaPlaybackOptions {
-  /** Where the clip is parked and whether it runs when a session begins. */
   autoPlay?: boolean;
 }
 
-/** Another surface's transport, taken on wholesale. */
 export interface AdoptedPlayback {
   playing: boolean;
   muted: boolean;
   volume: number;
-  /** Where that surface's clip has got to. */
   time: number;
 }
 
 export interface RestartOptions {
   playing?: boolean;
-  /** Where to land, defaulting to the clip's trim start. */
   time?: number;
 }
 
 export interface MediaPlaybackController {
-  /** Bind to the `VideoSurface` or `AudioSurface` this controller drives. */
   surfaceRef: RefObject<MediaSurfaceHandle>;
-  /** Where the clip is on the element itself, ahead of the next time update. */
   getTime: () => number;
   playback: MediaPlayback;
   time: number;
@@ -44,43 +37,24 @@ export interface MediaPlaybackController {
   toggleMuted: () => void;
   setVolume: (volume: number) => void;
   seekTo: (time: number) => void;
-  /** Seeks relative to where the clip actually is, clamped to the trim window. */
   seekBy: (delta: number) => void;
-  /** Back to the trim start and running, after a changed trim or a rewind. */
   restart: (options?: RestartOptions) => void;
-  /**
-   * Takes another surface's transport on: what it is doing, how it sounds and
-   * where it has got to, in one step. Used to bring an editor's preview into
-   * line with the clip the audience is already watching.
-   */
   adopt: (state: AdoptedPlayback) => void;
-  /** A different clip entirely: the whole transport starts over. */
   reset: () => void;
   onTimeUpdate: (time: number, duration: number) => void;
   onEnded: () => void;
 }
 
-/**
- * The transport a clip is driven by: playing, muted, volume and the seek the
- * surface should honour next.
- *
- * Held apart from any one surface so the same controls work on the projected
- * stage, in the floating presenter and in the media editor's preview, none of
- * which own the video element they are steering.
- */
-export function useMediaPlayback(
+export const useMediaPlayback = (
   settings?: TrimWindow,
   { autoPlay = true }: MediaPlaybackOptions = {},
-): MediaPlaybackController {
+): MediaPlaybackController => {
   const surfaceRef = useRef<MediaSurfaceHandle>(null);
   const [playback, setPlayback] = useState<MediaPlayback>({
     ...DEFAULT_MEDIA_PLAYBACK,
     playing: autoPlay,
     seekTime: settings?.trimStart ?? 0,
   });
-  // The clip is parked at its trim start before a frame is decoded, so the
-  // readout opens on the position the surface is about to take rather than on
-  // wherever zero happens to be.
   const [time, setTime] = useState(settings?.trimStart ?? 0);
   const [duration, setDuration] = useState(0);
 
@@ -188,4 +162,4 @@ export function useMediaPlayback(
     onTimeUpdate,
     onEnded,
   };
-}
+};

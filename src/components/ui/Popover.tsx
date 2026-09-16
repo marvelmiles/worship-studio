@@ -18,31 +18,16 @@ const PANEL_ATTR = "data-popover-panel";
 interface PopoverProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The control the panel is anchored to. */
   trigger: ReactNode;
   children: ReactNode;
   side?: PopoverSide;
   align?: PopoverAlign;
-  /**
-   * Opens on mouse hover as well as click, with a small close delay. A click or
-   * a tap pins the panel open until it is clicked again or dismissed.
-   */
   openOnHover?: boolean;
   disabled?: boolean;
-  /** Applied to the inline-flex wrapper around the trigger. */
   triggerStyle?: React.CSSProperties;
 }
 
-/**
- * A popover that cannot be clipped by its container.
- *
- * Panels rendered inside cards used to disappear: `.ws-card` sets
- * `overflow: hidden`, so an absolutely-positioned menu was cut off at the card
- * edge. This renders into a portal on `document.body` and positions itself in
- * viewport coordinates instead, then flips and clamps so it is always fully
- * on screen no matter where the trigger sits.
- */
-export function Popover({
+export const Popover = ({
   open,
   onOpenChange,
   trigger,
@@ -52,7 +37,7 @@ export function Popover({
   openOnHover,
   disabled,
   triggerStyle,
-}: PopoverProps) {
+}: PopoverProps) => {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<number>();
@@ -72,7 +57,6 @@ export function Popover({
     );
   }, [side, align]);
 
-  // Measure before paint so the panel never flashes at the wrong spot.
   useLayoutEffect(() => {
     if (!open) {
       setPlacement(null);
@@ -84,7 +68,6 @@ export function Popover({
   useEffect(() => {
     if (!open) return;
     const onScrollOrResize = () => reposition();
-    // Capture phase catches scrolling of any ancestor, not just the window.
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
     return () => {
@@ -102,8 +85,6 @@ export function Popover({
         panelRef.current?.contains(target)
       )
         return;
-      // A popover opened from inside this one (an info tip in a menu, say)
-      // lives in its own portal; using it must not close the menu behind it.
       if (target instanceof Element && target.closest(`[${PANEL_ATTR}]`))
         return;
       onOpenChange(false);
@@ -121,9 +102,6 @@ export function Popover({
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
 
-  // A panel opened by hovering is only a peek: it closes when the pointer
-  // leaves. A click or a tap pins it, so it stays until clicked again or
-  // dismissed, which is what makes the same control work with a finger.
   const pinned = useRef(false);
   useEffect(() => {
     if (!open) pinned.current = false;
@@ -131,11 +109,8 @@ export function Popover({
 
   const cancelClose = () => window.clearTimeout(closeTimer.current);
   const scheduleClose = (event: PointerEvent<HTMLElement>) => {
-    // Touch and pen fire pointerleave as the finger lifts, which would close
-    // the panel the tap has just opened.
     if (!openOnHover || pinned.current || event.pointerType !== "mouse") return;
     cancelClose();
-    // Grace period so the pointer can cross the gap to the panel.
     closeTimer.current = window.setTimeout(() => onOpenChange(false), 180);
   };
   const hoverOpen = (event: PointerEvent<HTMLElement>) => {
@@ -178,7 +153,6 @@ export function Popover({
               top: placement?.top ?? 0,
               left: placement?.left ?? 0,
               zIndex: 400,
-              // Hidden until measured, so it never paints mid-flight.
               visibility: placement ? "visible" : "hidden",
               maxHeight: `calc(100vh - ${PLACEMENT_EDGE * 2}px)`,
               overflowY: "auto",
@@ -190,4 +164,4 @@ export function Popover({
         )}
     </>
   );
-}
+};

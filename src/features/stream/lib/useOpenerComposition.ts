@@ -1,18 +1,6 @@
 import { useEffect, useState } from "react";
 import { EMPTY_LIVE_COMPOSITION, type LiveComposition } from "./streamLive";
 
-/**
- * The cameras a projection popup should show, read by reference from the window
- * that opened it.
- *
- * Polled rather than subscribed. A cross-window subscription means the operator
- * window holds a callback that lives inside the popup, and a popup closed the
- * way projection windows actually get closed (the X on a second monitor, mid
- * service) leaves that callback pointing at a dead document. A poll costs
- * nothing and cannot outlive either side; the version stamp on the bridge means
- * it does no work while nothing is moving.
- */
-
 const POLL_MS = 400;
 
 interface BridgeRead {
@@ -20,19 +8,18 @@ interface BridgeRead {
   composition: LiveComposition;
 }
 
-function readBridge(): BridgeRead | null {
+const readBridge = (): BridgeRead | null => {
   try {
     const opener = window.opener as Window | null;
     const bridge = opener?.__wsStreamLive;
     if (!bridge) return null;
     return { version: bridge.version, composition: bridge.getComposition() };
   } catch {
-    // The opener is gone or is not same-origin; there is nothing to show.
     return null;
   }
-}
+};
 
-export function useOpenerLiveComposition(enabled = true): LiveComposition {
+export const useOpenerLiveComposition = (enabled = true): LiveComposition => {
   const [composition, setComposition] = useState<LiveComposition>(
     EMPTY_LIVE_COMPOSITION,
   );
@@ -55,4 +42,4 @@ export function useOpenerLiveComposition(enabled = true): LiveComposition {
   }, [enabled]);
 
   return composition;
-}
+};

@@ -21,7 +21,6 @@ interface PresenterBarProps {
   total: number;
   elapsed: number;
   paused: boolean;
-  /** Set while a clip is on: how far through its trim window it has got. */
   videoProgress?: VideoProgress;
   visible: boolean;
   onHoverChange: (hovering: boolean) => void;
@@ -29,13 +28,13 @@ interface PresenterBarProps {
   onNext: () => void;
 }
 
-function NextPreview({
+const NextPreview = ({
   frame,
   endLabel,
 }: {
   frame: StageFrame | null;
   endLabel: string;
-}) {
+}) => {
   const { colors, fonts } = useUITheme();
   const UI = fonts.ui;
   if (!frame) {
@@ -87,9 +86,9 @@ function NextPreview({
       )}
     </div>
   );
-}
+};
 
-export function PresenterBar({
+export const PresenterBar = ({
   title,
   currentLabel,
   notes,
@@ -104,7 +103,7 @@ export function PresenterBar({
   onHoverChange,
   onPrev,
   onNext,
-}: PresenterBarProps) {
+}: PresenterBarProps) => {
   const { colors, fonts, stage } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -117,8 +116,6 @@ export function PresenterBar({
     color: colors.accent,
   };
   const { width } = useViewport();
-  // A run of one has nothing to step between, so neither the transport nor the
-  // slide it would move to is shown.
   const navigable = total > 1;
   const showNext = width >= 720 && navigable;
   const counterStyle: CSSProperties = {
@@ -218,4 +215,4 @@ export function PresenterBar({
       </div>
     </div>
   );
-}
+};

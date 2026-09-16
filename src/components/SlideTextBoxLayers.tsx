@@ -10,14 +10,10 @@ import { SlideTextBlock } from "./SlideTextBlock";
 
 interface SlideTextBoxLayersProps {
   boxes: SlideTextBox[];
-  /** The slide's resolved style, which every box inherits from. */
   style: ResolvedStyle;
-  /** Attached to the box the editor is typing into; null when that is the slide body. */
   editing?: SlideTextEditing;
   editingBoxId?: string | null;
-  /** Line the inspector is scoped to, outlined inside the box being written. */
   selectedLine?: number | null;
-  /** True in the editor, where every box shows where it can be clicked into. */
   marked?: boolean;
   onPointerDownBox?: (
     boxId: string,
@@ -33,13 +29,7 @@ const frameStyle = (box: SlideTextBox): CSSProperties => ({
   height: `${box.frame.height}%`,
 });
 
-/**
- * Paints the text boxes placed on a slide, over the pictures and clips so the
- * message is never buried by the artwork sitting behind it. The box the editor
- * is writing into becomes the editing surface; the rest are painted, not
- * editable, until they are clicked.
- */
-export function SlideTextBoxLayers({
+export const SlideTextBoxLayers = ({
   boxes,
   style,
   editing,
@@ -47,7 +37,7 @@ export function SlideTextBoxLayers({
   selectedLine,
   marked,
   onPointerDownBox,
-}: SlideTextBoxLayersProps) {
+}: SlideTextBoxLayersProps) => {
   return (
     <>
       {boxes.map((box) => {
@@ -74,4 +64,4 @@ export function SlideTextBoxLayers({
       })}
     </>
   );
-}
+};

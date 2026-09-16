@@ -14,20 +14,7 @@ interface ImageLayerProps {
   style?: CSSProperties;
 }
 
-/**
- * Paints one picture with its editing settings applied, filling the positioned
- * box it is dropped into.
- *
- * A quarter turn swaps which axis of the box the picture is laid along, so the
- * frame is given the box's own height as its width and vice versa before being
- * rotated back over it. Those two lengths are measured off the box rather than
- * written in CSS, because no CSS length can name the other axis of an ancestor,
- * and the turned frame is centred by translation rather than by an alignment
- * property, because it is deliberately larger than the box it sits in and
- * browsers may align an overflowing item from its start edge instead. Without
- * both, a turned picture hangs out of the frame it was dropped into.
- */
-export function ImageLayer({ src, alt, settings, style }: ImageLayerProps) {
+export const ImageLayer = ({ src, alt, settings, style }: ImageLayerProps) => {
   const frameRef = useRef<HTMLDivElement>(null);
   const { width, height } = useElementSize(frameRef);
   const swapAxes =
@@ -73,4 +60,4 @@ export function ImageLayer({ src, alt, settings, style }: ImageLayerProps) {
       )}
     </div>
   );
-}
+};

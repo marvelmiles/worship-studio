@@ -16,25 +16,18 @@ import { InfoTip } from "../ui/InfoTip";
 interface AudioSettingsControlsProps {
   settings: AudioSettings;
   onChange: (changes: Partial<AudioSettings>) => void;
-  /** Length of the sound, shown so the trim points read against something. */
   duration?: number;
-  /** Where the preview is, so a trim point can be dropped where it was heard. */
   playhead: number;
-  /** Reports what a field is refusing, so the editor can hold its save back. */
   onIssueChange?: (field: string, message: string | null) => void;
 }
 
-/**
- * Everything a sound carries: the stretch of it that plays and how loud it is
- * against the other sounds in the library.
- */
-export function AudioSettingsControls({
+export const AudioSettingsControls = ({
   settings,
   onChange,
   duration,
   playhead,
   onIssueChange,
-}: AudioSettingsControlsProps) {
+}: AudioSettingsControlsProps) => {
   const withHours = needsHoursField(duration);
   const shape = timecodeShape(withHours);
   const bounds = { duration, withHours };
@@ -120,4 +113,4 @@ export function AudioSettingsControls({
       </Field>
     </>
   );
-}
+};

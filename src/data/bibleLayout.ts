@@ -1,14 +1,4 @@
-// GENERATED FILE, do not edit by hand.
-// Built by scripts/generate-bible-layout.mjs (run: pnpm run generate:bible-layout).
-//
-// The holy-bible package stores each translation as ONE flat array of
-// 31103 verse strings in reading order (Genesis 1:1 first, Revelation
-// 22:21 last) with no book/chapter structure of its own. This table supplies
-// that structure: how many verses each chapter has. Adding up the chapters
-// before the one you want gives its start position in the flat array,
-// that's all chapterStartPosition() does.
 
-/** Verses in a chapter: CHAPTER_VERSE_COUNTS[bookId - 1][chapter - 1]. */
 export const CHAPTER_VERSE_COUNTS: readonly (readonly number[])[] = [
   [
     31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38,
@@ -163,7 +153,6 @@ export const CHAPTER_VERSE_COUNTS: readonly (readonly number[])[] = [
   ],
 ];
 
-// Where each book starts in the flat verse array, computed once.
 const bookStartPositions: number[] = [];
 {
   let position = 0;
@@ -173,14 +162,10 @@ const bookStartPositions: number[] = [];
   }
 }
 
-/**
- * Position of a chapter's first verse inside the flat verse array, or -1
- * when the book/chapter doesn't exist.
- */
-export function chapterStartPosition(bookId: number, chapter: number): number {
+export const chapterStartPosition = (bookId: number, chapter: number): number => {
   const chapters = CHAPTER_VERSE_COUNTS[bookId - 1];
   if (!chapters || chapter < 1 || chapter > chapters.length) return -1;
   let position = bookStartPositions[bookId - 1];
   for (let c = 1; c < chapter; c++) position += chapters[c - 1];
   return position;
-}
+};

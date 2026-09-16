@@ -3,7 +3,8 @@ import { Check, Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { Background, Slide, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
-import { colors, fade, UI } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import {
   ATTENTION_CLASS,
   attentionAttribute,
@@ -40,7 +41,8 @@ const SAMPLE: Slide = {
   notes: "",
 };
 
-export function ThemesModal() {
+export const ThemesModal = () => {
+  const { colors, fonts } = useUITheme();
   const overlay = useStore((s) => s.overlay);
   const overlayContext = useStore((s) => s.overlayContext);
   const close = useStore((s) => s.closeOverlay);
@@ -60,17 +62,12 @@ export function ThemesModal() {
   );
   const savedTheme = themes.find((t) => t.id === selectedId) || themes[0];
 
-  // Edits go into this draft; nothing is stored until the user clicks Save.
   const [draft, setDraft] = useState<Theme | null>(savedTheme ?? null);
   useEffect(() => {
-    // Reset the draft when another theme is picked or the modal reopens.
     setDraft(themes.find((t) => t.id === selectedId) ?? themes[0] ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, overlay]);
 
-  // "Keep on reset" registers the stored theme rather than editing its design,
-  // so mirror it into the draft. Without this, toggling it reads as an unsaved
-  // edit and saving the draft would silently unregister the theme.
   const savedKeepOnReset = savedTheme?.keepOnReset;
   useEffect(() => {
     setDraft((current) =>
@@ -85,8 +82,6 @@ export function ThemesModal() {
   );
   const nameError = draft ? validateName(draft.name, "theme name") : null;
 
-  // Deep links (like dashboard activities) open the modal on a specific theme,
-  // scrolled to and ringed for a moment so it can be picked out of the list.
   const listRef = useRef<HTMLDivElement>(null);
   const deepLinkedId = overlay === "themes" ? overlayContext : null;
   const attentionId = useAttention(deepLinkedId, listRef);
@@ -206,7 +201,7 @@ export function ThemesModal() {
                   </Button>
                   <span
                     style={{
-                      fontFamily: UI,
+                      fontFamily: fonts.ui,
                       fontSize: 12,
                       fontWeight: 600,
                       color: colors.accentSoft,
@@ -299,7 +294,7 @@ export function ThemesModal() {
                   display: "flex",
                   alignItems: "center",
                   gap: 4,
-                  fontFamily: UI,
+                  fontFamily: fonts.ui,
                   fontSize: 12.5,
                   color: colors.dim,
                   margin: "8px 0 0",
@@ -336,9 +331,9 @@ export function ThemesModal() {
       </div>
     </Modal>
   );
-}
+};
 
-function ThemeCard({
+const ThemeCard = ({
   theme,
   background,
   active,
@@ -348,10 +343,10 @@ function ThemeCard({
   theme: Theme;
   background: Background;
   active: boolean;
-  /** Ringed for a moment because a deep link pointed at this theme. */
   attention: boolean;
   onSelect: () => void;
-}) {
+}) => {
+  const { colors, fonts } = useUITheme();
   return (
     <button
       onClick={onSelect}
@@ -378,7 +373,7 @@ function ThemeCard({
       </div>
       <div
         style={{
-          fontFamily: UI,
+          fontFamily: fonts.ui,
           fontSize: 12.5,
           fontWeight: 600,
           color: active ? colors.accentSoft : colors.text,
@@ -397,4 +392,4 @@ function ThemeCard({
       </div>
     </button>
   );
-}
+};

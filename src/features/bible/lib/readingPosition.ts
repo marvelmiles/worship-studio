@@ -1,15 +1,7 @@
-// Remembers where the reader stopped, so the Bible page can offer
-// "Continue, John 3:16" across visits. The verse is the last one the user
-// had selected in the reader; when they read without selecting anything we
-// only remember the book and chapter. Stored in localStorage; falls back to
-// John 3 for first-time readers.
-
 export interface ReadingPosition {
   bookId: number;
   chapter: number;
-  /** Last verse selected in this chapter, or null when none was. */
   verse?: number | null;
-  /** When the reader was last here (ISO). Missing until the Bible page is first visited. */
   at?: string;
 }
 
@@ -21,7 +13,7 @@ const DEFAULT_POSITION: ReadingPosition = {
   verse: null,
 };
 
-export function loadReadingPosition(): ReadingPosition {
+export const loadReadingPosition = (): ReadingPosition => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -44,20 +36,16 @@ export function loadReadingPosition(): ReadingPosition {
         };
       }
     }
-  } catch {
-    /* corrupt or unavailable storage, start from the default */
-  }
+  } catch {}
   return DEFAULT_POSITION;
-}
+};
 
-export function saveReadingPosition(position: ReadingPosition): void {
+export const saveReadingPosition = (position: ReadingPosition): void => {
   try {
     const stamped: ReadingPosition = {
       ...position,
       at: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stamped));
-  } catch {
-    /* non-fatal, the reader just won't remember its place */
-  }
-}
+  } catch {}
+};

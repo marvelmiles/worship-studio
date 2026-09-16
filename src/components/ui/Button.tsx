@@ -14,12 +14,11 @@ interface ButtonProps {
   size?: ButtonSize;
   title?: string;
   disabled?: boolean;
-  /** Shows a spinner in place of the label and blocks clicks. */
   busy?: boolean;
   style?: CSSProperties;
 }
 
-export function Button({
+export const Button = ({
   children,
   onClick,
   variant = "ghost",
@@ -28,7 +27,7 @@ export function Button({
   disabled,
   busy,
   style,
-}: ButtonProps) {
+}: ButtonProps) => {
   const { colors, fonts } = useUITheme();
   const blocked = disabled || busy;
   const base: CSSProperties = {
@@ -90,7 +89,7 @@ export function Button({
       )}
     </button>
   );
-}
+};
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -99,23 +98,16 @@ interface IconButtonProps {
   active?: boolean;
   danger?: boolean;
   disabled?: boolean;
-  /** "sm" matches a small labelled button, so the two line up in one row. */
   size?: "sm" | "md";
-  /**
-   * Gives the button the raised surface a ghost `Button` has, so a row of them
-   * beside a labelled button reads as one set of controls rather than as loose
-   * glyphs. It says nothing about state: that is `active`'s job.
-   */
   filled?: boolean;
 }
 
-/** Square sizes, chosen so each matches the height of the Button of that size. */
 const ICON_BUTTON_BOX: Record<"sm" | "md", { box: number; icon: number }> = {
   sm: { box: 29, icon: 15 },
   md: { box: 34, icon: 16.5 },
 };
 
-export function IconButton({
+export const IconButton = ({
   icon: Icon,
   onClick,
   title,
@@ -124,7 +116,7 @@ export function IconButton({
   disabled,
   size = "md",
   filled,
-}: IconButtonProps) {
+}: IconButtonProps) => {
   const { colors } = useUITheme();
   const restBackground = active
     ? fade(colors.accent, 0.16)
@@ -170,7 +162,7 @@ export function IconButton({
       <Icon size={icon} />
     </button>
   );
-}
+};
 
 interface StageButtonProps {
   icon: LucideIcon;
@@ -180,14 +172,13 @@ interface StageButtonProps {
   solid?: boolean;
 }
 
-/** Control button used on the live presentation stage (light on dark). */
-export function StageButton({
+export const StageButton = ({
   icon: Icon,
   onClick,
   title,
   active,
   solid,
-}: StageButtonProps) {
+}: StageButtonProps) => {
   const { colors, stage } = useUITheme();
   return (
     <button
@@ -213,4 +204,4 @@ export function StageButton({
       <Icon size={18} />
     </button>
   );
-}
+};

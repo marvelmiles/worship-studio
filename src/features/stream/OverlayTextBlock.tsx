@@ -20,18 +20,7 @@ const FLEX_ALIGN: Record<Align, CSSProperties["alignItems"]> = {
   right: "flex-end",
 };
 
-/**
- * A passage or manuscript laid out for a live broadcast.
- *
- * Deliberately not a slide. A projected slide fills the screen and the words
- * are the picture; here the camera is the picture and the words are a panel
- * resting on it, so this reads as a caption band: a badge carrying the
- * reference, the text in a block beneath it, and clear space on every side. The
- * text is never scaled down to fit and never cropped — the passage is broken
- * into as many blocks as the frame has room for (see useOverlayBlocks) and the
- * operator pages through them, which is why the frame can be short by default.
- */
-export function OverlayTextBlock({ overlay }: { overlay: ContentOverlay }) {
+export const OverlayTextBlock = ({ overlay }: { overlay: ContentOverlay }) => {
   const prefs = useStore((s) => s.prefs);
   const blocks = useOverlayBlocks(overlay);
   const { block, badge } = overlay;
@@ -87,10 +76,9 @@ export function OverlayTextBlock({ overlay }: { overlay: ContentOverlay }) {
       </AnimatePresence>
     </div>
   );
-}
+};
 
-/** The panel behind the words: a colour, a picture, or the camera itself. */
-function Backdrop({ style }: { style: OverlayBlockStyle }) {
+const Backdrop = ({ style }: { style: OverlayBlockStyle }) => {
   if (!style.background && !style.backgroundImage) return null;
   return (
     <div
@@ -101,15 +89,9 @@ function Backdrop({ style }: { style: OverlayBlockStyle }) {
       )}
     </div>
   );
-}
+};
 
-/**
- * The reference or section label, sitting above the block rather than inside
- * the running text. A verse reference read as one more line of the passage is
- * the single easiest thing to mistake for scripture, and on a broadcast it also
- * has to survive being glanced at, so it is given its own shape.
- */
-function Badge({ text, style }: { text: string; style: OverlayBadgeStyle }) {
+const Badge = ({ text, style }: { text: string; style: OverlayBadgeStyle }) => {
   return (
     <span
       style={{
@@ -136,4 +118,4 @@ function Badge({ text, style }: { text: string; style: OverlayBadgeStyle }) {
       <span style={{ position: "relative" }}>{text}</span>
     </span>
   );
-}
+};

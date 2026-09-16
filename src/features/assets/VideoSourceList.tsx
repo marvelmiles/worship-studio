@@ -18,25 +18,17 @@ type VideoSource = "all" | "backgrounds";
 
 interface VideoSourceListProps {
   attentionId: string | null;
-  /** The library entry each already-added clip has become, keyed by clip id. */
   addedByMediaId: Map<string, string>;
   onAdd: (mediaId: string) => void;
   onRemove: (entryId: string) => void;
   addLabel: string;
   addedLabel: string;
-  /** Section of the library the video editor returns to. */
   section: AssetSection;
-  /** Offers a filter down to the clips already attached as backgrounds. */
   filterable?: boolean;
   emptyMessage: string;
 }
 
-/**
- * The videos module seen from the asset library: every clip, with a toggle
- * that adds it to this part of the library, an upload that adds a new clip
- * straight in, and a pencil into the video editor.
- */
-export function VideoSourceList({
+export const VideoSourceList = ({
   attentionId,
   addedByMediaId,
   onAdd,
@@ -46,7 +38,7 @@ export function VideoSourceList({
   section,
   filterable,
   emptyMessage,
-}: VideoSourceListProps) {
+}: VideoSourceListProps) => {
   const { colors, fonts } = useUITheme();
   const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -249,4 +241,4 @@ export function VideoSourceList({
       )}
     </>
   );
-}
+};

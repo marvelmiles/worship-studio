@@ -26,25 +26,11 @@ export interface SavePassageOptions extends ScriptureSelection {
   versesPerSlide?: number;
   showVerseNumbers?: boolean;
   showReference?: boolean;
-  /** Explicit title, e.g. a numbered copy like "Matthew 1:1-4 (KJV) (1)". */
   title?: string;
-  /**
-   * Break a verse too long for one slide into several. Defaults to on for
-   * quick passages, whose verses-per-slide is never tuned by hand. Surfaces
-   * that re-break the text themselves turn it off, so each slide stays one
-   * whole verse with a reference of its own.
-   */
   splitLongVerses?: boolean;
 }
 
-/** How a quick passage is created for a caller that owns its document. */
 export interface StageSelectionOptions {
-  /**
-   * Document id to write. Defaults to the single quick-present slot, which the
-   * next quick present overwrites. Callers that need a passage to outlive the
-   * next one — a broadcast overlay, say — pass an id of their own and are
-   * responsible for deleting it.
-   */
   id?: string;
   splitLongVerses?: boolean;
 }
@@ -52,7 +38,6 @@ export interface StageSelectionOptions {
 export interface ScripturesSlice {
   scriptures: ScripturePassage[];
 
-  /** False when storage is full and the write was refused. */
   upsertScripture: (passage: ScripturePassage) => boolean;
   saveScripturePassage: (
     options: SavePassageOptions,
@@ -78,12 +63,12 @@ export interface ScripturesSlice {
   ) => ScripturePassage | null;
 }
 
-function buildPassage(
+const buildPassage = (
   options: SavePassageOptions,
   id: string,
   quick: boolean,
   themeId: string = SCRIPTURE_THEME_ID,
-): ScripturePassage {
+): ScripturePassage => {
   const versesPerSlide = options.versesPerSlide ?? 1;
   const showVerseNumbers = options.showVerseNumbers ?? true;
   const showReference = options.showReference ?? true;
@@ -109,16 +94,13 @@ function buildPassage(
     defaultThemeId: themeId,
     defaultBackgroundId: "",
     defaultAudioId: null,
-    // The passage carries its own size so it always sits exactly two steps
-    // above the reference line the slide builder writes, whichever theme the
-    // passage is presented with.
     style: { fontSize: SCRIPTURE_PASSAGE_FONT_SIZE },
     createdAt: now(),
     updatedAt: now(),
     deleted: false,
     builtIn: false,
   };
-}
+};
 
 export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
   set,
@@ -156,7 +138,6 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     const showReference = options.showReference ?? true;
     const next: ScripturePassage = {
       ...current,
-      // The existing title is kept on purpose, it may carry a copy number.
       version: options.version,
       range: options.range,
       verses: options.verses,
@@ -182,7 +163,6 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     const current = get().scriptures.find((s) => s.id === id);
     if (!current) return;
     const next: ScripturePassage = { ...current, ...changes, updatedAt: now() };
-    // Passages saved before the scripture type scale existed pick it up here.
     next.style = {
       fontSize: SCRIPTURE_PASSAGE_FONT_SIZE,
       ...next.style,
@@ -206,8 +186,6 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
       get().upsertScripture({
         ...passage,
         deleted: true,
-        // A trashed passage is out of the listing a pin orders, so it gives its
-        // slot back rather than reclaiming one on restore.
         pinned: undefined,
         updatedAt: now(),
       });
@@ -227,8 +205,6 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
 
   presentScriptureSelection: (selection, mode = "stage") => {
     if (blockWrite(get)) return;
-    // Quick presents default to no verse-number prefixes, the reference line
-    // already identifies the verse on screen.
     const passage = buildPassage(
       { ...selection, showVerseNumbers: false },
       QUICK_PASSAGE_ID,
@@ -256,8 +232,8 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
   },
 });
 
-function scriptureThemeId(
+const scriptureThemeId = (
   get: () => { prefs: { defaultScriptureThemeId: string } },
-): string {
+): string => {
   return get().prefs.defaultScriptureThemeId || SCRIPTURE_THEME_ID;
-}
+};

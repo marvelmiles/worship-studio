@@ -4,11 +4,10 @@ import { useUITheme } from "../../theme/ThemeProvider";
 interface SpinnerProps {
   size?: number;
   color?: string;
-  /** Extra space around the spinner when it sits alone in a container. */
   padded?: boolean;
 }
 
-export function Spinner({ size = 16, color, padded }: SpinnerProps) {
+export const Spinner = ({ size = 16, color, padded }: SpinnerProps) => {
   const { colors } = useUITheme();
   const spinColor = color ?? colors.accent;
   return (
@@ -28,10 +27,9 @@ export function Spinner({ size = 16, color, padded }: SpinnerProps) {
       }}
     />
   );
-}
+};
 
-/** Fills its parent and centers a spinner, for loading panels and pages. */
-export function LoadingArea({ size = 26 }: { size?: number }) {
+export const LoadingArea = ({ size = 26 }: { size?: number }) => {
   return (
     <div
       style={{
@@ -45,4 +43,4 @@ export function LoadingArea({ size = 26 }: { size?: number }) {
       <Spinner size={size} />
     </div>
   );
-}
+};

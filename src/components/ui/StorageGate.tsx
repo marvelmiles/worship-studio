@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { AlertTriangle, HardDrive, Trash2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { colors, DISPLAY, UI, glass, fade } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Button } from "./Button";
 import { formatBytes } from "../../lib/storageStats";
 import { InfoTip } from "./InfoTip";
 
-export function StorageGate() {
+export const StorageGate = () => {
+  const { colors, fonts, glass } = useUITheme();
   const storage = useStore((s) => s.storage);
   const freeUpStorage = useStore((s) => s.freeUpStorage);
   const [busy, setBusy] = useState(false);
@@ -64,7 +66,7 @@ export function StorageGate() {
         <h2
           style={{
             margin: "0 0 8px",
-            fontFamily: DISPLAY,
+            fontFamily: fonts.display,
             fontSize: 23,
             fontWeight: 600,
             color: colors.text,
@@ -74,7 +76,7 @@ export function StorageGate() {
         </h2>
         <p
           style={{
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 14,
             color: colors.sub,
             lineHeight: 1.65,
@@ -108,7 +110,7 @@ export function StorageGate() {
             />
             <div
               style={{
-                fontFamily: UI,
+                fontFamily: fonts.ui,
                 fontSize: 13,
                 color: colors.text,
                 lineHeight: 1.6,
@@ -139,7 +141,7 @@ export function StorageGate() {
             justifyContent: "center",
             gap: 4,
             marginTop: 8,
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 11.5,
             color: colors.dim,
           }}
@@ -153,4 +155,4 @@ export function StorageGate() {
       </div>
     </div>
   );
-}
+};

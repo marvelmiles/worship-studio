@@ -7,21 +7,7 @@ import { useMirroredStreamOverlays } from "./lib/streamOverlayStore";
 import { useOpenerLiveComposition } from "./lib/useOpenerComposition";
 import { useOverlayContentSync } from "./lib/useOverlayContentSync";
 
-/**
- * Renders in the popup opened by the stream's Go Live button. It projects the
- * live camera and whatever the operator has laid over it, and nothing else — no
- * controls, no app chrome.
- *
- * Two links feed it, because the two halves cannot travel the same way. The
- * cameras are pulled by reference from the opener window (see streamLive.ts),
- * since a MediaStream cannot be cloned across a channel; that reference carries
- * the whole composition, so a switch of which camera fills the screen and which
- * sit in the corners reaches the projector without any handshake. The overlays
- * are plain data and arrive over a BroadcastChannel, which is what lets the
- * operator keep rearranging them from the app while this window projects. Either
- * way this window never touches signalling or WebRTC; it only displays.
- */
-export function StreamWindow() {
+export const StreamWindow = () => {
   const overlays = useMirroredStreamOverlays();
   useOverlayContentSync(overlays);
   const composition = useOpenerLiveComposition();
@@ -54,16 +40,10 @@ export function StreamWindow() {
     hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
   };
 
-  // A programmatically opened, auto-fullscreened popup on a second monitor
-  // sometimes doesn't get OS activation from a plain click (a Windows/Chrome
-  // fullscreen quirk). Focusing from a real pointerdown here claims it, and it
-  // also gives the browser the gesture it may want before playing audio.
   const claimFocus = () => {
     try {
       window.focus();
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     void videoRef.current?.play().catch(() => {});
   };
 
@@ -71,9 +51,7 @@ export function StreamWindow() {
     try {
       if (document.fullscreenElement) void document.exitFullscreen?.();
       else void document.documentElement.requestFullscreen?.();
-    } catch {
-      /* fullscreen can be blocked; ignore */
-    }
+    } catch {}
   };
 
   return (
@@ -82,14 +60,10 @@ export function StreamWindow() {
       onPointerDown={claimFocus}
       style={{ position: "fixed", inset: 0, background: "#000" }}
     >
-      {/* Fill the whole projector screen. `cover` never distorts; it only trims
-          the unavoidable overflow when the camera and screen differ in shape. */}
       <StreamVideo ref={videoRef} stream={stream} />
 
-      {/* The other cameras, in the corners the operator placed them in. */}
       <StreamPipLayer windows={composition.secondaries} />
 
-      {/* This is the copy the room watches, so its clips are the ones heard. */}
       <StreamOverlayLayers overlays={overlays} live />
 
       {!stream && (
@@ -135,4 +109,4 @@ export function StreamWindow() {
       </button>
     </div>
   );
-}
+};

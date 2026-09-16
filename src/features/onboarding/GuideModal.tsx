@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { fade, colors, DISPLAY, UI, glass } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { Button } from "../../components/ui/Button";
 
 const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
@@ -84,7 +85,8 @@ const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
   },
 ];
 
-export function GuideModal() {
+export const GuideModal = () => {
+  const { colors, fonts, glass } = useUITheme();
   const showGuide = useStore((s) => s.showGuide);
   const completeGuide = useStore((s) => s.completeGuide);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -137,7 +139,7 @@ export function GuideModal() {
         >
           <div
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 11,
               fontWeight: 700,
               letterSpacing: 0.6,
@@ -150,7 +152,7 @@ export function GuideModal() {
           <h2
             style={{
               margin: "4px 0 0",
-              fontFamily: DISPLAY,
+              fontFamily: fonts.display,
               fontSize: 25,
               fontWeight: 600,
               color: colors.text,
@@ -171,7 +173,7 @@ export function GuideModal() {
         >
           <p
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 14,
               color: colors.sub,
               lineHeight: 1.7,
@@ -205,7 +207,7 @@ export function GuideModal() {
               <div>
                 <div
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 14.5,
                     fontWeight: 600,
                     color: colors.text,
@@ -215,7 +217,7 @@ export function GuideModal() {
                 </div>
                 <div
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 13,
                     color: colors.sub,
                     lineHeight: 1.6,
@@ -230,7 +232,7 @@ export function GuideModal() {
 
           <h3
             style={{
-              fontFamily: DISPLAY,
+              fontFamily: fonts.display,
               fontSize: 17,
               color: colors.text,
               margin: "22px 0 12px",
@@ -266,7 +268,7 @@ export function GuideModal() {
               <div>
                 <div
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 13.5,
                     fontWeight: 600,
                     color: colors.text,
@@ -276,7 +278,7 @@ export function GuideModal() {
                 </div>
                 <div
                   style={{
-                    fontFamily: UI,
+                    fontFamily: fonts.ui,
                     fontSize: 12.5,
                     color: colors.sub,
                     lineHeight: 1.5,
@@ -290,7 +292,7 @@ export function GuideModal() {
 
           <p
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 13.5,
               color: colors.sub,
               lineHeight: 1.7,
@@ -323,7 +325,7 @@ export function GuideModal() {
         >
           <span
             style={{
-              fontFamily: UI,
+              fontFamily: fonts.ui,
               fontSize: 12.5,
               color: reachedEnd ? colors.dim : colors.accent,
             }}
@@ -341,4 +343,4 @@ export function GuideModal() {
       </div>
     </div>
   );
-}
+};

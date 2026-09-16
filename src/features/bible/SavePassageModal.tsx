@@ -17,17 +17,15 @@ interface SavePassageModalProps {
   ) => void;
 }
 
-export function SavePassageModal({
+export const SavePassageModal = ({
   selection,
   onClose,
   onSave,
-}: SavePassageModalProps) {
+}: SavePassageModalProps) => {
   const [versesPerSlide, setVersesPerSlide] = useState(1);
   const [showVerseNumbers, setShowVerseNumbers] = useState(true);
   const [showReference, setShowReference] = useState(true);
 
-  // The modal stays mounted between saves, so start every new save from the
-  // defaults rather than whatever the previous save used.
   useEffect(() => {
     if (!selection) return;
     setVersesPerSlide(1);
@@ -91,4 +89,4 @@ export function SavePassageModal({
       />
     </Modal>
   );
-}
+};

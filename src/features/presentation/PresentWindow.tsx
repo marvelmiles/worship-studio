@@ -18,12 +18,7 @@ import { buildStageFrame } from "./stageContent";
 import { SecondaryPip } from "./SecondaryPip";
 import { Stage } from "./Stage";
 
-/**
- * Renders in the popup window opened by Go Live. Mirrors whatever the
- * operator console is showing via BroadcastChannel, no controls, no
- * presenter bar, just the stage that gets projected to the audience.
- */
-export function PresentWindow() {
+export const PresentWindow = () => {
   const { stage } = useUITheme();
   const prefs = useStore((s) => s.prefs);
   const load = useStore((s) => s.load);
@@ -37,14 +32,7 @@ export function PresentWindow() {
   const secondaryVideoRef = useRef<VideoSurfaceHandle>(null);
 
   const secondary = state?.secondary;
-  // A MediaStream cannot travel the broadcast channel, so a corner window
-  // showing the live camera reads it by reference from the window that opened
-  // this one. Only then: nothing else here needs the opener at all.
   const composition = useOpenerLiveComposition(secondary?.kind === "stream");
-  // The overlays are plain data, so they reach this window the same way they
-  // reach the stream module's own projector: over a channel, live. That is what
-  // makes a passage put on air from the Stream page appear over the camera in
-  // this presentation's corner window without anything being pushed twice.
   const streamOverlays = useMirroredStreamOverlays();
   useOverlayContentSync(streamOverlays);
 
@@ -54,10 +42,6 @@ export function PresentWindow() {
         setState(msg.state);
         return;
       }
-      // The operator's playhead, carried forward by the time the message spent
-      // in flight. This window runs its own video element, so it is left to
-      // play on its own and only pulled back when it has actually drifted:
-      // seeking on every reading would stutter the picture instead.
       if (msg.type !== "media-sync") return;
       const surface =
         msg.target === "secondary"
@@ -98,29 +82,19 @@ export function PresentWindow() {
     hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
   };
 
-  // A programmatically opened, auto-fullscreened popup on a second monitor
-  // sometimes doesn't get OS window activation from a plain click (a known
-  // Windows/Chrome quirk with fullscreen surfaces). Calling focus() from a
-  // real pointerdown inside this window's own document reliably claims it.
   const claimFocus = () => {
     try {
       window.focus();
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   };
 
   const toggleFullscreen = () => {
     try {
       if (document.fullscreenElement) void document.exitFullscreen?.();
       else void document.documentElement.requestFullscreen?.();
-    } catch {
-      /* fullscreen can be blocked by the browser; ignore */
-    }
+    } catch {}
   };
 
-  // Held steady between broadcasts so the deck is only rebuilt when the
-  // operator actually sends a new version.
   const override = useMemo(
     () => ({ doc: state?.doc, item: state?.item }),
     [state?.doc, state?.item],
@@ -128,16 +102,8 @@ export function PresentWindow() {
   const deck = useDeck(state?.kind, state?.id, override);
   const bgMap = useBgMap();
 
-  // This window loads its store once on open; content created or edited after
-  // that would be missing here, so reload from storage when the operator's
-  // broadcast references something newer than our copy. A deck or a media item
-  // that arrived whole in the broadcast is never stale. The key resets after a
-  // moment so a reload that raced the operator's write gets retried.
   useEffect(() => {
     if (!state || state.doc) return;
-    // A media item arrives whole too, but the library around it (the rest of
-    // the image slideshow) still has to be there, so a deck that could not be
-    // built at all is always worth another read.
     const stale = !deck || (!state.item && state.rev && deck.rev !== state.rev);
     if (!stale) return;
     const key = `${state.kind}:${state.id}:${state.rev || ""}`;
@@ -232,4 +198,4 @@ export function PresentWindow() {
       {fullscreenButton}
     </div>
   );
-}
+};

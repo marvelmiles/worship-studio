@@ -11,36 +11,22 @@ import type { PopoverAlign, PopoverSide } from "./Popover";
 export type InfoTipVariant = "popover" | "modal";
 
 interface InfoTipProps {
-  /** Names what the help is about; the popover heading and the modal title. */
   title: string;
   children: ReactNode;
-  /**
-   * "popover" for a sentence or two, shown on hover and pinned by a click or a
-   * tap. "modal" for guidance long enough to need room of its own.
-   */
   variant?: InfoTipVariant;
   side?: PopoverSide;
   align?: PopoverAlign;
-  /** Icon size in pixels. */
   size?: number;
 }
 
-/**
- * The small info button that stands in for help text, so panels show their
- * controls rather than paragraphs about them.
- *
- * The trigger is a `span` with a button role rather than a `<button>`: it often
- * sits inside a field's `<label>`, and a real button there would become the
- * label's control, opening the help every time the label text was clicked.
- */
-export function InfoTip({
+export const InfoTip = ({
   title,
   children,
   variant = "popover",
   side = "bottom",
   align = "start",
   size = 14,
-}: InfoTipProps) {
+}: InfoTipProps) => {
   const { colors, fonts, shadows } = useUITheme();
   const [open, setOpen] = useState(false);
 
@@ -53,8 +39,6 @@ export function InfoTip({
       aria-haspopup={variant === "modal" ? "dialog" : "true"}
       title={variant === "modal" ? `About ${title.toLowerCase()}` : undefined}
       onClick={(event) => {
-        // Keeps a surrounding label from treating the click as its own. The
-        // popover's anchor still hears it and toggles the panel.
         event.preventDefault();
         if (variant !== "modal") return;
         event.stopPropagation();
@@ -164,4 +148,4 @@ export function InfoTip({
       </div>
     </Popover>
   );
-}
+};

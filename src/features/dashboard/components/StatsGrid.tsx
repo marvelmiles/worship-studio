@@ -8,7 +8,7 @@ import {
   Volume2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { fade } from "../../../theme/tokens";
+import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import type { DashboardCounts } from "../useDashboardData";
 
@@ -23,7 +23,7 @@ interface StatCard {
   color: string;
 }
 
-export function StatsGrid({ counts }: StatsGridProps) {
+export const StatsGrid = ({ counts }: StatsGridProps) => {
   const { colors, glass, charts, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -117,4 +117,4 @@ export function StatsGrid({ counts }: StatsGridProps) {
       ))}
     </div>
   );
-}
+};

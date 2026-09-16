@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Layers, Volume2 } from "lucide-react";
-import { fade } from "../../../theme/tokens";
+import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { BgSwatch } from "../../../components/controls/BgSwatch";
@@ -17,7 +17,7 @@ const USAGE_TABS: { id: UsageTab; label: string }[] = [
   { id: "sound", label: "Sounds" },
 ];
 
-export function MostUsedArtifacts({ mostUsed }: MostUsedArtifactsProps) {
+export const MostUsedArtifacts = ({ mostUsed }: MostUsedArtifactsProps) => {
   const { colors, glass, controls, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -159,4 +159,4 @@ export function MostUsedArtifacts({ mostUsed }: MostUsedArtifactsProps) {
       )}
     </div>
   );
-}
+};

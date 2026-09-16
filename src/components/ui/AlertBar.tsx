@@ -11,7 +11,7 @@ const ICONS: Record<AppAlert["kind"], LucideIcon> = {
   info: Info,
 };
 
-export function AlertBar() {
+export const AlertBar = () => {
   const { fonts, colors } = useUITheme();
   const UI = fonts.ui;
   const tones: Record<AppAlert["kind"], ReturnType<typeof feedbackTone>> = {
@@ -91,4 +91,4 @@ export function AlertBar() {
       })}
     </div>
   );
-}
+};

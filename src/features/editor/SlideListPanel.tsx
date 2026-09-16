@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { IconButton } from "../../components/ui/Button";
 import { SortableSlideList } from "./SortableSlideList";
 import type { TagGroup } from "../../lib/tagGroups";
@@ -18,7 +18,7 @@ interface SlideListPanelProps {
   tagGroups?: TagGroup[];
 }
 
-export function SlideListPanel({
+export const SlideListPanel = ({
   slides,
   selectedId,
   setSelectedId,
@@ -29,7 +29,8 @@ export function SlideListPanel({
   onContextMenu,
   onAdd,
   tagGroups,
-}: SlideListPanelProps) {
+}: SlideListPanelProps) => {
+  const { colors, fonts } = useUITheme();
   return (
     <div style={{ paddingBottom: 14 }}>
       <div
@@ -47,7 +48,7 @@ export function SlideListPanel({
       >
         <span
           style={{
-            fontFamily: UI,
+            fontFamily: fonts.ui,
             fontSize: 12,
             fontWeight: 700,
             letterSpacing: 0.5,
@@ -74,4 +75,4 @@ export function SlideListPanel({
       </div>
     </div>
   );
-}
+};

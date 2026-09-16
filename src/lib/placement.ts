@@ -1,10 +1,7 @@
-/** Viewport placement shared by every floating panel (popovers, toolbars). */
-
 export type PopoverSide = "bottom" | "top" | "left" | "right";
 export type PopoverAlign = "start" | "center" | "end";
 
 export const PLACEMENT_GAP = 6;
-/** Keeps the panel from touching the very edge of the window. */
 export const PLACEMENT_EDGE = 8;
 
 export interface Placement {
@@ -18,17 +15,12 @@ export interface PanelSize {
   height: number;
 }
 
-/**
- * Positions `panel` against `anchor` in viewport coordinates, flipping to the
- * opposite side when the preferred one doesn't fit and sliding along the cross
- * axis to stay on screen. Returns the winning position.
- */
-export function computePlacement(
+export const computePlacement = (
   anchor: DOMRect,
   panel: PanelSize,
   preferred: PopoverSide,
   align: PopoverAlign,
-): Placement {
+): Placement => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
@@ -41,8 +33,6 @@ export function computePlacement(
   const needed = (s: PopoverSide) =>
     s === "top" || s === "bottom" ? panel.height : panel.width;
 
-  // Prefer the requested side, then its opposite, then whichever has the most
-  // room. That last step is what saves a panel taller than either gap.
   const opposite: Record<PopoverSide, PopoverSide> = {
     bottom: "top",
     top: "bottom",
@@ -86,7 +76,6 @@ export function computePlacement(
           : anchor.top;
   }
 
-  // Final clamp so a panel bigger than the remaining room still stays visible.
   left = Math.max(
     PLACEMENT_EDGE,
     Math.min(left, vw - panel.width - PLACEMENT_EDGE),
@@ -96,4 +85,4 @@ export function computePlacement(
     Math.min(top, vh - panel.height - PLACEMENT_EDGE),
   );
   return { top, left, side };
-}
+};

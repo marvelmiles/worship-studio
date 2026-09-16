@@ -8,18 +8,9 @@ import {
 
 export type { GoLiveResult };
 
-/**
- * React binding over an app-wide live window (see lib/liveWindow.ts). The
- * window itself is owned outside React so a Present/Go-Live control can open it
- * inside its own click while the UI, mounted elsewhere, still reflects and
- * controls it.
- *
- * Defaults to the slide-presentation output; pass another controller (e.g. the
- * camera stream's) to drive a different projected window with the same binding.
- */
-export function useGoLive(
+export const useGoLive = (
   controller: LiveWindowController = presentLiveWindow,
-) {
+) => {
   const { isLive, isFullscreen } = useSyncExternalStore(
     controller.subscribe,
     controller.getState,
@@ -51,4 +42,4 @@ export function useGoLive(
     endLive,
     toggleLiveFullscreen,
   };
-}
+};

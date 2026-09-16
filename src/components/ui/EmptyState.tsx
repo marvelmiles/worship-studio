@@ -8,9 +8,7 @@ interface EmptyStateProps {
   title: string;
   message: string;
   action?: ReactNode;
-  /** Compact spacing for empty states inside panels and modals. */
   compact?: boolean;
-  /** Drops the glass card so it can sit inside an existing panel. */
   bare?: boolean;
 }
 
@@ -19,10 +17,7 @@ interface MissingArtifactProps {
   compact?: boolean;
 }
 
-/** A stack of slide frames whose front slot is empty: the product-specific way
- *  to say an artifact (manuscript, passage, media, theme) belongs here but is missing.
- *  The faint skeleton bars stand in for the content waiting to be built. */
-function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
+const MissingArtifact = ({ icon: Icon, compact }: MissingArtifactProps) => {
   const { colors, shadows } = useUITheme();
   const frameW = compact ? 104 : 128;
   const frameH = compact ? 66 : 80;
@@ -101,18 +96,16 @@ function MissingArtifact({ icon: Icon, compact }: MissingArtifactProps) {
       </div>
     </div>
   );
-}
+};
 
-/** Placeholder shown wherever a list has nothing in it, built around a
- *  missing-artifact motif so an empty space reads as work waiting to be done. */
-export function EmptyState({
+export const EmptyState = ({
   icon,
   title,
   message,
   action,
   compact,
   bare,
-}: EmptyStateProps) {
+}: EmptyStateProps) => {
   const { colors, fonts, glass } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -157,4 +150,4 @@ export function EmptyState({
       )}
     </div>
   );
-}
+};

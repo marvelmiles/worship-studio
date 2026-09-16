@@ -1,5 +1,5 @@
 import { HardDrive } from "lucide-react";
-import { fade } from "../../../theme/tokens";
+import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { getStorageLabel, type StorageInfo } from "../../../lib/storageStats";
 
@@ -7,7 +7,7 @@ interface StorageCardProps {
   storage: StorageInfo;
 }
 
-export function StorageCard({ storage }: StorageCardProps) {
+export const StorageCard = ({ storage }: StorageCardProps) => {
   const { colors, glass, fills, controls, fonts } = useUITheme();
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
@@ -127,4 +127,4 @@ export function StorageCard({ storage }: StorageCardProps) {
       </div>
     </div>
   );
-}
+};

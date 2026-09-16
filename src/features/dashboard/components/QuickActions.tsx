@@ -9,7 +9,7 @@ import {
   Upload,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { fade } from "../../../theme/tokens";
+import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { useStore } from "../../../store/useStore";
 
@@ -21,7 +21,7 @@ interface QuickAction {
   primary?: boolean;
 }
 
-export function QuickActions() {
+export const QuickActions = () => {
   const theme = useUITheme();
   const { colors, glass, fills, fonts } = theme;
   const UI = fonts.ui;
@@ -153,4 +153,4 @@ export function QuickActions() {
       ))}
     </div>
   );
-}
+};

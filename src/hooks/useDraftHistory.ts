@@ -1,49 +1,32 @@
 import { useCallback, useRef, useState } from "react";
 
-/** Steps kept for one editing session, bounded so a long service stays cheap. */
 const HISTORY_LIMIT = 200;
-/** Changes this close together under one key fold into a single undo step. */
 const COALESCE_MS = 600;
 
 export interface DraftEditOptions {
-  /** Consecutive edits sharing a key fold into one undo step, as a slider drag does. */
   coalesceKey?: string;
 }
 
 export interface DraftHistory<T> {
   draft: T;
-  /** True while the draft differs from what was last saved. */
   dirty: boolean;
   canUndo: boolean;
   canRedo: boolean;
-  /** Replaces the draft, pushing an undo step. */
   apply: (next: T, options?: DraftEditOptions) => void;
-  /** The same, from the current draft. */
   patch: (changes: Partial<T>, options?: DraftEditOptions) => void;
   undo: () => void;
   redo: () => void;
-  /** Marks the current draft as the saved one, so it stops reading as dirty. */
   markSaved: () => void;
-  /** Drops the session and starts again from `next`, history and all. */
   reset: (next: T) => void;
 }
 
-/**
- * One editing session over a plain draft object, with the undo stack an editor
- * is expected to have.
- *
- * Nothing is written anywhere: the caller decides what saving means and calls
- * `markSaved` once it has happened, which is what keeps this usable for a
- * library record, a settings sheet or anything else edited against a draft.
- */
-export function useDraftHistory<T>(initial: T): DraftHistory<T> {
+export const useDraftHistory = <T>(initial: T): DraftHistory<T> => {
   const [draft, setDraft] = useState<T>(initial);
   const [saved, setSaved] = useState<T>(initial);
   const [past, setPast] = useState<T[]>([]);
   const [future, setFuture] = useState<T[]>([]);
   const coalesce = useRef<{ key: string; at: number } | null>(null);
 
-  // Mirrored so every command below stays referentially stable.
   const latest = useRef(draft);
   latest.current = draft;
 
@@ -117,4 +100,4 @@ export function useDraftHistory<T>(initial: T): DraftHistory<T> {
     markSaved,
     reset,
   };
-}
+};

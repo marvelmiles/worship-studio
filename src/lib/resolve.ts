@@ -23,10 +23,10 @@ const TEXT_KEYS = [
   "textShadow",
 ] as const;
 
-function applyTextStyle(
+const applyTextStyle = (
   target: ResolvedStyle,
   source: Record<string, unknown> | undefined,
-): void {
+): void => {
   if (!source) return;
   for (const key of TEXT_KEYS) {
     const value = source[key];
@@ -34,29 +34,23 @@ function applyTextStyle(
       (target as unknown as Record<string, unknown>)[key] = value;
     }
   }
-}
+};
 
-/**
- * A resolved style with further overrides layered on top, each one winning over
- * the last. Used wherever text carries its own appearance on top of the slide's,
- * a placed text box above all.
- */
-export function layerTextStyle(
+export const layerTextStyle = (
   base: ResolvedStyle,
   ...styles: (TextStyle | undefined)[]
-): ResolvedStyle {
+): ResolvedStyle => {
   const style = { ...base };
   for (const layer of styles)
     applyTextStyle(style, layer as Record<string, unknown> | undefined);
   return style;
-}
+};
 
-/** Merge theme defaults, then doc-level style, then per-slide overrides. */
-export function resolveStyle(
+export const resolveStyle = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
-): ResolvedStyle {
+): ResolvedStyle => {
   const style: ResolvedStyle = {
     fontFamily: theme.fontFamily,
     fontWeight: theme.fontWeight,
@@ -74,58 +68,49 @@ export function resolveStyle(
     slide?.overrides as Record<string, unknown> | undefined,
   );
   return style;
-}
+};
 
-/** Same as `resolveStyle`, with a single line's own override layered on top. */
-export function resolveLineStyle(
+export const resolveLineStyle = (
   slide: Slide | undefined,
   lineIndex: number,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
-): ResolvedStyle {
+): ResolvedStyle => {
   const style = resolveStyle(slide, doc, theme);
   applyTextStyle(
     style,
     slide?.lineOverrides?.[lineIndex] as Record<string, unknown> | undefined,
   );
   return style;
-}
+};
 
-export function resolveBackgroundId(
+export const resolveBackgroundId = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
-): string {
+): string => {
   return (
     slide?.overrides?.backgroundId ||
     doc?.defaultBackgroundId ||
     theme.backgroundId
   );
-}
+};
 
-export function resolveBackground(
+export const resolveBackground = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
   bgMap: Record<string, Background>,
-): Background {
+): Background => {
   const id = resolveBackgroundId(slide, doc, theme);
   return bgMap[id] || bgMap[theme.backgroundId] || BACKGROUNDS[0];
-}
+};
 
-/**
- * Effective picture settings for a background, or null when it isn't an image.
- *
- * Layered the same way text style is: the asset library's own settings first,
- * then the copy held by the document, then the copy held by the slide. A layer
- * that points at a different picture is skipped, so settings never leak onto a
- * background the layer never chose.
- */
-export function resolveBackgroundImage(
+export const resolveBackgroundImage = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   background: Background,
-): ImageSettings | null {
+): ImageSettings | null => {
   if (!isImageBackground(background)) return null;
   let settings = backgroundImageSettings(background);
 
@@ -138,64 +123,61 @@ export function resolveBackgroundImage(
 
   const slideBackgroundId = slide?.overrides?.backgroundId;
   if (!slideBackgroundId || slideBackgroundId === background.id) {
-    if (slide?.overrides?.scrim !== undefined)
-      settings = { ...settings, scrim: slide.overrides.scrim };
     if (slide?.overrides?.backgroundImage)
       settings = { ...settings, ...slide.overrides.backgroundImage };
   }
   return settings;
-}
+};
 
-/** A background together with the picture settings that apply to this usage. */
 export interface ResolvedBackground {
   background: Background;
   image: ImageSettings | null;
 }
 
-export function resolveBackgroundView(
+export const resolveBackgroundView = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
   bgMap: Record<string, Background>,
-): ResolvedBackground {
+): ResolvedBackground => {
   const background = resolveBackground(slide, doc, theme, bgMap);
   return { background, image: resolveBackgroundImage(slide, doc, background) };
-}
+};
 
-export function resolveAnimation(
+export const resolveAnimation = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme: Theme,
   fallback: AnimationKind,
-): AnimationKind {
+): AnimationKind => {
   return (
     slide?.overrides?.animation || doc?.animation || theme.animation || fallback
   );
-}
+};
 
-export function resolveAudioId(
+export const resolveAudioId = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme?: Theme,
-): string | null {
+): string | null => {
   return (
     slide?.overrides?.audioId ||
     doc?.defaultAudioId ||
     theme?.defaultAudioId ||
     null
   );
-}
+};
 
-export function resolveAutoPlay(
+export const resolveAutoPlay = (
   doc: SlideDeckDoc | undefined,
   theme?: Theme,
-): boolean {
+): boolean => {
   return doc?.autoPlay ?? theme?.autoPlay ?? false;
-}
+};
 
-export function resolveSlideDuration(
+export const resolveSlideDuration = (
   doc: SlideDeckDoc | undefined,
   theme?: Theme,
-): number {
+): number => {
   return doc?.slideDurationSeconds ?? theme?.slideDurationSeconds ?? 15;
-}
+};

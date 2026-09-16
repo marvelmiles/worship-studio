@@ -1,28 +1,13 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  type CSSProperties,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useStore } from "../../store/useStore";
 import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useGoLive } from "../../hooks/useGoLive";
 import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
-import { useSpeech } from "../../hooks/useSpeech";
 import { useBlobUrl } from "../../lib/blobUrls";
-import { stripInlineFormatting } from "../../lib/inlineFormat";
-import { stripListMarker } from "../../lib/lists";
-import { videoSettingsOf, type VideoProgress } from "../../lib/media";
-import {
-  MEDIA_SYNC_INTERVAL_MS,
-  openPresentChannel,
-  type PresentState,
-  type SecondaryPresentState,
-} from "../../lib/presentChannel";
-import { useMediaPlayback } from "../../hooks/useMediaPlayback";
+import type { VideoProgress } from "../../lib/media";
+import type { PresentState } from "../../lib/presentChannel";
 import {
   primaryCamera,
   secondaryCameras,
@@ -31,6 +16,14 @@ import {
 import { cameraPipWindow } from "../stream/StreamPipLayer";
 import { useStreamOverlays } from "../stream/lib/streamOverlayStore";
 import { usePresentation } from "./usePresentation";
+import { usePresentBroadcast } from "./lib/usePresentBroadcast";
+import { useScriptureReadAloud } from "./lib/useScriptureReadAloud";
+import { useSecondaryModule } from "./lib/useSecondaryModule";
+import {
+  DECK_END_LABELS,
+  STAGE_TRANSPORT_STYLE,
+  stageBackgroundStyle,
+} from "./lib/stageBackground";
 import { Stage } from "./Stage";
 import { PresentationControls } from "./PresentationControls";
 import { PresenterBar } from "./PresenterBar";
@@ -45,388 +38,173 @@ import { SecondaryModuleMenu } from "./SecondaryModuleMenu";
 import { VideoSurface } from "../../components/media/VideoSurface";
 import { AudioSurface } from "../../components/media/AudioSurface";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
-import type { Background, ScripturePassage } from "../../types";
 
-function resolveRootBg(
-  bg: Background | null,
-  blobUrl: string | null,
-): CSSProperties {
-  if (!bg) return { background: "#000" };
-  if (bg.type === "image") {
-    const url = bg.blobId ? blobUrl : bg.dataUrl;
-    return {
-      backgroundImage: url ? `url(${url})` : undefined,
-      backgroundColor: "#000",
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    };
-  }
-  if (bg.type === "solid") return { background: bg.color };
-  if (bg.type === "video") return { background: "#000" };
-  return { background: bg.css || "#000" };
-}
-
-/** Where the clip's transport sits on the stage: above the presenter bar. */
-const STAGE_TRANSPORT_STYLE: CSSProperties = {
-  position: "fixed",
-  left: "50%",
-  bottom: 86,
-  transform: "translateX(-50%)",
-  zIndex: 20,
-  width: "min(680px, calc(100vw - 32px))",
-};
-
-const END_LABELS: Record<string, string> = {
-  manuscript: "End of manuscript",
-  scripture: "End of passage",
-  image: "End of images",
-  video: "End of video",
-};
-
-export function Presentation() {
+export const Presentation = () => {
   const pushToast = useStore((s) => s.pushToast);
   const { width } = useViewport();
   const mode = useStore((s) => s.presentationMode);
   const setPresentationMode = useStore((s) => s.setPresentationMode);
+  const publishPresentedMedia = useStore((s) => s.publishPresentedMedia);
   const {
     isExtended,
-    isLive: live,
+    isLive,
     isLiveFullscreen,
     goLive,
     endLive,
     toggleLiveFullscreen,
   } = useGoLive();
+
   const pipRef = useRef<HTMLDivElement>(null);
-  // One element for the clip, moved between the stage and the floating
-  // presenter rather than rebuilt at each, so popping out never restarts it.
   const videoHost = usePortalHost();
-  // The same trick for the corner window: it is rendered once here and only
-  // re-parented between the stage and the floating presenter, so moving between
-  // them never restarts the clip or the camera it is holding.
   const secondaryHost = usePortalHost();
-  // In pip mode the presentation shares the page with the app, so it only
-  // claims the keyboard while the floating presenter holds focus.
+  const hasAnnouncedDisplay = useRef(false);
+
   const shortcutGate = useCallback(
     () =>
       mode === "stage" ||
       Boolean(pipRef.current?.contains(document.activeElement)),
     [mode],
   );
-  const handleToggleLiveFullscreen = () => {
+
+  const requestLiveFullscreen = useCallback(() => {
     void toggleLiveFullscreen().then((ok) => {
-      if (!ok)
+      if (!ok) {
         pushToast(
           "Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.",
         );
+      }
     });
-  };
+  }, [pushToast, toggleLiveFullscreen]);
+
   const fullscreenOverride = useMemo(
     () =>
-      live
-        ? { isFullscreen: isLiveFullscreen, toggle: handleToggleLiveFullscreen }
+      isLive
+        ? { isFullscreen: isLiveFullscreen, toggle: requestLiveFullscreen }
         : undefined,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [live, isLiveFullscreen, toggleLiveFullscreen],
+    [isLive, isLiveFullscreen, requestLiveFullscreen],
   );
-  const p = usePresentation(fullscreenOverride, shortcutGate);
 
-  /**
-   * The second module, when the operator has put one in a corner of the stage.
-   *
-   * Its clip runs on a transport of its own rather than the presentation's: the
-   * two are watched together but driven apart, and pausing the sermon's
-   * background clip must never be what pauses the sermon.
-   */
-  const secondary = useStore((s) => s.secondaryPresentation);
+  const presentation = usePresentation(fullscreenOverride, shortcutGate);
   const streamSession = useStreamSession();
-  const secondaryStream = primaryCamera(streamSession)?.stream ?? null;
-  // A camera in the corner carries what the broadcast carries, so an overlay
-  // put on air from the Stream module appears here as it appears there.
   const streamOverlays = useStreamOverlays();
-
-  /**
-   * The version of the picture or clip the corner window shows.
-   *
-   * Unlike the main stage, which only moves when the operator pushes a new
-   * version out, this follows the library: a corner window is a second thing
-   * being watched rather than the running order, and an operator who retouches
-   * the clip in it expects to see the retouch. The copy pushed from the editor
-   * still wins while the library is at the revision it was pushed against,
-   * which is what carries an edit that has not been saved yet.
-   */
-  const secondaryLibraryItem = useStore((s) =>
-    secondary && secondary.kind !== "stream"
-      ? s.media.find(
-          (entry) => entry.id === secondary.id && entry.kind === secondary.kind,
-        )
-      : undefined,
-  );
-  const secondaryItem =
-    secondaryLibraryItem &&
-    secondaryLibraryItem.updatedAt !== secondary?.item?.updatedAt
-      ? secondaryLibraryItem
-      : secondary?.item;
-
-  const secondaryClip = secondary?.kind === "video" ? secondaryItem : undefined;
-  const secondaryClipId = secondaryClip?.id;
-  const secondarySettings = useMemo(
-    () => (secondaryClip ? videoSettingsOf(secondaryClip) : undefined),
-    [secondaryClip],
-  );
-  const secondaryVideo = useMediaPlayback(secondarySettings);
-  const { reset: resetSecondaryVideo } = secondaryVideo;
-  useEffect(() => {
-    if (secondaryClipId) resetSecondaryVideo();
-  }, [secondaryClipId, resetSecondaryVideo]);
-
-  const secondaryState: SecondaryPresentState | undefined = useMemo(
-    () =>
-      secondary
-        ? {
-            kind: secondary.kind,
-            id: secondary.id,
-            item: secondaryItem,
-            placement: secondary.placement,
-            muted: secondary.muted,
-            media:
-              secondary.kind === "video" ? secondaryVideo.playback : undefined,
-          }
-        : undefined,
-    [secondary, secondaryItem, secondaryVideo.playback],
-  );
-
-  const announced = useRef(false);
-  const stateRef = useRef<PresentState | null>(null);
-  const channelRef = useRef<BroadcastChannel | null>(null);
-
-  // The stage chrome answers to the pointer anywhere on the page rather than to
-  // the root element: the clip's own element is portalled outside this tree, so
-  // a listener bound here would never see a pointer moving over the video.
+  const secondary = useSecondaryModule();
   const chrome = useAutoHideChrome({ enabled: mode === "stage" });
-  const { visible: chromeActive, onHoverChange } = chrome;
+  const { visible: isChromeVisible, onHoverChange } = chrome;
+
+  const deck = presentation.deck;
+  const readAloud = useScriptureReadAloud({
+    isScripture: deck?.kind === "scripture",
+    doc: presentation.doc,
+    slides: presentation.slides,
+    slideIndex: presentation.slideIndex,
+    goTo: presentation.goTo,
+  });
+
+  const {
+    isVideoSlide,
+    mediaPlayback,
+    videoSettings,
+    getVideoTime,
+    slideIndex,
+    paused: isPaused,
+    zoom,
+    pan,
+    view,
+  } = presentation;
+  const videoRate = videoSettings?.playbackRate ?? 1;
+
+  const presentState: PresentState | null = useMemo(
+    () =>
+      deck
+        ? {
+            kind: deck.kind,
+            id: deck.id,
+            rev: deck.rev,
+            doc: deck.doc,
+            item: deck.item,
+            slideIndex,
+            paused: isPaused,
+            zoom,
+            pan,
+            view,
+            media: isVideoSlide ? mediaPlayback : undefined,
+            secondary: secondary.state,
+          }
+        : null,
+    [
+      deck,
+      slideIndex,
+      isPaused,
+      zoom,
+      pan,
+      view,
+      isVideoSlide,
+      mediaPlayback,
+      secondary.state,
+    ],
+  );
+
+  usePresentBroadcast(
+    isLive,
+    presentState,
+    {
+      isActive: isVideoSlide,
+      playing: mediaPlayback.playing,
+      rate: videoRate,
+      getTime: getVideoTime,
+    },
+    {
+      isActive: secondary.isClip,
+      playing: secondary.video.playback.playing,
+      rate: secondary.clipRate,
+      getTime: secondary.video.getTime,
+    },
+  );
 
   useEffect(() => {
-    if (isExtended && !announced.current) {
-      announced.current = true;
+    if (isExtended && !hasAnnouncedDisplay.current) {
+      hasAnnouncedDisplay.current = true;
       pushToast("External display detected. Tap Go Live to project.");
     }
   }, [isExtended, pushToast]);
 
-  const speech = useSpeech();
-
-  const deck = p.deck;
-  const deckKind = deck?.kind;
-  const deckId = deck?.id;
-  const deckRev = deck?.rev;
-  const deckDoc = deck?.doc;
-  const deckItem = deck?.item;
-  useEffect(() => {
-    if (!deckKind || !deckId) return;
-    stateRef.current = {
-      kind: deckKind,
-      id: deckId,
-      rev: deckRev,
-      doc: deckDoc,
-      item: deckItem,
-      slideIndex: p.slideIndex,
-      paused: p.paused,
-      zoom: p.zoom,
-      pan: p.pan,
-      view: p.view,
-      media: p.isVideoSlide ? p.mediaPlayback : undefined,
-      secondary: secondaryState,
-    };
-    channelRef.current?.postMessage({ type: "state", state: stateRef.current });
-  }, [
-    secondaryState,
-    deckKind,
-    deckId,
-    deckRev,
-    deckDoc,
-    deckItem,
-    p.slideIndex,
-    p.paused,
-    p.zoom,
-    p.pan.x,
-    p.pan.y,
-    p.pan,
-    p.view,
-    p.isVideoSlide,
-    p.mediaPlayback,
-  ]);
-
-  useEffect(() => {
-    if (!live) return;
-    const channel = openPresentChannel((msg) => {
-      if (msg.type === "request-state" && stateRef.current) {
-        channel.postMessage({ type: "state", state: stateRef.current });
-      }
-    });
-    channelRef.current = channel;
-    if (stateRef.current)
-      channel.postMessage({ type: "state", state: stateRef.current });
-    return () => {
-      channel.close();
-      channelRef.current = null;
-    };
-  }, [live]);
-
-  /**
-   * The projected window plays a video element of its own, which nothing in the
-   * broadcast state can hold in step: each element buffers and starts on its
-   * own schedule, so it drifts, and pops out of step altogether when the
-   * operator moves between the stage and the floating presenter. Publishing
-   * where this clip actually is, on a tick, lets that window correct itself
-   * against the same clock the operator is watching.
-   */
-  const isVideoSlide = p.isVideoSlide;
-  const videoPlaying = p.mediaPlayback.playing;
-  const videoRate = p.videoSettings?.playbackRate ?? 1;
-  const readVideoTime = p.getVideoTime;
-  useEffect(() => {
-    if (!live || !isVideoSlide) return;
-    const publish = () => {
-      const channel = channelRef.current;
-      if (!channel) return;
-      channel.postMessage({
-        type: "media-sync",
-        target: "main",
-        sync: {
-          time: readVideoTime(),
-          at: Date.now(),
-          playing: videoPlaying,
-          rate: videoRate,
-        },
-      });
-    };
-    publish();
-    const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [live, isVideoSlide, videoPlaying, videoRate, readVideoTime, mode]);
-
-  /** The corner window's clip, held in step the same way and on its own clock. */
-  const secondaryIsClip = secondary?.kind === "video";
-  const secondaryPlaying = secondaryVideo.playback.playing;
-  const secondaryRate = secondarySettings?.playbackRate ?? 1;
-  const readSecondaryTime = secondaryVideo.getTime;
-  useEffect(() => {
-    if (!live || !secondaryIsClip) return;
-    const publish = () => {
-      channelRef.current?.postMessage({
-        type: "media-sync",
-        target: "secondary",
-        sync: {
-          time: readSecondaryTime(),
-          at: Date.now(),
-          playing: secondaryPlaying,
-          rate: secondaryRate,
-        },
-      });
-    };
-    publish();
-    const timer = window.setInterval(publish, MEDIA_SYNC_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [
-    live,
-    secondaryIsClip,
-    secondaryClipId,
-    secondaryPlaying,
-    secondaryRate,
-    readSecondaryTime,
-  ]);
-
-  /**
-   * Publishes the clip's transport for the rest of the app, which is how the
-   * media editor offers to bring itself into line with what the room is already
-   * watching. Only the changes are published, each carrying the clock its
-   * position was read at, so a consumer works out where the clip has got to
-   * without this having to broadcast on a tick.
-   */
-  const publishPresentedMedia = useStore((s) => s.publishPresentedMedia);
-  const currentVideoId =
-    p.currentSlide?.kind === "video" ? p.currentSlide.item.id : null;
   useEffect(() => {
     if (!isVideoSlide) {
       publishPresentedMedia(null);
       return;
     }
     publishPresentedMedia({
-      playback: p.mediaPlayback,
+      playback: mediaPlayback,
       sync: {
-        time: readVideoTime(),
+        time: getVideoTime(),
         at: Date.now(),
-        playing: p.mediaPlayback.playing,
+        playing: mediaPlayback.playing,
         rate: videoRate,
       },
     });
   }, [
     isVideoSlide,
-    currentVideoId,
-    p.mediaPlayback,
+    mediaPlayback,
     videoRate,
-    readVideoTime,
+    getVideoTime,
     publishPresentedMedia,
   ]);
 
   const backdropBlobUrl = useBlobUrl(
-    p.frame?.backdrop?.type === "image" ? p.frame.backdrop.blobId : null,
+    presentation.frame?.backdrop?.type === "image"
+      ? presentation.frame.backdrop.blobId
+      : null,
   );
 
-  const canRead = deckKind === "scripture" && speech.supported;
-  const handleToggleRead = () => {
-    if (!deck || deckKind !== "scripture") return;
-    if (speech.speaking) {
-      speech.stop();
-      return;
-    }
-    // Read from the current slide to the end, advancing the stage as each
-    // slide's text begins. Verse-number prefixes and the trailing reference
-    // line aren't spoken.
-    const startSlideIndex = p.slideIndex;
-    const showRef = Boolean(
-      p.doc &&
-      "showReference" in p.doc &&
-      (p.doc as ScripturePassage).showReference,
-    );
-    const chunks = p.slides.slice(startSlideIndex).map((s) => {
-      if (s.kind !== "text") return "";
-      const lines =
-        showRef && s.slide.lines.length > 1
-          ? s.slide.lines.slice(0, -1)
-          : s.slide.lines;
-      return lines
-        .map((line) => stripInlineFormatting(stripListMarker(line)))
-        .join("\n");
-    });
-    speech.speak(chunks, (i) => p.goTo(startSlideIndex + i));
-  };
-  const readToggleRef = useRef(handleToggleRead);
-  readToggleRef.current = handleToggleRead;
+  if (!deck || !presentation.currentSlide || !presentation.frame) return null;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === "r" || e.key === "R") readToggleRef.current();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  const areControlsVisible =
+    !presentation.prefs.autoHideControls || isChromeVisible;
+  const isPresenterBarVisible =
+    !presentation.prefs.autoHidePresenterBar || isChromeVisible;
 
-  if (!deck || !p.currentSlide || !p.frame) return null;
-
-  const controlsVisible = !p.prefs.autoHideControls || chromeActive;
-  const presenterVisible = !p.prefs.autoHidePresenterBar || chromeActive;
-
-  // Once live, zoom/pan/view only shape what's broadcast to the external
-  // popup, this window's own stage stays put so it can keep being used as
-  // a console instead of mirroring the projected adjustments.
-  const localZoom = live ? 1 : p.zoom;
-  const localPan = live ? { x: 0, y: 0 } : p.pan;
-  const localView = live ? "normal" : p.view;
-
-  // Not async: window.open has to run inside the click that asked for it.
   const handleGoLive = () => {
-    if (live) {
+    if (isLive) {
       endLive();
       pushToast("Ended the live projection.");
       return;
@@ -447,64 +225,48 @@ export function Presentation() {
   };
 
   const handleExit = () => {
-    speech.stop();
+    readAloud.speech.stop();
     endLive();
-    p.exit();
+    presentation.exit();
   };
 
-  /**
-   * Moves between the fullscreen stage and the floating presenter. The clip's
-   * element belongs to neither, it is only re-parented, so the move needs no
-   * seek to paper over: playback carries on from the frame it was on.
-   */
-  const switchMode = (next: "stage" | "pip") => setPresentationMode(next);
-
-  /**
-   * Shrinks the presentation into the floating presenter so the operator can
-   * use the rest of the app. The projected window is untouched: the audience
-   * keeps seeing the stage while this window hands the screen back.
-   */
   const handleShrinkToPip = () => {
     if (document.fullscreenElement) void document.exitFullscreen?.();
-    switchMode("pip");
+    setPresentationMode("pip");
   };
 
-  // On a clip the pause control is the clip's: holding a run of slides still
-  // while a video keeps playing under it is not what the button is reached for.
-  const paused = p.isVideoSlide ? !p.mediaPlayback.playing : p.paused;
-  const handleTogglePause = p.isVideoSlide
-    ? p.toggleVideoPlaying
-    : p.togglePause;
+  const isPlaybackPaused = isVideoSlide ? !mediaPlayback.playing : isPaused;
+  const togglePlayback = isVideoSlide
+    ? presentation.toggleVideoPlaying
+    : presentation.togglePause;
 
-  const videoProgress: VideoProgress | undefined = p.isVideoSlide
+  const videoProgress: VideoProgress | undefined = isVideoSlide
     ? {
-        time: p.videoTime,
-        start: p.videoSettings?.trimStart ?? 0,
-        end: p.videoSettings?.trimEnd ?? p.videoDuration,
+        time: presentation.videoTime,
+        start: videoSettings?.trimStart ?? 0,
+        end: videoSettings?.trimEnd ?? presentation.videoDuration,
       }
     : undefined;
 
   const currentLabel =
-    p.currentSlide.kind === "text"
-      ? p.currentSlide.slide.label
-      : p.currentSlide.item.name;
+    presentation.currentSlide.kind === "text"
+      ? presentation.currentSlide.slide.label
+      : presentation.currentSlide.item.name;
   const notes =
-    p.currentSlide.kind === "text" ? p.currentSlide.slide.notes : "";
+    presentation.currentSlide.kind === "text"
+      ? presentation.currentSlide.slide.notes
+      : "";
 
-  // The one video element every surface shares. It lives here, outside both
-  // the stage and the floating presenter, and is only re-parented into
-  // whichever is on screen, so moving between them never interrupts the clip.
-  // Only silenced while the projected window is carrying the sound.
   const videoLayer =
-    p.frame.content.kind === "video"
+    presentation.frame.content.kind === "video"
       ? createPortal(
           <VideoSurface
-            ref={p.videoRef}
-            item={p.frame.content.item}
-            playback={p.mediaPlayback}
-            forceMuted={live}
-            onTimeUpdate={p.onVideoTime}
-            onEnded={p.onVideoEnded}
+            ref={presentation.videoRef}
+            item={presentation.frame.content.item}
+            playback={mediaPlayback}
+            forceMuted={isLive}
+            onTimeUpdate={presentation.onVideoTime}
+            onEnded={presentation.onVideoEnded}
             style={{ pointerEvents: "auto" }}
           />,
           videoHost,
@@ -512,26 +274,24 @@ export function Presentation() {
       : null;
 
   const audioLayer =
-    p.audioItem && p.audioPlayback ? (
+    presentation.audioItem && presentation.audioPlayback ? (
       <AudioSurface
-        item={p.audioItem}
-        loop={p.prefs.loopAudio}
-        playback={p.audioPlayback}
+        item={presentation.audioItem}
+        loop={presentation.prefs.loopAudio}
+        playback={presentation.audioPlayback}
       />
     ) : null;
 
-  // The corner window's content, held outside both surfaces. Silenced here
-  // while the projected window is live, so the room hears it once.
-  const secondaryContent = secondaryState
+  const secondaryContent = secondary.state
     ? createPortal(
         <SecondaryPipContent
-          secondary={secondaryState}
-          stream={secondaryStream}
-          playback={secondaryVideo.playback}
-          videoRef={secondaryVideo.surfaceRef}
-          onVideoTime={secondaryVideo.onTimeUpdate}
-          onVideoEnded={secondaryVideo.onEnded}
-          forceMuted={live}
+          secondary={secondary.state}
+          stream={primaryCamera(streamSession)?.stream ?? null}
+          playback={secondary.video.playback}
+          videoRef={secondary.video.surfaceRef}
+          onVideoTime={secondary.video.onTimeUpdate}
+          onVideoEnded={secondary.video.onEnded}
+          forceMuted={isLive}
           overlays={streamOverlays}
           overlayPreview
           cameras={secondaryCameras(streamSession).map(cameraPipWindow)}
@@ -540,18 +300,15 @@ export function Presentation() {
       )
     : null;
 
-  // Where that content sits on whichever surface the operator is watching.
-  const secondaryLayer = secondaryState ? (
+  const secondaryLayer = secondary.state ? (
     <SecondaryPipFrame
-      placement={secondaryState.placement}
-      label={secondaryLabel(secondaryState)}
+      placement={secondary.state.placement}
+      label={secondaryLabel(secondary.state)}
     >
       <PortalSlot host={secondaryHost} />
     </SecondaryPipFrame>
   ) : null;
 
-  // The floating presenter replaces the fullscreen stage without unmounting
-  // this component, so the slide position, timer and audio all carry over.
   if (mode === "pip") {
     return (
       <>
@@ -561,24 +318,24 @@ export function Presentation() {
           title={deck.title}
           currentLabel={currentLabel}
           notes={notes}
-          frame={p.frame}
-          slideIndex={p.slideIndex}
-          total={p.slides.length}
-          paused={paused}
-          isLive={live}
+          frame={presentation.frame}
+          slideIndex={slideIndex}
+          total={presentation.slides.length}
+          paused={isPlaybackPaused}
+          isLive={isLive}
           videoHost={videoHost}
           videoProgress={videoProgress}
-          videoMuted={p.mediaPlayback.muted}
-          onSeekVideo={p.seekVideoTo}
-          onToggleVideoMuted={p.toggleVideoMuted}
-          onRestartVideo={p.restartVideo}
+          videoMuted={mediaPlayback.muted}
+          onSeekVideo={presentation.seekVideoTo}
+          onToggleVideoMuted={presentation.toggleVideoMuted}
+          onRestartVideo={presentation.restartVideo}
           secondaryLayer={secondaryLayer}
           secondaryMenu={<SecondaryModuleMenu variant="mini" />}
           rootRef={pipRef}
-          onPrev={() => p.go(-1)}
-          onNext={() => p.go(1)}
-          onTogglePause={handleTogglePause}
-          onOpenStage={() => switchMode("stage")}
+          onPrev={() => presentation.go(-1)}
+          onNext={() => presentation.go(1)}
+          onTogglePause={togglePlayback}
+          onOpenStage={() => setPresentationMode("stage")}
           onGoLive={handleGoLive}
           onStopLive={() => {
             endLive();
@@ -596,95 +353,95 @@ export function Presentation() {
       {videoLayer}
       {secondaryContent}
       <div
-        ref={p.rootRef}
+        ref={presentation.rootRef}
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 150,
-          ...resolveRootBg(p.frame.backdrop, backdropBlobUrl),
+          ...stageBackgroundStyle(presentation.frame.backdrop, backdropBlobUrl),
         }}
       >
         <Stage
-          slideIndex={p.slideIndex}
-          content={p.frame.content}
-          animation={p.frame.animation}
-          view={localView}
-          zoom={localZoom}
-          pan={localPan}
-          onPanBy={p.panBy}
-          durationMs={p.prefs.transitionDuration}
-          easing={p.prefs.easing}
+          slideIndex={slideIndex}
+          content={presentation.frame.content}
+          animation={presentation.frame.animation}
+          view={isLive ? "normal" : view}
+          zoom={isLive ? 1 : zoom}
+          pan={isLive ? { x: 0, y: 0 } : pan}
+          onPanBy={presentation.panBy}
+          durationMs={presentation.prefs.transitionDuration}
+          easing={presentation.prefs.easing}
           videoHost={videoHost}
         />
 
         {secondaryLayer}
 
         <PresentationControls
-          paused={paused}
-          view={p.view}
-          zoom={p.zoom}
-          showInfo={p.showInfo}
-          isFullscreen={p.isFullscreen}
-          visible={controlsVisible}
+          paused={isPlaybackPaused}
+          view={view}
+          zoom={zoom}
+          showInfo={presentation.showInfo}
+          isFullscreen={presentation.isFullscreen}
+          visible={areControlsVisible}
           isExternal={isExtended}
-          isLive={live}
-          canRead={canRead}
-          reading={speech.speaking}
-          onToggleRead={handleToggleRead}
+          isLive={isLive}
+          canRead={readAloud.canRead}
+          reading={readAloud.isReading}
+          onToggleRead={readAloud.toggleReadAloud}
           onHoverChange={onHoverChange}
           onGoLive={handleGoLive}
           onShrinkToPip={handleShrinkToPip}
           secondaryMenu={<SecondaryModuleMenu variant="stage" />}
-          onTogglePause={handleTogglePause}
-          onSetView={p.setViewMode}
-          onZoomIn={p.zoomIn}
-          onZoomOut={p.zoomOut}
-          onResetZoom={p.resetZoom}
-          onToggleInfo={p.toggleInfo}
-          onToggleFullscreen={p.toggleFullscreen}
+          onTogglePause={togglePlayback}
+          onSetView={presentation.setViewMode}
+          onZoomIn={presentation.zoomIn}
+          onZoomOut={presentation.zoomOut}
+          onResetZoom={presentation.resetZoom}
+          onToggleInfo={presentation.toggleInfo}
+          onToggleFullscreen={presentation.toggleFullscreen}
           onExit={handleExit}
         />
 
-        {p.isVideoSlide && (
+        {isVideoSlide && (
           <VideoTransportBar
-            playing={p.mediaPlayback.playing}
-            muted={p.mediaPlayback.muted}
-            volume={p.mediaPlayback.volume}
-            time={p.videoTime}
-            start={p.videoSettings?.trimStart ?? 0}
-            end={p.videoSettings?.trimEnd ?? p.videoDuration}
-            visible={controlsVisible}
+            playing={mediaPlayback.playing}
+            muted={mediaPlayback.muted}
+            volume={mediaPlayback.volume}
+            time={presentation.videoTime}
+            start={videoSettings?.trimStart ?? 0}
+            end={videoSettings?.trimEnd ?? presentation.videoDuration}
+            visible={areControlsVisible}
             onHoverChange={onHoverChange}
             compact={width < 560}
-            onTogglePlaying={p.toggleVideoPlaying}
-            onToggleMuted={p.toggleVideoMuted}
-            onVolume={p.setVideoVolume}
-            onSeek={p.seekVideoTo}
-            onRestart={p.restartVideo}
+            onTogglePlaying={presentation.toggleVideoPlaying}
+            onToggleMuted={presentation.toggleVideoMuted}
+            onVolume={presentation.setVideoVolume}
+            onSeek={presentation.seekVideoTo}
+            onRestart={presentation.restartVideo}
             style={STAGE_TRANSPORT_STYLE}
           />
         )}
 
-        {p.showInfo && (
+        {presentation.showInfo && (
           <PresenterBar
             title={deck.title}
             currentLabel={currentLabel}
             notes={notes}
-            nextFrame={p.nextFrame}
-            endLabel={END_LABELS[deck.kind] || "End"}
-            slideIndex={p.slideIndex}
-            total={p.slides.length}
-            elapsed={p.elapsed}
-            paused={p.paused}
+            nextFrame={presentation.nextFrame}
+            endLabel={DECK_END_LABELS[deck.kind] || "End"}
+            slideIndex={slideIndex}
+            total={presentation.slides.length}
+            elapsed={presentation.elapsed}
+            paused={isPaused}
             videoProgress={videoProgress}
-            visible={presenterVisible}
+            visible={isPresenterBarVisible}
             onHoverChange={onHoverChange}
-            onPrev={() => p.go(-1)}
-            onNext={() => p.go(1)}
+            onPrev={() => presentation.go(-1)}
+            onNext={() => presentation.go(1)}
           />
         )}
       </div>
       {audioLayer}
     </>
   );
-}
+};

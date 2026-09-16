@@ -50,15 +50,12 @@ interface PresentationControlsProps {
   visible: boolean;
   isExternal: boolean;
   isLive: boolean;
-  /** Shown only when the deck supports read-aloud (scripture). */
   canRead?: boolean;
   reading?: boolean;
   onToggleRead?: () => void;
   onHoverChange: (hovering: boolean) => void;
   onGoLive: () => void;
-  /** Shrinks the presentation into the floating presenter. */
   onShrinkToPip: () => void;
-  /** The second module's controls, sat beside the presentation's own. */
   secondaryMenu?: ReactNode;
   onTogglePause: () => void;
   onSetView: (view: PresentationView) => void;
@@ -70,7 +67,7 @@ interface PresentationControlsProps {
   onExit: () => void;
 }
 
-export function PresentationControls({
+export const PresentationControls = ({
   paused,
   view,
   zoom,
@@ -94,7 +91,7 @@ export function PresentationControls({
   onToggleInfo,
   onToggleFullscreen,
   onExit,
-}: PresentationControlsProps) {
+}: PresentationControlsProps) => {
   const { colors, fonts, stage } = useUITheme();
   const UI = fonts.ui;
   const [menuOpen, setMenuOpen] = useState(false);
@@ -315,4 +312,4 @@ export function PresentationControls({
       <StageButton icon={X} title="Exit (Esc)" onClick={onExit} />
     </div>
   );
-}
+};

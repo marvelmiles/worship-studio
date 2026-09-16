@@ -10,18 +10,16 @@ import { Select } from "./Field";
 interface LibrarySortSelectProps {
   value: LibrarySortOption;
   onChange: (value: LibrarySortOption) => void;
-  /** The field this library orders by, named as the operator sees it. */
   nameLabel: string;
   style?: CSSProperties;
 }
 
-/** The one control that decides a library listing's order. */
-export function LibrarySortSelect({
+export const LibrarySortSelect = ({
   value,
   onChange,
   nameLabel,
   style,
-}: LibrarySortSelectProps) {
+}: LibrarySortSelectProps) => {
   const { colors } = useUITheme();
   const options = useMemo(() => librarySortChoices(nameLabel), [nameLabel]);
   return (
@@ -45,4 +43,4 @@ export function LibrarySortSelect({
       />
     </div>
   );
-}
+};

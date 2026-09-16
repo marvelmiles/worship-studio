@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, PenLine, Plus, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -41,7 +41,7 @@ import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 
-export function ManuscriptLibrary() {
+export const ManuscriptLibrary = () => {
   useDocumentTitle("Manuscripts · WorshipStudio");
   const navigate = useNavigate();
   const manuscripts = useStore((s) => s.manuscripts);
@@ -65,7 +65,6 @@ export function ManuscriptLibrary() {
   const searching = Boolean(query.trim());
 
   const list = useMemo(() => {
-    // Records trashed before deleting became final stay out of the library.
     let base = manuscripts.filter((m) => !m.deleted);
     if (collection !== "All")
       base = base.filter((m) => m.collection === collection);
@@ -77,7 +76,6 @@ export function ManuscriptLibrary() {
           .some((field) => (field as string).toLowerCase().includes(term)),
       );
     const ordered = sortLibrary(base, sort, (m) => m.title);
-    // A search is answered by what matches it; pins only order the library.
     return term ? ordered : sortPinnedFirst(ordered);
   }, [manuscripts, query, collection, sort]);
 
@@ -93,7 +91,7 @@ export function ManuscriptLibrary() {
     <div className="ws-page">
       <PageHeader
         title="Manuscripts"
-        subtitle="Lyrics, hymns and sermons turned into styled, presentable slides."
+        subtitle="Turn lyrics, hymns and sermons into slides."
         actions={
           <Button variant="primary" onClick={onNew}>
             <Plus size={16} />
@@ -174,11 +172,10 @@ export function ManuscriptLibrary() {
       />
     </div>
   );
-}
+};
 
 interface ManuscriptCardProps {
   manuscript: Manuscript;
-  /** Every manuscript, so the pin budget can be read off the library. */
   library: Manuscript[];
   themes: Theme[];
   bgMap: BgMap;
@@ -187,7 +184,7 @@ interface ManuscriptCardProps {
   onDelete: () => void;
 }
 
-function ManuscriptCard({
+const ManuscriptCard = ({
   manuscript,
   library,
   themes,
@@ -195,14 +192,13 @@ function ManuscriptCard({
   onOpen,
   onPresent,
   onDelete,
-}: ManuscriptCardProps) {
+}: ManuscriptCardProps) => {
+  const { colors, fonts } = useUITheme();
   const keepAction = useKeepOnResetAction("manuscript", manuscript);
 
   const first = manuscript.slides?.[0];
   const theme =
     themes.find((t) => t.id === manuscript.defaultThemeId) || themes[0];
-  // The cover shows the first slide as it will be projected, so the background
-  // follows that slide's own choice before the manuscript's and the theme's.
   const { background, image } = resolveBackgroundView(
     first,
     manuscript,
@@ -250,7 +246,7 @@ function ManuscriptCard({
           {manuscript.builtIn && (
             <span
               style={{
-                fontFamily: UI,
+                fontFamily: fonts.ui,
                 fontSize: 10,
                 fontWeight: 700,
                 color: colors.dim,
@@ -286,4 +282,4 @@ function ManuscriptCard({
       </div>
     </div>
   );
-}
+};

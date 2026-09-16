@@ -1,7 +1,9 @@
 import { AlignCenter, AlignLeft, AlignRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Align, ResolvedStyle, TextStyle } from "../../types";
-import { fade, colors, FONTS, FONT_WEIGHT_OPTIONS } from "../../theme/tokens";
+import { fade } from "../../theme/uiTheme";
+import { FONTS, FONT_WEIGHT_OPTIONS } from "../../data/slideFonts";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { TEXT_SHADOW_PRESET } from "../../lib/inlineStyle";
 import { Field, Range, Select, TextInput, Toggle } from "../ui/Field";
 
@@ -16,7 +18,8 @@ const ALIGNMENTS: [Align, LucideIcon][] = [
   ["right", AlignRight],
 ];
 
-export function StyleControls({ style, onChange }: StyleControlsProps) {
+export const StyleControls = ({ style, onChange }: StyleControlsProps) => {
+  const { colors } = useUITheme();
   return (
     <>
       <Field label="Font Family">
@@ -125,4 +128,4 @@ export function StyleControls({ style, onChange }: StyleControlsProps) {
       </div>
     </>
   );
-}
+};

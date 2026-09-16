@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import type { BibleVersionId } from "../../types";
 import { BIBLE_VERSIONS, bookById } from "../../data/bibleBooks";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -31,7 +31,6 @@ import type { VerseSpan } from "./lib/reference";
 
 type BibleTab = "read" | "saved";
 
-/** Drill-down steps of the read tab: books → chapters → verses → reading. */
 type ReadStep = "books" | "chapters" | "verses" | "read";
 
 const versionOptions = BIBLE_VERSIONS.map((v) => ({
@@ -39,14 +38,8 @@ const versionOptions = BIBLE_VERSIONS.map((v) => ({
   label: `${v.id} · ${v.name}`,
 }));
 
-/**
- * The Bible page. The "Read" tab is a four-step drill-down (pick a book →
- * chapter → verse → read); the "Saved" tab lists stored passages. This
- * component only coordinates which step is visible and where the reader is,
- * each step renders in its own component, and all verse text comes from the
- * offline data layer via the useBibleChapter / useBibleSearch hooks.
- */
-export function BiblePage() {
+export const BiblePage = () => {
+  const { colors, fonts } = useUITheme();
   useDocumentTitle("Bible · WorshipStudio");
 
   const prefs = useStore((s) => s.prefs);
@@ -58,13 +51,7 @@ export function BiblePage() {
   const [step, setStep] = useState<ReadStep>("books");
   const [readingPosition, setReadingPosition] =
     useState<ReadingPosition>(loadReadingPosition);
-  /**
-   * Verses the reader should scroll to and pre-select, when set. Held in state
-   * so its identity stays stable across renders (the reader re-applies the
-   * selection whenever this changes).
-   */
   const [focusRange, setFocusRange] = useState<VerseSpan | null>(null);
-  /** Single-verse convenience over the range above. */
   const setFocusVerse = (verse: number | null) =>
     setFocusRange(verse == null ? null : { start: verse, end: verse });
 
@@ -72,15 +59,11 @@ export function BiblePage() {
     saveReadingPosition(readingPosition);
   }, [readingPosition]);
 
-  // Every position actually seen in the reader lands in the reading history,
-  // which the dashboard lists as individual activities.
   useEffect(() => {
     if (step !== "read") return;
     recordReading(readingPosition);
   }, [step, readingPosition]);
 
-  // Deep-links (e.g. dashboard activities) jump straight into the reader at a
-  // given position, focusing its verse, or verse 1 for a whole-chapter read.
   const location = useLocation();
   const navigate = useNavigate();
   const readTarget = (
@@ -97,8 +80,6 @@ export function BiblePage() {
     });
     setFocusVerse(readTarget.verse ?? 1);
     setStep("read");
-    // Dropped through the router rather than history directly, so the entry
-    // keeps the bookkeeping Back and Forward rely on.
     navigate(location.pathname, { replace: true, state: null });
   }, [readTarget, navigate, location.pathname]);
 
@@ -106,7 +87,6 @@ export function BiblePage() {
   const savedCount = scriptures.filter((s) => !s.quick && !s.deleted).length;
 
   const openBook = (bookId: number) => {
-    // Re-opening the book you were in keeps its remembered chapter and verse.
     setReadingPosition((prev) =>
       bookId === prev.bookId ? prev : { bookId, chapter: 1, verse: null },
     );
@@ -127,11 +107,6 @@ export function BiblePage() {
     setFocusVerse(null);
     setStep("read");
   };
-  /**
-   * Opens a search hit in the reader. A reference covering several verses
-   * ("Jn 2:3-10") or a whole chapter ("Jn 2") arrives with its full span, so
-   * the reader lands with all of it selected and ready to present or save.
-   */
   const openSearchResult = (
     bookId: number,
     chapter: number,
@@ -142,23 +117,17 @@ export function BiblePage() {
     setStep("read");
   };
 
-  /** Continue button: jump straight back to the remembered verse (or chapter). */
   const continueReading = () => {
     setFocusVerse(readingPosition.verse ?? null);
     setStep("read");
   };
 
-  /** In-reader navigation (prev/next chapter, reference jump) stays on the read step. */
   const navigateReader = (bookId: number, chapter: number) => {
     setReadingPosition({ bookId, chapter, verse: null });
     setFocusVerse(null);
     setStep("read");
   };
 
-  /**
-   * The reader reports the verse the user is on (selection or read-aloud
-   * progress) so "Continue" can return to the exact verse.
-   */
   const rememberCurrentVerse = useCallback((verse: number | null) => {
     setReadingPosition((prev) =>
       prev.verse === verse ? prev : { ...prev, verse },
@@ -177,7 +146,7 @@ export function BiblePage() {
     background: "transparent",
     padding: "4px 2px",
     cursor: "pointer",
-    fontFamily: UI,
+    fontFamily: fonts.ui,
     fontSize: 13.5,
     fontWeight: 600,
     color: colors.sub,
@@ -333,7 +302,7 @@ export function BiblePage() {
     >
       <PageHeader
         title="Bible"
-        subtitle="Read, project and save scripture, KJV and ASV, built in and fully offline."
+        subtitle="Read and project scripture offline."
         actions={
           <>
             <PillTabs<BibleTab>
@@ -369,4 +338,4 @@ export function BiblePage() {
       )}
     </div>
   );
-}
+};

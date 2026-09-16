@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Settings2, Type } from "lucide-react";
 import type { Manuscript, ManuscriptFormat } from "../../types";
-import { colors, UI } from "../../theme/tokens";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { DEFAULT_COLLECTION } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { Button, IconButton } from "../../components/ui/Button";
@@ -14,11 +14,12 @@ import { resolveManuscriptFormat } from "../../lib/manuscript/format";
 import { manuscriptSlideElements } from "../../lib/slideElements";
 import { isUntitledManuscript } from "../../store/slices/manuscriptsSlice";
 
-export function ManuscriptWorkspace({
+export const ManuscriptWorkspace = ({
   manuscript,
 }: {
   manuscript: Manuscript;
-}) {
+}) => {
+  const { colors, fonts } = useUITheme();
   const upsertManuscript = useStore((s) => s.upsertManuscript);
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -28,13 +29,9 @@ export function ManuscriptWorkspace({
   const [textOpen, setTextOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Everything below edits the draft the workspace is holding, not the stored
-  // record: the library only sees it once the user saves.
   const draft = editor.doc;
   const theme = themes.find((t) => t.id === draft.defaultThemeId) || themes[0];
 
-  // A heading the writer left at the top of the text fills in the manuscript's
-  // details, but never overwrites what the user has already set themselves.
   const regenerateFromBody = (
     body: string,
     maxLines: number,
@@ -63,9 +60,6 @@ export function ManuscriptWorkspace({
       editor={editor}
       backTo="/manuscripts"
       backTitle="Back to manuscripts"
-      // A sermon is laid out on the page, with pictures and text boxes placed
-      // where the message needs them; lyrics are sung line by line off a slide
-      // that carries nothing but the words.
       elements={manuscriptSlideElements(resolveManuscriptFormat(draft))}
       topBarActions={(compact) =>
         compact ? (
@@ -108,7 +102,13 @@ export function ManuscriptWorkspace({
           }}
         >
           <div style={{ textAlign: "center", maxWidth: 320 }}>
-            <p style={{ fontFamily: UI, color: colors.sub, lineHeight: 1.6 }}>
+            <p
+              style={{
+                fontFamily: fonts.ui,
+                color: colors.sub,
+                lineHeight: 1.6,
+              }}
+            >
               This manuscript has no slides yet.
             </p>
             <Button variant="primary" onClick={() => setTextOpen(true)}>
@@ -138,4 +138,4 @@ export function ManuscriptWorkspace({
       />
     </DeckWorkspace>
   );
-}
+};

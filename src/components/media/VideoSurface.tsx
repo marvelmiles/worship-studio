@@ -13,11 +13,8 @@ export type VideoSurfaceHandle = MediaSurfaceHandle;
 
 interface VideoSurfaceProps {
   item: MediaItem;
-  /** Overrides the item's stored settings (used for live editor previews). */
   settings?: VideoSettings;
-  /** Operator-driven playback; when omitted the video sits paused at its trim start. */
   playback?: MediaPlayback;
-  /** Force-mute regardless of playback state (operator console while live). */
   forceMuted?: boolean;
   onTimeUpdate?: (time: number, duration: number) => void;
   onEnded?: () => void;
@@ -25,10 +22,10 @@ interface VideoSurfaceProps {
 }
 
 export const VideoSurface = forwardRef<VideoSurfaceHandle, VideoSurfaceProps>(
-  function VideoSurface(
+  (
     { item, settings, playback, forceMuted, onTimeUpdate, onEnded, style },
     ref,
-  ) {
+  ) => {
     const src = useBlobUrl(item.id);
     const applied = settings ?? videoSettingsOf(item);
     const element = useMediaElementPlayback<HTMLVideoElement>({
@@ -74,3 +71,5 @@ export const VideoSurface = forwardRef<VideoSurfaceHandle, VideoSurfaceProps>(
     );
   },
 );
+
+VideoSurface.displayName = "VideoSurface";

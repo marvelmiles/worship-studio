@@ -8,12 +8,7 @@ import { ImageLayer } from "./ImageLayer";
 
 interface SlideMediaLayersProps {
   media: SlideMedia[];
-  /** True on the projector: clips play rather than resting on their first frame. */
   live?: boolean;
-  /**
-   * The placement whose player controls are live, so a clip can be played,
-   * scrubbed, muted or thrown fullscreen while the slide is being laid out.
-   */
   controlsFor?: string | null;
 }
 
@@ -32,18 +27,11 @@ const frameStyle = (
   pointerEvents: interactive ? "auto" : "none",
 });
 
-/**
- * Paints the pictures and clips placed on a slide, in the order they are
- * stacked. Only a clip showing its controls takes pointer input: the editor
- * lays its own drag surface over the slide (see
- * features/editor/SlideElementOverlay), so the same layers render identically
- * in a thumbnail, the editor and the projector.
- */
-export function SlideMediaLayers({
+export const SlideMediaLayers = ({
   media,
   live,
   controlsFor,
-}: SlideMediaLayersProps) {
+}: SlideMediaLayersProps) => {
   return (
     <>
       {media.map((placed) => {
@@ -64,9 +52,9 @@ export function SlideMediaLayers({
       })}
     </>
   );
-}
+};
 
-function PlacedImage({ media }: { media: SlideMedia }) {
+const PlacedImage = ({ media }: { media: SlideMedia }) => {
   const file = useSlideMediaFile(media);
   return (
     <ImageLayer
@@ -76,15 +64,9 @@ function PlacedImage({ media }: { media: SlideMedia }) {
       style={{ background: "transparent" }}
     />
   );
-}
+};
 
-/**
- * A clip in its box. On the projector it starts itself; in the editor it holds
- * its trim-start frame so the writer can see what they placed without the slide
- * turning into a playing video while they type. Selecting it hands the controls
- * over, so it can be previewed by hand before the service.
- */
-function PlacedVideo({
+const PlacedVideo = ({
   media,
   live,
   controls,
@@ -92,7 +74,7 @@ function PlacedVideo({
   media: SlideMedia;
   live?: boolean;
   controls: boolean;
-}) {
+}) => {
   const file = useSlideMediaFile(media);
   const url = file.url;
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -100,8 +82,6 @@ function PlacedVideo({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  // Playback is driven by hand while the controls are showing, so the clip is
-  // only cued and started when they are not.
   useEffect(() => {
     const element = videoRef.current;
     if (!element || !url || controls) return;
@@ -156,4 +136,4 @@ function PlacedVideo({
       }}
     />
   );
-}
+};

@@ -11,29 +11,18 @@ import { InfoTip } from "../ui/InfoTip";
 
 interface ImageEditorModalProps {
   title: string;
-  /** Says which copy of the picture the changes land on. */
   note?: string;
-  /** File to preview, resolved to an object URL while the editor is open. */
   blobId?: string | null;
-  /** Used when the picture has no stored file (bundled and legacy inline data). */
   fallbackSrc?: string | null;
   alt: string;
-  /** Omit to hide the name field. */
   initialName?: string;
   initialSettings: ImageSettings;
-  /** What "Reset all" goes back to. */
   defaults: ImageSettings;
   onSave: (settings: ImageSettings, name: string) => void;
   onClose: () => void;
 }
 
-/**
- * Edits one picture. The caller owns where the result is written, so the same
- * editor serves the media library, the asset library and a single slide,
- * manuscript or passage. Mount it keyed by the picture being edited: the draft
- * lives for as long as the editor is open.
- */
-export function ImageEditorModal({
+export const ImageEditorModal = ({
   title,
   note,
   blobId,
@@ -44,7 +33,7 @@ export function ImageEditorModal({
   defaults,
   onSave,
   onClose,
-}: ImageEditorModalProps) {
+}: ImageEditorModalProps) => {
   const [name, setName] = useState(initialName ?? "");
   const [settings, setSettings] = useState<ImageSettings>(initialSettings);
   const blobUrl = useBlobUrl(blobId ?? null);
@@ -107,4 +96,4 @@ export function ImageEditorModal({
       <ImageSettingsControls settings={settings} onChange={patch} />
     </Modal>
   );
-}
+};

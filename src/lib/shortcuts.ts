@@ -12,28 +12,13 @@ export interface ShortcutGroup {
   note?: string;
 }
 
-/**
- * The commands every module editor answers to from the keyboard: the same four
- * things its header does, so an operator mid-service never has to find a button
- * with the mouse.
- *
- * Definitions live here rather than in the hook that binds them, so the
- * shortcuts modal and the handler can never drift apart: both read this.
- */
 export type EditorCommand =
-  | "save"
-  | "updatePresentation"
-  | "goLive"
-  | "preview";
+  "save" | "updatePresentation" | "goLive" | "preview";
 
 export interface EditorCommandDefinition {
-  /** The key, lowercased, that runs it while Ctrl (or Cmd) is held. */
   key: string;
-  /** Whether Shift must be held with it. */
   shift: boolean;
-  /** Keys as the shortcuts modal spells them out. */
   keys: string[];
-  /** The same combination on one line, for a control's tooltip. */
   hint: string;
   description: string;
 }
@@ -71,8 +56,9 @@ export const EDITOR_COMMANDS: Record<EditorCommand, EditorCommandDefinition> = {
 
 const EDITOR_COMMAND_NAMES = Object.keys(EDITOR_COMMANDS) as EditorCommand[];
 
-/** Which editor command this key press is, if it is one at all. */
-export function matchEditorCommand(event: KeyboardEvent): EditorCommand | null {
+export const matchEditorCommand = (
+  event: KeyboardEvent,
+): EditorCommand | null => {
   if (event.altKey) return null;
   if (!event.ctrlKey && !event.metaKey) return null;
   const key = event.key.toLowerCase();
@@ -82,7 +68,7 @@ export function matchEditorCommand(event: KeyboardEvent): EditorCommand | null {
       return command.key === key && command.shift === event.shiftKey;
     }) ?? null
   );
-}
+};
 
 const editorCommandShortcut = (name: EditorCommand): Shortcut => ({
   keys: EDITOR_COMMANDS[name].keys,
