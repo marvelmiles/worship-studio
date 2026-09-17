@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
+import { useViewShortcuts } from "../../hooks/useViewShortcuts";
+import { viewCommandTitle } from "../../lib/viewCommands";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
 import { StreamPipLayer } from "./StreamPipLayer";
 import { StreamVideo } from "./StreamVideo";
@@ -14,6 +16,7 @@ export const StreamWindow = () => {
   const composition = useOpenerLiveComposition();
   const videoRef = useRef<HTMLVideoElement>(null);
   const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
+  useViewShortcuts({ onToggleFullscreen: toggleFullscreen });
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
   const stream = composition.primary;
@@ -72,7 +75,10 @@ export const StreamWindow = () => {
 
       <button
         onClick={toggleFullscreen}
-        title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+        title={viewCommandTitle(
+          isFullscreen ? "Exit fullscreen" : "Fullscreen",
+          "fullscreen",
+        )}
         style={{
           position: "fixed",
           top: 14,

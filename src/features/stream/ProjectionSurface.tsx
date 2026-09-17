@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useViewport } from "../../hooks/useViewport";
 import { useFullscreen } from "../../hooks/useFullscreen";
+import { useViewShortcuts } from "../../hooks/useViewShortcuts";
 import { CameraStatusOverlay } from "./components/CameraStatusOverlay";
 import { StreamOverlayEditor } from "./StreamOverlayEditor";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
@@ -68,6 +69,11 @@ export const ProjectionSurface = ({
   useEffect(() => {
     onLiveChange?.(isLive);
   }, [isLive, onLiveChange]);
+
+  useViewShortcuts({
+    onTogglePopOut: onPopOut,
+    onToggleFullscreen: toggleFullscreen,
+  });
 
   const toggleDrawer = (panel: Exclude<StageDrawer, "none">) =>
     setDrawer((openPanel) => (openPanel === panel ? "none" : panel));

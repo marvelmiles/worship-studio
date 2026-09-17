@@ -13,6 +13,7 @@ import {
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { Button } from "../../../components/ui/Button";
 import { keepsSelectionProps } from "../../../lib/selectionScope";
+import { viewCommandTitle } from "../../../lib/viewCommands";
 import { AudioSharingPill } from "../AudioSharingPill";
 import { StreamStatusBadge, connectionBadgeStatus } from "../StreamStatusBadge";
 import type { PeerStatus } from "../lib/peerStatus";
@@ -149,7 +150,15 @@ export const StageHeader = ({
             {onAirCount > 0 ? `Overlays (${onAirCount} on air)` : "Overlays"}
           </Button>
         </span>
-        <Button variant="ghost" size="sm" onClick={onToggleFullscreen}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleFullscreen}
+          title={viewCommandTitle(
+            isFullscreen ? "Exit fullscreen" : "Project fullscreen",
+            "fullscreen",
+          )}
+        >
           {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
         </Button>
@@ -157,7 +166,10 @@ export const StageHeader = ({
           variant="ghost"
           size="sm"
           onClick={onPopOut}
-          title="Shrink the stage into the floating window and keep using the app"
+          title={viewCommandTitle(
+            "Shrink the stage into the floating window and keep using the app",
+            "popOut",
+          )}
         >
           <PictureInPicture2 size={14} />
           Pop out

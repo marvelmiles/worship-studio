@@ -6,6 +6,7 @@ import { useGoLive } from "../../hooks/useGoLive";
 import { useGoLiveToast } from "../../hooks/useGoLiveToast";
 import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
+import { useViewShortcuts } from "../../hooks/useViewShortcuts";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { CONTENT_KIND_LABEL } from "../../lib/contentKinds";
 import type { VideoProgress } from "../../lib/media";
@@ -87,8 +88,29 @@ export const Presentation = () => {
   );
 
   const presentation = usePresentation(fullscreenOverride, shortcutGate);
+  const togglePopOut = useCallback(() => {
+    if (mode === "pip") {
+      setPresentationMode("stage");
+      return;
+    }
+    if (document.fullscreenElement) void document.exitFullscreen?.();
+    setPresentationMode("pip");
+  }, [mode, setPresentationMode]);
+
   const announceGoLive = useGoLiveToast("Presentation window");
   const streamSession = useStreamSession();
+
+  /* The camera stage sits above the presentation stage, so it owns the view
+     keys whenever it is up. */
+  const isCoveredByStreamStage =
+    streamSession.active && streamSession.mode === "stage";
+
+  useViewShortcuts({
+    onTogglePopOut: togglePopOut,
+    onToggleFullscreen:
+      mode === "stage" ? presentation.toggleFullscreen : undefined,
+    isArmed: () => !isCoveredByStreamStage && shortcutGate(),
+  });
   const streamOverlays = useStreamOverlays();
   const secondary = useSecondaryModule();
   const chrome = useAutoHideChrome({ enabled: mode === "stage" });
@@ -221,11 +243,6 @@ export const Presentation = () => {
     presentation.exit();
   };
 
-  const handleShrinkToPip = () => {
-    if (document.fullscreenElement) void document.exitFullscreen?.();
-    setPresentationMode("pip");
-  };
-
   const videoProgress: VideoProgress | undefined = isVideoSlide
     ? {
         time: presentation.videoTime,
@@ -322,7 +339,7 @@ export const Presentation = () => {
           onPrev={() => presentation.go(-1)}
           onNext={() => presentation.go(1)}
           onTogglePause={presentation.togglePlayback}
-          onOpenStage={() => setPresentationMode("stage")}
+          onOpenStage={togglePopOut}
           onGoLive={handleGoLive}
           onStopLive={() => {
             endLive();
@@ -377,7 +394,7 @@ export const Presentation = () => {
           onToggleRead={readAloud.toggleReadAloud}
           onHoverChange={onHoverChange}
           onGoLive={handleGoLive}
-          onShrinkToPip={handleShrinkToPip}
+          onShrinkToPip={togglePopOut}
           secondaryMenu={<SecondaryModuleMenu variant="stage" />}
           onTogglePause={presentation.togglePlayback}
           onSetView={presentation.setViewMode}

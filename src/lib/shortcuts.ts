@@ -1,4 +1,5 @@
 import { FIXED_TAG_SHORTCUTS } from "./tagGroups";
+import { VIEW_COMMANDS, type ViewCommand } from "./viewCommands";
 import { INLINE_FORMATS, INLINE_FORMAT_NAMES } from "./textFormatting";
 
 export interface Shortcut {
@@ -75,6 +76,11 @@ const editorCommandShortcut = (name: EditorCommand): Shortcut => ({
   description: EDITOR_COMMANDS[name].description,
 });
 
+const viewCommandShortcut = (name: ViewCommand): Shortcut => ({
+  keys: VIEW_COMMANDS[name].keys,
+  description: VIEW_COMMANDS[name].description,
+});
+
 const inlineFormatShortcuts: Shortcut[] = INLINE_FORMAT_NAMES.map((name) => ({
   keys: ["Ctrl", "+", INLINE_FORMATS[name].shortcutKey.toUpperCase()],
   description: INLINE_FORMATS[name].label,
@@ -102,6 +108,15 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Pop-out and Fullscreen",
+    note: "The same two keys everywhere a module has both views: the presentation, the camera stage and the projected live window. A floating window only answers them once you click it, so it never steals keys while you work elsewhere. The live window has no floating view, so only fullscreen applies there.",
+    shortcuts: [
+      viewCommandShortcut("popOut"),
+      viewCommandShortcut("fullscreen"),
+      { keys: ["Esc"], description: "Leave fullscreen" },
+    ],
+  },
+  {
     title: "Live Window",
     note: "The window Go Live opens on the audience screen. It asks for fullscreen by itself once it lands on the projector; when the browser refuses that, these keys fill the screen. The fullscreen arrow at its top right corner does the same.",
     shortcuts: [
@@ -110,10 +125,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         description:
           "Fill the external screen, pressed right after Go Live while that window has focus",
       },
-      {
-        keys: ["F"],
-        description: "Toggle fullscreen from inside the live window",
-      },
+      viewCommandShortcut("fullscreen"),
       { keys: ["Esc"], description: "Leave fullscreen" },
     ],
   },
@@ -221,6 +233,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         keys: ["Drag its title bar"],
         description: "Move it anywhere on the page",
       },
+      viewCommandShortcut("popOut"),
       {
         keys: ["Ctrl", "hold", "3", "then release Ctrl"],
         description: "Jump to slide/verse 3 while it is focused",
@@ -231,7 +244,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "View",
     note: "Available while presenting.",
     shortcuts: [
-      { keys: ["F"], description: "Toggle fullscreen" },
+      viewCommandShortcut("fullscreen"),
+      viewCommandShortcut("popOut"),
       { keys: ["I"], description: "Toggle presenter bar" },
       { keys: ["V"], description: "Cycle screen fit (normal / cover / fill)" },
       { keys: ["+"], description: "Zoom in" },

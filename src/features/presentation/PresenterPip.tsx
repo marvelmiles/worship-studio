@@ -20,6 +20,7 @@ import { FloatingWindowTab } from "../../components/ui/FloatingWindowTab";
 import { fade } from "../../theme/uiTheme";
 import { videoProgressPercent, type VideoProgress } from "../../lib/media";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
+import { viewCommandTitle } from "../../lib/viewCommands";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { PortalSlot } from "../../components/ui/PortalSlot";
@@ -373,7 +374,10 @@ export const PresenterPip = ({
           )}
           <MiniButton
             icon={Maximize2}
-            title="Open the full presentation view"
+            title={viewCommandTitle(
+              "Open the full presentation view",
+              "popOut",
+            )}
             onClick={onOpenStage}
           />
           <MiniButton

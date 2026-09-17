@@ -44,7 +44,8 @@ import {
 import { DEFAULT_PREFS } from "./prefsSlice";
 import type { SliceCreator } from "../storeTypes";
 
-const BACKUP_VERSION = 5;
+/** The backup file format, versioned on its own so a later reader can migrate. */
+const BACKUP_VERSION = 1;
 const MIN_RESET_OVERLAY_MS = 900;
 
 export interface DataSlice {

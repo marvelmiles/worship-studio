@@ -235,8 +235,6 @@ export const usePresentation = (
         exit();
       } else if (key === "p" || key === "P") {
         togglePlayback();
-      } else if (key === "f" || key === "F") {
-        toggleFullscreen();
       } else if (key === "i" || key === "I") {
         toggleInfo();
       } else if (key === "v" || key === "V") {
@@ -282,7 +280,6 @@ export const usePresentation = (
     exit,
     togglePause,
     togglePlayback,
-    toggleFullscreen,
     toggleInfo,
     cycleView,
     zoomIn,

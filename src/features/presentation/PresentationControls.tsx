@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import type { PresentationView } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { viewCommandTitle } from "../../lib/viewCommands";
 import { StageButton } from "../../components/ui/Button";
 
 const VIEW_OPTIONS: {
@@ -146,11 +147,12 @@ export const PresentationControls = ({
       />
       <StageButton
         icon={PictureInPicture2}
-        title={
+        title={viewCommandTitle(
           isLive
             ? "Shrink to floating presenter and keep using the app (stays live)"
-            : "Shrink to floating presenter and keep using the app"
-        }
+            : "Shrink to floating presenter and keep using the app",
+          "popOut",
+        )}
         onClick={onShrinkToPip}
       />
       {secondaryMenu}
@@ -306,7 +308,10 @@ export const PresentationControls = ({
       />
       <StageButton
         icon={isFullscreen ? Minimize2 : Maximize2}
-        title={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
+        title={viewCommandTitle(
+          isFullscreen ? "Exit fullscreen" : "Fullscreen",
+          "fullscreen",
+        )}
         onClick={onToggleFullscreen}
       />
       <StageButton icon={X} title="Exit (Esc)" onClick={onExit} />

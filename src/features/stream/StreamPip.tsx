@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GripHorizontal,
   Maximize2,
@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useFloatingWindow } from "../../hooks/useFloatingWindow";
+import { useViewShortcuts } from "../../hooks/useViewShortcuts";
 import { FloatingWindowTab } from "../../components/ui/FloatingWindowTab";
 import { AudioSharingPill } from "./AudioSharingPill";
 import { CameraStatusOverlay } from "./components/CameraStatusOverlay";
@@ -18,6 +19,7 @@ import { StreamOverlayEditor } from "./StreamOverlayEditor";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
 import { StreamPipLayer, cameraPipWindow } from "./StreamPipLayer";
 import { StreamVideo } from "./StreamVideo";
+import { viewCommandTitle } from "../../lib/viewCommands";
 import { isPeerConnecting } from "./lib/peerStatus";
 import {
   selectStreamOverlay,
@@ -48,6 +50,7 @@ export const StreamPip = () => {
   const overlays = useStreamOverlays();
   const selectedOverlayId = useSelectedStreamOverlayId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
   const { position, handleProps, windowProps, stash, zIndex } =
     useFloatingWindow({
       width: PIP_WIDTH,
@@ -55,6 +58,17 @@ export const StreamPip = () => {
       estimatedHeight: 220,
       elementRef: rootRef,
     });
+
+  useEffect(() => {
+    rootRef.current?.focus();
+  }, []);
+
+  /* The app stays usable behind this window, so it answers the view keys only
+     while it holds the focus, the way the floating presenter does. */
+  useViewShortcuts({
+    onTogglePopOut: () => setStreamMode("stage"),
+    isArmed: () => Boolean(rootRef.current?.contains(document.activeElement)),
+  });
 
   const cameras = session.cameras;
   const primaryIndex = cameras.findIndex(
@@ -76,9 +90,16 @@ export const StreamPip = () => {
       />
       <div
         ref={rootRef}
+        tabIndex={0}
         role="region"
         aria-label="Floating camera"
         onPointerDownCapture={windowProps.onPointerDownCapture}
+        onPointerDown={() => rootRef.current?.focus()}
+        onFocus={() => setIsFocused(true)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+            setIsFocused(false);
+        }}
         style={{
           ...windowProps.style,
           position: "fixed",
@@ -87,8 +108,9 @@ export const StreamPip = () => {
           width: PIP_WIDTH,
           borderRadius: 14,
           overflow: "hidden",
+          outline: "none",
           background: colors.panelSolid,
-          border: `1px solid ${colors.border}`,
+          border: `1px solid ${isFocused ? colors.accent : colors.border}`,
           boxShadow: shadows.overlay,
         }}
       >
@@ -203,7 +225,10 @@ export const StreamPip = () => {
           </span>
           <FloatingIconButton
             icon={Maximize2}
-            title="Maximise to the full stream window"
+            title={viewCommandTitle(
+              "Maximise to the full stream window",
+              "popOut",
+            )}
             onClick={() => setStreamMode("stage")}
           />
           <FloatingIconButton

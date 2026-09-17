@@ -4,6 +4,8 @@ import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
+import { useViewShortcuts } from "../../hooks/useViewShortcuts";
+import { viewCommandTitle } from "../../lib/viewCommands";
 import {
   MEDIA_SYNC_TOLERANCE_SECONDS,
   openPresentChannel,
@@ -26,6 +28,7 @@ export const PresentWindow = () => {
 
   const [state, setState] = useState<PresentState | null>(null);
   const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
+  useViewShortcuts({ onToggleFullscreen: toggleFullscreen });
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
   const lastReloadKey = useRef<string>("");
@@ -117,7 +120,10 @@ export const PresentWindow = () => {
   const fullscreenButton = (
     <button
       onClick={toggleFullscreen}
-      title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+      title={viewCommandTitle(
+        isFullscreen ? "Exit fullscreen" : "Fullscreen",
+        "fullscreen",
+      )}
       style={{
         position: "fixed",
         top: 14,

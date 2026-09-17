@@ -3,7 +3,9 @@ import { ChevronDown } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 
-export const SHOW_UPDATE = true;
+/** Off while the project is still being built towards its v1.0.0 release:
+ *  there is no earlier version to announce changes against yet. */
+export const SHOW_UPDATE = false;
 const UPDATE_KEY = "ws-update-2026-09-17-r6";
 
 const CHANGES: { title: string; body: string }[] = [

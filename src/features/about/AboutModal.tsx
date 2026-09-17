@@ -3,6 +3,7 @@ import { ChevronDown, Heart, Mail } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
+import { APP_VERSION_LABEL } from "../../lib/appVersion";
 import { SectionTitle } from "../../components/ui/Field";
 
 const CONTACT_EMAIL = "marvellousabidemi2@gmail.com";
@@ -281,6 +282,16 @@ export const AboutModal = () => {
         <Mail size={16} />
         {CONTACT_EMAIL}
       </a>
+      <p
+        style={{
+          margin: "18px 0 0",
+          fontFamily: fonts.ui,
+          fontSize: 12,
+          color: colors.dim,
+        }}
+      >
+        WorshipStudio {APP_VERSION_LABEL}
+      </p>
     </Modal>
   );
 };
