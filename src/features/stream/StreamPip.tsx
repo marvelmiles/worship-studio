@@ -70,7 +70,8 @@ export const StreamPip = () => {
     <>
       <FloatingWindowTab
         stash={stash}
-        label="Bring the floating camera back"
+        name="Camera"
+        detail={primary?.deviceName || FALLBACK_CAMERA_NAME}
         zIndex={zIndex}
       />
       <div

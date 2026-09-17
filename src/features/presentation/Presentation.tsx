@@ -7,6 +7,7 @@ import { useGoLiveToast } from "../../hooks/useGoLiveToast";
 import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { CONTENT_KIND_LABEL } from "../../lib/contentKinds";
 import type { VideoProgress } from "../../lib/media";
 import type { PresentState } from "../../lib/presentChannel";
 import {
@@ -301,6 +302,7 @@ export const Presentation = () => {
         {secondaryContent}
         <PresenterPip
           title={deck.title}
+          moduleName={CONTENT_KIND_LABEL[deck.kind]}
           currentLabel={currentLabel}
           notes={notes}
           frame={presentation.frame}

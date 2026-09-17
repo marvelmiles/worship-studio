@@ -1,3 +1,5 @@
+import { useCallback, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -11,8 +13,13 @@ import type {
   FloatingWindowStash,
 } from "../../hooks/useFloatingWindow";
 
-const LONG = 46;
-const SHORT = 22;
+const THICKNESS = 26;
+const MIN_LENGTH = 64;
+const MAX_LENGTH = 168;
+const EDGE_GAP = 8;
+
+/** How far the pointer may travel before a press counts as a drag, not a click. */
+const DRAG_SLOP = 4;
 
 /** The chevron points back into the page, the way the window will travel. */
 const ARROW: Record<FloatingWindowEdge, LucideIcon> = {
@@ -22,59 +29,119 @@ const ARROW: Record<FloatingWindowEdge, LucideIcon> = {
   bottom: ChevronUp,
 };
 
+const RADIUS: Record<FloatingWindowEdge, string> = {
+  left: "0 10px 10px 0",
+  right: "10px 0 0 10px",
+  top: "0 0 10px 10px",
+  bottom: "10px 10px 0 0",
+};
+
 interface FloatingWindowTabProps {
   stash: FloatingWindowStash;
-  label: string;
+  /** The pop-out module the tab brings back, such as Camera or Manuscript. */
+  name: string;
+  /** What this particular pop-out is showing, when several share a module. */
+  detail?: string;
   zIndex?: number;
 }
 
 export const FloatingWindowTab = ({
   stash,
-  label,
+  name,
+  detail,
   zIndex,
 }: FloatingWindowTabProps) => {
-  const { colors, shadows } = useUITheme();
-  const { edge, offset, restore } = stash;
+  const { colors, fonts, shadows } = useUITheme();
+  const [length, setLength] = useState(MIN_LENGTH);
+  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
+  const wasDragged = useRef(false);
+  const { edge, offset, restore, handleProps } = stash;
+  const isVertical = edge === "left" || edge === "right";
+
+  /* The tab sizes itself to its label, and that size is what keeps it from
+     running off the end of the edge it is parked on. Remounting on a new edge
+     or label, through the key below, is what re-measures it. */
+  const measure = useCallback(
+    (node: HTMLButtonElement | null) => {
+      if (!node) return;
+      setLength(isVertical ? node.offsetHeight : node.offsetWidth);
+    },
+    [isVertical],
+  );
+
   if (!edge) return null;
 
-  const vertical = edge === "left" || edge === "right";
-  const length = vertical ? LONG : SHORT;
-  const breadth = vertical ? SHORT : LONG;
-  const limit = vertical ? window.innerHeight : window.innerWidth;
-  const along = Math.max(8, Math.min(limit - length - 8, offset));
+  const limit = isVertical ? window.innerHeight : window.innerWidth;
+  const along = Math.max(EDGE_GAP, Math.min(limit - length - EDGE_GAP, offset));
   const Arrow = ARROW[edge];
+  const description = `${name}${detail ? ` (${detail})` : ""}. Click to bring it back, or drag to move it.`;
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    pressOrigin.current = { x: event.clientX, y: event.clientY };
+    wasDragged.current = false;
+    handleProps.onPointerDown(event);
+  };
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const origin = pressOrigin.current;
+    const travelled = origin
+      ? Math.abs(event.clientX - origin.x) + Math.abs(event.clientY - origin.y)
+      : 0;
+    if (travelled > DRAG_SLOP) wasDragged.current = true;
+    handleProps.onPointerMove(event);
+  };
+
+  const finishDrag = (end: () => void) => () => {
+    pressOrigin.current = null;
+    end();
+  };
 
   return (
     <button
+      key={`${edge}:${name}`}
+      ref={measure}
       type="button"
-      title={label}
-      aria-label={label}
-      onClick={restore}
+      title={description}
+      aria-label={description}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={finishDrag(handleProps.onPointerUp)}
+      onPointerCancel={finishDrag(handleProps.onPointerCancel)}
+      onClick={() => {
+        if (!wasDragged.current) restore();
+      }}
       style={{
+        ...handleProps.style,
         position: "fixed",
         zIndex,
-        width: vertical ? breadth : length,
-        height: vertical ? length : breadth,
-        ...(vertical ? { top: along } : { left: along }),
+        ...(isVertical
+          ? {
+              top: along,
+              width: THICKNESS,
+              minHeight: MIN_LENGTH,
+              maxHeight: MAX_LENGTH,
+              padding: "9px 0",
+            }
+          : {
+              left: along,
+              height: THICKNESS,
+              minWidth: MIN_LENGTH,
+              maxWidth: MAX_LENGTH,
+              padding: "0 9px",
+            }),
         ...(edge === "left" ? { left: 0 } : {}),
         ...(edge === "right" ? { right: 0 } : {}),
         ...(edge === "top" ? { top: 0 } : {}),
         ...(edge === "bottom" ? { bottom: 0 } : {}),
-        display: "grid",
-        placeItems: "center",
-        padding: 0,
-        cursor: "pointer",
+        display: "flex",
+        flexDirection: isVertical ? "column" : "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
         background: colors.panelSolid,
         color: colors.sub,
         border: `1px solid ${colors.border}`,
-        borderRadius:
-          edge === "left"
-            ? "0 10px 10px 0"
-            : edge === "right"
-              ? "10px 0 0 10px"
-              : edge === "top"
-                ? "0 0 10px 10px"
-                : "10px 10px 0 0",
+        borderRadius: RADIUS[edge],
         boxShadow: shadows.overlay,
       }}
       onMouseEnter={(event) => {
@@ -84,7 +151,25 @@ export const FloatingWindowTab = ({
         event.currentTarget.style.color = colors.sub;
       }}
     >
-      <Arrow size={15} />
+      <Arrow size={14} style={{ flexShrink: 0 }} />
+      <span
+        style={{
+          minWidth: 0,
+          minHeight: 0,
+          overflow: "hidden",
+          whiteSpace: "nowrap",
+          textOverflow: "ellipsis",
+          fontFamily: fonts.ui,
+          fontSize: 11.5,
+          fontWeight: 700,
+          letterSpacing: 0.2,
+          lineHeight: 1,
+          color: "inherit",
+          ...(isVertical ? { writingMode: "vertical-rl" } : {}),
+        }}
+      >
+        {name}
+      </span>
     </button>
   );
 };

@@ -66,7 +66,7 @@ export const normalizeImportedManuscript = (
     collection: entry.collection ?? DEFAULT_COLLECTION,
     createdAt: entry.createdAt ?? timestamp,
     updatedAt: entry.updatedAt ?? timestamp,
-    deleted: false,
+    deleted: Boolean(entry.deleted),
     slides: entry.slides?.length
       ? entry.slides.map(normalizeSlide)
       : parseManuscriptSlides(body, {
@@ -98,7 +98,7 @@ export const normalizeImportedScripture = (
     slides: entry.slides ? entry.slides.map(normalizeSlide) : [],
     createdAt: entry.createdAt ?? timestamp,
     updatedAt: entry.updatedAt ?? timestamp,
-    deleted: false,
+    deleted: Boolean(entry.deleted),
     quick: undefined,
   };
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { getFileBlob, thumbId } from "./fileStore";
 
 interface UrlEntry {
@@ -58,14 +58,48 @@ export const releaseBlobUrl = (id: string): void => {
   }, RELEASE_GRACE_MS);
 };
 
+/* Dropping a cached url is not enough on its own: mounted readers hold the
+   revoked string in state, so they are woken through this epoch to re-acquire. */
+let epoch = 0;
+const epochListeners = new Set<() => void>();
+
+const subscribeEpoch = (listener: () => void): (() => void) => {
+  epochListeners.add(listener);
+  return () => {
+    epochListeners.delete(listener);
+  };
+};
+
+const readEpoch = (): number => epoch;
+
+const bumpEpoch = (): void => {
+  epoch += 1;
+  for (const listener of epochListeners) listener();
+};
+
+const dropEntry = (key: string): boolean => {
+  const entry = entries.get(key);
+  if (!entry) return false;
+  if (entry.releaseTimer !== null) window.clearTimeout(entry.releaseTimer);
+  if (entry.url) URL.revokeObjectURL(entry.url);
+  entries.delete(key);
+  return true;
+};
+
 export const invalidateBlobUrl = (id: string): void => {
-  for (const key of [id, thumbId(id)]) {
-    const entry = entries.get(key);
-    if (!entry) continue;
-    if (entry.releaseTimer !== null) window.clearTimeout(entry.releaseTimer);
-    if (entry.url) URL.revokeObjectURL(entry.url);
-    entries.delete(key);
-  }
+  invalidateBlobUrls([id, thumbId(id)]);
+};
+
+export const invalidateBlobUrls = (ids: Iterable<string>): void => {
+  let dropped = false;
+  for (const id of ids) dropped = dropEntry(id) || dropped;
+  if (dropped) bumpEpoch();
+};
+
+export const resetBlobUrls = (): void => {
+  if (entries.size === 0) return;
+  for (const key of [...entries.keys()]) dropEntry(key);
+  bumpEpoch();
 };
 
 type Disposer = () => void;
@@ -93,6 +127,7 @@ const acquireManaged = (
 
 export const useBlobUrl = (id: string | undefined | null): string | null => {
   const [url, setUrl] = useState<string | null>(null);
+  const currentEpoch = useSyncExternalStore(subscribeEpoch, readEpoch);
 
   useEffect(() => {
     if (!id) {
@@ -104,13 +139,14 @@ export const useBlobUrl = (id: string | undefined | null): string | null => {
       setUrl(null);
       dispose();
     };
-  }, [id]);
+  }, [id, currentEpoch]);
 
   return url;
 };
 
 export const useThumbUrl = (id: string | undefined | null): string | null => {
   const [url, setUrl] = useState<string | null>(null);
+  const currentEpoch = useSyncExternalStore(subscribeEpoch, readEpoch);
 
   useEffect(() => {
     if (!id) {
@@ -132,7 +168,7 @@ export const useThumbUrl = (id: string | undefined | null): string | null => {
       setUrl(null);
       disposeInner();
     };
-  }, [id]);
+  }, [id, currentEpoch]);
 
   return url;
 };

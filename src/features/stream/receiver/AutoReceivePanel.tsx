@@ -5,6 +5,7 @@ import { useStore } from "../../../store/useStore";
 import { Button } from "../../../components/ui/Button";
 import { Spinner } from "../../../components/ui/Spinner";
 import { LobbyActions } from "../components/LobbyActions";
+import { QuickConnectNote } from "../components/QuickConnectNote";
 import { StreamCard, StreamCardTitle } from "../components/StreamCard";
 import { deriveNetworkRoom } from "../lib/room";
 import { watchBroadcasters, type DeviceEntry } from "../lib/signaling";
@@ -106,6 +107,8 @@ export const AutoReceivePanel = ({
           </div>
         )}
       </StreamCard>
+
+      <QuickConnectNote />
 
       <LobbyActions>
         <Button variant="ghost" size="sm" onClick={onUseCode}>

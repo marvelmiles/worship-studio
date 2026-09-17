@@ -263,6 +263,30 @@ export const mediaSchema = z
   })
   .passthrough();
 
+const prefsSchema = z
+  .object({
+    transition: animationSchema,
+    transitionDuration: z.number().min(0).optional().catch(undefined),
+    easing: z
+      .enum(["ease", "ease-in-out", "ease-out", "linear"])
+      .optional()
+      .catch(undefined),
+    backgroundVolume: z.number().min(0).max(100).optional().catch(undefined),
+    loopAudio: z.boolean().optional().catch(undefined),
+    showPresenterBar: z.boolean().optional().catch(undefined),
+    presentationView: z
+      .enum(["normal", "cover", "fill"])
+      .optional()
+      .catch(undefined),
+    autoHideControls: z.boolean().optional().catch(undefined),
+    autoHidePresenterBar: z.boolean().optional().catch(undefined),
+    bibleVersion: z.string().optional().catch(undefined),
+    defaultManuscriptThemeId: z.string().optional().catch(undefined),
+    defaultScriptureThemeId: z.string().optional().catch(undefined),
+    goLiveTipDismissed: z.boolean().optional().catch(undefined),
+  })
+  .strip();
+
 export const dataFileSchema = z.object({
   version: z.number().optional(),
   exportedAt: z.string().optional(),
@@ -272,7 +296,7 @@ export const dataFileSchema = z.object({
   themes: z.array(themeSchema).optional(),
   backgrounds: z.array(backgroundSchema).optional(),
   audio: z.array(audioSchema).optional(),
-  prefs: z.record(z.unknown()).optional(),
+  prefs: prefsSchema.optional().catch(undefined),
 });
 
 export type ImportedSlide = z.infer<typeof slideSchema>;
@@ -280,3 +304,4 @@ export type ImportedManuscript = z.infer<typeof manuscriptSchema>;
 export type ImportedScripture = z.infer<typeof scriptureSchema>;
 export type ImportedMedia = z.infer<typeof mediaSchema>;
 export type ImportedBackground = z.infer<typeof backgroundSchema>;
+export type ImportedPrefs = z.infer<typeof prefsSchema>;

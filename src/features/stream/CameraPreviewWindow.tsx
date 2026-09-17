@@ -66,7 +66,8 @@ const CameraPreviewWindow = ({
     <>
       <FloatingWindowTab
         stash={stash}
-        label={`Bring the preview of ${camera.deviceName} back`}
+        name="Preview"
+        detail={camera.deviceName}
         zIndex={zIndex}
       />
       <div

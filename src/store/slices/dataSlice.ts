@@ -14,10 +14,11 @@ import { THEMES } from "../../data/themes";
 import { DEFAULT_AUDIO } from "../../data/sounds";
 import { seedManuscripts } from "../../data/seed";
 import { now } from "../../lib/id";
-import { dataFileSchema } from "../../lib/schema";
+import { dataFileSchema, type ImportedPrefs } from "../../lib/schema";
 import { readAllRecords, clearStore, saveRecord } from "../../lib/storage";
 import type { StoreName } from "../../lib/storage";
 import { thumbId } from "../../lib/fileStore";
+import { invalidateBlobUrls, resetBlobUrls } from "../../lib/blobUrls";
 import { survivingAfterReset } from "../../lib/keepOnReset";
 import {
   exportBackup,
@@ -62,19 +63,60 @@ export interface DataSlice {
   resetApp: () => Promise<void>;
 }
 
+/* Zod leaves a rejected preference as undefined; spreading those over the
+   defaults would blank them, so only real values are carried across. */
+const definedOnly = (prefs: ImportedPrefs): Partial<Prefs> =>
+  Object.fromEntries(
+    Object.entries(prefs).filter(([, value]) => value !== undefined),
+  ) as Partial<Prefs>;
+
 const withSupportedBibleVersion = (prefs: Prefs): Prefs =>
   isBibleVersion(prefs.bibleVersion)
     ? prefs
     : { ...prefs, bibleVersion: DEFAULT_BIBLE_VERSION };
 
+/* Replace clears whatever the file leaves out, so a partial backup cannot
+   strand records whose blobs have just been wiped. */
 const mergeIncoming = <T extends { id: string }>(
   current: T[],
   incoming: T[] | undefined,
   isOverride: boolean,
   importedWins: boolean,
 ): T[] => {
+  if (isOverride) return incoming ?? [];
   if (!incoming) return current;
-  return isOverride ? incoming : mergeById(current, incoming, importedWins);
+  return mergeById(current, incoming, importedWins);
+};
+
+/* Every blob a backup has to carry, once each. Assets that borrow a media
+   item's file ride along with that item; the rest, including assets whose
+   source media was deleted, are collected on their own. */
+const backupFileIds = ({
+  media,
+  backgrounds,
+  audio,
+}: {
+  media: MediaItem[];
+  backgrounds: Background[];
+  audio: AudioItem[];
+}): string[] => {
+  const fileIds = new Set<string>();
+  const mediaIds = new Set(media.map((item) => item.id));
+
+  for (const item of media) {
+    fileIds.add(item.id);
+    if (item.hasThumb) fileIds.add(thumbId(item.id));
+  }
+  for (const background of backgrounds) {
+    if (!background.blobId || mediaIds.has(background.blobId)) continue;
+    fileIds.add(background.blobId);
+    fileIds.add(thumbId(background.blobId));
+  }
+  for (const item of audio) {
+    if (!item.blobId || mediaIds.has(item.blobId)) continue;
+    fileIds.add(item.blobId);
+  }
+  return [...fileIds];
 };
 
 export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
@@ -163,20 +205,11 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       audio: customAud,
       prefs,
     };
-    const fileIds: string[] = [];
-    for (const item of media) {
-      fileIds.push(item.id);
-      if (item.hasThumb) fileIds.push(thumbId(item.id));
-    }
-    for (const background of customBg) {
-      if (background.blobId && background.blobId === background.id) {
-        fileIds.push(background.blobId, thumbId(background.blobId));
-      }
-    }
-    for (const item of customAud) {
-      if (item.blobId && !item.mediaId) fileIds.push(item.blobId);
-    }
-    return exportBackup(payload, fileIds, onProgress);
+    return exportBackup(
+      payload,
+      backupFileIds({ media, backgrounds: customBg, audio: customAud }),
+      onProgress,
+    );
   },
 
   importData: async (file, mode, onProgress) => {
@@ -229,11 +262,9 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         isOverride,
         importedWins,
       );
-      const themes = data.themes
-        ? ensureBuiltInThemes(
-            mergeIncoming(state.themes, data.themes, isOverride, importedWins),
-          )
-        : state.themes;
+      const themes = ensureBuiltInThemes(
+        mergeIncoming(state.themes, data.themes, isOverride, importedWins),
+      );
       const customBg = mergeIncoming(
         customBackgrounds(state.backgrounds),
         incomingBackgrounds,
@@ -248,10 +279,10 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       );
 
       const prefs =
-        data.prefs && (isOverride || mode === "merge-imported")
+        data.prefs && importedWins
           ? withSupportedBibleVersion({
               ...DEFAULT_PREFS,
-              ...(data.prefs as Partial<Prefs>),
+              ...definedOnly(data.prefs),
               id: "app",
               onboarded: true,
             })
@@ -275,6 +306,11 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         }
       }
 
+      // Quick-present passages are working state, not library content: a merge leaves them alone and a replace clears them with the rest.
+      const keptQuickScriptures = isOverride
+        ? []
+        : state.scriptures.filter((scripture) => scripture.quick);
+
       if (isOverride) {
         await Promise.all(
           (
@@ -297,9 +333,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         (read, total) => onProgress?.(0.1 + 0.7 * (total ? read / total : 1)),
       );
 
+      // Cached object urls still point at the blobs that were just replaced.
+      if (isOverride) resetBlobUrls();
+      else invalidateBlobUrls(acceptedFileIds);
+
       set({
         manuscripts,
-        scriptures,
+        scriptures: [...keptQuickScriptures, ...scriptures],
         media,
         themes,
         backgrounds: [...BACKGROUNDS, ...customBg],

@@ -31,6 +31,7 @@ const MARGIN = 16;
 
 interface PresenterPipProps {
   title: string;
+  moduleName: string;
   currentLabel: string;
   notes?: string;
   frame: StageFrame;
@@ -58,6 +59,7 @@ interface PresenterPipProps {
 
 export const PresenterPip = ({
   title,
+  moduleName,
   currentLabel,
   notes,
   frame,
@@ -104,7 +106,8 @@ export const PresenterPip = ({
     <>
       <FloatingWindowTab
         stash={stash}
-        label="Bring the floating presenter back"
+        name={moduleName}
+        detail={title}
         zIndex={zIndex}
       />
       <div

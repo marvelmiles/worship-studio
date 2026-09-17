@@ -32,12 +32,23 @@ interface FloatingWindowOptions {
   elementRef?: RefObject<HTMLDivElement>;
 }
 
+/** Spread onto whatever grabs the window: its own title bar, or its tab. */
+export interface FloatingWindowHandleProps {
+  onPointerDown: (event: ReactPointerEvent) => void;
+  onPointerMove: (event: ReactPointerEvent) => void;
+  onPointerUp: () => void;
+  onPointerCancel: () => void;
+  style: CSSProperties;
+}
+
 export interface FloatingWindowStash {
   /** The edge the window is parked off, or null while it is on screen. */
   edge: FloatingWindowEdge | null;
   /** Where the tab sits along that edge, in pixels from the top or left. */
   offset: number;
   restore: () => void;
+  /** The tab drags the parked window too, so it can be moved while off screen. */
+  handleProps: FloatingWindowHandleProps;
 }
 
 interface FloatingWindow {
@@ -53,13 +64,7 @@ interface FloatingWindow {
     onPointerDownCapture: () => void;
     style: CSSProperties;
   };
-  handleProps: {
-    onPointerDown: (event: ReactPointerEvent) => void;
-    onPointerMove: (event: ReactPointerEvent) => void;
-    onPointerUp: () => void;
-    onPointerCancel: () => void;
-    style: CSSProperties;
-  };
+  handleProps: FloatingWindowHandleProps;
 }
 
 const CASCADE = 26;
@@ -170,6 +175,8 @@ export const useFloatingWindow = ({
     return () => window.removeEventListener("resize", onResize);
   }, [margin, width, measuredHeight, edge]);
 
+  /* Raising here rather than only on the window itself covers the tab, which
+     can drag a parked window back in without ever touching the window. */
   const onPointerDown = useCallback(
     (event: ReactPointerEvent) => {
       grab.current = {
@@ -177,9 +184,10 @@ export const useFloatingWindow = ({
         dy: event.clientY - position.y,
       };
       setDragging(true);
+      raise();
       (event.target as HTMLElement).setPointerCapture(event.pointerId);
     },
-    [position.x, position.y],
+    [position.x, position.y, raise],
   );
 
   /* Dragging is free to leave the viewport on any side, which is what lets a
@@ -235,22 +243,24 @@ export const useFloatingWindow = ({
   const stashOffset =
     edge === "left" || edge === "right" ? position.y : position.x;
 
+  const handleProps: FloatingWindowHandleProps = {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp: endDrag,
+    onPointerCancel: endDrag,
+    style: { cursor: dragging ? "grabbing" : "grab", touchAction: "none" },
+  };
+
   return {
     ref,
     position,
     dragging,
-    stash: { edge, offset: stashOffset, restore },
+    stash: { edge, offset: stashOffset, restore, handleProps },
     zIndex,
     windowProps: {
       onPointerDownCapture: raise,
       style: { zIndex },
     },
-    handleProps: {
-      onPointerDown,
-      onPointerMove,
-      onPointerUp: endDrag,
-      onPointerCancel: endDrag,
-      style: { cursor: dragging ? "grabbing" : "grab", touchAction: "none" },
-    },
+    handleProps,
   };
 };
