@@ -20,7 +20,10 @@ export const StreamProjectionRoot = () => {
   return (
     <>
       {session.mode === "pip" ? (
-        <StreamPip />
+        <>
+          <StreamPip />
+          <CameraPreviewWindows />
+        </>
       ) : (
         <ProjectionSurface
           stream={primary?.stream ?? null}
@@ -31,9 +34,10 @@ export const StreamProjectionRoot = () => {
           onStop={endStreamSession}
           onPopOut={() => setStreamMode("pip")}
           onLiveChange={setSessionViewerLive}
-        />
+        >
+          <CameraPreviewWindows />
+        </ProjectionSurface>
       )}
-      <CameraPreviewWindows />
     </>
   );
 };

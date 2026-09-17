@@ -6,7 +6,6 @@ import { editedOverlay, isOnAir, isVisible } from "./lib/streamOverlay";
 import type { StreamOverlay, StreamOverlayKind } from "./lib/streamOverlay";
 import {
   duplicateStreamOverlay,
-  moveStreamOverlay,
   removeStreamOverlay,
   setStreamOverlayFrame,
 } from "./lib/streamOverlayStore";
@@ -54,9 +53,6 @@ export const StreamOverlayEditor = ({
           removeStreamOverlay(element.id);
           onSelect(null);
         }}
-        onReorder={(element, direction) =>
-          moveStreamOverlay(element.id, direction)
-        }
       />
       <DraftMarkers overlays={drafts} />
     </>

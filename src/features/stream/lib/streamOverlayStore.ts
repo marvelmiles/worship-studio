@@ -8,7 +8,6 @@ import {
   editedOverlay,
   hasStagedEdits,
   isVideoOverlay,
-  reorderOverlays,
   type OverlayEdit,
   type OverlayStatus,
   type OverlayVideoPlayback,
@@ -200,11 +199,6 @@ export const duplicateStreamOverlay = (id: string): void => {
   const next = [...overlays];
   next.splice(index + 1, 0, copy);
   commit(next);
-};
-
-export const moveStreamOverlay = (id: string, direction: number): void => {
-  const next = reorderOverlays(overlays, id, direction);
-  if (next !== overlays) commit(next);
 };
 
 export const setStreamOverlayStatus = (

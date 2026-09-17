@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useFloatingWindow } from "../../hooks/useFloatingWindow";
+import { FloatingWindowTab } from "../../components/ui/FloatingWindowTab";
 import { fade } from "../../theme/uiTheme";
 import { videoProgressPercent, type VideoProgress } from "../../lib/media";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
@@ -83,12 +84,13 @@ export const PresenterPip = ({
 }: PresenterPipProps) => {
   const { colors, fonts } = useUITheme();
   const [focused, setFocused] = useState(false);
-  const { position, handleProps } = useFloatingWindow({
-    width: WIDTH,
-    margin: MARGIN,
-    estimatedHeight: 260,
-    elementRef: rootRef,
-  });
+  const { position, handleProps, windowProps, stash, zIndex } =
+    useFloatingWindow({
+      width: WIDTH,
+      margin: MARGIN,
+      estimatedHeight: 260,
+      elementRef: rootRef,
+    });
 
   useEffect(() => {
     rootRef.current?.focus();
@@ -99,293 +101,301 @@ export const PresenterPip = ({
   const isVideo = content.kind === "video";
 
   return (
-    <div
-      ref={rootRef}
-      tabIndex={0}
-      role="region"
-      aria-label="Floating presenter"
-      data-presenter-pip=""
-      onPointerDown={() => rootRef.current?.focus()}
-      onFocus={() => setFocused(true)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null))
-          setFocused(false);
-      }}
-      style={{
-        position: "fixed",
-        left: position.x,
-        top: position.y,
-        width: WIDTH,
-        zIndex: 160,
-        borderRadius: 14,
-        overflow: "hidden",
-        background: fade(colors.panelSolid, 0.96),
-        backdropFilter: "blur(18px) saturate(150%)",
-        WebkitBackdropFilter: "blur(18px) saturate(150%)",
-        border: `1px solid ${focused ? fade(colors.accent, 0.55) : colors.border}`,
-        boxShadow: focused
-          ? `0 20px 55px rgba(0,0,0,0.6), 0 0 0 3px ${fade(colors.accent, 0.18)}`
-          : "0 18px 45px rgba(0,0,0,0.5)",
-        outline: "none",
-        transition: "border-color .15s ease, box-shadow .15s ease",
-      }}
-    >
+    <>
+      <FloatingWindowTab
+        stash={stash}
+        label="Bring the floating presenter back"
+        zIndex={zIndex}
+      />
       <div
-        {...handleProps}
+        ref={rootRef}
+        tabIndex={0}
+        role="region"
+        aria-label="Floating presenter"
+        data-presenter-pip=""
+        onPointerDownCapture={windowProps.onPointerDownCapture}
+        onPointerDown={() => rootRef.current?.focus()}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null))
+            setFocused(false);
+        }}
         style={{
-          ...handleProps.style,
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          padding: "8px 10px",
-          borderBottom: `1px solid ${colors.border}`,
+          ...windowProps.style,
+          position: "fixed",
+          left: position.x,
+          top: position.y,
+          width: WIDTH,
+          borderRadius: 14,
+          overflow: "hidden",
+          background: fade(colors.panelSolid, 0.96),
+          backdropFilter: "blur(18px) saturate(150%)",
+          WebkitBackdropFilter: "blur(18px) saturate(150%)",
+          border: `1px solid ${focused ? fade(colors.accent, 0.55) : colors.border}`,
+          boxShadow: focused
+            ? `0 20px 55px rgba(0,0,0,0.6), 0 0 0 3px ${fade(colors.accent, 0.18)}`
+            : "0 18px 45px rgba(0,0,0,0.5)",
+          outline: "none",
+          transition: "border-color .15s ease, box-shadow .15s ease",
         }}
       >
-        <GripHorizontal
-          size={14}
-          color={colors.dim}
-          style={{ flexShrink: 0 }}
-        />
-        <span
-          className="ws-ellipsis"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: fonts.ui,
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: colors.text,
-          }}
-        >
-          {title}
-        </span>
-        {isLive && (
-          <span
-            title="Projecting to the audience display"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              padding: "2px 7px",
-              borderRadius: 999,
-              fontFamily: fonts.ui,
-              fontSize: 9.5,
-              fontWeight: 800,
-              letterSpacing: 0.5,
-              color: colors.onAccent,
-              background: colors.danger,
-            }}
-          >
-            <span
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: 999,
-                background: colors.onAccent,
-              }}
-            />
-            LIVE
-          </span>
-        )}
-      </div>
-
-      <div
-        {...(isVideo ? mediaSurfaceProps : {})}
-        style={{
-          position: "relative",
-          aspectRatio: "16 / 9",
-          background: "#000",
-        }}
-      >
-        {content.kind === "text" && (
-          <SlideCanvas
-            slide={content.slide}
-            style={content.style}
-            lineStyles={content.lineStyles}
-            bg={content.background}
-            bgImage={content.backgroundImage}
-            radius={0}
-            fill
-          />
-        )}
-        {content.kind === "image" && (
-          <ImageSurface item={content.item} variant="thumb" />
-        )}
-        {isVideo && <PortalSlot host={videoHost} />}
-        {isVideo && videoProgress && (
-          <>
-            <VideoTimecode
-              progress={videoProgress}
-              style={{
-                position: "absolute",
-                left: 8,
-                bottom: 10,
-                padding: "2px 7px",
-                borderRadius: 999,
-                fontFamily: fonts.ui,
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: "#fff",
-                background: "rgba(0,0,0,0.6)",
-              }}
-            />
-            <VideoScrubber
-              progress={videoProgress}
-              onSeek={onSeekVideo}
-              accent={colors.accent}
-            />
-          </>
-        )}
-        {secondaryLayer}
-      </div>
-
-      {notes && (
         <div
+          {...handleProps}
           style={{
+            ...handleProps.style,
             display: "flex",
-            alignItems: "flex-start",
+            alignItems: "center",
             gap: 7,
             padding: "8px 10px",
-            borderTop: `1px solid ${colors.border}`,
-            background: fade(colors.accent, 0.09),
+            borderBottom: `1px solid ${colors.border}`,
           }}
         >
-          <StickyNote
-            size={13}
-            color={colors.accentSoft}
-            style={{ flexShrink: 0, marginTop: 1 }}
+          <GripHorizontal
+            size={14}
+            color={colors.dim}
+            style={{ flexShrink: 0 }}
           />
-          <div
+          <span
+            className="ws-ellipsis"
             style={{
               flex: 1,
               minWidth: 0,
-              maxHeight: 66,
-              overflowY: "auto",
               fontFamily: fonts.ui,
-              fontSize: 11.5,
-              fontWeight: 500,
-              lineHeight: 1.45,
+              fontSize: 12.5,
+              fontWeight: 700,
               color: colors.text,
-              whiteSpace: "pre-line",
             }}
           >
-            {notes}
-          </div>
+            {title}
+          </span>
+          {isLive && (
+            <span
+              title="Projecting to the audience display"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 7px",
+                borderRadius: 999,
+                fontFamily: fonts.ui,
+                fontSize: 9.5,
+                fontWeight: 800,
+                letterSpacing: 0.5,
+                color: colors.onAccent,
+                background: colors.danger,
+              }}
+            >
+              <span
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 999,
+                  background: colors.onAccent,
+                }}
+              />
+              LIVE
+            </span>
+          )}
         </div>
-      )}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 5,
-          padding: "8px 9px",
-          borderTop: `1px solid ${colors.border}`,
-        }}
-      >
-        {navigable && (
-          <MiniButton
-            icon={ChevronLeft}
-            title="Previous slide (←)"
-            onClick={onPrev}
-          />
-        )}
-        <MiniButton
-          icon={paused ? Play : Pause}
-          title={
-            isVideo
-              ? paused
-                ? "Play the clip (Space)"
-                : "Pause the clip (Space)"
-              : paused
-                ? "Resume (Space)"
-                : "Pause (Space)"
-          }
-          active={paused}
-          onClick={onTogglePause}
-        />
-        {navigable && (
-          <MiniButton
-            icon={ChevronRight}
-            title="Next slide (→)"
-            onClick={onNext}
-          />
-        )}
-        {isVideo && (
-          <>
-            <MiniButton
-              icon={RotateCcw}
-              title="Replay the clip from the beginning"
-              onClick={onRestartVideo}
-            />
-            <MiniButton
-              icon={videoMuted ? VolumeX : Volume2}
-              title={videoMuted ? "Unmute the clip (M)" : "Mute the clip (M)"}
-              active={videoMuted}
-              onClick={onToggleVideoMuted}
-            />
-          </>
-        )}
-        <span
+        <div
+          {...(isVideo ? mediaSurfaceProps : {})}
           style={{
-            flex: 1,
-            minWidth: 0,
-            textAlign: "center",
-            fontFamily: fonts.ui,
-            fontSize: 10.5,
-            fontWeight: 600,
-            color: colors.dim,
-            fontVariantNumeric: "tabular-nums",
+            position: "relative",
+            aspectRatio: "16 / 9",
+            background: "#000",
           }}
-          className="ws-ellipsis"
         >
-          {navigable ? `${slideIndex + 1}/${total}` : ""}
-          {navigable && currentLabel ? " · " : ""}
-          {currentLabel}
-        </span>
-        {secondaryMenu}
-        {isLive ? (
-          <MiniButton
-            icon={MonitorOff}
-            title="Stop live, closing the audience display"
-            danger
-            onClick={onStopLive}
-          />
-        ) : (
-          <MiniButton
-            icon={MonitorUp}
-            title="Go live on the audience display"
-            onClick={onGoLive}
-          />
-        )}
-        <MiniButton
-          icon={Maximize2}
-          title="Open the full presentation view"
-          onClick={onOpenStage}
-        />
-        <MiniButton
-          icon={X}
-          title="End presentation (Esc)"
-          danger
-          onClick={onExit}
-        />
-      </div>
+          {content.kind === "text" && (
+            <SlideCanvas
+              slide={content.slide}
+              style={content.style}
+              lineStyles={content.lineStyles}
+              bg={content.background}
+              bgImage={content.backgroundImage}
+              radius={0}
+              fill
+            />
+          )}
+          {content.kind === "image" && (
+            <ImageSurface item={content.item} variant="thumb" />
+          )}
+          {isVideo && <PortalSlot host={videoHost} />}
+          {isVideo && videoProgress && (
+            <>
+              <VideoTimecode
+                progress={videoProgress}
+                style={{
+                  position: "absolute",
+                  left: 8,
+                  bottom: 10,
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  fontFamily: fonts.ui,
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: "#fff",
+                  background: "rgba(0,0,0,0.6)",
+                }}
+              />
+              <VideoScrubber
+                progress={videoProgress}
+                onSeek={onSeekVideo}
+                accent={colors.accent}
+              />
+            </>
+          )}
+          {secondaryLayer}
+        </div>
 
-      <div
-        style={{
-          padding: "0 10px 9px",
-          fontFamily: fonts.ui,
-          fontSize: 10,
-          lineHeight: 1.45,
-          color: focused ? colors.accentSoft : colors.dim,
-        }}
-      >
-        {focused
-          ? "Shortcuts active — arrows, Ctrl+number, P, Esc."
-          : "Click this window to use presentation shortcuts."}
+        {notes && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 7,
+              padding: "8px 10px",
+              borderTop: `1px solid ${colors.border}`,
+              background: fade(colors.accent, 0.09),
+            }}
+          >
+            <StickyNote
+              size={13}
+              color={colors.accentSoft}
+              style={{ flexShrink: 0, marginTop: 1 }}
+            />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                maxHeight: 66,
+                overflowY: "auto",
+                fontFamily: fonts.ui,
+                fontSize: 11.5,
+                fontWeight: 500,
+                lineHeight: 1.45,
+                color: colors.text,
+                whiteSpace: "pre-line",
+              }}
+            >
+              {notes}
+            </div>
+          </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 5,
+            padding: "8px 9px",
+            borderTop: `1px solid ${colors.border}`,
+          }}
+        >
+          {navigable && (
+            <MiniButton
+              icon={ChevronLeft}
+              title="Previous slide (←)"
+              onClick={onPrev}
+            />
+          )}
+          <MiniButton
+            icon={paused ? Play : Pause}
+            title={
+              isVideo
+                ? paused
+                  ? "Play the clip (Space)"
+                  : "Pause the clip (Space)"
+                : paused
+                  ? "Resume (Space)"
+                  : "Pause (Space)"
+            }
+            active={paused}
+            onClick={onTogglePause}
+          />
+          {navigable && (
+            <MiniButton
+              icon={ChevronRight}
+              title="Next slide (→)"
+              onClick={onNext}
+            />
+          )}
+          {isVideo && (
+            <>
+              <MiniButton
+                icon={RotateCcw}
+                title="Replay the clip from the beginning"
+                onClick={onRestartVideo}
+              />
+              <MiniButton
+                icon={videoMuted ? VolumeX : Volume2}
+                title={videoMuted ? "Unmute the clip (M)" : "Mute the clip (M)"}
+                active={videoMuted}
+                onClick={onToggleVideoMuted}
+              />
+            </>
+          )}
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              textAlign: "center",
+              fontFamily: fonts.ui,
+              fontSize: 10.5,
+              fontWeight: 600,
+              color: colors.dim,
+              fontVariantNumeric: "tabular-nums",
+            }}
+            className="ws-ellipsis"
+          >
+            {navigable ? `${slideIndex + 1}/${total}` : ""}
+            {navigable && currentLabel ? " · " : ""}
+            {currentLabel}
+          </span>
+          {secondaryMenu}
+          {isLive ? (
+            <MiniButton
+              icon={MonitorOff}
+              title="Stop live, closing the audience display"
+              danger
+              onClick={onStopLive}
+            />
+          ) : (
+            <MiniButton
+              icon={MonitorUp}
+              title="Go live on the audience display"
+              onClick={onGoLive}
+            />
+          )}
+          <MiniButton
+            icon={Maximize2}
+            title="Open the full presentation view"
+            onClick={onOpenStage}
+          />
+          <MiniButton
+            icon={X}
+            title="End presentation (Esc)"
+            danger
+            onClick={onExit}
+          />
+        </div>
+
+        <div
+          style={{
+            padding: "0 10px 9px",
+            fontFamily: fonts.ui,
+            fontSize: 10,
+            lineHeight: 1.45,
+            color: focused ? colors.accentSoft : colors.dim,
+          }}
+        >
+          {focused
+            ? "Shortcuts active — arrows, Ctrl+number, P, Esc."
+            : "Click this window to use presentation shortcuts."}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

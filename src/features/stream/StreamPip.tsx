@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useFloatingWindow } from "../../hooks/useFloatingWindow";
+import { FloatingWindowTab } from "../../components/ui/FloatingWindowTab";
 import { AudioSharingPill } from "./AudioSharingPill";
 import { CameraStatusOverlay } from "./components/CameraStatusOverlay";
 import { FloatingIconButton } from "./components/FloatingIconButton";
@@ -47,12 +48,13 @@ export const StreamPip = () => {
   const overlays = useStreamOverlays();
   const selectedOverlayId = useSelectedStreamOverlayId();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { position, handleProps } = useFloatingWindow({
-    width: PIP_WIDTH,
-    margin: PIP_MARGIN,
-    estimatedHeight: 220,
-    elementRef: rootRef,
-  });
+  const { position, handleProps, windowProps, stash, zIndex } =
+    useFloatingWindow({
+      width: PIP_WIDTH,
+      margin: PIP_MARGIN,
+      estimatedHeight: 220,
+      elementRef: rootRef,
+    });
 
   const cameras = session.cameras;
   const primaryIndex = cameras.findIndex(
@@ -65,144 +67,152 @@ export const StreamPip = () => {
     isPeerConnecting(primaryStatus) || !primary?.stream;
 
   return (
-    <div
-      ref={rootRef}
-      role="region"
-      aria-label="Floating camera"
-      style={{
-        position: "fixed",
-        left: position.x,
-        top: position.y,
-        width: PIP_WIDTH,
-        zIndex: 200,
-        borderRadius: 14,
-        overflow: "hidden",
-        background: colors.panelSolid,
-        border: `1px solid ${colors.border}`,
-        boxShadow: shadows.overlay,
-      }}
-    >
+    <>
+      <FloatingWindowTab
+        stash={stash}
+        label="Bring the floating camera back"
+        zIndex={zIndex}
+      />
       <div
-        {...handleProps}
+        ref={rootRef}
+        role="region"
+        aria-label="Floating camera"
+        onPointerDownCapture={windowProps.onPointerDownCapture}
         style={{
-          ...handleProps.style,
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          padding: "8px 10px",
-          borderBottom: `1px solid ${colors.border}`,
+          ...windowProps.style,
+          position: "fixed",
+          left: position.x,
+          top: position.y,
+          width: PIP_WIDTH,
+          borderRadius: 14,
+          overflow: "hidden",
+          background: colors.panelSolid,
+          border: `1px solid ${colors.border}`,
+          boxShadow: shadows.overlay,
         }}
       >
-        <GripHorizontal
-          size={14}
-          color={colors.dim}
-          style={{ flexShrink: 0 }}
-        />
-        <span
-          className="ws-ellipsis"
+        <div
+          {...handleProps}
           style={{
-            flex: 1,
-            minWidth: 0,
-            fontFamily: fonts.ui,
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: colors.text,
-          }}
-        >
-          {primary?.deviceName || FALLBACK_CAMERA_NAME}
-        </span>
-        <AudioSharingPill
-          available={Boolean(primary?.audioShared)}
-          muted={audio.muted}
-          size="sm"
-        />
-        {isLive && <StreamStatusBadge status="live" size="sm" />}
-      </div>
-
-      <div
-        style={{
-          position: "relative",
-          aspectRatio: "16 / 9",
-          background: stage.surface,
-        }}
-      >
-        <StreamVideo stream={primary?.stream ?? null} muted={isLive} />
-        <StreamPipLayer
-          windows={secondaryCameras(session).map(cameraPipWindow)}
-          forceMuted={isLive}
-        />
-        <StreamOverlayLayers
-          overlays={overlays}
-          live
-          muted
-          showDrafts
-          preview
-        />
-        <StreamOverlayEditor
-          overlays={overlays}
-          selectedId={selectedOverlayId}
-          onSelect={selectStreamOverlay}
-        />
-        <CameraStatusOverlay
-          status={primaryStatus}
-          hasStream={Boolean(primary?.stream)}
-          size="compact"
-        />
-      </div>
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "8px 9px",
-          borderTop: `1px solid ${colors.border}`,
-        }}
-      >
-        <FloatingIconButton
-          icon={isLive ? MonitorOff : MonitorUp}
-          title={
-            isLive
-              ? "End live. Close the external display."
-              : "Go live on the external display"
-          }
-          isDanger={isLive}
-          disabled={!isLive && isAwaitingConnection}
-          onClick={toggleLive}
-        />
-        {nextCamera && (
-          <FloatingIconButton
-            icon={SwitchCamera}
-            title={`Cut to ${nextCamera.deviceName}`}
-            disabled={isAwaitingConnection}
-            onClick={() => setPrimaryCamera(nextCamera.deviceId)}
-          />
-        )}
-        <span
-          style={{
-            flex: 1,
-            minWidth: 0,
+            ...handleProps.style,
             display: "flex",
-            justifyContent: "center",
+            alignItems: "center",
+            gap: 7,
+            padding: "8px 10px",
+            borderBottom: `1px solid ${colors.border}`,
           }}
         >
-          <StreamStatusBadge
-            status={connectionBadgeStatus(primaryStatus, isLive)}
+          <GripHorizontal
+            size={14}
+            color={colors.dim}
+            style={{ flexShrink: 0 }}
+          />
+          <span
+            className="ws-ellipsis"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontFamily: fonts.ui,
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: colors.text,
+            }}
+          >
+            {primary?.deviceName || FALLBACK_CAMERA_NAME}
+          </span>
+          <AudioSharingPill
+            available={Boolean(primary?.audioShared)}
+            muted={audio.muted}
             size="sm"
           />
-        </span>
-        <FloatingIconButton
-          icon={Maximize2}
-          title="Maximise to the full stream window"
-          onClick={() => setStreamMode("stage")}
-        />
-        <FloatingIconButton
-          icon={X}
-          title="Stop. Disconnect every camera."
-          isDanger
-          onClick={endStreamSession}
-        />
+          {isLive && <StreamStatusBadge status="live" size="sm" />}
+        </div>
+
+        <div
+          style={{
+            position: "relative",
+            aspectRatio: "16 / 9",
+            background: stage.surface,
+          }}
+        >
+          <StreamVideo stream={primary?.stream ?? null} muted={isLive} />
+          <StreamPipLayer
+            windows={secondaryCameras(session).map(cameraPipWindow)}
+            forceMuted={isLive}
+          />
+          <StreamOverlayLayers
+            overlays={overlays}
+            live
+            muted
+            showDrafts
+            preview
+          />
+          <StreamOverlayEditor
+            overlays={overlays}
+            selectedId={selectedOverlayId}
+            onSelect={selectStreamOverlay}
+          />
+          <CameraStatusOverlay
+            status={primaryStatus}
+            hasStream={Boolean(primary?.stream)}
+            size="compact"
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "8px 9px",
+            borderTop: `1px solid ${colors.border}`,
+          }}
+        >
+          <FloatingIconButton
+            icon={isLive ? MonitorOff : MonitorUp}
+            title={
+              isLive
+                ? "End live. Close the external display."
+                : "Go live on the external display"
+            }
+            isDanger={isLive}
+            disabled={!isLive && isAwaitingConnection}
+            onClick={toggleLive}
+          />
+          {nextCamera && (
+            <FloatingIconButton
+              icon={SwitchCamera}
+              title={`Cut to ${nextCamera.deviceName}`}
+              disabled={isAwaitingConnection}
+              onClick={() => setPrimaryCamera(nextCamera.deviceId)}
+            />
+          )}
+          <span
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
+              justifyContent: "center",
+            }}
+          >
+            <StreamStatusBadge
+              status={connectionBadgeStatus(primaryStatus, isLive)}
+              size="sm"
+            />
+          </span>
+          <FloatingIconButton
+            icon={Maximize2}
+            title="Maximise to the full stream window"
+            onClick={() => setStreamMode("stage")}
+          />
+          <FloatingIconButton
+            icon={X}
+            title="Stop. Disconnect every camera."
+            isDanger
+            onClick={endStreamSession}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };

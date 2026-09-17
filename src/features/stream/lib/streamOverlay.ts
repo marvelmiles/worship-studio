@@ -184,18 +184,3 @@ export const createMarqueeOverlay = (text: string): MarqueeOverlay => {
     fontScale: DEFAULT_MARQUEE_FONT_SCALE,
   };
 };
-
-export const reorderOverlays = (
-  overlays: StreamOverlay[],
-  id: string,
-  direction: number,
-): StreamOverlay[] => {
-  const from = overlays.findIndex((overlay) => overlay.id === id);
-  if (from === -1) return overlays;
-  const to = from + direction;
-  if (to < 0 || to >= overlays.length) return overlays;
-  const next = [...overlays];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
-  return next;
-};

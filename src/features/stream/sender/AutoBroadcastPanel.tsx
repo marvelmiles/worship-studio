@@ -5,6 +5,7 @@ import { Button } from "../../../components/ui/Button";
 import { InfoTip } from "../../../components/ui/InfoTip";
 import { StreamStatusBadge } from "../StreamStatusBadge";
 import { LobbyActions } from "../components/LobbyActions";
+import { QuickConnectNote } from "../components/QuickConnectNote";
 import { StreamStatusLine } from "../components/StreamStatusLine";
 import { openCamera } from "../lib/cameras";
 import { detectDeviceName } from "../lib/deviceName";
@@ -177,6 +178,7 @@ export const AutoBroadcastPanel = ({
         onFlip={() => void camera.flipCamera()}
         onStop={onBack}
       />
+      <QuickConnectNote />
       <LobbyActions>
         <Button variant="ghost" size="sm" onClick={onUseCode}>
           <KeyRound size={14} />

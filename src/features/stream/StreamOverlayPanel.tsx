@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   BookOpen,
-  ChevronDown,
-  ChevronUp,
   Eye,
   EyeOff,
   FileText,
@@ -41,7 +39,6 @@ import {
 import {
   addStreamOverlay,
   clearStreamOverlays,
-  moveStreamOverlay,
   removeStreamOverlay,
   takeAllStreamOverlaysOffAir,
   toggleStreamOverlayHidden,
@@ -330,16 +327,6 @@ const OverlayRow = ({
         label={live ? "Take off the broadcast" : "Show on the broadcast now"}
         accent={!live}
         onClick={() => toggleStreamOverlayLive(overlay.id)}
-      />
-      <RowButton
-        icon={ChevronUp}
-        label="Bring forward"
-        onClick={() => moveStreamOverlay(overlay.id, 1)}
-      />
-      <RowButton
-        icon={ChevronDown}
-        label="Send backward"
-        onClick={() => moveStreamOverlay(overlay.id, -1)}
       />
       <RowButton
         icon={Trash2}

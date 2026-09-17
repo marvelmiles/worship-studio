@@ -25,6 +25,7 @@ export const GoLiveTipDialog = () => {
     <Modal
       open={open}
       onClose={close}
+      dismissible={false}
       title="You're live"
       width={470}
       footer={

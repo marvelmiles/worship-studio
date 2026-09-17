@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useViewport } from "../../hooks/useViewport";
 import { useFullscreen } from "../../hooks/useFullscreen";
@@ -34,6 +34,9 @@ interface ProjectionSurfaceProps {
   onStop: () => void;
   onPopOut: () => void;
   onLiveChange?: (live: boolean) => void;
+  /** Floats above the stage: the surface owns a stacking context, so pop-outs
+   *  opened from its drawer have to live inside it to stay visible. */
+  children?: ReactNode;
 }
 
 export const ProjectionSurface = ({
@@ -45,6 +48,7 @@ export const ProjectionSurface = ({
   onStop,
   onPopOut,
   onLiveChange,
+  children,
 }: ProjectionSurfaceProps) => {
   const { colors, stage } = useUITheme();
   const { isLive, toggleLive } = useStreamGoLive();
@@ -157,6 +161,8 @@ export const ProjectionSurface = ({
           />
         )}
       </div>
+
+      {children}
     </div>
   );
 };

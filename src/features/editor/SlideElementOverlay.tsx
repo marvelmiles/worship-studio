@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent } from "react";
 import { ChevronUp, ChevronDown, Copy, Trash2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { SlideElementKind, SlideFrame } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
@@ -72,7 +73,8 @@ export interface SlideElementEditing<Kind extends string = SlideElementKind> {
   ) => void;
   onDuplicate: (element: SlideElementRef<Kind>) => void;
   onDelete: (element: SlideElementRef<Kind>) => void;
-  onReorder: (element: SlideElementRef<Kind>, direction: number) => void;
+  /** Omitted where the elements have no meaningful front-to-back order. */
+  onReorder?: (element: SlideElementRef<Kind>, direction: number) => void;
 }
 
 interface SlideElementOverlayProps<
@@ -292,8 +294,12 @@ export const SlideElementOverlay = <Kind extends string = SlideElementKind>({
                   below={element.frame.y < TOOLBAR_ABOVE_FROM}
                   onDuplicate={() => onDuplicate(element)}
                   onDelete={() => onDelete(element)}
-                  onForward={() => onReorder(element, 1)}
-                  onBackward={() => onReorder(element, -1)}
+                  onForward={
+                    onReorder ? () => onReorder(element, 1) : undefined
+                  }
+                  onBackward={
+                    onReorder ? () => onReorder(element, -1) : undefined
+                  }
                 />
                 {HANDLES.map((handle) => (
                   <span
@@ -329,8 +335,15 @@ interface ToolbarProps {
   below: boolean;
   onDuplicate: () => void;
   onDelete: () => void;
-  onForward: () => void;
-  onBackward: () => void;
+  onForward?: () => void;
+  onBackward?: () => void;
+}
+
+interface ToolbarButton {
+  icon: LucideIcon;
+  label: string;
+  fn: () => void;
+  danger: boolean;
 }
 
 const Toolbar = ({
@@ -341,14 +354,27 @@ const Toolbar = ({
   onBackward,
 }: ToolbarProps) => {
   const { colors } = useUITheme();
-  const buttons = [
-    { icon: ChevronUp, label: "Bring forward", fn: onForward, danger: false },
-    {
-      icon: ChevronDown,
-      label: "Send backward",
-      fn: onBackward,
-      danger: false,
-    },
+  const buttons: ToolbarButton[] = [
+    ...(onForward
+      ? [
+          {
+            icon: ChevronUp,
+            label: "Bring forward",
+            fn: onForward,
+            danger: false,
+          },
+        ]
+      : []),
+    ...(onBackward
+      ? [
+          {
+            icon: ChevronDown,
+            label: "Send backward",
+            fn: onBackward,
+            danger: false,
+          },
+        ]
+      : []),
     { icon: Copy, label: "Duplicate", fn: onDuplicate, danger: false },
     { icon: Trash2, label: "Delete", fn: onDelete, danger: true },
   ];
