@@ -1,9 +1,8 @@
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useDashboardData } from "./useDashboardData";
 import { GreetingHeader } from "./components/GreetingHeader";
-import { StatsGrid } from "./components/StatsGrid";
+import { OverviewGrid } from "./components/OverviewGrid";
 import { StorageCard } from "./components/StorageCard";
-import { QuickActions } from "./components/QuickActions";
 import { RecentActivities } from "./components/RecentActivities";
 import { ManuscriptsByCategory } from "./components/ManuscriptsByCategory";
 import { MostUsedArtifacts } from "./components/MostUsedArtifacts";
@@ -24,24 +23,16 @@ export const Dashboard = () => {
     storage && (storage.level !== "ok" || storage.backend !== "indexeddb");
 
   return (
-    <div
-      style={{
-        padding: "clamp(18px,4vw,32px) clamp(14px,4vw,36px)",
-        maxWidth: 1240,
-        margin: "0 auto",
-      }}
-    >
+    <div className="ws-page">
       <GreetingHeader
         label={greeting.label}
         heading={greeting.heading}
         tag={greeting.tag}
       />
 
-      <StatsGrid counts={counts} />
+      <OverviewGrid counts={counts} />
 
       {showStorage && <StorageCard storage={storage} />}
-
-      <QuickActions />
 
       <div
         style={{

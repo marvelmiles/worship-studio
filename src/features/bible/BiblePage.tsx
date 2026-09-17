@@ -66,22 +66,26 @@ export const BiblePage = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const readTarget = (
-    location.state as {
-      read?: { bookId: number; chapter: number; verse: number | null };
-    } | null
-  )?.read;
+  const arrivalState = location.state as {
+    read?: { bookId: number; chapter: number; verse: number | null };
+    tab?: BibleTab;
+  } | null;
+  const readTarget = arrivalState?.read;
+  const tabTarget = arrivalState?.tab;
   useEffect(() => {
-    if (!readTarget) return;
-    setReadingPosition({
-      bookId: readTarget.bookId,
-      chapter: readTarget.chapter,
-      verse: readTarget.verse ?? null,
-    });
-    setFocusVerse(readTarget.verse ?? 1);
-    setStep("read");
+    if (!readTarget && !tabTarget) return;
+    if (tabTarget) setTab(tabTarget);
+    if (readTarget) {
+      setReadingPosition({
+        bookId: readTarget.bookId,
+        chapter: readTarget.chapter,
+        verse: readTarget.verse ?? null,
+      });
+      setFocusVerse(readTarget.verse ?? 1);
+      setStep("read");
+    }
     navigate(location.pathname, { replace: true, state: null });
-  }, [readTarget, navigate, location.pathname]);
+  }, [readTarget, tabTarget, navigate, location.pathname]);
 
   const book = bookById(readingPosition.bookId);
   const savedCount = scriptures.filter((s) => !s.quick && !s.deleted).length;

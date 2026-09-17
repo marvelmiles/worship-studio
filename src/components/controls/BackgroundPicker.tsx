@@ -49,7 +49,8 @@ export const BackgroundPicker = ({
   const [editing, setEditing] = useState(false);
   const activeId = highlightId ?? value;
   const activeBackground = backgrounds.find((bg) => bg.id === activeId);
-  const canEditPicture = isImageBackground(activeBackground);
+  const canEditPicture =
+    isImageBackground(activeBackground) && Boolean(onImageSettingsChange);
 
   const options = [
     ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
@@ -106,7 +107,7 @@ export const BackgroundPicker = ({
                   style={{ width: "100%", height: "100%" }}
                 />
               </button>
-              {active && isImageBackground(bg) && (
+              {active && canEditPicture && (
                 <button
                   onClick={() => setEditing(true)}
                   title="Edit picture"

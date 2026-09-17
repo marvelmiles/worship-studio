@@ -26,12 +26,15 @@ export interface FeedbackTone {
   text: string;
 }
 
-export const feedbackTone = (hex: string): FeedbackTone => {
+export const feedbackTone = (
+  hex: string,
+  onColor = "#ffffff",
+): FeedbackTone => {
   return {
     base: hex,
     bg: fade(hex, 0.15),
     border: fade(hex, 0.42),
-    text: mix(hex, "#ffffff", 0.72),
+    text: mix(hex, onColor, 0.72),
   };
 };
 
@@ -53,6 +56,8 @@ export interface UIThemeColors {
   success: string;
   warning: string;
   info: string;
+  scrim: string;
+  scrimStrong: string;
 }
 
 export interface UITheme {
@@ -127,6 +132,10 @@ export const studioTheme: UITheme = {
     warning: "#f59e0b",
 
     info: accentSoft,
+
+    scrim: "rgba(9,9,11,0.66)",
+
+    scrimStrong: "rgba(9,9,11,0.9)",
   },
 
   fonts: {
@@ -235,6 +244,8 @@ export const themeCssVars = (theme: UITheme): Record<string, string> => {
     "--ws-success": c.success,
     "--ws-warning": c.warning,
     "--ws-info": c.info,
+    "--ws-scrim": c.scrim,
+    "--ws-scrim-strong": c.scrimStrong,
     "--ws-font-ui": theme.fonts.ui,
     "--ws-font-display": theme.fonts.display,
     "--ws-glass-bg": String(glass.background ?? c.panel),

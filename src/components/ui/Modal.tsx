@@ -12,6 +12,7 @@ interface ModalProps {
   width?: number;
   footer?: ReactNode;
   info?: ReactNode;
+  dismissible?: boolean;
 }
 
 export const Modal = ({
@@ -22,6 +23,7 @@ export const Modal = ({
   width = 520,
   footer,
   info,
+  dismissible = true,
 }: ModalProps) => {
   const { colors, fonts, glass, shadows } = useUITheme();
   if (!open) return null;
@@ -29,7 +31,7 @@ export const Modal = ({
     <div
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
+      onClick={dismissible ? onClose : undefined}
       style={{
         position: "fixed",
         inset: 0,
@@ -38,7 +40,7 @@ export const Modal = ({
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        background: "rgba(0,0,0,0.6)",
+        background: colors.scrim,
         backdropFilter: "blur(10px)",
         animation: "wfFade .18s ease",
       }}
@@ -49,7 +51,9 @@ export const Modal = ({
           width: "100%",
           maxWidth: width,
           maxHeight: "90vh",
-          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
           ...glass,
           borderRadius: 20,
           background: colors.panel,
@@ -61,8 +65,10 @@ export const Modal = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            gap: 8,
             padding: "18px 22px",
             borderBottom: `1px solid ${colors.border}`,
+            flexShrink: 0,
           }}
         >
           <h3
@@ -79,17 +85,32 @@ export const Modal = ({
           {info && (
             <div style={{ marginRight: "auto", marginLeft: 6 }}>{info}</div>
           )}
-          <IconButton icon={X} onClick={onClose} title="Close" />
+          {dismissible && (
+            <IconButton icon={X} onClick={onClose} title="Close" />
+          )}
         </div>
-        <div style={{ padding: 22 }}>{children}</div>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            padding: 22,
+          }}
+        >
+          {children}
+        </div>
         {footer && (
           <div
             style={{
               display: "flex",
+              alignItems: "center",
               justifyContent: "flex-end",
+              flexWrap: "wrap",
               gap: 10,
               padding: "16px 22px",
               borderTop: `1px solid ${colors.border}`,
+              flexShrink: 0,
             }}
           >
             {footer}

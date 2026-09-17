@@ -283,6 +283,7 @@ export interface Prefs {
   defaultManuscriptThemeId: string;
   defaultScriptureThemeId: string;
   onboarded: boolean;
+  goLiveTipDismissed: boolean;
 }
 
 export interface ResolvedStyle {

@@ -88,7 +88,7 @@ const tagShortcuts: Shortcut[] = FIXED_TAG_SHORTCUTS.map((tag) => ({
 export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Editors",
-    note: "Available in the manuscript, scripture, image and video editors. Update presentation only acts while that document is the one being presented.",
+    note: "Available in the manuscript, scripture, image, video, sound and theme editors. Undo, redo and the present commands only appear where they apply, and Update presentation only acts while that document is the one being presented.",
     shortcuts: [
       editorCommandShortcut("save"),
       editorCommandShortcut("updatePresentation"),
@@ -99,6 +99,22 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
         keys: ["Ctrl", "+", "Y"],
         description: "Redo (Ctrl+Shift+Z works too)",
       },
+    ],
+  },
+  {
+    title: "Live Window",
+    note: "The window Go Live opens on the audience screen. It asks for fullscreen by itself once it lands on the projector; when the browser refuses that, these keys fill the screen. The fullscreen arrow at its top right corner does the same.",
+    shortcuts: [
+      {
+        keys: ["F11"],
+        description:
+          "Fill the external screen, pressed right after Go Live while that window has focus",
+      },
+      {
+        keys: ["F"],
+        description: "Toggle fullscreen from inside the live window",
+      },
+      { keys: ["Esc"], description: "Leave fullscreen" },
     ],
   },
   {

@@ -101,3 +101,6 @@ export const THEMES: Theme[] = [
     animation: "fade",
   },
 ];
+
+export const builtInTheme = (id: string): Theme | undefined =>
+  THEMES.find((theme) => theme.id === id);

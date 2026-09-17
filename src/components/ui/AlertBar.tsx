@@ -15,9 +15,9 @@ export const AlertBar = () => {
   const { fonts, colors } = useUITheme();
   const UI = fonts.ui;
   const tones: Record<AppAlert["kind"], ReturnType<typeof feedbackTone>> = {
-    error: feedbackTone(colors.danger),
-    warning: feedbackTone(colors.warning),
-    info: feedbackTone(colors.info),
+    error: feedbackTone(colors.danger, colors.text),
+    warning: feedbackTone(colors.warning, colors.text),
+    info: feedbackTone(colors.info, colors.text),
   };
   const alerts = useStore((s) => s.alerts);
   const dismissAlert = useStore((s) => s.dismissAlert);

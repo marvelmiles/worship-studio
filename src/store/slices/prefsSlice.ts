@@ -18,6 +18,7 @@ export const DEFAULT_PREFS: Prefs = {
   defaultManuscriptThemeId: "classic",
   defaultScriptureThemeId: "scripture",
   onboarded: false,
+  goLiveTipDismissed: false,
 };
 
 export interface PrefsSlice {

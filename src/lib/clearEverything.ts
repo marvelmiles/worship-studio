@@ -1,3 +1,5 @@
+import { showStorageClearedNotice } from "./storageClearedNotice";
+
 const clearEverything = async () => {
   try {
     localStorage.clear();
@@ -77,7 +79,9 @@ const clearEverything = async () => {
     console.error("Cache Storage:", err);
   }
 
-  alert("All browser storage has been cleared.\nThe page will now reload.");
+  await showStorageClearedNotice(
+    "All browser storage has been cleared. The page will now reload.",
+  );
 
   window.location.replace(window.location.pathname);
 };

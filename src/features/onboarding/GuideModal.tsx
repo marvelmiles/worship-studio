@@ -7,8 +7,10 @@ import {
   HelpCircle,
   Image as ImageIcon,
   Keyboard,
+  Menu,
   MonitorUp,
   Palette,
+  Radio,
   Save,
   Settings,
   WifiOff,
@@ -22,13 +24,13 @@ import { Button } from "../../components/ui/Button";
 const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Save,
-    title: "Everything auto-saves",
-    desc: "There's no Save button. Edits, restyling, reordering, inserting slides, and any setting are stored on your device the moment you make them.",
+    title: "You decide when to save",
+    desc: "Every editor keeps your work as a draft until you save it. The Save button turns blue the moment there is something unsaved, Ctrl+S saves from anywhere in the editor, and leaving a page with unsaved work asks you first. Ctrl+Z and Ctrl+Y undo and redo while you edit.",
   },
   {
     icon: FileText,
     title: "Lyrics become slides, then shape them",
-    desc: "Paste lyrics (optionally tagged [verse], [chorus] or [bridge]; [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide, all from the slide inspector or by right-clicking a slide.",
+    desc: "Paste lyrics (optionally tagged [verse], [chorus] or [bridge]; [solo] counts as a verse too) and WorshipStudio builds clean, auto-numbered slides. From there it's easy to build the flow: split a slide in two, merge it into the next, duplicate, reorder by dragging, or insert a new slide, all from the slide inspector or by right-clicking a slide. You can also drop pictures, clips and free text boxes anywhere on a slide.",
   },
   {
     icon: BookOpen,
@@ -37,18 +39,23 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   },
   {
     icon: Film,
-    title: "Images and videos too",
-    desc: "Upload images and videos from their tabs, polish them with the built-in editors (filters, rotate, trim, volume…), and project them the same way. Presenting an image lets you flip through your whole image library like a slideshow.",
+    title: "Images, videos and sound",
+    desc: "Upload images and videos from their tabs and polish them in the built-in editors: filters, rotate and screen fit for images; trim, volume, speed and set-to-playhead for videos. Sounds get their own editor too, and any video can become a moving background or a slide's audio.",
   },
   {
     icon: MonitorUp,
-    title: "Present over HDMI",
-    desc: "Connect a projector or TV, click Present, then Go Live to project fullscreen on that screen while you keep the controls and notes on yours. Manuscripts, scripture, images and videos all go live the same way.",
+    title: "Present over HDMI, then fill the screen",
+    desc: "Connect a projector or TV, click Present, then Go Live to open the audience window on that screen while the controls and notes stay on yours. Press F11 straight after Go Live to fill the external screen, or use the fullscreen arrow at its top right corner.",
   },
   {
     icon: Palette,
     title: "Themes do the styling for you",
-    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a manuscript's settings and every slide in it instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own on the Themes page, opened from the palette icon; change a theme and the manuscripts using it update to match. Any individual slide can still override the look in the inspector.",
+    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. The Themes page works like an editor, with every theme in a scrolling sidebar and the one you picked open beside it. Pick a theme in a manuscript's settings and every slide follows it; built-in themes can be edited but not deleted, and any slide can still override the look in its inspector.",
+  },
+  {
+    icon: Radio,
+    title: "Put a phone camera on the screen",
+    desc: "The Stream tab pairs another device over your WiFi by scanning a QR code or typing a short code. Project the camera full screen, keep a second one in a corner or waiting off screen, preview any of them in a floating window first, and lay text, announcements, pictures or clips over the broadcast. It needs an https address on both devices.",
   },
   {
     icon: WifiOff,
@@ -66,7 +73,7 @@ const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
   {
     icon: ImageIcon,
     name: "Asset Library",
-    desc: "Manage background images, custom colors, and audio.",
+    desc: "Manage background images, custom colors, and sounds.",
   },
   {
     icon: Palette,
@@ -76,17 +83,22 @@ const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
   {
     icon: Keyboard,
     name: "Shortcuts",
-    desc: "Every keyboard control available while presenting.",
+    desc: "Every keyboard control, grouped by where it works.",
   },
   {
     icon: Settings,
     name: "Settings",
     desc: "Presentation options, transitions, audio, backup, and reset.",
   },
+  {
+    icon: Menu,
+    name: "Menu",
+    desc: "Appears only when the screen is too narrow for every icon, and holds whatever did not fit.",
+  },
 ];
 
 export const GuideModal = () => {
-  const { colors, fonts, glass } = useUITheme();
+  const { colors, fonts, glass, shadows } = useUITheme();
   const showGuide = useStore((s) => s.showGuide);
   const completeGuide = useStore((s) => s.completeGuide);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -110,7 +122,7 @@ export const GuideModal = () => {
         alignItems: "center",
         justifyContent: "center",
         padding: 18,
-        background: fade(colors.bg, 0.82),
+        background: colors.scrim,
         backdropFilter: "blur(8px)",
         animation: "wfFade .2s ease",
       }}
@@ -128,7 +140,7 @@ export const GuideModal = () => {
           backdropFilter: glass.backdropFilter,
           WebkitBackdropFilter: glass.WebkitBackdropFilter,
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
+          boxShadow: shadows.overlay,
         }}
       >
         <div
@@ -181,8 +193,8 @@ export const GuideModal = () => {
             }}
           >
             WorshipStudio is a light, distraction-free studio for presenting
-            manuscripts, scripture, images and videos reliably. Here are a few
-            things worth knowing before you start.
+            manuscripts, scripture, images, videos and live cameras reliably.
+            Here are a few things worth knowing before you start.
           </p>
 
           {TIPS.map((tip) => (

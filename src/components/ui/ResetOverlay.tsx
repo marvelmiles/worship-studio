@@ -15,7 +15,7 @@ export const ResetOverlay = () => {
         display: "grid",
         placeItems: "center",
         padding: 24,
-        background: "rgba(0,0,0,0.9)",
+        background: colors.scrimStrong,
         backdropFilter: "blur(8px)",
       }}
     >

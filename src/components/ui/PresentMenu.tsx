@@ -30,7 +30,7 @@ export const PresentMenu = ({
   hints,
   children,
 }: PresentMenuProps) => {
-  const { colors } = useUITheme();
+  const { colors, shadows } = useUITheme();
   const present = usePresentActions(onPresent);
   const [open, setOpen] = useState(false);
 
@@ -78,7 +78,7 @@ export const PresentMenu = ({
           backdropFilter: "blur(18px) saturate(150%)",
           WebkitBackdropFilter: "blur(18px) saturate(150%)",
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 18px 50px rgba(0,0,0,0.55)",
+          boxShadow: shadows.overlay,
         }}
       >
         <MenuOption

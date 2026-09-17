@@ -98,7 +98,8 @@ export const UploadLabelModal = () => {
   return (
     <Modal
       open
-      onClose={saving ? () => {} : cancel}
+      onClose={cancel}
+      dismissible={false}
       title={title}
       width={520}
       info={
@@ -111,9 +112,7 @@ export const UploadLabelModal = () => {
       }
       footer={
         <>
-          <Button onClick={cancel} disabled={saving}>
-            Cancel
-          </Button>
+          <Button onClick={cancel}>Cancel</Button>
           <Button
             variant="primary"
             onClick={() => void commit(labels)}
@@ -135,7 +134,8 @@ export const UploadLabelModal = () => {
           }}
         >
           {pending.savedCount} of {count} uploaded. Please keep this window
-          open.
+          open. Cancelling stops the upload and removes everything this batch
+          has already added.
         </p>
       ) : null}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

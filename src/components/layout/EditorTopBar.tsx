@@ -21,19 +21,23 @@ interface EditorTopBarProps {
   title: string;
   onTitle: (title: string) => void;
   compact: boolean;
-  backTitle: string;
-  onBack: () => void;
+  titleLabel?: string;
+  backTitle?: string;
+  onBack?: () => void;
+  leading?: ReactNode;
   onPresent?: (options: { pip: boolean }) => void;
   actions?: ReactNode;
   dirty: boolean;
   titleError?: string | null;
   invalid?: boolean;
   invalidReason?: string | null;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
   onSave: () => void;
+  saveLabel?: string;
+  savedLabel?: string;
   onUpdatePresentation?: () => void;
   onSyncFromPresentation?: () => void;
 }
@@ -42,8 +46,10 @@ export const EditorTopBar = ({
   title,
   onTitle,
   compact,
+  titleLabel = "Title",
   backTitle,
   onBack,
+  leading,
   onPresent,
   actions,
   dirty,
@@ -55,6 +61,8 @@ export const EditorTopBar = ({
   onUndo,
   onRedo,
   onSave,
+  saveLabel = "Save",
+  savedLabel = "Saved",
   onUpdatePresentation,
   onSyncFromPresentation,
 }: EditorTopBarProps) => {
@@ -85,12 +93,19 @@ export const EditorTopBar = ({
         flexWrap: "wrap",
       }}
     >
-      <IconButton icon={ArrowLeft} title={backTitle} onClick={onBack} />
+      {onBack && (
+        <IconButton
+          icon={ArrowLeft}
+          title={backTitle ?? "Back"}
+          onClick={onBack}
+        />
+      )}
+      {leading}
       <div style={{ flex: 1, minWidth: 120 }}>
         <input
           value={title}
           onChange={(event) => onTitle(event.target.value)}
-          aria-label="Title"
+          aria-label={titleLabel}
           aria-invalid={titleError ? true : undefined}
           style={{
             width: "100%",
@@ -120,18 +135,22 @@ export const EditorTopBar = ({
           </span>
         )}
       </div>
-      <IconButton
-        icon={Undo2}
-        title="Undo (Ctrl+Z)"
-        disabled={!canUndo}
-        onClick={onUndo}
-      />
-      <IconButton
-        icon={Redo2}
-        title="Redo (Ctrl+Y)"
-        disabled={!canRedo}
-        onClick={onRedo}
-      />
+      {onUndo && (
+        <IconButton
+          icon={Undo2}
+          title="Undo (Ctrl+Z)"
+          disabled={!canUndo}
+          onClick={onUndo}
+        />
+      )}
+      {onRedo && (
+        <IconButton
+          icon={Redo2}
+          title="Redo (Ctrl+Y)"
+          disabled={!canRedo}
+          onClick={onRedo}
+        />
+      )}
       {actions}
       {onSyncFromPresentation &&
         (compact ? (
@@ -181,7 +200,7 @@ export const EditorTopBar = ({
           onClick={onSave}
         >
           <Save size={14} />
-          {dirty ? "Save" : "Saved"}
+          {dirty ? saveLabel : savedLabel}
         </Button>
       )}
       {onPresent && (

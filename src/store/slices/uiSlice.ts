@@ -16,6 +16,7 @@ export interface UiSlice {
   toasts: Toast[];
   alerts: AppAlert[];
   showGuide: boolean;
+  goLiveTipOpen: boolean;
 
   openOverlay: (
     name: OverlayName,
@@ -29,6 +30,8 @@ export interface UiSlice {
   dismissAlert: (id: string) => void;
   clearAlert: (key: string) => void;
   completeGuide: () => void;
+  showGoLiveTip: () => void;
+  dismissGoLiveTip: (dontShowAgain: boolean) => void;
   runCapabilityCheck: () => void;
 }
 
@@ -39,6 +42,7 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, get) => ({
   toasts: [],
   alerts: [],
   showGuide: false,
+  goLiveTipOpen: false,
 
   openOverlay: (name, context, options) =>
     set({
@@ -73,13 +77,26 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, get) => ({
     get().savePrefs({ ...get().prefs, onboarded: true });
   },
 
+  showGoLiveTip: () => {
+    if (get().prefs.goLiveTipDismissed) return;
+    set({ goLiveTipOpen: true });
+  },
+
+  dismissGoLiveTip: (dontShowAgain) => {
+    set({ goLiveTipOpen: false });
+    if (dontShowAgain)
+      get().savePrefs({ ...get().prefs, goLiveTipDismissed: true });
+  },
+
   runCapabilityCheck: () => {
     const missing = missingCapabilities();
     if (missing.length === 0) return;
     const critical = missing.some((m) => m.critical);
     const names = missing.map((m) => m.label).join(", ");
     get().pushAlert(
-      `${critical ? "Your browser is missing features WorshipStudio needs" : "Your browser is missing some features"} (${names}). For the best experience, please update to the latest version of your browser.`,
+      critical
+        ? `This browser is missing features WorshipStudio needs to run: ${names}. Please update to the latest version of your browser.`
+        : `Some features are unavailable in this browser: ${names}. Everything else works; updating your browser usually restores them.`,
       critical ? "error" : "warning",
       "capabilities",
     );

@@ -4,6 +4,7 @@ import type {
   InputHTMLAttributes,
   ReactNode,
 } from "react";
+import { Check } from "lucide-react";
 import { themeVar } from "../../theme/cssVars";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
@@ -242,6 +243,60 @@ export const Toggle = ({ checked, onChange, label }: ToggleProps) => {
         />
       </div>
     </div>
+  );
+};
+
+interface CheckboxProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+}
+
+export const Checkbox = ({ checked, onChange, label }: CheckboxProps) => {
+  const { colors, fonts } = useUITheme();
+  return (
+    <label
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 9,
+        cursor: "pointer",
+        fontFamily: fonts.ui,
+        fontSize: 13,
+        color: colors.sub,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: "none",
+        }}
+      />
+      <span
+        aria-hidden
+        style={{
+          width: 18,
+          height: 18,
+          flexShrink: 0,
+          borderRadius: 5,
+          display: "grid",
+          placeItems: "center",
+          background: checked ? colors.accent : "transparent",
+          border: `1px solid ${checked ? colors.accent : colors.borderStrong}`,
+          color: colors.onAccent,
+          transition: "all .15s ease",
+        }}
+      >
+        {checked && <Check size={13} strokeWidth={3} />}
+      </span>
+      {label}
+    </label>
   );
 };
 

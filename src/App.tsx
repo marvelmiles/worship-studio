@@ -8,6 +8,7 @@ import { Toaster } from "./components/ui/Toaster";
 import { AlertBar } from "./components/ui/AlertBar";
 import { StorageGate } from "./components/ui/StorageGate";
 import { UploadLabelModal } from "./components/ui/UploadLabelModal";
+import { GoLiveTipDialog } from "./components/ui/GoLiveTipDialog";
 import { ResetOverlay } from "./components/ui/ResetOverlay";
 import { LoadingArea } from "./components/ui/Spinner";
 import { GuideModal } from "./features/onboarding/GuideModal";
@@ -70,7 +71,7 @@ const App = () => {
           minHeight: 0,
           overflowX: "hidden",
           overflowY:
-            ["/scripture", "/bible"].some((p) =>
+            ["/scripture", "/bible", "/themes"].some((p) =>
               location.pathname.startsWith(p),
             ) ||
             /^\/(manuscripts|images|videos|audio)\/./.test(location.pathname)
@@ -112,6 +113,7 @@ const App = () => {
       <ShortcutsModal />
       <AboutModal />
       <UploadLabelModal />
+      <GoLiveTipDialog />
       <GuideModal />
       <UpdateModal />
       <ResetOverlay />

@@ -1,12 +1,6 @@
-import { useUITheme } from "../../../theme/ThemeProvider";
+import { PanelTabs, type PanelTab } from "../../../components/ui/PanelTabs";
 
 export type WorkspaceTab = "slides" | "edit" | "style";
-
-const TABS: { id: WorkspaceTab; label: string }[] = [
-  { id: "slides", label: "Slides" },
-  { id: "edit", label: "Edit" },
-  { id: "style", label: "Style" },
-];
 
 interface WorkspaceTabBarProps {
   tab: WorkspaceTab;
@@ -19,40 +13,17 @@ export const WorkspaceTabBar = ({
   onChange,
   hasSlide,
 }: WorkspaceTabBarProps) => {
-  const { colors, fonts } = useUITheme();
+  const tabs: PanelTab<WorkspaceTab>[] = [
+    { id: "slides", label: "Slides" },
+    { id: "edit", label: "Edit" },
+    { id: "style", label: "Style", disabled: !hasSlide },
+  ];
   return (
-    <div
-      style={{ display: "flex", borderBottom: `1px solid ${colors.border}` }}
-    >
-      {TABS.map(({ id, label }) => {
-        const isActive = tab === id;
-        const isDisabled = id === "style" && !hasSlide;
-        return (
-          <button
-            key={id}
-            disabled={isDisabled}
-            onClick={() => onChange(id)}
-            style={{
-              flex: 1,
-              padding: "12px 0",
-              background: "transparent",
-              border: "none",
-              borderBottom: `2px solid ${isActive ? colors.accent : "transparent"}`,
-              color: isActive
-                ? colors.accentSoft
-                : isDisabled
-                  ? colors.dim
-                  : colors.sub,
-              fontFamily: fonts.ui,
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: isDisabled ? "not-allowed" : "pointer",
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <PanelTabs
+      tabs={tabs}
+      value={tab}
+      onChange={onChange}
+      ariaLabel="Editor panels"
+    />
   );
 };

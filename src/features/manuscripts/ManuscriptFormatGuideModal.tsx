@@ -158,7 +158,7 @@ const Mark = ({ children }: { children: ReactNode }) => {
 
 const RegenerateWarning = () => {
   const { colors, fonts } = useUITheme();
-  const tone = feedbackTone(colors.danger);
+  const tone = feedbackTone(colors.danger, colors.text);
   return (
     <div
       role="note"

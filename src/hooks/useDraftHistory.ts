@@ -17,6 +17,7 @@ export interface DraftHistory<T> {
   undo: () => void;
   redo: () => void;
   markSaved: () => void;
+  commit: (next: T) => void;
   reset: (next: T) => void;
 }
 
@@ -80,6 +81,13 @@ export const useDraftHistory = <T>(initial: T): DraftHistory<T> => {
 
   const markSaved = useCallback(() => setSaved(latest.current), []);
 
+  /* Saving may normalise what it writes, so the draft settles on the value that
+     actually reached the store and the edit history is left untouched. */
+  const commit = useCallback((next: T) => {
+    setDraft(next);
+    setSaved(next);
+  }, []);
+
   const reset = useCallback((next: T) => {
     coalesce.current = null;
     setPast([]);
@@ -98,6 +106,7 @@ export const useDraftHistory = <T>(initial: T): DraftHistory<T> => {
     undo,
     redo,
     markSaved,
+    commit,
     reset,
   };
 };

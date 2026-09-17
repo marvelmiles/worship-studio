@@ -4,57 +4,45 @@ import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 
 export const SHOW_UPDATE = true;
-const UPDATE_KEY = "ws-update-2026-08-03-r5";
+const UPDATE_KEY = "ws-update-2026-09-17-r6";
 
 const CHANGES: { title: string; body: string }[] = [
   {
-    title: "Word-Style Text Formatting",
-    body: "Highlight any word, phrase or line in the slide text or the manuscript editor and apply bold, italic, underline, strikethrough or highlight from the new formatting toolbar in the Inspector. Ctrl+B, Ctrl+I, Ctrl+U, Ctrl+D and Ctrl+H work while you type, and Clear formatting strips the marks back off.",
+    title: "The Dashboard Fits on Two Rows",
+    body: "The stat tiles and the quick actions now share one grid that settles into two rows on a desktop screen. Every stat is clickable and opens the module it counts, so the number of manuscripts takes you to the library and the number of passages opens your saved passages. The quick actions are down to the three that matter: New Manuscript, Manage Themes and Upload Assets.",
   },
   {
-    title: "Declared Headings Name the Manuscript",
-    body: "Start pasted text with a line like HYMN: Ancient Words, SONG: … or SERMON: … and that line becomes the manuscript's title and files it in the matching collection, instead of being sung as the first verse.",
+    title: "Themes Page Rebuilt as an Editor",
+    body: "Themes now works the way the manuscript editor does. Every theme sits in a sidebar that scrolls on its own while the editor beside it stays put, the theme name is edited in the top bar, and Save theme (or Ctrl+S) commits your changes. Leaving with unsaved work asks first, and deleting a theme now confirms before it goes.",
   },
   {
-    title: "Per-Manuscript Keyboard Shortcut Mode",
-    body: 'Manuscripts have a Keyboard Shortcut Mode setting in Manuscript Settings → Keyboard Shortcuts. Choose "Tag first slide only" (default) to assign Ctrl+number shortcuts to the first slide of each section, or "Every slide" to assign a unique number to each individual slide for granular navigation during presentation.',
+    title: "A Header That Never Squeezes",
+    body: "The header now spends the width it has on whole icons instead of cramming them. Wide screens keep the full labelled navigation, narrower ones drop to icons, and only when even the icons will not fit does a menu button appear, holding whatever did not fit with labels and descriptions.",
   },
   {
-    title: "Keyboard Shortcuts: Clearer Ctrl Key",
-    body: 'Keyboard shortcuts in the slide list now display a bold, raised "Ctrl" key badge so you can instantly see which keys to press. The shortcut for jumping to the first Chorus slide (Ctrl+C) is highlighted.',
+    title: "Uploads Cancel Cleanly",
+    body: "The upload dialog no longer closes when you click outside it or press the corner cross. Cancel is the one way out, and it stops the upload where it is and removes anything that batch had already added, so a half-finished import never leaves stray files in your library.",
   },
   {
-    title: "Classic Theme: Larger Default Font",
-    body: "The Classic Worship theme now defaults to a font size of 6 (up from 5.6) for better on-screen readability, and it is listed first in the theme picker.",
+    title: "A Fullscreen Reminder When You Go Live",
+    body: "Going live now shows a short note explaining that F11, pressed straight after Go Live, fills the external screen, and that the fullscreen arrow at the top right corner of the live window does the same. Tick Don't show again and it stays out of the way from then on. The same explanation is now in About & Help and in the shortcuts list.",
   },
   {
-    title: "Split Slides No Longer Inherit Shortcuts",
-    body: "When you split a slide (or the parser auto-splits a long section into multiple slides), only the original first slide of that section keeps its Ctrl+number shortcut. Any newly created split slide will never be assigned its own shortcut number, keeping navigation clean and predictable.",
+    title: "Refreshed Help, Tour and Shortcuts",
+    body: "About & Help, the welcome tour and the keyboard shortcut list have been rewritten around what the app actually does today: explicit saving with Ctrl+S, camera streaming, the picture, clip and text box elements on slides, the sound editor, and phone-sized layouts. Anything that no longer matched, like the old everything-auto-saves promise, is gone.",
   },
   {
-    title: "Regenerate Slides Selects the First Slide",
-    body: "After clicking Regenerate Slides from the manuscript text editor, the first slide of the newly generated set is now automatically selected so you can immediately start reviewing or editing it.",
+    title: "A Sharper Browser Support Check",
+    body: "The startup check now tests the features the app really uses, including WebRTC and camera access for streaming, Web Workers for QR pairing, canvas for the image editors and speech synthesis for reading scripture aloud, and it tells you which ones are unavailable instead of naming APIs you never touch.",
   },
   {
-    title: "New Slide Inserts After Current Slide",
-    body: "When you add a new slide in the editor, it now inserts immediately after the currently selected slide instead of appending to the end of the list. This makes it much faster to build out a manuscript without having to drag the new slide into position.",
-  },
-  {
-    title: "Slide Background Shown in Presentation Mode",
-    body: "The presentation stage now renders each slide's own background (image, solid colour, or gradient) directly on the stage so the background fills the entire screen, not just the slide canvas area. The previous solid-black backdrop is gone.",
-  },
-  {
-    title: "PWA Auto-Updates When You Return to the App",
-    body: "The installed PWA now checks for a new version every time you bring the app back into the foreground (e.g. after switching away and returning). Updates apply automatically in the background with no manual refresh needed. It also polls for updates once per hour while the tab stays open.",
-  },
-  {
-    title: "Update Notifications",
-    body: 'WorshipStudio now shows a brief update modal when new features or improvements arrive. Scroll to the bottom and click "Understood" to dismiss it; it will not show again unless there is something new.',
+    title: "Consistent Alerts and Overlays",
+    body: "Alerts, dialogs, drawers and every full-screen overlay now take their scrim, shadow and text colors from the theme rather than hardcoding them, so the whole app stays in one palette. The last browser alert box in the app has been replaced with a themed notice.",
   },
 ];
 
 export const UpdateModal = () => {
-  const { colors, fonts, glass } = useUITheme();
+  const { colors, fonts, glass, shadows } = useUITheme();
   const [open, setOpen] = useState(false);
   const [atBottom, setAtBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,7 +79,7 @@ export const UpdateModal = () => {
         alignItems: "center",
         justifyContent: "center",
         padding: 20,
-        background: fade(colors.bg, 0.82),
+        background: colors.scrim,
         backdropFilter: "blur(8px)",
         animation: "wfFade .2s ease",
       }}
@@ -105,7 +93,7 @@ export const UpdateModal = () => {
           maxHeight: "88vh",
           ...glass,
           background: colors.panel,
-          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
+          boxShadow: shadows.overlay,
         }}
       >
         <div
@@ -185,7 +173,7 @@ export const UpdateModal = () => {
                     placeItems: "center",
                     fontSize: 11,
                     fontWeight: 800,
-                    color: "#ffffff",
+                    color: colors.onAccent,
                     flexShrink: 0,
                     fontFamily: fonts.ui,
                   }}
@@ -244,8 +232,8 @@ export const UpdateModal = () => {
               cursor: atBottom ? "pointer" : "not-allowed",
               background: atBottom
                 ? `linear-gradient(135deg,${colors.accentSoft},${colors.accent})`
-                : "rgba(255,255,255,0.07)",
-              color: atBottom ? "#ffffff" : colors.dim,
+                : fade(colors.text, 0.07),
+              color: atBottom ? colors.onAccent : colors.dim,
               transition: "background 0.25s, color 0.25s",
             }}
           >

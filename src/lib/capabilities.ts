@@ -13,24 +13,16 @@ const safe = (test: () => boolean): boolean => {
   }
 };
 
+const hasWindowProperty = (name: string): boolean =>
+  safe(() => typeof window !== "undefined" && name in window);
+
 export const checkCapabilities = (): Capability[] => {
   return [
     {
-      id: "indexeddb",
-      label: "Offline database (IndexedDB)",
-      critical: false,
-      ok: safe(() => typeof indexedDB !== "undefined"),
-    },
-    {
-      id: "sessionStorage",
-      label: "Session storage",
-      critical: false,
-      ok: safe(() => {
-        const k = "__ws_cap__";
-        sessionStorage.setItem(k, "1");
-        sessionStorage.removeItem(k);
-        return true;
-      }),
+      id: "promise",
+      label: "Modern JavaScript (Promises)",
+      critical: true,
+      ok: safe(() => typeof Promise !== "undefined"),
     },
     {
       id: "fileApi",
@@ -54,34 +46,49 @@ export const checkCapabilities = (): Capability[] => {
       ),
     },
     {
+      id: "indexeddb",
+      label: "Offline library (IndexedDB)",
+      critical: false,
+      ok: safe(() => typeof indexedDB !== "undefined"),
+    },
+    {
+      id: "localStorage",
+      label: "Remembering your place in the Bible",
+      critical: false,
+      ok: safe(() => {
+        const key = "__ws_cap__";
+        localStorage.setItem(key, "1");
+        localStorage.removeItem(key);
+        return true;
+      }),
+    },
+    {
+      id: "canvas",
+      label: "Thumbnails and image editing (Canvas)",
+      critical: false,
+      ok: safe(
+        () =>
+          typeof document.createElement("canvas").getContext === "function" &&
+          Boolean(document.createElement("canvas").getContext("2d")),
+      ),
+    },
+    {
       id: "imageBitmap",
-      label: "Image thumbnails (createImageBitmap)",
+      label: "Fast image thumbnails (createImageBitmap)",
       critical: false,
       ok: safe(() => typeof createImageBitmap === "function"),
     },
     {
-      id: "promise",
-      label: "Modern JavaScript (Promises)",
-      critical: true,
-      ok: safe(() => typeof Promise !== "undefined"),
-    },
-    {
-      id: "serviceWorker",
-      label: "Offline mode (Service Worker)",
+      id: "projection",
+      label: "Second-screen projection (Go Live)",
       critical: false,
-      ok: safe(() => "serviceWorker" in navigator),
+      ok: safe(() => typeof window.open === "function"),
     },
     {
       id: "fullscreen",
       label: "Fullscreen presentation",
       critical: false,
-      ok: safe(() => !!document.documentElement.requestFullscreen),
-    },
-    {
-      id: "audio",
-      label: "Background audio playback",
-      critical: false,
-      ok: safe(() => typeof Audio !== "undefined"),
+      ok: safe(() => Boolean(document.documentElement.requestFullscreen)),
     },
     {
       id: "broadcastChannel",
@@ -90,14 +97,49 @@ export const checkCapabilities = (): Capability[] => {
       ok: safe(() => typeof BroadcastChannel !== "undefined"),
     },
     {
-      id: "fetch",
-      label: "Bible downloads (fetch)",
+      id: "audio",
+      label: "Background audio playback",
       critical: false,
-      ok: safe(() => typeof fetch !== "undefined"),
+      ok: safe(() => typeof Audio !== "undefined"),
+    },
+    {
+      id: "webrtc",
+      label: "Camera streaming (WebRTC)",
+      critical: false,
+      ok: safe(() => typeof RTCPeerConnection !== "undefined"),
+    },
+    {
+      id: "camera",
+      label: "Sharing this device's camera",
+      critical: false,
+      /* mediaDevices is withheld on an insecure origin, which is a connection
+         problem the Stream page explains itself, not a missing browser feature. */
+      ok: safe(
+        () =>
+          !window.isSecureContext ||
+          typeof navigator.mediaDevices?.getUserMedia === "function",
+      ),
+    },
+    {
+      id: "worker",
+      label: "Scanning pairing QR codes (Web Workers)",
+      critical: false,
+      ok: safe(() => typeof Worker !== "undefined"),
+    },
+    {
+      id: "speech",
+      label: "Reading scripture aloud (speech synthesis)",
+      critical: false,
+      ok: hasWindowProperty("speechSynthesis"),
+    },
+    {
+      id: "serviceWorker",
+      label: "Installing and offline mode (Service Worker)",
+      critical: false,
+      ok: safe(() => "serviceWorker" in navigator),
     },
   ];
 };
 
-export const missingCapabilities = (): Capability[] => {
-  return checkCapabilities().filter((c) => !c.ok);
-};
+export const missingCapabilities = (): Capability[] =>
+  checkCapabilities().filter((capability) => !capability.ok);

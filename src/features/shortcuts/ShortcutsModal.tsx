@@ -33,8 +33,8 @@ export const ShortcutsModal = () => {
       info={
         <InfoTip title="Keyboard shortcuts">
           Every shortcut in the studio, grouped by where it works. Each group
-          says when its keys are live: in an editor, while presenting, or on the
-          Bible page.
+          says when its keys are live: in an editor, while presenting, in the
+          window projected on the audience screen, or on the Bible page.
         </InfoTip>
       }
     >

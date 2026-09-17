@@ -12,6 +12,7 @@ export type GoLiveAnnouncer = (
 
 export const useGoLiveToast = (windowLabel: string): GoLiveAnnouncer => {
   const pushToast = useStore((s) => s.pushToast);
+  const showGoLiveTip = useStore((s) => s.showGoLiveTip);
 
   return useCallback(
     (result, isExtended) => {
@@ -25,7 +26,8 @@ export const useGoLiveToast = (windowLabel: string): GoLiveAnnouncer => {
           ? "Live on the external display in fullscreen."
           : `${windowLabel} opened in fullscreen.`,
       );
+      showGoLiveTip();
     },
-    [pushToast, windowLabel],
+    [pushToast, showGoLiveTip, windowLabel],
   );
 };

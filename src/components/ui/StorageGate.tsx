@@ -8,7 +8,7 @@ import { formatBytes } from "../../lib/storageStats";
 import { InfoTip } from "./InfoTip";
 
 export const StorageGate = () => {
-  const { colors, fonts, glass } = useUITheme();
+  const { colors, fonts, glass, shadows } = useUITheme();
   const storage = useStore((s) => s.storage);
   const freeUpStorage = useStore((s) => s.freeUpStorage);
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export const StorageGate = () => {
         display: "grid",
         placeItems: "center",
         padding: 20,
-        background: "rgba(0,0,0,0.9)",
+        background: colors.scrimStrong,
         backdropFilter: "blur(10px)",
       }}
     >
@@ -46,7 +46,7 @@ export const StorageGate = () => {
           backdropFilter: glass.backdropFilter,
           WebkitBackdropFilter: glass.WebkitBackdropFilter,
           border: `1px solid ${colors.border}`,
-          boxShadow: "0 24px 48px rgba(0,0,0,0.45)",
+          boxShadow: shadows.overlay,
         }}
       >
         <div
