@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BookOpen,
   FileText,
@@ -17,6 +17,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { IconButton } from "../ui/Button";
+import { THEMES_PATH } from "../../features/themes/themeRoutes";
 
 const NAV: [string, string, LucideIcon][] = [
   ["/", "Dashboard", LayoutDashboard],
@@ -32,6 +33,7 @@ export const AppHeader = () => {
   const UI = fonts.ui;
   const DISPLAY = fonts.display;
   const openOverlay = useStore((s) => s.openOverlay);
+  const navigate = useNavigate();
   const location = useLocation();
   const { width } = useViewport();
   const compact = width < 700;
@@ -152,8 +154,9 @@ export const AppHeader = () => {
         />
         <IconButton
           icon={Palette}
-          title="Themes"
-          onClick={() => openOverlay("themes")}
+          title="Manage themes"
+          active={location.pathname.startsWith(THEMES_PATH)}
+          onClick={() => navigate(THEMES_PATH)}
         />
         <IconButton
           icon={Keyboard}

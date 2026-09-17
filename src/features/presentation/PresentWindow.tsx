@@ -3,6 +3,7 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useBgMap } from "../../hooks/useBgMap";
+import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
 import {
   MEDIA_SYNC_TOLERANCE_SECONDS,
   openPresentChannel,
@@ -24,7 +25,7 @@ export const PresentWindow = () => {
   const load = useStore((s) => s.load);
 
   const [state, setState] = useState<PresentState | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
   const lastReloadKey = useRef<string>("");
@@ -66,12 +67,6 @@ export const PresentWindow = () => {
   }, [stage.surface]);
 
   useEffect(() => {
-    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
-  }, []);
-
-  useEffect(() => {
     hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
     return () => window.clearTimeout(hideTimer.current);
   }, []);
@@ -85,13 +80,6 @@ export const PresentWindow = () => {
   const claimFocus = () => {
     try {
       window.focus();
-    } catch {}
-  };
-
-  const toggleFullscreen = () => {
-    try {
-      if (document.fullscreenElement) void document.exitFullscreen?.();
-      else void document.documentElement.requestFullscreen?.();
     } catch {}
   };
 

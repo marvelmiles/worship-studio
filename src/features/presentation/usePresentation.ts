@@ -7,7 +7,7 @@ import { useBgMap } from "../../hooks/useBgMap";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { audioSettingsOf, videoSettingsOf } from "../../lib/media";
 import type { MediaPlayback } from "../../lib/presentChannel";
-import { targetOwnsKey } from "../../lib/mediaKeys";
+import { activatesOnSpace, targetOwnsKey } from "../../lib/mediaKeys";
 import {
   resolveAudioId,
   resolveAutoPlay,
@@ -168,6 +168,11 @@ export const usePresentation = (
   );
   const toggleInfo = useCallback(() => setShowInfo((s) => !s), []);
 
+  const togglePlayback = useCallback(() => {
+    if (isVideoSlide) toggleVideoPlaying();
+    else togglePause();
+  }, [isVideoSlide, togglePause, toggleVideoPlaying]);
+
   const curVideoId = currentVideoItem?.id;
   const { reset: resetVideo } = video;
   useEffect(() => {
@@ -204,9 +209,10 @@ export const usePresentation = (
         return;
       }
 
-      if (isVideoSlide && key === " ") {
+      if (key === " ") {
+        if (activatesOnSpace(e.target)) return;
         e.preventDefault();
-        toggleVideoPlaying();
+        togglePlayback();
       } else if (isVideoSlide && key === "ArrowRight") {
         e.preventDefault();
         seekVideoBy(VIDEO_SEEK_STEP);
@@ -215,7 +221,7 @@ export const usePresentation = (
         seekVideoBy(-VIDEO_SEEK_STEP);
       } else if (isVideoSlide && (key === "m" || key === "M")) {
         toggleVideoMuted();
-      } else if (["ArrowRight", " ", "PageDown", "l"].includes(key)) {
+      } else if (["ArrowRight", "PageDown", "l"].includes(key)) {
         e.preventDefault();
         go(1);
       } else if (["ArrowLeft", "PageUp", "h"].includes(key)) {
@@ -228,8 +234,7 @@ export const usePresentation = (
       } else if (key === "Escape") {
         exit();
       } else if (key === "p" || key === "P") {
-        if (isVideoSlide) toggleVideoPlaying();
-        else togglePause();
+        togglePlayback();
       } else if (key === "f" || key === "F") {
         toggleFullscreen();
       } else if (key === "i" || key === "I") {
@@ -276,6 +281,7 @@ export const usePresentation = (
     goTo,
     exit,
     togglePause,
+    togglePlayback,
     toggleFullscreen,
     toggleInfo,
     cycleView,
@@ -286,7 +292,6 @@ export const usePresentation = (
     tagGroups,
     doc,
     isVideoSlide,
-    toggleVideoPlaying,
     toggleVideoMuted,
     seekVideoBy,
     ownsKey,
@@ -312,6 +317,8 @@ export const usePresentation = (
     );
     return () => window.clearInterval(timer);
   }, [paused]);
+
+  const playbackPaused = isVideoSlide ? !mediaPlayback.playing : paused;
 
   const audioSettings = useMemo(
     () => (audioItem ? audioSettingsOf(audioItem) : null),
@@ -348,6 +355,7 @@ export const usePresentation = (
     audioItem,
     audioPlayback,
     paused,
+    playbackPaused,
     zoom,
     pan,
     view,
@@ -365,6 +373,7 @@ export const usePresentation = (
     goTo,
     exit,
     togglePause,
+    togglePlayback,
     zoomIn,
     zoomOut,
     resetZoom,

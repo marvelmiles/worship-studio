@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useStore } from "../../store/useStore";
 import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useGoLive } from "../../hooks/useGoLive";
+import { useGoLiveToast } from "../../hooks/useGoLiveToast";
 import { useViewport } from "../../hooks/useViewport";
 import { usePortalHost } from "../../hooks/usePortalHost";
 import { useBlobUrl } from "../../lib/blobUrls";
@@ -85,6 +86,7 @@ export const Presentation = () => {
   );
 
   const presentation = usePresentation(fullscreenOverride, shortcutGate);
+  const announceGoLive = useGoLiveToast("Presentation window");
   const streamSession = useStreamSession();
   const streamOverlays = useStreamOverlays();
   const secondary = useSecondaryModule();
@@ -209,19 +211,7 @@ export const Presentation = () => {
       pushToast("Ended the live projection.");
       return;
     }
-    const result = goLive();
-    if (result.ok) {
-      pushToast(
-        isExtended
-          ? "Live on the external display."
-          : "Presentation window opened. Drag it to your projector, then press its fullscreen button.",
-      );
-    } else if (result.reason === "blocked") {
-      pushToast(
-        "Popup blocked. Allow popups for this site to go live.",
-        "error",
-      );
-    }
+    announceGoLive(goLive(), isExtended);
   };
 
   const handleExit = () => {
@@ -234,11 +224,6 @@ export const Presentation = () => {
     if (document.fullscreenElement) void document.exitFullscreen?.();
     setPresentationMode("pip");
   };
-
-  const isPlaybackPaused = isVideoSlide ? !mediaPlayback.playing : isPaused;
-  const togglePlayback = isVideoSlide
-    ? presentation.toggleVideoPlaying
-    : presentation.togglePause;
 
   const videoProgress: VideoProgress | undefined = isVideoSlide
     ? {
@@ -321,7 +306,7 @@ export const Presentation = () => {
           frame={presentation.frame}
           slideIndex={slideIndex}
           total={presentation.slides.length}
-          paused={isPlaybackPaused}
+          paused={presentation.playbackPaused}
           isLive={isLive}
           videoHost={videoHost}
           videoProgress={videoProgress}
@@ -334,7 +319,7 @@ export const Presentation = () => {
           rootRef={pipRef}
           onPrev={() => presentation.go(-1)}
           onNext={() => presentation.go(1)}
-          onTogglePause={togglePlayback}
+          onTogglePause={presentation.togglePlayback}
           onOpenStage={() => setPresentationMode("stage")}
           onGoLive={handleGoLive}
           onStopLive={() => {
@@ -377,7 +362,7 @@ export const Presentation = () => {
         {secondaryLayer}
 
         <PresentationControls
-          paused={isPlaybackPaused}
+          paused={presentation.playbackPaused}
           view={view}
           zoom={zoom}
           showInfo={presentation.showInfo}
@@ -392,7 +377,7 @@ export const Presentation = () => {
           onGoLive={handleGoLive}
           onShrinkToPip={handleShrinkToPip}
           secondaryMenu={<SecondaryModuleMenu variant="stage" />}
-          onTogglePause={togglePlayback}
+          onTogglePause={presentation.togglePlayback}
           onSetView={presentation.setViewMode}
           onZoomIn={presentation.zoomIn}
           onZoomOut={presentation.zoomOut}

@@ -17,6 +17,7 @@ import { Button } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LazyMount } from "../../components/ui/LazyMount";
+import { LibrarySection } from "../../components/ui/LibrarySection";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
@@ -29,20 +30,24 @@ interface SlideMediaPickerProps {
 
 const COPY: Record<
   MediaKind,
-  { title: string; upload: string; empty: string }
+  { title: string; upload: string; empty: string; uploadsHint: string }
 > = {
   image: {
     title: "Add Image to Slide",
     upload: "Upload image",
     empty:
       "Upload a picture, or add one to the asset library, to place it on the slide.",
+    uploadsHint: "Pictures from your Images page.",
   },
   video: {
     title: "Add Video to Slide",
     upload: "Upload video",
     empty: "Upload a clip to place it on the slide.",
+    uploadsHint: "Clips from your Videos page.",
   },
 };
+
+const ASSETS_HINT = "Picture backgrounds saved in the asset library.";
 
 const matches = (name: string, term: string): boolean =>
   !term || name.toLowerCase().includes(term);
@@ -94,8 +99,6 @@ export const SlideMediaPicker = ({
     });
   };
 
-  const grouped = uploads.length > 0 && assets.length > 0;
-
   return (
     <Modal open onClose={onClose} title={COPY[kind].title} width={720}>
       <div
@@ -138,89 +141,75 @@ export const SlideMediaPicker = ({
           bare
         />
       ) : (
-        <>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {uploads.length > 0 && (
-            <PickerGroup title={grouped ? "Media library" : null}>
-              {uploads.map((item) => (
-                <PickerTile
-                  key={item.id}
-                  name={item.name}
-                  meta={
-                    item.kind === "video"
-                      ? formatDuration(item.duration)
-                      : undefined
-                  }
-                  onPick={() => pick(mediaItemChoice(item))}
-                >
-                  {item.kind === "image" ? (
-                    <ImageSurface item={item} variant="thumb" />
-                  ) : (
-                    <VideoThumb item={item} />
-                  )}
-                </PickerTile>
-              ))}
-            </PickerGroup>
+            <LibrarySection
+              title="Media library"
+              meta={`${uploads.length}`}
+              description={COPY[kind].uploadsHint}
+            >
+              <PickerGrid>
+                {uploads.map((item) => (
+                  <PickerTile
+                    key={item.id}
+                    name={item.name}
+                    meta={
+                      item.kind === "video"
+                        ? formatDuration(item.duration)
+                        : undefined
+                    }
+                    onPick={() => pick(mediaItemChoice(item))}
+                  >
+                    {item.kind === "image" ? (
+                      <ImageSurface item={item} variant="thumb" />
+                    ) : (
+                      <VideoThumb item={item} />
+                    )}
+                  </PickerTile>
+                ))}
+              </PickerGrid>
+            </LibrarySection>
           )}
           {assets.length > 0 && (
-            <PickerGroup title={grouped ? "Asset library" : null}>
-              {assets.map((background) => (
-                <PickerTile
-                  key={background.id}
-                  name={background.name}
-                  meta={background.builtIn ? "default" : undefined}
-                  onPick={() => pick(backgroundChoice(background))}
-                >
-                  <BgSwatch
-                    bg={background}
-                    style={{ position: "absolute", inset: 0 }}
-                  />
-                </PickerTile>
-              ))}
-            </PickerGroup>
+            <LibrarySection
+              title="Asset library"
+              meta={`${assets.length}`}
+              description={ASSETS_HINT}
+            >
+              <PickerGrid>
+                {assets.map((background) => (
+                  <PickerTile
+                    key={background.id}
+                    name={background.name}
+                    meta={background.builtIn ? "default" : undefined}
+                    onPick={() => pick(backgroundChoice(background))}
+                  >
+                    <BgSwatch
+                      bg={background}
+                      style={{ position: "absolute", inset: 0 }}
+                    />
+                  </PickerTile>
+                ))}
+              </PickerGrid>
+            </LibrarySection>
           )}
-        </>
+        </div>
       )}
     </Modal>
   );
 };
 
-const PickerGroup = ({
-  title,
-  children,
-}: {
-  title: string | null;
-  children: ReactNode;
-}) => {
-  const { colors, fonts } = useUITheme();
-  return (
-    <div style={{ marginBottom: 16 }}>
-      {title && (
-        <div
-          style={{
-            fontFamily: fonts.ui,
-            fontSize: 11.5,
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            textTransform: "uppercase",
-            color: colors.dim,
-            marginBottom: 10,
-          }}
-        >
-          {title}
-        </div>
-      )}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
-          gap: 12,
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-};
+const PickerGrid = ({ children }: { children: ReactNode }) => (
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
+      gap: 12,
+    }}
+  >
+    {children}
+  </div>
+);
 
 const PickerTile = ({
   name,

@@ -83,7 +83,7 @@ export const CameraStatusOverlay = ({
         }}
       >
         {copy.isBusy ? (
-          <Spinner size={isCompact ? 18 : 34} color={stage.text} />
+          <Spinner size={isCompact ? 18 : 34} />
         ) : (
           <WifiOff size={isCompact ? 18 : 30} color={stage.text} />
         )}

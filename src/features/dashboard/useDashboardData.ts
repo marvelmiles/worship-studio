@@ -15,6 +15,7 @@ import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
 import { overlayTarget } from "../../lib/overlayTarget";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
+import { themePath } from "../themes/themeRoutes";
 import { greeting, itemActivity, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
 
@@ -218,7 +219,7 @@ export const useDashboardData = () => {
         detail: `Theme · ${activity.verb}`,
         at: activity.at,
         icon: Palette,
-        open: () => openOverlay("themes", t.id),
+        open: () => navigate(themePath(t.id)),
       });
     }
 

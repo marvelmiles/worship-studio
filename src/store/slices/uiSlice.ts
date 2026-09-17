@@ -3,8 +3,7 @@ import { uid } from "../../lib/id";
 import { missingCapabilities } from "../../lib/capabilities";
 import type { SliceCreator } from "../storeTypes";
 
-export type OverlayName =
-  "assets" | "settings" | "themes" | "shortcuts" | "about";
+export type OverlayName = "assets" | "settings" | "shortcuts" | "about";
 
 export interface OverlayOptions {
   lockSection?: boolean;

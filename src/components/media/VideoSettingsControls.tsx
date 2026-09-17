@@ -3,13 +3,11 @@ import {
   formatDuration,
   needsHoursField,
   timecodeShape,
-  validateTrimEnd,
-  validateTrimStart,
 } from "../../lib/media";
 import { Field, Range, SectionTitle, Select, Toggle } from "../ui/Field";
-import { TimecodeInput } from "../ui/TimecodeInput";
 import { InfoTip } from "../ui/InfoTip";
 import { AdjustmentControls } from "./AdjustmentControls";
+import { TrimFields } from "./TrimFields";
 
 const FIT_OPTIONS = [
   { value: "contain", label: "Contain (fit, letterboxed)" },
@@ -26,6 +24,7 @@ interface VideoSettingsControlsProps {
   settings: VideoSettings;
   onChange: (changes: Partial<VideoSettings>) => void;
   duration?: number;
+  playhead?: number;
   onIssueChange?: (field: string, message: string | null) => void;
   narrow?: boolean;
 }
@@ -34,13 +33,12 @@ export const VideoSettingsControls = ({
   settings,
   onChange,
   duration,
+  playhead,
   onIssueChange,
   narrow,
 }: VideoSettingsControlsProps) => {
   const columns = narrow ? "1fr" : "repeat(auto-fit,minmax(200px,1fr))";
-  const withHours = needsHoursField(duration);
-  const shape = timecodeShape(withHours);
-  const bounds = { duration, withHours };
+  const shape = timecodeShape(needsHoursField(duration));
 
   return (
     <>
@@ -56,34 +54,14 @@ export const VideoSettingsControls = ({
       >
         Trim
       </SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: columns, gap: 12 }}>
-        <Field label={`Start (${shape})`}>
-          <TimecodeInput
-            aria-label="Trim start"
-            seconds={settings.trimStart}
-            withHours={withHours}
-            validate={(value) =>
-              validateTrimStart(value, settings.trimEnd, bounds)
-            }
-            onErrorChange={(message) => onIssueChange?.("trimStart", message)}
-            onChange={(trimStart) => onChange({ trimStart: trimStart ?? 0 })}
-          />
-        </Field>
-        <Field label={`End (${shape})`}>
-          <TimecodeInput
-            aria-label="Trim end"
-            seconds={settings.trimEnd ?? (duration || null)}
-            withHours={withHours}
-            placeholder={shape}
-            clearable
-            validate={(value) =>
-              validateTrimEnd(value, settings.trimStart, bounds)
-            }
-            onErrorChange={(message) => onIssueChange?.("trimEnd", message)}
-            onChange={(trimEnd) => onChange({ trimEnd })}
-          />
-        </Field>
-      </div>
+      <TrimFields
+        trim={settings}
+        onChange={onChange}
+        duration={duration}
+        playhead={playhead}
+        columns={columns}
+        onIssueChange={onIssueChange}
+      />
 
       <SectionTitle>Playback</SectionTitle>
       <div

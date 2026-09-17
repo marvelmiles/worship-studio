@@ -1,25 +1,38 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Image as ImageIcon, Music } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useAttention } from "../../hooks/useAttention";
 import { parseOverlayTarget } from "../../lib/overlayTarget";
 import { Modal } from "../../components/ui/Modal";
-import { PillTabs } from "../../components/ui/PillTabs";
-import type { PillTab } from "../../components/ui/PillTabs";
+import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
+import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
+import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import type { AssetSection } from "./assetLibraryNavigation";
 import { useReopenAssetLibraryOnArrival } from "./assetLibraryNavigation";
 import { BackgroundsPanel } from "./BackgroundsPanel";
 import { AudioPanel } from "./AudioPanel";
 
-const TABS: PillTab<AssetSection>[] = [
-  { id: "backgrounds", label: "Backgrounds", icon: ImageIcon },
-  { id: "audio", label: "Audio", icon: Music },
-];
+interface AssetSectionMeta {
+  label: string;
+  icon: LucideIcon;
+  lockedTitle: string;
+}
 
-const LOCKED_TITLE: Record<AssetSection, string> = {
-  backgrounds: "Background Cover Library",
-  audio: "Audio Library",
+const SECTIONS: Record<AssetSection, AssetSectionMeta> = {
+  backgrounds: {
+    label: "Backgrounds",
+    icon: ImageIcon,
+    lockedTitle: "Background Cover Library",
+  },
+  audio: {
+    label: "Audio",
+    icon: Music,
+    lockedTitle: "Audio Library",
+  },
 };
+
+const TAB_PREFIX = "asset-library";
 
 const isAssetSection = (value?: string): value is AssetSection =>
   value === "backgrounds" || value === "audio";
@@ -30,6 +43,7 @@ export const AssetsModal = () => {
   const locked = useStore((s) => s.overlaySectionLocked);
   const close = useStore((s) => s.closeOverlay);
   const backgrounds = useStore((s) => s.backgrounds);
+  const audio = useStore((s) => s.audio);
 
   useReopenAssetLibraryOnArrival();
 
@@ -50,30 +64,57 @@ export const AssetsModal = () => {
 
   const sectionLocked = locked && isAssetSection(targetSection);
 
+  const tabs = useMemo<SegmentedTab<AssetSection>[]>(
+    () => [
+      {
+        id: "backgrounds",
+        label: SECTIONS.backgrounds.label,
+        icon: SECTIONS.backgrounds.icon,
+        count: backgrounds.length,
+      },
+      {
+        id: "audio",
+        label: SECTIONS.audio.label,
+        icon: SECTIONS.audio.icon,
+        count: audio.length,
+      },
+    ],
+    [audio.length, backgrounds.length],
+  );
+
   return (
     <Modal
       open={overlay === "assets"}
       onClose={close}
-      title={sectionLocked ? LOCKED_TITLE[tab] : "Asset Library"}
-      width={680}
+      title={sectionLocked ? SECTIONS[tab].lockedTitle : "Asset Library"}
+      width={720}
     >
-      <div ref={contentRef}>
+      <div
+        ref={contentRef}
+        style={{ display: "flex", flexDirection: "column", gap: 18 }}
+      >
         {!sectionLocked && (
-          <div style={{ marginBottom: 18 }}>
-            <PillTabs<AssetSection> tabs={TABS} value={tab} onChange={setTab} />
-          </div>
-        )}
-        {tab === "backgrounds" ? (
-          <BackgroundsPanel
-            attentionId={attentionId}
-            targetItemId={attentionTarget}
-          />
-        ) : (
-          <AudioPanel
-            attentionId={attentionId}
-            targetItemId={attentionTarget}
+          <SegmentedTabs<AssetSection>
+            ariaLabel="Asset kinds"
+            idPrefix={TAB_PREFIX}
+            tabs={tabs}
+            value={tab}
+            onChange={setTab}
           />
         )}
+        <div {...pillTabPanelProps(TAB_PREFIX, tab)}>
+          {tab === "backgrounds" ? (
+            <BackgroundsPanel
+              attentionId={attentionId}
+              targetItemId={attentionTarget}
+            />
+          ) : (
+            <AudioPanel
+              attentionId={attentionId}
+              targetItemId={attentionTarget}
+            />
+          )}
+        </div>
       </div>
     </Modal>
   );

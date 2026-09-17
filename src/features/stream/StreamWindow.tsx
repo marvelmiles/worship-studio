@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
 import { StreamPipLayer } from "./StreamPipLayer";
 import { StreamVideo } from "./StreamVideo";
@@ -12,7 +13,7 @@ export const StreamWindow = () => {
   useOverlayContentSync(overlays);
   const composition = useOpenerLiveComposition();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
   const [hintVisible, setHintVisible] = useState(true);
   const hideTimer = useRef<number>();
   const stream = composition.primary;
@@ -21,12 +22,6 @@ export const StreamWindow = () => {
     document.title = "WorshipStudio · Live camera";
     document.body.style.background = "#000";
     document.body.style.margin = "0";
-  }, []);
-
-  useEffect(() => {
-    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
-    document.addEventListener("fullscreenchange", onChange);
-    return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
   useEffect(() => {
@@ -45,13 +40,6 @@ export const StreamWindow = () => {
       window.focus();
     } catch {}
     void videoRef.current?.play().catch(() => {});
-  };
-
-  const toggleFullscreen = () => {
-    try {
-      if (document.fullscreenElement) void document.exitFullscreen?.();
-      else void document.documentElement.requestFullscreen?.();
-    } catch {}
   };
 
   return (

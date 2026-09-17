@@ -12,6 +12,7 @@ import type { LucideIcon } from "lucide-react";
 import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { useStore } from "../../../store/useStore";
+import { THEMES_PATH } from "../../themes/themeRoutes";
 
 interface QuickAction {
   label: string;
@@ -70,7 +71,7 @@ export const QuickActions = () => {
       label: "Manage Themes",
       sub: "Customize themes",
       icon: Palette,
-      onClick: () => openOverlay("themes"),
+      onClick: () => navigate(THEMES_PATH),
     },
     {
       label: "Upload Assets",

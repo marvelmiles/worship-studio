@@ -296,11 +296,11 @@ export const PresenterPip = ({
           title={
             isVideo
               ? paused
-                ? "Play the clip (P)"
-                : "Pause the clip (P)"
+                ? "Play the clip (Space)"
+                : "Pause the clip (Space)"
               : paused
-                ? "Resume (P)"
-                : "Pause (P)"
+                ? "Resume (Space)"
+                : "Pause (Space)"
           }
           active={paused}
           onClick={onTogglePause}

@@ -46,7 +46,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What is a theme? Can I edit or delete it?",
-    a: "A theme is a reusable look you can apply to any manuscript. It bundles the font, text color, size and alignment, the background, the slide animation, and even playback defaults like background audio. Apply a theme from a manuscript's settings and every slide in it instantly takes on that styling, so you don't have to format slides one at a time, and individual slides can still override anything afterwards. WorshipStudio ships with several built-in themes: you can edit those (change their fonts, colors, background, animation, and so on) but you can't delete them, so there's always a solid starting point. Any theme you create yourself is fully yours; edit or delete it anytime from the Themes panel (the palette icon in the header).",
+    a: "A theme is a reusable look you can apply to any manuscript. It bundles the font, text color, size and alignment, the background, the slide animation, and even playback defaults like background audio. Apply a theme from a manuscript's settings and every slide in it instantly takes on that styling, so you don't have to format slides one at a time, and individual slides can still override anything afterwards. WorshipStudio ships with several built-in themes: you can edit those (change their fonts, colors, background, animation, and so on) but you can't delete them, so there's always a solid starting point. Any theme you create yourself is fully yours; edit or delete it anytime on the Themes page (the palette icon in the header).",
   },
   {
     q: "Can I use my own colors, gradients, or images?",

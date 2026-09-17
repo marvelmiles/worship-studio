@@ -14,7 +14,9 @@ import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
 import { isImageBackground, isVideoBackground } from "../../lib/media";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { PillTabs, type PillTab } from "../../components/ui/PillTabs";
+import { LibrarySection } from "../../components/ui/LibrarySection";
+import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
+import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
 import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
@@ -24,13 +26,10 @@ import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
 
 type BackgroundTab = "images" | "colors" | "videos";
 
-const TABS: PillTab<BackgroundTab>[] = [
-  { id: "images", label: "Images", icon: ImageIcon },
-  { id: "colors", label: "Colors", icon: Palette },
-  { id: "videos", label: "Videos", icon: Film },
-];
-
 const TAB_PREFIX = "asset-backgrounds";
+
+const isColorBackground = (background: Background): boolean =>
+  background.type === "solid" || background.type === "gradient";
 
 const tabOf = (background: Background): BackgroundTab =>
   background.type === "image"
@@ -56,42 +55,76 @@ export const BackgroundsPanel = ({
     return media.some((item) => item.id === targetItemId) ? "videos" : "images";
   });
 
-  return (
-    <>
-      <div style={{ marginBottom: 16 }}>
-        <PillTabs<BackgroundTab>
-          ariaLabel="Background kinds"
-          idPrefix={TAB_PREFIX}
-          tabs={TABS}
-          value={tab}
-          onChange={setTab}
-        />
-      </div>
-      <div {...pillTabPanelProps(TAB_PREFIX, tab)}>
-        {tab === "images" && <ImagesTab attentionId={attentionId} />}
-        {tab === "colors" && <ColorsTab attentionId={attentionId} />}
-        {tab === "videos" && <VideosTab attentionId={attentionId} />}
-      </div>
-    </>
-  );
-};
-
-const ImagesTab = ({ attentionId }: { attentionId: string | null }) => {
-  const backgrounds = useStore((s) => s.backgrounds);
-  const beginUpload = useStore((s) => s.beginUpload);
-  const imageInput = useRef<HTMLInputElement>(null);
-  const [editing, setEditing] = useState<Background | null>(null);
   const images = useMemo(
     () => backgrounds.filter(isImageBackground),
     [backgrounds],
   );
+  const colors = useMemo(
+    () => backgrounds.filter(isColorBackground),
+    [backgrounds],
+  );
+  const videoCount = useMemo(
+    () => backgrounds.filter(isVideoBackground).length,
+    [backgrounds],
+  );
+
+  const tabs: SegmentedTab<BackgroundTab>[] = [
+    { id: "images", label: "Images", icon: ImageIcon, count: images.length },
+    { id: "colors", label: "Colors", icon: Palette, count: colors.length },
+    { id: "videos", label: "Videos", icon: Film, count: videoCount },
+  ];
 
   return (
-    <>
-      <Button variant="primary" onClick={() => imageInput.current?.click()}>
-        <Upload size={15} />
-        Upload images
-      </Button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <SegmentedTabs<BackgroundTab>
+        ariaLabel="Background kinds"
+        idPrefix={TAB_PREFIX}
+        tabs={tabs}
+        value={tab}
+        onChange={setTab}
+        minSegmentWidth={104}
+      />
+      <div {...pillTabPanelProps(TAB_PREFIX, tab)}>
+        {tab === "images" && (
+          <ImagesTab images={images} attentionId={attentionId} />
+        )}
+        {tab === "colors" && (
+          <ColorsTab colors={colors} attentionId={attentionId} />
+        )}
+        {tab === "videos" && <VideosTab attentionId={attentionId} />}
+      </div>
+    </div>
+  );
+};
+
+interface BackgroundTabProps {
+  attentionId: string | null;
+}
+
+const ImagesTab = ({
+  images,
+  attentionId,
+}: BackgroundTabProps & { images: Background[] }) => {
+  const beginUpload = useStore((s) => s.beginUpload);
+  const imageInput = useRef<HTMLInputElement>(null);
+  const [editing, setEditing] = useState<Background | null>(null);
+
+  return (
+    <LibrarySection
+      title="Image backgrounds"
+      meta={`${images.length} saved`}
+      description="Pictures you can set behind any slide, cropped and adjusted here."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => imageInput.current?.click()}
+        >
+          <Upload size={14} />
+          Upload images
+        </Button>
+      }
+    >
       <input
         ref={imageInput}
         type="file"
@@ -126,33 +159,31 @@ const ImagesTab = ({ attentionId }: { attentionId: string | null }) => {
           onClose={() => setEditing(null)}
         />
       )}
-    </>
+    </LibrarySection>
   );
 };
 
-const ColorsTab = ({ attentionId }: { attentionId: string | null }) => {
-  const backgrounds = useStore((s) => s.backgrounds);
+const ColorsTab = ({
+  colors,
+  attentionId,
+}: BackgroundTabProps & { colors: Background[] }) => {
   const addCustomBackground = useStore((s) => s.addCustomBackground);
-  const colorsAndGradients = useMemo(
-    () =>
-      backgrounds.filter((bg) => bg.type === "solid" || bg.type === "gradient"),
-    [backgrounds],
-  );
 
   return (
-    <>
+    <LibrarySection
+      title="Colors and gradients"
+      meta={`${colors.length} saved`}
+      description="Pick a preset or write any CSS color or gradient of your own."
+    >
       <CustomColorPicker
         onAdd={(value, name) => addCustomBackground(value, name)}
       />
-      <BackgroundGrid
-        backgrounds={colorsAndGradients}
-        attentionId={attentionId}
-      />
-    </>
+      <BackgroundGrid backgrounds={colors} attentionId={attentionId} />
+    </LibrarySection>
   );
 };
 
-const VideosTab = ({ attentionId }: { attentionId: string | null }) => {
+const VideosTab = ({ attentionId }: BackgroundTabProps) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const attachVideoBackground = useStore((s) => s.attachVideoBackground);
   const removeBackground = useStore((s) => s.removeBackground);
@@ -165,6 +196,8 @@ const VideosTab = ({ attentionId }: { attentionId: string | null }) => {
 
   return (
     <VideoSourceList
+      title="Video backgrounds"
+      description="Attach a clip from your video library to loop behind slides."
       attentionId={attentionId}
       addedByMediaId={attached}
       onAdd={attachVideoBackground}
@@ -195,9 +228,8 @@ const BackgroundGrid = ({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
+        gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
         gap: 10,
-        marginTop: 16,
       }}
     >
       {backgrounds.map((bg) => (
@@ -217,14 +249,12 @@ const BackgroundGrid = ({
             }}
           />
           <div
+            className="ws-ellipsis"
             style={{
               fontFamily: fonts.ui,
               fontSize: 11.5,
               color: colors.sub,
               marginTop: 5,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
             }}
           >
             {bg.name}

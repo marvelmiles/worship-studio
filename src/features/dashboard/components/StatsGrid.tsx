@@ -67,7 +67,7 @@ export const StatsGrid = ({ counts }: StatsGridProps) => {
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))",
+        gridTemplateColumns: "repeat(auto-fit,minmax(186px,1fr))",
         gap: 14,
         marginBottom: 26,
       }}
@@ -89,7 +89,7 @@ export const StatsGrid = ({ counts }: StatsGridProps) => {
             >
               <s.icon size={20} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div
                 style={{
                   fontFamily: DISPLAY,
@@ -102,6 +102,8 @@ export const StatsGrid = ({ counts }: StatsGridProps) => {
                 {s.value}
               </div>
               <div
+                className="ws-ellipsis"
+                title={s.label}
                 style={{
                   fontFamily: UI,
                   fontSize: 13,

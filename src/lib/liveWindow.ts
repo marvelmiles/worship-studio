@@ -64,7 +64,7 @@ const defaultFeatures = (
   ].join(",");
 };
 
-const placeOnExternalDisplay = async (opened: Window): Promise<void> => {
+const moveToExternalDisplay = async (opened: Window): Promise<void> => {
   const getScreenDetails = (
     window as unknown as { getScreenDetails?: () => Promise<ScreenDetails> }
   ).getScreenDetails;
@@ -78,8 +78,32 @@ const placeOnExternalDisplay = async (opened: Window): Promise<void> => {
     if (!external || opened.closed) return;
     opened.moveTo(external.left, external.top);
     opened.resizeTo(external.width, external.height);
-    void opened.document.documentElement.requestFullscreen?.().catch(() => {});
   } catch {}
+};
+
+const enterFullscreen = async (opened: Window): Promise<void> => {
+  if (opened.closed) return;
+  try {
+    if (opened.document.fullscreenElement) return;
+    await opened.document.documentElement.requestFullscreen?.();
+  } catch {}
+};
+
+const whenLoaded = (opened: Window, run: () => void): void => {
+  try {
+    if (opened.document.readyState === "complete") {
+      run();
+      return;
+    }
+  } catch {}
+  opened.addEventListener("load", run, { once: true });
+};
+
+/* The window has to sit on the projector before it fills a screen, so the
+   fullscreen request waits for the move to finish. */
+const projectFullscreen = async (opened: Window): Promise<void> => {
+  await moveToExternalDisplay(opened);
+  await enterFullscreen(opened);
 };
 
 export const createLiveWindow = (
@@ -128,7 +152,7 @@ export const createLiveWindow = (
     win = opened;
     setState({ isLive: true });
 
-    opened.addEventListener("load", () => {
+    whenLoaded(opened, () => {
       try {
         opened.document.addEventListener("fullscreenchange", () => {
           setState({
@@ -137,6 +161,7 @@ export const createLiveWindow = (
         });
         setState({ isFullscreen: Boolean(opened.document.fullscreenElement) });
       } catch {}
+      void projectFullscreen(opened);
     });
 
     closeWatcher = window.setInterval(() => {
@@ -146,8 +171,6 @@ export const createLiveWindow = (
         setState({ isLive: false, isFullscreen: false });
       }
     }, 800);
-
-    void placeOnExternalDisplay(opened);
 
     return { ok: true };
   };

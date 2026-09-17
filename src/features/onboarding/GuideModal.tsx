@@ -48,7 +48,7 @@ const TIPS: { icon: LucideIcon; title: string; desc: string }[] = [
   {
     icon: Palette,
     title: "Themes do the styling for you",
-    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a manuscript's settings and every slide in it instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own from the palette icon; change a theme and the manuscripts using it update to match. Any individual slide can still override the look in the inspector.",
+    desc: "A theme is a saved look: font, text color, size, background, animation and even background audio, bundled together. Pick a theme in a manuscript's settings and every slide in it instantly follows it, so you style once instead of slide by slide. Built-in themes can be edited (not deleted) and you can create your own on the Themes page, opened from the palette icon; change a theme and the manuscripts using it update to match. Any individual slide can still override the look in the inspector.",
   },
   {
     icon: WifiOff,
@@ -71,7 +71,7 @@ const HEADER_ICONS: { icon: LucideIcon; name: string; desc: string }[] = [
   {
     icon: Palette,
     name: "Themes",
-    desc: "Create and edit looks: fonts, colors, background, animation, playback.",
+    desc: "Opens the Themes page to create and edit looks: fonts, colors, background, animation, playback.",
   },
   {
     icon: Keyboard,

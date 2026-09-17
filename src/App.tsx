@@ -29,7 +29,7 @@ import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
 import { AudioEditorPage } from "./features/assets/AudioEditorPage";
 import { SettingsModal } from "./features/settings/SettingsModal";
-import { ThemesModal } from "./features/themes/ThemesModal";
+import { ThemesPage } from "./features/themes/ThemesPage";
 import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
@@ -95,6 +95,8 @@ const App = () => {
             <Route path="/videos" element={<VideosPage />} />
             <Route path="/videos/:mediaId" element={<VideoEditorPage />} />
             <Route path="/audio/:audioId" element={<AudioEditorPage />} />
+            <Route path="/themes" element={<ThemesPage />} />
+            <Route path="/themes/:themeId" element={<ThemesPage />} />
             <Route path="/stream" element={<StreamPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -107,7 +109,6 @@ const App = () => {
       <StreamProjectionRoot />
       <AssetsModal />
       <SettingsModal />
-      <ThemesModal />
       <ShortcutsModal />
       <AboutModal />
       <UploadLabelModal />

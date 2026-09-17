@@ -8,17 +8,15 @@ import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
 import { formatDuration } from "../../lib/media";
 import { Button, IconButton } from "../../components/ui/Button";
-import { PillTabs, type PillTab } from "../../components/ui/PillTabs";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { LibrarySection } from "../../components/ui/LibrarySection";
+import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
+import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
 import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
 import { VideoSourceList } from "./VideoSourceList";
 
 type AudioTab = "sounds" | "videos";
-
-const TABS: PillTab<AudioTab>[] = [
-  { id: "sounds", label: "Sounds", icon: Music },
-  { id: "videos", label: "From videos", icon: Film },
-];
 
 const TAB_PREFIX = "asset-audio";
 
@@ -28,22 +26,31 @@ interface AudioPanelProps {
 }
 
 export const AudioPanel = ({ attentionId, targetItemId }: AudioPanelProps) => {
+  const audio = useStore((s) => s.audio);
   const media = useStore((s) => s.media);
   const [tab, setTab] = useState<AudioTab>(() =>
     media.some((item) => item.id === targetItemId) ? "videos" : "sounds",
   );
 
+  const fromVideos = useMemo(
+    () => audio.filter((item) => Boolean(item.mediaId)).length,
+    [audio],
+  );
+
+  const tabs: SegmentedTab<AudioTab>[] = [
+    { id: "sounds", label: "Sounds", icon: Music, count: audio.length },
+    { id: "videos", label: "From videos", icon: Film, count: fromVideos },
+  ];
+
   return (
-    <>
-      <div style={{ marginBottom: 16 }}>
-        <PillTabs<AudioTab>
-          ariaLabel="Audio sources"
-          idPrefix={TAB_PREFIX}
-          tabs={TABS}
-          value={tab}
-          onChange={setTab}
-        />
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <SegmentedTabs<AudioTab>
+        ariaLabel="Audio sources"
+        idPrefix={TAB_PREFIX}
+        tabs={tabs}
+        value={tab}
+        onChange={setTab}
+      />
       <div {...pillTabPanelProps(TAB_PREFIX, tab)}>
         {tab === "sounds" ? (
           <SoundsTab attentionId={attentionId} />
@@ -51,7 +58,7 @@ export const AudioPanel = ({ attentionId, targetItemId }: AudioPanelProps) => {
           <VideoSoundsTab attentionId={attentionId} />
         )}
       </div>
-    </>
+    </div>
   );
 };
 
@@ -63,11 +70,21 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   const audioInput = useRef<HTMLInputElement>(null);
 
   return (
-    <>
-      <Button variant="primary" onClick={() => audioInput.current?.click()}>
-        <Upload size={15} />
-        Upload audio
-      </Button>
+    <LibrarySection
+      title="Sounds"
+      meta={`${audio.length} saved`}
+      description="Background audio you can attach to a theme, a manuscript or a single slide."
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => audioInput.current?.click()}
+        >
+          <Upload size={14} />
+          Upload audio
+        </Button>
+      }
+    >
       <input
         ref={audioInput}
         type="file"
@@ -80,8 +97,16 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
           event.target.value = "";
         }}
       />
-      <div style={{ marginTop: 16 }}>
-        {audio.map((item) => (
+      {audio.length === 0 ? (
+        <EmptyState
+          icon={Music}
+          title="No sounds yet"
+          message="Upload audio to play it behind your slides."
+          compact
+          bare
+        />
+      ) : (
+        audio.map((item) => (
           <AudioRow
             key={item.id}
             item={item}
@@ -89,9 +114,9 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
             onEdit={() => openEditor(`/audio/${item.id}`, "audio")}
             onRemove={() => void removeAudio(item.id)}
           />
-        ))}
-      </div>
-    </>
+        ))
+      )}
+    </LibrarySection>
   );
 };
 
@@ -107,6 +132,8 @@ const VideoSoundsTab = ({ attentionId }: { attentionId: string | null }) => {
 
   return (
     <VideoSourceList
+      title="Sound from videos"
+      description="Take the soundtrack of a clip and keep it alongside your sounds."
       attentionId={attentionId}
       addedByMediaId={added}
       onAdd={addVideoAudio}

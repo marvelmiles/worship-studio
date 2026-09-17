@@ -156,7 +156,7 @@ export const PresentationControls = ({
       {secondaryMenu}
       <StageButton
         icon={paused ? Play : Pause}
-        title={paused ? "Resume (P)" : "Pause (P)"}
+        title={paused ? "Resume (Space)" : "Pause (Space)"}
         active={paused}
         onClick={onTogglePause}
       />

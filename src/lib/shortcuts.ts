@@ -125,7 +125,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: "Navigation",
     note: "Available while presenting.",
     shortcuts: [
-      { keys: ["→", "Space", "Page Dn", "L"], description: "Next slide" },
+      { keys: ["→", "Page Dn", "L"], description: "Next slide" },
       { keys: ["←", "Page Up", "H"], description: "Previous slide" },
       { keys: ["Home"], description: "First slide" },
       { keys: ["End"], description: "Last slide" },
@@ -144,8 +144,13 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: "Playback",
+    note: "Available while presenting, both on the stage and in the focused floating presenter.",
     shortcuts: [
-      { keys: ["P"], description: "Pause / resume" },
+      {
+        keys: ["Space", "P"],
+        description:
+          "Pause / resume the slides, their transitions and any clip",
+      },
       { keys: ["R"], description: "Read passage aloud / stop (scripture)" },
       { keys: ["Esc"], description: "Exit presentation" },
     ],
@@ -180,7 +185,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
   },
   {
     title: "Video",
-    note: "Available while a video is on the stage. Space also plays and pauses the preview in the video editor.",
+    note: "Available while a video is on the stage. Space also plays and pauses the preview in the video and audio editors.",
     shortcuts: [
       { keys: ["Space"], description: "Play / pause the video" },
       { keys: ["→"], description: "Seek forward 5s" },

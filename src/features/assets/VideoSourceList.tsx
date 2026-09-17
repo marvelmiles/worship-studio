@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Check, Film, Pencil, Plus, Upload } from "lucide-react";
+import { Check, Film, Layers, Pencil, Plus, Upload } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
@@ -8,7 +8,8 @@ import { formatDuration, sortMediaByRecency } from "../../lib/media";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LazyMount } from "../../components/ui/LazyMount";
-import { PillTabs } from "../../components/ui/PillTabs";
+import { LibrarySection } from "../../components/ui/LibrarySection";
+import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
 import { VideoThumb } from "../../components/media/VideoThumb";
 import type { AssetSection } from "./assetLibraryNavigation";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
@@ -17,6 +18,8 @@ import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
 type VideoSource = "all" | "backgrounds";
 
 interface VideoSourceListProps {
+  title: string;
+  description: string;
   attentionId: string | null;
   addedByMediaId: Map<string, string>;
   onAdd: (mediaId: string) => void;
@@ -29,6 +32,8 @@ interface VideoSourceListProps {
 }
 
 export const VideoSourceList = ({
+  title,
+  description,
   attentionId,
   addedByMediaId,
   onAdd,
@@ -47,20 +52,29 @@ export const VideoSourceList = ({
   const videoInput = useRef<HTMLInputElement>(null);
   const [source, setSource] = useState<VideoSource>("all");
 
-  const videos = useMemo(() => {
-    const backgroundClips = new Set(
-      backgrounds.flatMap((bg) =>
-        bg.type === "video" && bg.mediaId ? [bg.mediaId] : [],
+  const backgroundClips = useMemo(
+    () =>
+      new Set(
+        backgrounds.flatMap((bg) =>
+          bg.type === "video" && bg.mediaId ? [bg.mediaId] : [],
+        ),
       ),
-    );
-    return media
-      .filter(
-        (item) =>
-          item.kind === "video" &&
-          (source === "all" || backgroundClips.has(item.id)),
-      )
-      .sort(sortMediaByRecency);
-  }, [media, backgrounds, source]);
+    [backgrounds],
+  );
+
+  const library = useMemo(
+    () =>
+      media.filter((item) => item.kind === "video").sort(sortMediaByRecency),
+    [media],
+  );
+
+  const videos = useMemo(
+    () =>
+      source === "all"
+        ? library
+        : library.filter((item) => backgroundClips.has(item.id)),
+    [backgroundClips, library, source],
+  );
 
   const upload = (files: File[]) =>
     beginUpload("video", files, (ids) => {
@@ -68,51 +82,58 @@ export const VideoSourceList = ({
     });
 
   return (
-    <>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          flexWrap: "wrap",
-          marginBottom: 14,
+    <LibrarySection
+      title={title}
+      meta={`${videos.length} of ${library.length}`}
+      description={description}
+      action={
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => videoInput.current?.click()}
+        >
+          <Upload size={14} />
+          Upload video
+        </Button>
+      }
+    >
+      <input
+        ref={videoInput}
+        type="file"
+        accept="video/*"
+        multiple
+        hidden
+        onChange={(event) => {
+          const files = Array.from(event.target.files || []);
+          if (files.length) upload(files);
+          event.target.value = "";
         }}
-      >
-        {filterable ? (
-          <PillTabs<VideoSource>
+      />
+
+      {filterable && (
+        <div style={{ marginBottom: 14 }}>
+          <SegmentedTabs<VideoSource>
             ariaLabel="Video source"
             tabs={[
-              { id: "all", label: "Videos library" },
-              { id: "backgrounds", label: "Background videos" },
+              {
+                id: "all",
+                label: "Videos library",
+                icon: Film,
+                count: library.length,
+              },
+              {
+                id: "backgrounds",
+                label: "Background videos",
+                icon: Layers,
+                count: backgroundClips.size,
+              },
             ]}
             value={source}
             onChange={setSource}
+            minSegmentWidth={150}
           />
-        ) : (
-          <span
-            style={{ fontFamily: fonts.ui, fontSize: 12.5, color: colors.dim }}
-          >
-            From your Videos library
-          </span>
-        )}
-        <Button variant="primary" onClick={() => videoInput.current?.click()}>
-          <Upload size={15} />
-          Upload video
-        </Button>
-        <input
-          ref={videoInput}
-          type="file"
-          accept="video/*"
-          multiple
-          hidden
-          onChange={(event) => {
-            const files = Array.from(event.target.files || []);
-            if (files.length) upload(files);
-            event.target.value = "";
-          }}
-        />
-      </div>
+        </div>
+      )}
 
       {videos.length === 0 ? (
         <EmptyState
@@ -126,7 +147,7 @@ export const VideoSourceList = ({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
+            gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
             gap: 10,
           }}
         >
@@ -180,13 +201,11 @@ export const VideoSourceList = ({
                 >
                   <div style={{ minWidth: 0 }}>
                     <div
+                      className="ws-ellipsis"
                       style={{
                         fontFamily: fonts.ui,
                         fontSize: 11.5,
                         color: colors.sub,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
                       }}
                     >
                       {item.name}
@@ -239,6 +258,6 @@ export const VideoSourceList = ({
           })}
         </div>
       )}
-    </>
+    </LibrarySection>
   );
 };

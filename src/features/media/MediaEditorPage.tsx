@@ -275,6 +275,7 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
           settings={videoSettings}
           onChange={editor.patchVideo}
           duration={duration}
+          playhead={video.time}
           onIssueChange={validation.reportIssue}
           narrow
         />
