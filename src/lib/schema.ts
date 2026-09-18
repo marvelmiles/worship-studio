@@ -132,6 +132,17 @@ const slideSchema = z
   })
   .passthrough();
 
+const hymnMusicSchema = z
+  .object({
+    tune: z.string().optional().catch(undefined),
+    composer: z.string().optional().catch(undefined),
+    meter: z.string().optional().catch(undefined),
+    key: z.string().optional().catch(undefined),
+    tempo: z.number().positive().optional().catch(undefined),
+    source: z.string().optional().catch(undefined),
+  })
+  .strip();
+
 export const manuscriptSchema = z
   .object({
     id: z.string().optional(),
@@ -155,6 +166,7 @@ export const manuscriptSchema = z
     deleted: z.boolean().optional(),
     builtIn: z.boolean().optional(),
     pinned: z.boolean().optional(),
+    music: hymnMusicSchema.optional().catch(undefined),
   })
   .passthrough();
 

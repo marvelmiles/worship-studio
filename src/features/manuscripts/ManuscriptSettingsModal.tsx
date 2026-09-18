@@ -1,6 +1,7 @@
 import type {
   AudioItem,
   Background,
+  HymnMusic,
   Manuscript,
   TextStyle,
   Theme,
@@ -28,6 +29,7 @@ import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
 import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
+import { useUITheme } from "../../theme/ThemeProvider";
 
 interface ManuscriptSettingsModalProps {
   open: boolean;
@@ -46,6 +48,68 @@ const GRID = {
   gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
   gap: 12,
 } as const;
+
+const TuneDetails = ({ music }: { music: HymnMusic }) => {
+  const { colors, fonts } = useUITheme();
+
+  const rows: [string, string][] = [
+    ["Tune", music.tune ?? ""],
+    ["Composer", music.composer ?? ""],
+    ["Meter", music.meter ?? ""],
+    ["Key", music.key ?? ""],
+    ["Tempo", music.tempo ? `${music.tempo} bpm` : ""],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+
+  if (!rows.length && !music.source) return null;
+
+  return (
+    <>
+      <SectionTitle>Tune</SectionTitle>
+      <dl style={{ ...GRID, margin: "0 0 13px" }}>
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt
+              style={{
+                fontFamily: fonts.ui,
+                fontSize: 11.5,
+                fontWeight: 600,
+                letterSpacing: 0.4,
+                textTransform: "uppercase",
+                color: colors.dim,
+                marginBottom: 6,
+              }}
+            >
+              {label}
+            </dt>
+            <dd
+              style={{
+                margin: 0,
+                fontFamily: fonts.ui,
+                fontSize: 13.5,
+                color: colors.text,
+              }}
+            >
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {music.source && (
+        <p
+          style={{
+            margin: "0 0 13px",
+            fontFamily: fonts.ui,
+            fontSize: 11.5,
+            lineHeight: 1.5,
+            color: colors.dim,
+          }}
+        >
+          {music.source}
+        </p>
+      )}
+    </>
+  );
+};
 
 export const ManuscriptSettingsModal = ({
   open,
@@ -118,6 +182,8 @@ export const ManuscriptSettingsModal = ({
           />
         </Field>
       </div>
+
+      {manuscript.music && <TuneDetails music={manuscript.music} />}
 
       <SectionTitle>Text</SectionTitle>
       <StyleControls style={manuscriptStyle} onChange={onStyleChange} />

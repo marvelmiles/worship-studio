@@ -21,8 +21,18 @@ export interface SortableLibraryItem {
   updatedAt: string;
 }
 
-const compareText = (a: string, b: string): number =>
+/**
+ * Titles that do not open with a letter, such as the elided "’Tis" and "’Mid",
+ * sort after the plain A to Z run instead of jumping the queue on punctuation.
+ */
+const leadingRank = (value: string): number =>
+  /^\p{L}/u.test(value.trim()) ? 0 : 1;
+
+export const compareLibraryNames = (a: string, b: string): number =>
+  leadingRank(a) - leadingRank(b) ||
   a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
+
+const compareText = compareLibraryNames;
 
 const compareStamps = (a: string, b: string): number =>
   a < b ? -1 : a > b ? 1 : 0;

@@ -3,6 +3,7 @@ import type { Collection } from "../data/collections";
 import { uid } from "./id";
 import { defaultFormatForCollection } from "./manuscript/format";
 import { extractManuscriptMetadata } from "./manuscript/metadata";
+import { readHymnalSource } from "./manuscript/hymnal";
 import { buildSermonSlides } from "./manuscript/sermon";
 import {
   readStanzaOpener,
@@ -320,8 +321,8 @@ export const parseManuscript = (
   options: ParseManuscriptOptions = {},
 ): ParsedManuscript => {
   const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
-  const normalized = (text || "").replace(/\r\n?/g, "\n");
-  const allLines = normalized.split("\n");
+  const source = readHymnalSource(text);
+  const allLines = source.text.split("\n");
   const metadata = extractManuscriptMetadata(allLines);
   const lines = allLines.slice(metadata.consumed);
 
@@ -339,7 +340,7 @@ export const parseManuscript = (
     });
     return {
       title: metadata.title ?? sermon.title,
-      author: metadata.author ?? sermon.author,
+      author: metadata.author ?? sermon.author ?? source.author,
       collection: metadata.collection,
       slides: sermon.slides.length ? sermon.slides : [emptySlide()],
     };
@@ -435,7 +436,7 @@ export const parseManuscript = (
 
   return {
     title: metadata.title,
-    author: metadata.author,
+    author: metadata.author ?? source.author,
     collection: metadata.collection,
     slides,
   };

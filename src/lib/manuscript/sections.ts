@@ -7,6 +7,7 @@ export interface SectionMeta {
 
 export const SECTION_MAP: Record<string, SectionMeta> = {
   intro: { type: "intro", label: "Intro" },
+  introduction: { type: "intro", label: "Introduction" },
   prelude: { type: "intro", label: "Prelude" },
   verse: { type: "verse", label: "Verse" },
   solo: { type: "verse", label: "Verse" },
@@ -78,15 +79,48 @@ export const splitTagNumber = (
   return { base: raw.trim(), num: null };
 };
 
-const lookup = (name: string): SectionMeta | undefined =>
-  SECTION_MAP[splitTagNumber(name).base.toLowerCase().replace(/\s+/g, " ")];
+const VARIANT_LETTER = /^(.*?)[\s-]+([A-Za-z])$/;
+
+const splitVariantLetter = (
+  raw: string,
+): { base: string; letter: string | null } => {
+  const match = raw.match(VARIANT_LETTER);
+  if (match && match[1].trim())
+    return { base: match[1].trim(), letter: match[2].toUpperCase() };
+  return { base: raw.trim(), letter: null };
+};
+
+const sectionKey = (value: string): string =>
+  value.toLowerCase().replace(/\s+/g, " ");
+
+interface ResolvedSection {
+  meta: SectionMeta;
+  letter: string | null;
+}
+
+const lookup = (name: string): ResolvedSection | undefined => {
+  const base = splitTagNumber(name).base;
+  const direct = SECTION_MAP[sectionKey(base)];
+  if (direct) return { meta: direct, letter: null };
+
+  const variant = splitVariantLetter(base);
+  if (!variant.letter) return undefined;
+  const meta = SECTION_MAP[sectionKey(variant.base)];
+  return meta ? { meta, letter: variant.letter } : undefined;
+};
 
 export const isKnownSection = (name: string): boolean =>
   Boolean(name.trim()) && Boolean(lookup(name));
 
 export const sectionMetaFor = (name: string): SectionMeta => {
-  const meta = lookup(name);
-  if (meta) return meta;
+  const resolved = lookup(name);
+  if (resolved)
+    return resolved.letter
+      ? {
+          type: resolved.meta.type,
+          label: `${resolved.meta.label} ${resolved.letter}`,
+        }
+      : resolved.meta;
   const base = splitTagNumber(name).base;
   return {
     type: "custom",

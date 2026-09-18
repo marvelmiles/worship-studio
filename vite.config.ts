@@ -11,6 +11,11 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
   },
+  // The bundled hymn corpus is large, and JSON.parse beats parsing it as a
+  // JavaScript object literal on startup.
+  json: {
+    stringify: true,
+  },
   plugins: [
     react(),
     VitePWA({

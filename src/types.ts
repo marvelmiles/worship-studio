@@ -124,12 +124,23 @@ export interface SlideDeckDoc {
 
 export type ManuscriptFormat = "song" | "sermon";
 
+/** Tune details that ship with a built-in hymn, for the musicians rather than the screen. */
+export interface HymnMusic {
+  tune?: string;
+  composer?: string;
+  meter?: string;
+  key?: string;
+  tempo?: number;
+  source?: string;
+}
+
 export interface Manuscript extends SlideDeckDoc {
   author?: string;
   collection?: string;
   body: string;
   maxLines?: number;
   format?: ManuscriptFormat;
+  music?: HymnMusic;
 }
 
 export type BibleVersionId = "KJV" | "ASV";
@@ -284,6 +295,8 @@ export interface Prefs {
   defaultScriptureThemeId: string;
   onboarded: boolean;
   goLiveTipDismissed: boolean;
+  /** Which build of the bundled hymnal is installed; 0 means none yet. */
+  hymnalVersion: number;
 }
 
 export interface ResolvedStyle {

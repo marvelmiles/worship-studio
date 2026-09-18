@@ -24,6 +24,8 @@ import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
+import { buildSearchIndex, matchesSearch } from "../../lib/search";
+import { LazyMount } from "../../components/ui/LazyMount";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
@@ -64,20 +66,37 @@ export const ManuscriptLibrary = () => {
 
   const searching = Boolean(query.trim());
 
+  /* Built once per library rather than per keystroke: the hymnal alone is
+     hundreds of manuscripts and the whole text is searchable. */
+  const searchIndex = useMemo(() => {
+    const index = new Map<string, string>();
+    for (const manuscript of manuscripts)
+      index.set(
+        manuscript.id,
+        buildSearchIndex([
+          manuscript.title,
+          manuscript.author,
+          manuscript.collection,
+          manuscript.music?.tune,
+          manuscript.music?.composer,
+          manuscript.body,
+        ]),
+      );
+    return index;
+  }, [manuscripts]);
+
   const list = useMemo(() => {
     let base = manuscripts.filter((m) => !m.deleted);
     if (collection !== "All")
       base = base.filter((m) => m.collection === collection);
-    const term = query.trim().toLowerCase();
+    const term = query.trim();
     if (term)
       base = base.filter((m) =>
-        [m.title, m.author, m.collection, m.body]
-          .filter(Boolean)
-          .some((field) => (field as string).toLowerCase().includes(term)),
+        matchesSearch(searchIndex.get(m.id) ?? "", term),
       );
     const ordered = sortLibrary(base, sort, (m) => m.title);
     return term ? ordered : sortPinnedFirst(ordered);
-  }, [manuscripts, query, collection, sort]);
+  }, [manuscripts, searchIndex, query, collection, sort]);
 
   const confirmDelete = () => {
     if (deleting) {
@@ -174,6 +193,8 @@ export const ManuscriptLibrary = () => {
   );
 };
 
+const swatchStyle = { aspectRatio: "16/9" } as const;
+
 interface ManuscriptCardProps {
   manuscript: Manuscript;
   library: Manuscript[];
@@ -218,22 +239,24 @@ const ManuscriptCard = ({
     >
       <div style={{ position: "relative" }}>
         {first ? (
-          <SlideCanvas
-            slide={first}
-            bg={background}
-            bgImage={image}
-            radius={0}
-            style={resolveStyle(first, manuscript, theme)}
-            lineStyles={first.lines.map((_, i) =>
-              resolveLineStyle(first, i, manuscript, theme),
-            )}
-          />
+          <LazyMount
+            placeholder={
+              <BgSwatch bg={background} settings={image} style={swatchStyle} />
+            }
+          >
+            <SlideCanvas
+              slide={first}
+              bg={background}
+              bgImage={image}
+              radius={0}
+              style={resolveStyle(first, manuscript, theme)}
+              lineStyles={first.lines.map((_, i) =>
+                resolveLineStyle(first, i, manuscript, theme),
+              )}
+            />
+          </LazyMount>
         ) : (
-          <BgSwatch
-            bg={background}
-            settings={image}
-            style={{ aspectRatio: "16/9" }}
-          />
+          <BgSwatch bg={background} settings={image} style={swatchStyle} />
         )}
         <div className="ws-thumb-badge">
           {manuscript.slides?.length || 0} slides

@@ -13,9 +13,17 @@ import { DEFAULT_BIBLE_VERSION, isBibleVersion } from "../../data/bibleBooks";
 import { THEMES } from "../../data/themes";
 import { DEFAULT_AUDIO } from "../../data/sounds";
 import { seedManuscripts } from "../../data/seed";
+import { HYMNAL_VERSION } from "../../data/hymns";
+import { planDefaultManuscripts } from "../../lib/manuscript/defaults";
 import { now } from "../../lib/id";
 import { dataFileSchema, type ImportedPrefs } from "../../lib/schema";
-import { readAllRecords, clearStore, saveRecord } from "../../lib/storage";
+import {
+  readAllRecords,
+  clearStore,
+  deleteRecord,
+  saveRecord,
+  saveRecords,
+} from "../../lib/storage";
 import type { StoreName } from "../../lib/storage";
 import { thumbId } from "../../lib/fileStore";
 import { invalidateBlobUrls, resetBlobUrls } from "../../lib/blobUrls";
@@ -143,12 +151,24 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       readAllRecords<Prefs>("prefs"),
     ]);
 
+    let prefs = withSupportedBibleVersion(
+      prefsRows[0] ? { ...DEFAULT_PREFS, ...prefsRows[0] } : DEFAULT_PREFS,
+    );
+
+    /* A library seeded from an older hymnal (or none at all) is moved onto the
+       current one here, so an existing install picks up new built-ins instead
+       of keeping whatever it was first seeded with. */
     let manuscripts = storedManuscripts;
-    if (!manuscripts.length) {
-      manuscripts = seedManuscripts();
-      for (const manuscript of manuscripts) {
-        await saveRecord("manuscripts", manuscript);
-      }
+    if (prefs.hymnalVersion !== HYMNAL_VERSION) {
+      const plan = planDefaultManuscripts(
+        storedManuscripts,
+        await seedManuscripts(),
+      );
+      manuscripts = plan.manuscripts;
+      await saveRecords("manuscripts", plan.toInstall);
+      for (const id of plan.staleIds) await deleteRecord("manuscripts", id);
+      prefs = { ...prefs, hymnalVersion: HYMNAL_VERSION };
+      await saveRecord("prefs", prefs);
     }
 
     let themes = storedThemes;
@@ -156,10 +176,6 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       themes = THEMES;
       for (const theme of themes) await saveRecord("themes", theme);
     }
-
-    const prefs = withSupportedBibleVersion(
-      prefsRows[0] ? { ...DEFAULT_PREFS, ...prefsRows[0] } : DEFAULT_PREFS,
-    );
 
     set({
       manuscripts,
@@ -393,7 +409,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       const survivors = survivingAfterReset({
         manuscripts: get().manuscripts,
         themes: get().themes,
-        seedManuscripts: seedManuscripts(),
+        seedManuscripts: await seedManuscripts(),
         builtInThemes: THEMES,
         builtInBackgrounds: BACKGROUNDS,
         builtInAudio: DEFAULT_AUDIO,
@@ -416,11 +432,13 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
           ] as StoreName[]
         ).map(clearStore),
       );
-      for (const manuscript of survivors.manuscripts) {
-        await saveRecord("manuscripts", manuscript);
-      }
+      await saveRecords("manuscripts", survivors.manuscripts);
       for (const theme of survivors.themes) await saveRecord("themes", theme);
-      await saveRecord("prefs", DEFAULT_PREFS);
+      const freshPrefs: Prefs = {
+        ...DEFAULT_PREFS,
+        hymnalVersion: HYMNAL_VERSION,
+      };
+      await saveRecord("prefs", freshPrefs);
       set({
         manuscripts: survivors.manuscripts,
         scriptures: [],
@@ -428,7 +446,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         themes: survivors.themes,
         backgrounds: BACKGROUNDS,
         audio: DEFAULT_AUDIO,
-        prefs: DEFAULT_PREFS,
+        prefs: freshPrefs,
       });
     } finally {
       const elapsedMs = Date.now() - startedAt;

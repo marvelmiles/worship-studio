@@ -1,6 +1,7 @@
 import {
   estimateQuota,
   saveRecord,
+  saveRecords,
   storageState,
   wipeAllStores,
 } from "../../lib/storage";
@@ -59,9 +60,8 @@ export const createStorageSlice: SliceCreator<StorageSlice> = (set, get) => ({
 
   freeUpStorage: async () => {
     await wipeAllStores();
-    const manuscripts = seedManuscripts();
-    for (const manuscript of manuscripts)
-      await saveRecord("manuscripts", manuscript);
+    const manuscripts = await seedManuscripts();
+    await saveRecords("manuscripts", manuscripts);
     for (const theme of THEMES) await saveRecord("themes", theme);
     await saveRecord("prefs", get().prefs);
     set({

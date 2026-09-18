@@ -19,6 +19,7 @@ export const DEFAULT_PREFS: Prefs = {
   defaultScriptureThemeId: "scripture",
   onboarded: false,
   goLiveTipDismissed: false,
+  hymnalVersion: 0,
 };
 
 export interface PrefsSlice {

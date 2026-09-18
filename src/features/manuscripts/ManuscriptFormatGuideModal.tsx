@@ -69,6 +69,15 @@ export const ManuscriptFormatGuideModal = ({
             <Mark>(2)</Mark> or <Mark>IV.</Mark> is numbered by it: the number
             labels the slide instead of standing in front of the lyric.
           </GuideSection>
+          <GuideSection title="Hymnbook text">
+            Hymnal exports drop straight in. <Mark>Verse 1:</Mark> and{" "}
+            <Mark>Refrain:</Mark> headings become slides, an{" "}
+            <Mark>Author:</Mark> line anywhere in the text fills the author
+            instead of becoming a lyric, tune cues such as <Mark>@e1</Mark> and{" "}
+            <Mark>Road Map:</Mark> lines are dropped, and singing hyphens in{" "}
+            <Mark>a-bide with me</Mark> are closed up so the words read and
+            search whole.
+          </GuideSection>
           <GuideSection title="Repeats">
             Repeat marks never reach the screen. <Mark>(2x)</Mark>{" "}
             <Mark>/2ce</Mark> and <Mark>[4x]</Mark> move into the presenter

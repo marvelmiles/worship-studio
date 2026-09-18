@@ -204,6 +204,30 @@ export const saveRecordStrict = async <T extends HasId>(
   if (backend === "session") persistSession(store);
 };
 
+export const saveRecords = async <T extends HasId>(
+  store: StoreName,
+  values: T[],
+): Promise<void> => {
+  if (!values.length) return;
+  const backend = await init();
+  if (backend === "indexeddb" && idb) {
+    return new Promise((resolve) => {
+      try {
+        const tx = idb!.transaction(store, "readwrite");
+        const target = tx.objectStore(store);
+        for (const value of values) target.put(value);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+        tx.onabort = () => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  }
+  for (const value of values) mem[store].set(value.id, value);
+  if (backend === "session") persistSession(store);
+};
+
 export const deleteRecord = async (
   store: StoreName,
   id: string,

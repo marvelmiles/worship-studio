@@ -13,12 +13,13 @@ Then open the URL Vite prints (default http://localhost:5173).
 
 ### Scripts
 
-| Command          | What it does                                        |
-| ---------------- | --------------------------------------------------- |
-| `pnpm dev`       | Start the Vite dev server with HMR                  |
-| `pnpm build`     | Type‑check (`tsc`) then build to `dist/`            |
-| `pnpm preview`   | Preview the production build (exercises the PWA SW) |
-| `pnpm typecheck` | Run the TypeScript compiler without emitting        |
+| Command               | What it does                                            |
+| --------------------- | ------------------------------------------------------- |
+| `pnpm dev`            | Start the Vite dev server with HMR                      |
+| `pnpm build`          | Type‑check (`tsc`) then build to `dist/`                |
+| `pnpm preview`        | Preview the production build (exercises the PWA SW)     |
+| `pnpm typecheck`      | Run the TypeScript compiler without emitting            |
+| `pnpm generate:hymns` | Rebuild `src/data/hymns.json` from the freehymns corpus |
 
 > Requires Node 18+ (Node 20/22 recommended). If you prefer npm or yarn, the
 > equivalent `install` / `run dev` commands work too.
@@ -172,6 +173,7 @@ src/
   theme/        the UI theme (uiTheme.ts), its provider and the --ws-* CSS variables
   lib/          parser, style/bg resolution, storage, zod schema, helpers
   data/         built-in backgrounds, themes, collections, fonts, seed manuscripts
+                (hymns.json holds the bundled hymnal, generated, not edited by hand)
   store/        Zustand store (state + actions + persistence)
   components/   SlideCanvas + reusable UI primitives (Button, Field, Modal, ContextMenu)
   hooks/        shared behaviour (text editing, media playback, wake lock, viewport)
@@ -245,7 +247,37 @@ a `netlify.toml`; on other hosts, publish `dist/` and route unknown paths to
 `index.html` so client-side routing works. Set the Firebase variables above in
 the host's environment if you want one‑tap pairing in production.
 
+## Hymn library
+
+The default manuscripts are the full English hymnal from
+[freehymns/hymns](https://github.com/freehymns/hymns), bundled as
+`src/data/hymns.json` so every hymn is searchable and presentable offline. They
+are seeded into IndexedDB on first load and marked `builtIn`, so they cannot be
+deleted by accident.
+
+`pnpm generate:hymns` rebuilds that file. It clones the corpus into `.cache/`
+(or reads `--source=<path>`), then normalizes each file through
+`src/lib/manuscript/hymnal.ts`, the same module the parser uses, so pasted
+hymnal text is treated exactly like the bundled corpus. Normalizing means:
+
+- `Verse 1:` and `Refrain:` headings become sections, including `Refrain A`
+  and `Introduction`
+- an `Author:` line anywhere in the file becomes the manuscript's author
+  instead of a lyric
+- tune cues such as `Verse 1:@e1` and `Road Map:` lines are dropped
+- singing hyphens are closed up, so `a-bide` is stored and searched as `abide`
+
+The join only runs when a document really is syllabified, measured by how many
+words carry a hyphen and how short the pieces are. A manuscript you typed
+yourself keeps `self-control` and `day-to-day` intact.
+
+Hymns are seeded at four lines a slide with a slightly smaller type size, so a
+stanza always leaves space above and below it rather than filling the frame.
+Longer sections simply break across more slides.
+
 ## License
 
-Seed content uses public‑domain hymns. The code is provided for you to use and
-adapt for your church or project.
+Seed content is the public‑domain hymnal from
+[freehymns/hymns](https://github.com/freehymns/hymns), transcribed from The
+Cyber Hymnal and marked `Terms:Public Domain` at source. The code is provided
+for you to use and adapt for your church or project.
