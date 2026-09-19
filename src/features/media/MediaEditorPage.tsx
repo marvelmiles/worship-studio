@@ -36,6 +36,11 @@ import { useMediaEditor } from "./useMediaEditor";
 import { useEditorReturn } from "../assets/assetLibraryNavigation";
 import routes from "../../routes";
 
+const resetTitle = (canReset: boolean): string =>
+  canReset
+    ? "Put every adjustment back to the way this file started"
+    : "Nothing to reset: every adjustment is already where it started";
+
 const BACK_TITLE: Record<MediaKind, string> = {
   image: "Back to images",
   video: "Back to videos",
@@ -287,11 +292,18 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
           compact ? (
             <IconButton
               icon={Undo2}
-              title="Reset all settings"
+              title={resetTitle(editor.canResetSettings)}
+              disabled={!editor.canResetSettings}
               onClick={resetAll.request}
             />
           ) : (
-            <Button variant="ghost" size="sm" onClick={resetAll.request}>
+            <Button
+              variant="ghost"
+              size="sm"
+              title={resetTitle(editor.canResetSettings)}
+              disabled={!editor.canResetSettings}
+              onClick={resetAll.request}
+            >
               <Undo2 size={14} />
               Reset all
             </Button>

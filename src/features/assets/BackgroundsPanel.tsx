@@ -14,6 +14,7 @@ import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
 import { BackgroundImageEditorModal } from "../../components/media/BackgroundImageEditorModal";
 import { MediaSourceList } from "./MediaSourceList";
 import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
+import { formatCount } from "../../lib/formatNumber";
 
 type BackgroundTab = "images" | "colors" | "videos";
 
@@ -151,7 +152,7 @@ const ImagesTab = ({
         <div style={{ marginTop: 14 }}>
           <LibrarySection
             title="Saved pictures"
-            meta={`${standalone.length} saved`}
+            meta={`${formatCount(standalone.length)} saved`}
             description="Backgrounds saved on their own rather than from your Images page."
           >
             <BackgroundGrid
@@ -182,7 +183,7 @@ const ColorsTab = ({
   return (
     <LibrarySection
       title="Colors and gradients"
-      meta={`${colors.length} saved`}
+      meta={`${formatCount(colors.length)} saved`}
       description="Pick a preset or write any CSS color or gradient of your own."
     >
       <CustomColorPicker
@@ -271,9 +272,6 @@ const BackgroundGrid = ({
             }}
           >
             {bg.name}
-            {bg.builtIn && (
-              <span style={{ color: colors.sub }}> · default</span>
-            )}
           </div>
           {!bg.builtIn && (
             <div

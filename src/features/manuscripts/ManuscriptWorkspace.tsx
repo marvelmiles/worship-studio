@@ -3,11 +3,13 @@ import { RotateCcw, Settings2, Type } from "lucide-react";
 import type { Manuscript, ManuscriptFormat } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { DEFAULT_COLLECTION } from "../../data/collections";
+import { now } from "../../lib/id";
 import { useStore } from "../../store/useStore";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useDeckEditor } from "../editor/useDeckEditor";
 import { useOpenAssetUsageEditor } from "../assets/assetUsageEdit";
+import { useManuscriptDefault } from "./useManuscriptDefault";
 import { DeckWorkspace } from "../editor/DeckWorkspace";
 import { ManuscriptTextModal } from "./ManuscriptTextModal";
 import { ManuscriptSettingsModal } from "./ManuscriptSettingsModal";
@@ -18,8 +20,10 @@ import { manuscriptSlideElements } from "../../lib/slideElements";
 import { isUntitledManuscript } from "../../store/slices/manuscriptsSlice";
 import routes from "../../routes";
 
-const RESET_TITLE =
-  "Put this default manuscript back to the text, slides and styling it shipped with";
+const resetTitle = (canReset: boolean): string =>
+  canReset
+    ? "Put this default manuscript back to the text, slides and styling it shipped with"
+    : "Nothing to reset: this manuscript is the way it shipped";
 
 const DRAFT_LEAVE_MESSAGE =
   "This manuscript has not been saved yet. If you leave now it is not added to your library.";
@@ -36,7 +40,6 @@ export const ManuscriptWorkspace = ({
 }: ManuscriptWorkspaceProps) => {
   const { colors, fonts } = useUITheme();
   const upsertManuscript = useStore((s) => s.upsertManuscript);
-  const defaultManuscriptFor = useStore((s) => s.defaultManuscriptFor);
   const pushToast = useStore((s) => s.pushToast);
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -54,6 +57,7 @@ export const ManuscriptWorkspace = ({
 
   const draft = editor.doc;
   const theme = themes.find((t) => t.id === draft.defaultThemeId) || themes[0];
+  const shippedDefault = useManuscriptDefault(draft);
 
   const regenerateFromBody = (
     body: string,
@@ -79,9 +83,9 @@ export const ManuscriptWorkspace = ({
 
   /* Staged like any other edit, so Save still decides and undo can take it
      back. */
-  const resetToDefault = async () => {
+  const resetToDefault = () => {
     setConfirmReset(false);
-    const defaults = await defaultManuscriptFor(draft.id);
+    const defaults = shippedDefault.shipped;
     if (!defaults) {
       pushToast(
         "This manuscript has no shipped version to go back to.",
@@ -89,7 +93,7 @@ export const ManuscriptWorkspace = ({
       );
       return;
     }
-    editor.replaceDoc(defaults);
+    editor.replaceDoc({ ...defaults, updatedAt: now() });
     pushToast(`"${defaults.title}" is back to its default. Save to keep it.`);
   };
 
@@ -98,14 +102,16 @@ export const ManuscriptWorkspace = ({
       compact ? (
         <IconButton
           icon={RotateCcw}
-          title={RESET_TITLE}
+          title={resetTitle(shippedDefault.changed)}
+          disabled={!shippedDefault.changed}
           onClick={() => setConfirmReset(true)}
         />
       ) : (
         <Button
           variant="ghost"
           size="sm"
-          title={RESET_TITLE}
+          title={resetTitle(shippedDefault.changed)}
+          disabled={!shippedDefault.changed}
           onClick={() => setConfirmReset(true)}
         >
           <RotateCcw size={14} />
@@ -213,7 +219,7 @@ export const ManuscriptWorkspace = ({
         title="Reset to default?"
         message={`"${draft.title}" goes back to the text, slides and styling it shipped with. Anything you changed here is replaced, and the reset only sticks once you save.`}
         confirmLabel="Reset to default"
-        onConfirm={() => void resetToDefault()}
+        onConfirm={resetToDefault}
         onCancel={() => setConfirmReset(false)}
       />
     </DeckWorkspace>

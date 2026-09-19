@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, PenLine, Plus, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
-import { useUITheme } from "../../theme/ThemeProvider";
 import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -22,6 +21,8 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { buildSearchIndex, matchesSearch } from "../../lib/search";
+import { formatCountLabel } from "../../lib/formatNumber";
+import { formatDate } from "../../lib/id";
 import { LazyMount } from "../../components/ui/LazyMount";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -37,8 +38,11 @@ import {
   cardOpenProps,
 } from "../../components/ui/InteractiveCard";
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
+import { LayoutToggle } from "../../components/ui/LayoutToggle";
+import { LibraryListRow } from "../../components/ui/LibraryListRow";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { useLibraryLayout } from "../../hooks/useLibraryLayout";
 import routes from "../../routes";
 
 export const ManuscriptLibrary = () => {
@@ -55,6 +59,7 @@ export const ManuscriptLibrary = () => {
   const [collection, setCollection] = useState("All");
   const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<Manuscript | null>(null);
+  const { layout, setLayout } = useLibraryLayout("manuscripts");
 
   const onNew = () => navigate(routes.newManuscript());
 
@@ -130,6 +135,11 @@ export const ManuscriptLibrary = () => {
             onChange={setSort}
             nameLabel="Title"
           />
+          <LayoutToggle
+            value={layout}
+            onChange={setLayout}
+            noun="manuscripts"
+          />
         </div>
       </div>
 
@@ -154,26 +164,29 @@ export const ManuscriptLibrary = () => {
           />
         ))}
 
-      <div className="ws-card-grid">
-        {list.map((manuscript) => (
-          <ManuscriptCard
-            key={manuscript.id}
-            manuscript={manuscript}
-            library={manuscripts}
-            themes={themes}
-            bgMap={bgMap}
-            onOpen={() => navigate(routes.manuscript(manuscript.id))}
-            onPresent={(pip) =>
+      <div className={layout === "grid" ? "ws-card-grid" : "ws-list"}>
+        {list.map((manuscript) => {
+          const props = {
+            manuscript,
+            library: manuscripts,
+            themes,
+            bgMap,
+            onOpen: () => navigate(routes.manuscript(manuscript.id)),
+            onPresent: (pip: boolean) =>
               startPresent(
                 "manuscript",
                 manuscript.id,
                 0,
                 pip ? "pip" : "stage",
-              )
-            }
-            onDelete={() => setDeleting(manuscript)}
-          />
-        ))}
+              ),
+            onDelete: () => setDeleting(manuscript),
+          };
+          return layout === "grid" ? (
+            <ManuscriptCard key={manuscript.id} {...props} />
+          ) : (
+            <ManuscriptRow key={manuscript.id} {...props} />
+          );
+        })}
       </div>
 
       <ConfirmDialog
@@ -199,18 +212,12 @@ interface ManuscriptCardProps {
   onDelete: () => void;
 }
 
-const ManuscriptCard = ({
-  manuscript,
-  library,
-  themes,
-  bgMap,
-  onOpen,
-  onPresent,
-  onDelete,
-}: ManuscriptCardProps) => {
-  const { colors, fonts } = useUITheme();
-  const keepAction = useKeepOnResetAction("manuscript", manuscript);
-
+/** The first slide as it will look, or its background alone while it loads. */
+const useManuscriptCover = (
+  manuscript: Manuscript,
+  themes: Theme[],
+  bgMap: BgMap,
+): ReactNode => {
   const first = manuscript.slides?.[0];
   const theme =
     themes.find((t) => t.id === manuscript.defaultThemeId) || themes[0];
@@ -220,6 +227,101 @@ const ManuscriptCard = ({
     theme,
     bgMap,
   );
+
+  if (!first)
+    return <BgSwatch bg={background} settings={image} style={swatchStyle} />;
+
+  return (
+    <LazyMount
+      placeholder={
+        <BgSwatch bg={background} settings={image} style={swatchStyle} />
+      }
+    >
+      <SlideCanvas
+        slide={first}
+        bg={background}
+        bgImage={image}
+        bgVideo={video}
+        radius={0}
+        style={resolveStyle(first, manuscript, theme)}
+        lineStyles={first.lines.map((_, i) =>
+          resolveLineStyle(first, i, manuscript, theme),
+        )}
+      />
+    </LazyMount>
+  );
+};
+
+const manuscriptDetails = (manuscript: Manuscript): string[] => [
+  manuscript.author || "Unknown author",
+  ...(manuscript.collection ? [manuscript.collection] : []),
+  formatCountLabel(manuscript.slides?.length || 0, "slide"),
+  `Added ${formatDate(manuscript.createdAt)}`,
+  `Last modified ${formatDate(manuscript.updatedAt)}`,
+];
+
+const deleteTitle = (manuscript: Manuscript): string =>
+  manuscript.builtIn
+    ? "Default manuscripts can't be deleted"
+    : "Delete manuscript";
+
+const ManuscriptRow = ({
+  manuscript,
+  library,
+  themes,
+  bgMap,
+  onOpen,
+  onPresent,
+  onDelete,
+}: ManuscriptCardProps) => {
+  const keepAction = useKeepOnResetAction("manuscript", manuscript);
+  const cover = useManuscriptCover(manuscript, themes, bgMap);
+
+  return (
+    <LibraryListRow
+      cover={cover}
+      title={manuscript.title}
+      badges={<KeepOnResetBadge item={manuscript} />}
+      details={manuscriptDetails(manuscript)}
+      onOpen={onOpen}
+      actions={
+        <>
+          <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
+          <PinButton kind="manuscript" item={manuscript} library={library} />
+          <IconButton
+            filled
+            danger
+            size="sm"
+            icon={Trash2}
+            disabled={manuscript.builtIn}
+            title={deleteTitle(manuscript)}
+            onClick={onDelete}
+          />
+          <MoreMenu
+            filled
+            size="sm"
+            items={[
+              { label: "Open in editor", icon: PenLine, onClick: onOpen },
+              ...(keepAction ? [keepAction] : []),
+            ]}
+          />
+        </>
+      }
+    />
+  );
+};
+
+const ManuscriptCard = ({
+  manuscript,
+  library,
+  themes,
+  bgMap,
+  onOpen,
+  onPresent,
+  onDelete,
+}: ManuscriptCardProps) => {
+  const keepAction = useKeepOnResetAction("manuscript", manuscript);
+  const cover = useManuscriptCover(manuscript, themes, bgMap);
 
   const menuItems: MoreMenuItem[] = [
     { label: "Open in editor", icon: PenLine, onClick: onOpen },
@@ -232,48 +334,15 @@ const ManuscriptCard = ({
       {...cardOpenProps(manuscript.title, onOpen)}
     >
       <div style={{ position: "relative" }}>
-        {first ? (
-          <LazyMount
-            placeholder={
-              <BgSwatch bg={background} settings={image} style={swatchStyle} />
-            }
-          >
-            <SlideCanvas
-              slide={first}
-              bg={background}
-              bgImage={image}
-              bgVideo={video}
-              radius={0}
-              style={resolveStyle(first, manuscript, theme)}
-              lineStyles={first.lines.map((_, i) =>
-                resolveLineStyle(first, i, manuscript, theme),
-              )}
-            />
-          </LazyMount>
-        ) : (
-          <BgSwatch bg={background} settings={image} style={swatchStyle} />
-        )}
+        {cover}
         <div className="ws-thumb-badge">
-          {manuscript.slides?.length || 0} slides
+          {formatCountLabel(manuscript.slides?.length || 0, "slide")}
         </div>
       </div>
       <div className="ws-card-body">
         <div className="ws-card-title">
           <span className="ws-ellipsis">{manuscript.title}</span>
           <KeepOnResetBadge item={manuscript} />
-          {manuscript.builtIn && (
-            <span
-              style={{
-                fontFamily: fonts.ui,
-                fontSize: 10,
-                fontWeight: 700,
-                color: colors.dim,
-                letterSpacing: 0.4,
-              }}
-            >
-              DEFAULT
-            </span>
-          )}
         </div>
         <div className="ws-card-sub">
           {manuscript.author || "Unknown"}
@@ -288,11 +357,7 @@ const ManuscriptCard = ({
             size="sm"
             icon={Trash2}
             disabled={manuscript.builtIn}
-            title={
-              manuscript.builtIn
-                ? "Default manuscripts can't be deleted"
-                : "Delete manuscript"
-            }
+            title={deleteTitle(manuscript)}
             onClick={onDelete}
           />
           <MoreMenu filled size="sm" items={menuItems} />

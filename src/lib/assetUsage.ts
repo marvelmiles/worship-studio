@@ -1,7 +1,9 @@
 import { z } from "zod";
 import type {
   AudioSettings,
+  ContentKind,
   ImageSettings,
+  Slide,
   SlideDeckDoc,
   SlideOverrides,
   VideoSettings,
@@ -11,7 +13,7 @@ import {
   imageSettingsSchema,
   videoSettingsSchema,
 } from "./schema";
-import routes, { isRoutePath } from "../routes";
+import routes from "../routes";
 
 /**
  * One place an asset is used: a manuscript, a passage or a single slide.
@@ -24,6 +26,9 @@ import routes, { isRoutePath } from "../routes";
 
 export type AssetUsageKind = "image" | "video" | "audio";
 
+/** The documents a usage can belong to. */
+export type AssetUsageDocKind = Extract<ContentKind, "manuscript" | "scripture">;
+
 /** The asset being tuned, and the settings this one place starts from. */
 export type AssetUsageSubject =
   | { kind: "image"; settings: ImageSettings; defaults: ImageSettings }
@@ -32,9 +37,13 @@ export type AssetUsageSubject =
 
 /**
  * What a picker hands up when its pencil is pressed: the background or sound to
- * open, which the place also ends up using once the settings come back.
+ * open, which the place also ends up using once the settings are saved.
  */
-export type AssetUsageRequest = AssetUsageSubject & { assetId: string };
+export type AssetUsageRequest = AssetUsageSubject & {
+  assetId: string;
+  /** Whether the place is already using this asset, or saving would choose it. */
+  inUse: boolean;
+};
 
 /** The one place the settings belong to. */
 export interface AssetUsagePlace {
@@ -42,17 +51,19 @@ export interface AssetUsagePlace {
   label: string;
   /** The slide the settings belong to, or null for the document itself. */
   slideId: string | null;
-  /** The page the editor's back arrow returns to. */
-  returnTo: string;
+  docKind: AssetUsageDocKind;
+  docId: string;
 }
 
 export type AssetUsageEdit = AssetUsageRequest & AssetUsagePlace;
 
 const editShape = {
   assetId: z.string().min(1),
+  inUse: z.boolean(),
   label: z.string().min(1),
   slideId: z.string().nullable(),
-  returnTo: z.string().refine(isRoutePath),
+  docKind: z.enum(["manuscript", "scripture"]),
+  docId: z.string().min(1),
 };
 
 export const assetUsageEditSchema = z.discriminatedUnion("kind", [
@@ -75,6 +86,19 @@ export const assetUsageEditSchema = z.discriminatedUnion("kind", [
     defaults: audioSettingsSchema,
   }),
 ]);
+
+export const isAssetUsageDocKind = (
+  kind: ContentKind,
+): kind is AssetUsageDocKind => kind === "manuscript" || kind === "scripture";
+
+const DOCUMENT_ROUTE: Record<AssetUsageDocKind, (id: string) => string> = {
+  manuscript: routes.manuscript,
+  scripture: routes.passage,
+};
+
+/** The page the editor's back arrow returns to. */
+export const assetUsageReturnPath = (place: AssetUsagePlace): string =>
+  DOCUMENT_ROUTE[place.docKind](place.docId);
 
 export const assetUsagePath = (edit: AssetUsageEdit): string =>
   routes.assetUsage(
@@ -114,4 +138,24 @@ export const assetUsageDocumentChanges = (
       defaultBackgroundVideo: edit.settings,
     };
   return { defaultAudioId: edit.assetId, defaultAudioSettings: edit.settings };
+};
+
+const withSlideChanges = (slide: Slide, edit: AssetUsageEdit): Slide => ({
+  ...slide,
+  overrides: { ...slide.overrides, ...assetUsageSlideChanges(edit) },
+});
+
+/** Writes an edit onto the one slide or document it was made for. */
+export const applyAssetUsage = <T extends SlideDeckDoc>(
+  doc: T,
+  edit: AssetUsageEdit,
+): T => {
+  const { slideId } = edit;
+  if (!slideId) return { ...doc, ...assetUsageDocumentChanges(edit) };
+  return {
+    ...doc,
+    slides: (doc.slides ?? []).map((slide) =>
+      slide.id === slideId ? withSlideChanges(slide, edit) : slide,
+    ),
+  };
 };

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Save, Undo2 } from "lucide-react";
 import type { ImageSettings } from "../../types";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { shallowEqual } from "../../lib/equality";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import { Field, TextInput } from "../../components/ui/Field";
@@ -41,6 +42,8 @@ export const ImageEditorModal = ({
   const patch = (changes: Partial<ImageSettings>) =>
     setSettings((prev) => ({ ...prev, ...changes }));
 
+  const canReset = !shallowEqual(settings, defaults);
+
   const save = () => {
     onSave(settings, name.trim());
     onClose();
@@ -58,7 +61,16 @@ export const ImageEditorModal = ({
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button variant="ghost" onClick={() => setSettings(defaults)}>
+          <Button
+            variant="ghost"
+            disabled={!canReset}
+            title={
+              canReset
+                ? "Put every adjustment back to the way this picture started"
+                : "Nothing to reset: every adjustment is already where it started"
+            }
+            onClick={() => setSettings(defaults)}
+          >
             <Undo2 size={14} />
             Reset all
           </Button>

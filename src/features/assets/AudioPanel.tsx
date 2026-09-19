@@ -16,6 +16,7 @@ import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
 import { MediaSourceList } from "./MediaSourceList";
 import routes from "../../routes";
+import { formatCount } from "../../lib/formatNumber";
 
 type AudioTab = "sounds" | "videos";
 
@@ -73,7 +74,7 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   return (
     <LibrarySection
       title="Sounds"
-      meta={`${audio.length} saved`}
+      meta={`${formatCount(audio.length)} saved`}
       description="Background audio you can attach to a theme, a manuscript or a single slide."
       action={
         <Button

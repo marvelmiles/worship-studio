@@ -21,6 +21,7 @@ import { LibrarySection } from "../../components/ui/LibrarySection";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
+import { formatCount } from "../../lib/formatNumber";
 
 interface SlideMediaPickerProps {
   kind: MediaKind;
@@ -145,7 +146,7 @@ export const SlideMediaPicker = ({
           {uploads.length > 0 && (
             <LibrarySection
               title="Media library"
-              meta={`${uploads.length}`}
+              meta={formatCount(uploads.length)}
               description={COPY[kind].uploadsHint}
             >
               <PickerGrid>
@@ -173,7 +174,7 @@ export const SlideMediaPicker = ({
           {assets.length > 0 && (
             <LibrarySection
               title="Asset library"
-              meta={`${assets.length}`}
+              meta={formatCount(assets.length)}
               description={ASSETS_HINT}
             >
               <PickerGrid>
@@ -181,7 +182,6 @@ export const SlideMediaPicker = ({
                   <PickerTile
                     key={background.id}
                     name={background.name}
-                    meta={background.builtIn ? "default" : undefined}
                     onPick={() => pick(backgroundChoice(background))}
                   >
                     <BgSwatch

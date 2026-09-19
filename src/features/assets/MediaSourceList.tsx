@@ -26,6 +26,7 @@ import { VideoThumb } from "../../components/media/VideoThumb";
 import type { AssetSection } from "./assetLibraryNavigation";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
 import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
+import { formatCount } from "../../lib/formatNumber";
 
 type SourceFilter = "all" | "added";
 
@@ -125,7 +126,7 @@ export const MediaSourceList = ({
   return (
     <LibrarySection
       title={title}
-      meta={`${items.length} of ${library.length}`}
+      meta={`${formatCount(items.length)} of ${formatCount(library.length)}`}
       description={description}
       action={
         <Button

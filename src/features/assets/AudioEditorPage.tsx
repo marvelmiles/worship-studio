@@ -17,6 +17,7 @@ import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
 } from "../../hooks/useUnsavedChanges";
+import { shallowEqual } from "../../lib/equality";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import {
   audioSettingsOf,
@@ -36,6 +37,11 @@ import { AudioSettingsControls } from "../../components/media/AudioSettingsContr
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import { useEditorReturn } from "./assetLibraryNavigation";
 import routes from "../../routes";
+
+const resetTitle = (canReset: boolean): string =>
+  canReset
+    ? "Put every adjustment back to the way this sound started"
+    : "Nothing to reset: every adjustment is already where it started";
 
 interface AudioDraft {
   name: string;
@@ -136,6 +142,7 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
       [apply, draft],
     ),
   );
+  const canReset = !shallowEqual(settings, DEFAULT_AUDIO_SETTINGS);
 
   const handleSave = () => {
     if (validation.invalid) {
@@ -280,11 +287,18 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
           compact ? (
             <IconButton
               icon={Undo2}
-              title="Reset all settings"
+              title={resetTitle(canReset)}
+              disabled={!canReset}
               onClick={resetAll.request}
             />
           ) : (
-            <Button variant="ghost" size="sm" onClick={resetAll.request}>
+            <Button
+              variant="ghost"
+              size="sm"
+              title={resetTitle(canReset)}
+              disabled={!canReset}
+              onClick={resetAll.request}
+            >
               <Undo2 size={14} />
               Reset all
             </Button>

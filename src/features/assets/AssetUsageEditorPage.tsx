@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Image as ImageIcon, Music, Undo2 } from "lucide-react";
 import type {
@@ -20,8 +20,12 @@ import { useSpacePlayPause } from "../../hooks/useSpacePlayPause";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import { useValidation } from "../../hooks/useValidation";
 import { useConfirmedAction } from "../../hooks/useConfirmedAction";
-import { useUnsavedChanges } from "../../hooks/useUnsavedChanges";
+import {
+  useUnsavedChanges,
+  UNSAVED_CHANGES_MESSAGE,
+} from "../../hooks/useUnsavedChanges";
 import { useBlobUrl } from "../../lib/blobUrls";
+import { shallowEqual } from "../../lib/equality";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import { formatDuration } from "../../lib/media";
 import { settingsGrouping } from "../../lib/settingsHistory";
@@ -44,14 +48,16 @@ import { useAssetUsageEditor } from "./assetUsageEdit";
 import type { AssetUsageEditorSession } from "./assetUsageEdit";
 import routes from "../../routes";
 
-const LEAVE_MESSAGE =
-  "The changes made here have not been handed back yet. If you leave now they are lost.";
-
 const ASSET_NOUN: Record<AssetUsageKind, string> = {
   image: "Picture",
   video: "Moving background",
   audio: "Sound",
 };
+
+const resetTitle = (canReset: boolean): string =>
+  canReset
+    ? "Put every adjustment back to the way this asset starts"
+    : "Nothing to reset: these settings already match the asset";
 
 const STACKED_WIDTH = 1080;
 const COMPACT_WIDTH = 560;
@@ -91,7 +97,7 @@ export const AssetUsageEditorPage = () => {
       title={`${ASSET_NOUN[kind]} not found`}
       message="It may have been removed from your library."
       actionLabel={`Back to ${edit.label}`}
-      onAction={() => navigate(edit.returnTo)}
+      onAction={usage.back}
     />
   );
 
@@ -139,7 +145,7 @@ interface UsageFrameProps {
   name: string;
   kind: AssetUsageKind;
   usage: AssetUsageEditorSession;
-  /** What the apply button hands back to the page the edit came from. */
+  /** What the save button writes onto the place this edit belongs to. */
   draft: AssetUsageEdit["settings"];
   dirty: boolean;
   canUndo: boolean;
@@ -147,6 +153,9 @@ interface UsageFrameProps {
   onUndo: () => void;
   onRedo: () => void;
   onReset: () => void;
+  /** Off while the settings already match the ones this asset starts from. */
+  canReset: boolean;
+  onSaved: () => void;
   invalid?: boolean;
   invalidReason?: string | null;
   preview: ReactNode;
@@ -165,6 +174,8 @@ const UsageFrame = ({
   onUndo,
   onRedo,
   onReset,
+  canReset,
+  onSaved,
   invalid,
   invalidReason,
   preview,
@@ -173,31 +184,35 @@ const UsageFrame = ({
   const { colors, fonts } = useUITheme();
   const { width } = useViewport();
   const pushToast = useStore((s) => s.pushToast);
-  const { edit, cancel } = usage;
+  const { edit } = usage;
   const stacked = width < STACKED_WIDTH;
   const compact = width < COMPACT_WIDTH;
-  const [handedOver, setHandedOver] = useState<
-    AssetUsageEdit["settings"] | null
-  >(null);
 
   useDocumentTitle(name);
   useUndoRedoShortcuts({ canUndo, canRedo, undo: onUndo, redo: onRedo });
 
   const resetAll = useConfirmedAction(onReset);
-  /* Handing the settings back is the save, so the guard stands between the back
-     arrow and unapplied work only, and stands down for the trip back. */
-  const leaveGuard = useUnsavedChanges(dirty && !handedOver);
+  /* Saving writes straight onto the place these settings belong to and the page
+     stays put, so the only way out is the back arrow, guarded while dirty. */
+  const leaveGuard = useUnsavedChanges(dirty);
 
-  useEffect(() => {
-    if (handedOver) usage.apply(handedOver);
-  }, [handedOver, usage]);
+  /* The pencil also chooses the asset, so an asset this place is not using yet
+     has something to save even before a single setting is touched. */
+  const [inUse, setInUse] = useState(edit.inUse);
+  const unsaved = dirty || !inUse;
 
-  const apply = () => {
+  const save = () => {
     if (invalid) {
       pushToast(invalidReason ?? "Fix the highlighted fields.", "error");
       return;
     }
-    setHandedOver(draft);
+    if (!usage.save(draft)) {
+      pushToast(`These settings could not be saved to ${edit.label}.`, "error");
+      return;
+    }
+    onSaved();
+    setInUse(true);
+    pushToast(`Saved to ${edit.label}.`);
   };
 
   return (
@@ -213,7 +228,7 @@ const UsageFrame = ({
         title={name}
         compact={compact}
         backTitle={`Back to ${edit.label}`}
-        onBack={cancel}
+        onBack={usage.back}
         leading={
           <span
             style={{
@@ -241,26 +256,32 @@ const UsageFrame = ({
           compact ? (
             <IconButton
               icon={Undo2}
-              title="Reset all settings"
+              title={resetTitle(canReset)}
+              disabled={!canReset}
               onClick={resetAll.request}
             />
           ) : (
-            <Button variant="ghost" size="sm" onClick={resetAll.request}>
+            <Button
+              variant="ghost"
+              size="sm"
+              title={resetTitle(canReset)}
+              disabled={!canReset}
+              onClick={resetAll.request}
+            >
               <Undo2 size={14} />
               Reset all
             </Button>
           )
         }
-        dirty={dirty}
+        dirty={unsaved}
         invalid={invalid}
         invalidReason={invalidReason}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}
         onRedo={onRedo}
-        onSave={apply}
-        saveLabel={`Apply to ${edit.label}`}
-        savedLabel="Applied"
+        onSave={save}
+        saveLabel={`Save to ${edit.label}`}
       />
 
       <EditorSplitLayout
@@ -285,7 +306,7 @@ const UsageFrame = ({
       <ConfirmDialog
         open={resetAll.prompting}
         title="Reset all settings?"
-        message={`Every adjustment goes back to the way this asset sits in your library. It only reaches ${edit.label} once you apply it.`}
+        message={`Every adjustment goes back to the way this asset sits in your library. It only reaches ${edit.label} once you save.`}
         confirmLabel="Reset all"
         onConfirm={resetAll.confirm}
         onCancel={resetAll.cancel}
@@ -293,9 +314,9 @@ const UsageFrame = ({
 
       <ConfirmDialog
         open={leaveGuard.prompting}
-        title="Unapplied changes"
-        message={LEAVE_MESSAGE}
-        confirmLabel="Leave without applying"
+        title="Unsaved changes"
+        message={UNSAVED_CHANGES_MESSAGE}
+        confirmLabel="Leave without saving"
         onConfirm={leaveGuard.discard}
         onCancel={leaveGuard.cancel}
       />
@@ -355,6 +376,8 @@ const ImageUsageWorkspace = ({
       onRedo={history.redo}
       draft={draft}
       onReset={() => history.apply(defaults)}
+      canReset={!shallowEqual(draft, defaults)}
+      onSaved={history.markSaved}
       preview={
         <PreviewSurface>
           <ImageLayer
@@ -425,6 +448,8 @@ const VideoUsageWorkspace = ({
       onRedo={history.redo}
       draft={draft}
       onReset={() => history.apply(defaults)}
+      canReset={!shallowEqual(draft, defaults)}
+      onSaved={history.markSaved}
       invalid={validation.invalid}
       invalidReason={validation.message}
       preview={
@@ -517,6 +542,8 @@ const AudioUsageWorkspace = ({
       onRedo={history.redo}
       draft={draft}
       onReset={() => history.apply(defaults)}
+      canReset={!shallowEqual(draft, defaults)}
+      onSaved={history.markSaved}
       invalid={validation.invalid}
       invalidReason={validation.message}
       preview={

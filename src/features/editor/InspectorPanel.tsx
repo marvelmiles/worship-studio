@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { ArrowDownToLine, Copy, Trash2 } from "lucide-react";
 import type {
   AudioItem,
@@ -13,12 +13,11 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import {
   layerTextStyle,
   resolveAudioSettings,
-  resolveBackgroundId,
-  resolveBackgroundImage,
-  resolveBackgroundVideo,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
+import { useBgMap } from "../../hooks/useBgMap";
+import { useBackgroundView } from "../../hooks/useBackgroundView";
 import { isInlineStyleKey } from "../../lib/inlineStyle";
 import {
   allowsAnySlideElement,
@@ -38,7 +37,6 @@ import type { TextFormattingController } from "../../hooks/useTextFormatting";
 import { SlideElementsPanel } from "./SlideElementsPanel";
 import type { SlideElementRef } from "./SlideElementOverlay";
 import type { DeckEditor } from "./useDeckEditor";
-import { useStore } from "../../store/useStore";
 import type { AssetUsageRequest } from "../../lib/assetUsage";
 import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
 
@@ -62,12 +60,27 @@ interface InspectorPanelProps {
 }
 
 type StyleScope = "slide" | "line";
-type AudioScope = "slide" | "document";
 
-/* The panel is a column beside the slide, so it lists what was added most
-   recently and leaves the whole library to the asset library. */
-const BACKGROUND_LIMIT = 20;
-const AUDIO_LIMIT = 10;
+/** Whether a background or sound is being set for one slide or the whole document. */
+type AssetScope = "slide" | "document";
+
+/* Each picker is mounted once and told what it is editing, so the panel can
+   never end up showing the same list twice. */
+type ScopedBackgroundProps = Pick<
+  ComponentProps<typeof BackgroundPicker>,
+  | "value"
+  | "highlightId"
+  | "inheritLabel"
+  | "imageSettings"
+  | "videoSettings"
+  | "onSelect"
+  | "onEditUsage"
+>;
+
+type ScopedAudioProps = Pick<
+  ComponentProps<typeof AudioPicker>,
+  "value" | "inheritLabel" | "settings" | "onSelect" | "onEditUsage"
+>;
 
 export const InspectorPanel = ({
   editor,
@@ -88,9 +101,10 @@ export const InspectorPanel = ({
 }: InspectorPanelProps) => {
   const { colors, fonts } = useUITheme();
   const { selectedSlide: slide, selectedIndex } = editor;
-  const media = useStore((s) => s.media);
   const openAssetLibrary = useOpenAssetLibrary();
-  const [audioScope, setAudioScope] = useState<AudioScope>("document");
+  const bgMap = useBgMap();
+  const [backgroundScope, setBackgroundScope] = useState<AssetScope>("slide");
+  const [audioScope, setAudioScope] = useState<AssetScope>("slide");
   const themeAudio = theme.defaultAudioId
     ? audio.find((item) => item.id === theme.defaultAudioId)
     : undefined;
@@ -123,24 +137,8 @@ export const InspectorPanel = ({
         ? layerTextStyle(slideStyle, textBox.style)
         : slideStyle;
 
-  const effectiveBackgroundId = resolveBackgroundId(slide, doc, theme);
-  const effectiveBackground = backgrounds.find(
-    (bg) => bg.id === effectiveBackgroundId,
-  );
-  const backgroundVideoItem = media.find(
-    (item) => item.id === effectiveBackground?.mediaId,
-  );
-  const backgroundImage = effectiveBackground
-    ? resolveBackgroundImage(slide, doc, effectiveBackground)
-    : null;
-  const backgroundVideo = effectiveBackground
-    ? resolveBackgroundVideo(
-        slide,
-        doc,
-        effectiveBackground,
-        backgroundVideoItem,
-      )
-    : null;
+  const slideBackground = useBackgroundView(slide, doc, theme, bgMap);
+  const documentBackground = useBackgroundView(undefined, doc, theme, bgMap);
   const ownLineOverrides = textBox
     ? textBox.lineOverrides
     : slide.lineOverrides;
@@ -181,6 +179,58 @@ export const InspectorPanel = ({
   const documentAudioItem = audio.find(
     (item) => item.id === (doc.defaultAudioId || ""),
   );
+
+  const backgroundProps: ScopedBackgroundProps =
+    backgroundScope === "slide"
+      ? {
+          value: slide.overrides?.backgroundId || "",
+          highlightId: slideBackground.background.id,
+          inheritLabel: `Use ${documentNoun} / theme`,
+          imageSettings: slideBackground.image,
+          videoSettings: slideBackground.video,
+          onSelect: (id, image) =>
+            editor.patchSlideOverrides(slide.id, {
+              backgroundId: id,
+              backgroundImage: image,
+            }),
+          onEditUsage: (request) => onEditAsset(request, slide.id),
+        }
+      : {
+          value: doc.defaultBackgroundId || "",
+          highlightId: documentBackground.background.id,
+          inheritLabel: `Use theme (${theme.name})`,
+          imageSettings: documentBackground.image,
+          videoSettings: documentBackground.video,
+          onSelect: (id, image) =>
+            editor.patchDoc({
+              defaultBackgroundId: id,
+              defaultBackgroundImage: image,
+            }),
+          onEditUsage: (request) => onEditAsset(request, null),
+        };
+
+  const audioProps: ScopedAudioProps =
+    audioScope === "slide"
+      ? {
+          value: slide.overrides?.audioId || "",
+          inheritLabel: `Use ${documentNoun} audio`,
+          settings: slideAudioItem
+            ? resolveAudioSettings(slide, doc, slideAudioItem)
+            : undefined,
+          onSelect: (id) => setOverride("audioId", id),
+          onEditUsage: (request) => onEditAsset(request, slide.id),
+        }
+      : {
+          value: doc.defaultAudioId || "",
+          inheritLabel: themeAudio
+            ? `Use theme audio (${themeAudio.name})`
+            : "None",
+          settings: documentAudioItem
+            ? resolveAudioSettings(undefined, doc, documentAudioItem)
+            : undefined,
+          onSelect: (id) => editor.patchDoc({ defaultAudioId: id || null }),
+          onEditUsage: (request) => onEditAsset(request, null),
+        };
 
   const showElements =
     allowsAnySlideElement(elements) ||
@@ -281,22 +331,18 @@ export const InspectorPanel = ({
       <FormatToolbar controller={formatting} block />
 
       <SectionTitle>Background</SectionTitle>
+      <div style={{ marginBottom: 10 }}>
+        <ScopeTabs
+          documentNoun={documentNoun}
+          value={backgroundScope}
+          onChange={setBackgroundScope}
+        />
+      </div>
       <BackgroundPicker
+        key={backgroundScope}
         backgrounds={backgrounds}
-        value={slide.overrides?.backgroundId || ""}
-        highlightId={effectiveBackgroundId}
-        inheritLabel="Use document / theme"
-        onSelect={(id, image) =>
-          editor.patchSlideOverrides(slide.id, {
-            backgroundId: id,
-            backgroundImage: image,
-          })
-        }
         onManage={() => openAssetLibrary("backgrounds", { locked: true })}
-        imageSettings={backgroundImage}
-        videoSettings={backgroundVideo}
-        onEditUsage={(request) => onEditAsset(request, slide.id)}
-        limit={BACKGROUND_LIMIT}
+        {...backgroundProps}
       />
 
       {showElements && (
@@ -315,50 +361,18 @@ export const InspectorPanel = ({
 
       <SectionTitle>Audio</SectionTitle>
       <div style={{ marginBottom: 10 }}>
-        <PillTabs<AudioScope>
-          tabs={[
-            { id: "slide", label: "This slide" },
-            { id: "document", label: `Whole ${documentNoun}` },
-          ]}
+        <ScopeTabs
+          documentNoun={documentNoun}
           value={audioScope}
           onChange={setAudioScope}
         />
       </div>
-      {audioScope === "slide" ? (
-        <AudioPicker
-          key="slide"
-          audio={audio}
-          value={slide.overrides?.audioId || ""}
-          inheritLabel={`Use ${documentNoun} audio`}
-          onSelect={(id) => setOverride("audioId", id)}
-          onManage={() => openAssetLibrary("audio", { locked: true })}
-          settings={
-            slideAudioItem
-              ? resolveAudioSettings(slide, doc, slideAudioItem)
-              : undefined
-          }
-          onEditUsage={(request) => onEditAsset(request, slide.id)}
-          limit={AUDIO_LIMIT}
-        />
-      ) : (
-        <AudioPicker
-          key="document"
-          audio={audio}
-          value={doc.defaultAudioId || ""}
-          inheritLabel={
-            themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
-          }
-          onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
-          onManage={() => openAssetLibrary("audio", { locked: true })}
-          settings={
-            documentAudioItem
-              ? resolveAudioSettings(undefined, doc, documentAudioItem)
-              : undefined
-          }
-          onEditUsage={(request) => onEditAsset(request, null)}
-          limit={AUDIO_LIMIT}
-        />
-      )}
+      <AudioPicker
+        key={audioScope}
+        audio={audio}
+        onManage={() => openAssetLibrary("audio", { locked: true })}
+        {...audioProps}
+      />
 
       <SectionTitle>Animation</SectionTitle>
       <AnimationPicker
@@ -422,6 +436,23 @@ export const InspectorPanel = ({
     </div>
   );
 };
+
+interface ScopeTabsProps {
+  documentNoun: string;
+  value: AssetScope;
+  onChange: (scope: AssetScope) => void;
+}
+
+const ScopeTabs = ({ documentNoun, value, onChange }: ScopeTabsProps) => (
+  <PillTabs<AssetScope>
+    tabs={[
+      { id: "slide", label: "This slide" },
+      { id: "document", label: `Whole ${documentNoun}` },
+    ]}
+    value={value}
+    onChange={onChange}
+  />
+);
 
 const ScopeBanner = ({ children }: { children: ReactNode }) => {
   const { colors, fonts } = useUITheme();

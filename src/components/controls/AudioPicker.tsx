@@ -1,15 +1,22 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { Film, Library, Pause, Pencil, Play, Upload } from "lucide-react";
+import { Library, Pause, Pencil, Play, Upload } from "lucide-react";
 import type { AudioItem, AudioSettings, MediaItem } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
-import { audioSettingsOf, formatDuration } from "../../lib/media";
+import {
+  DEFAULT_AUDIO_SETTINGS,
+  audioSettingsOf,
+  formatDuration,
+} from "../../lib/media";
 import { mostRecent } from "../../lib/recentItems";
 import type { AssetUsageRequest } from "../../lib/assetUsage";
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { AudioSurface } from "../media/AudioSurface";
 import { Button } from "../ui/Button";
+
+/** A short list beside the slide; the asset library holds the rest. */
+export const AUDIO_PICKER_LIMIT = 10;
 
 interface AudioPickerProps {
   audio: AudioItem[];
@@ -26,10 +33,6 @@ interface AudioPickerProps {
   limit?: number;
 }
 
-/** A sound in the library, or a video whose soundtrack can become one. */
-type AudioEntry =
-  { source: "sound"; item: AudioItem } | { source: "clip"; item: MediaItem };
-
 const PREVIEW_PLAYBACK: MediaPlayback = {
   playing: true,
   muted: false,
@@ -37,6 +40,21 @@ const PREVIEW_PLAYBACK: MediaPlayback = {
   seekTime: 0,
   seekToken: 0,
 };
+
+/**
+ * A clip's soundtrack listens and reads exactly like a sound in the library,
+ * so the list can hold both without telling them apart. It only becomes a real
+ * sound once it is chosen or edited.
+ */
+const soundtrackOf = (item: MediaItem): AudioItem => ({
+  id: item.id,
+  name: item.name,
+  blobId: item.id,
+  mediaId: item.id,
+  size: item.size,
+  duration: item.duration,
+  createdAt: item.createdAt,
+});
 
 export const AudioPicker = ({
   audio,
@@ -47,40 +65,40 @@ export const AudioPicker = ({
   onManage,
   settings,
   onEditUsage,
-  limit,
+  limit = AUDIO_PICKER_LIMIT,
 }: AudioPickerProps) => {
-  const { colors, fonts } = useUITheme();
+  const { colors } = useUITheme();
   const media = useStore((s) => s.media);
   const beginUpload = useStore((s) => s.beginUpload);
   const addVideoAudio = useStore((s) => s.addVideoAudio);
   const inputRef = useRef<HTMLInputElement>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
-  const previewItem = audio.find((item) => item.id === previewId);
-
   /* Clips already turned into sounds are listed once, so the soundtracks only
-     offer what is not in the library yet. */
-  const all = useMemo<AudioEntry[]>(() => {
-    const taken = new Set(audio.map((item) => item.mediaId).filter(Boolean));
-    return [
-      ...audio.map((item) => ({ source: "sound", item }) as AudioEntry),
-      ...media.flatMap((item): AudioEntry[] =>
+     offer what is not in the library yet. A sound names the clip it came from
+     with mediaId or blobId depending on when it was made, so both count. */
+  const entries = useMemo(() => {
+    const taken = new Set(
+      audio.flatMap((item) =>
+        [item.mediaId, item.blobId].filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const all: AudioItem[] = [
+      ...audio,
+      ...media.flatMap((item) =>
         item.kind === "video" && !taken.has(item.id)
-          ? [{ source: "clip", item }]
+          ? [soundtrackOf(item)]
           : [],
       ),
     ];
-  }, [audio, media]);
+    return mostRecent(all, {
+      limit,
+      createdAt: (item) => item.createdAt,
+      keep: (item) => item.id === value,
+    });
+  }, [audio, limit, media, value]);
 
-  const entries = useMemo(
-    () =>
-      mostRecent(all, {
-        limit,
-        createdAt: (entry) => entry.item.createdAt,
-        keep: (entry) => entry.source === "sound" && entry.item.id === value,
-      }),
-    [all, limit, value],
-  );
+  const previewItem = entries.find((item) => item.id === previewId);
 
   const previewPlayback = useMemo<MediaPlayback>(
     () => ({
@@ -91,9 +109,16 @@ export const AudioPicker = ({
     [previewItem],
   );
 
-  /** Keeps the soundtrack of a clip alongside the sounds, then chooses it. */
-  const selectSoundtrack = (mediaId: string) => {
-    const id = addVideoAudio(mediaId);
+  /** Whether this row is still only a clip's soundtrack. */
+  const isSoundtrack = (item: AudioItem): boolean =>
+    !audio.some((sound) => sound.id === item.id);
+
+  /** Keeps a clip's soundtrack alongside the sounds, and answers with its id. */
+  const adopt = (item: AudioItem): string =>
+    isSoundtrack(item) ? addVideoAudio(item.id) : item.id;
+
+  const select = (item: AudioItem) => {
+    const id = adopt(item);
     if (id) onSelect(id);
   };
 
@@ -101,13 +126,20 @@ export const AudioPicker = ({
    * Editing a sound hands the whole choice over: the trim and level come back
    * with the sound itself, so what is tuned is what ends up playing.
    */
-  const editSound = (item: AudioItem) => {
+  const edit = (item: AudioItem) => {
     if (!onEditUsage) return;
-    const defaults = audioSettingsOf(item);
+    const adopting = isSoundtrack(item);
+    const assetId = adopt(item);
+    if (!assetId) return;
+    const inUse = assetId === value;
+    const defaults = adopting
+      ? { ...DEFAULT_AUDIO_SETTINGS }
+      : audioSettingsOf(item);
     onEditUsage({
-      assetId: item.id,
+      assetId,
       kind: "audio",
-      settings: (item.id === value ? settings : null) ?? defaults,
+      inUse,
+      settings: (inUse ? settings : null) ?? defaults,
       defaults,
     });
   };
@@ -130,65 +162,48 @@ export const AudioPicker = ({
           selected={value === ""}
           onSelect={() => onSelect("")}
         />
-        {entries.map((entry) =>
-          entry.source === "sound" ? (
-            <AudioRow
-              key={entry.item.id}
-              label={entry.item.name}
-              meta={
-                entry.item.duration
-                  ? formatDuration(entry.item.duration)
-                  : undefined
-              }
-              selected={value === entry.item.id}
-              onSelect={() => onSelect(entry.item.id)}
-              actions={
-                <>
-                  <RowButton
-                    active={previewId === entry.item.id}
-                    label={
-                      previewId === entry.item.id
-                        ? `Stop ${entry.item.name}`
-                        : `Listen to ${entry.item.name}`
-                    }
-                    title={previewId === entry.item.id ? "Stop" : "Listen"}
-                    onClick={() =>
-                      setPreviewId(
-                        previewId === entry.item.id ? null : entry.item.id,
-                      )
-                    }
-                  >
-                    {previewId === entry.item.id ? (
-                      <Pause size={13} />
-                    ) : (
-                      <Play size={13} />
-                    )}
-                  </RowButton>
-                  {onEditUsage && (
-                    <RowButton
-                      className="ws-reveal"
-                      active={false}
-                      label={`Edit ${entry.item.name} for this use`}
-                      title="Edit for this use"
-                      onClick={() => editSound(entry.item)}
-                    >
-                      <Pencil size={13} />
-                    </RowButton>
+        {entries.map((item) => (
+          <AudioRow
+            key={item.id}
+            label={item.name}
+            meta={item.duration ? formatDuration(item.duration) : undefined}
+            selected={value === item.id}
+            onSelect={() => select(item)}
+            actions={
+              <>
+                <RowButton
+                  active={previewId === item.id}
+                  label={
+                    previewId === item.id
+                      ? `Stop ${item.name}`
+                      : `Listen to ${item.name}`
+                  }
+                  title={previewId === item.id ? "Stop" : "Listen"}
+                  onClick={() =>
+                    setPreviewId(previewId === item.id ? null : item.id)
+                  }
+                >
+                  {previewId === item.id ? (
+                    <Pause size={13} />
+                  ) : (
+                    <Play size={13} />
                   )}
-                </>
-              }
-            />
-          ) : (
-            <AudioRow
-              key={entry.item.id}
-              label={entry.item.name}
-              meta={`Soundtrack${entry.item.duration ? ` · ${formatDuration(entry.item.duration)}` : ""}`}
-              icon={<Film size={13} />}
-              selected={false}
-              onSelect={() => selectSoundtrack(entry.item.id)}
-            />
-          ),
-        )}
+                </RowButton>
+                {onEditUsage && (
+                  <RowButton
+                    className="ws-reveal"
+                    active={false}
+                    label={`Edit ${item.name} for this use`}
+                    title="Edit for this use"
+                    onClick={() => edit(item)}
+                  >
+                    <Pencil size={13} />
+                  </RowButton>
+                )}
+              </>
+            }
+          />
+        ))}
       </div>
 
       {previewItem && (
@@ -199,20 +214,6 @@ export const AudioPicker = ({
           playback={previewPlayback}
           onEnded={() => setPreviewId(null)}
         />
-      )}
-
-      {entries.length < all.length && (
-        <p
-          style={{
-            margin: "0 0 10px",
-            fontFamily: fonts.ui,
-            fontSize: 11.5,
-            lineHeight: 1.5,
-            color: colors.sub,
-          }}
-        >
-          Showing the {entries.length} most recent. Manage audio for the rest.
-        </p>
       )}
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
@@ -259,7 +260,6 @@ export const AudioPicker = ({
 interface AudioRowProps {
   label: string;
   meta?: string;
-  icon?: ReactNode;
   selected: boolean;
   onSelect: () => void;
   actions?: ReactNode;
@@ -268,7 +268,6 @@ interface AudioRowProps {
 const AudioRow = ({
   label,
   meta,
-  icon,
   selected,
   onSelect,
   actions,
@@ -340,7 +339,6 @@ const AudioRow = ({
               whiteSpace: "nowrap",
             }}
           >
-            {icon}
             {label}
           </span>
           {meta && (

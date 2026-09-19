@@ -16,6 +16,7 @@ import { SearchInput } from "../../components/ui/SearchInput";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import type { OverlayImageRef } from "./lib/overlayAppearance";
+import { formatCount } from "../../lib/formatNumber";
 
 export interface OverlayImageChoice extends OverlayImageRef {
   name: string;
@@ -125,7 +126,7 @@ export const OverlayImagePicker = ({
 
         <LibrarySection
           title={SOURCE_COPY[source].label}
-          meta={`${filtered.length} of ${items.length}`}
+          meta={`${formatCount(filtered.length)} of ${formatCount(items.length)}`}
           description={SOURCE_COPY[source].description}
           action={
             onClear && (

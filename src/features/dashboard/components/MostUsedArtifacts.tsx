@@ -3,6 +3,7 @@ import { Layers, Volume2 } from "lucide-react";
 import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { formatCount } from "../../../lib/formatNumber";
 import { BgSwatch } from "../../../components/controls/BgSwatch";
 import { rankBarStyle } from "../utils";
 import type { UsageTab, UsedItem } from "../utils";
@@ -152,7 +153,7 @@ export const MostUsedArtifacts = ({ mostUsed }: MostUsedArtifactsProps) => {
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              ×{item.count}
+              ×{formatCount(item.count)}
             </span>
           </div>
         ))

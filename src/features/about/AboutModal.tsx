@@ -83,7 +83,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Where do the pictures, clips and sounds in a picker come from?",
-    a: "From both places at once, so you never have to go and fetch something first. Any background picker lists your asset library and, under it, the pictures on your Images page and the clips on your Videos page; pick one and it is brought into your backgrounds and selected in one step. Any audio picker lists your sounds and offers the soundtrack of any video you have. Adding a picture or clip to a slide lists your media library and your asset library together in the same way. The asset library itself works the same way round: its Images and Videos tabs are the Images and Videos pages, and the pencil on any of them opens that page's own editor.",
+    a: "From both places at once, so you never have to go and fetch something first. Any background picker lists your asset library together with the pictures on your Images page and the clips on your Videos page, in one list with the newest first; pick one and it is brought into your backgrounds and selected in one step. Any audio picker lists your sounds and offers the soundtrack of any video you have. Adding a picture or clip to a slide lists your media library and your asset library together in the same way. The asset library itself works the same way round: its Images and Videos tabs are the Images and Videos pages, and the pencil on any of them opens that page's own editor.",
   },
   {
     q: "Can I use my own colors, gradients, or images?",

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { formatCount } from "../../lib/formatNumber";
 import { pillTabId, pillTabPanelId } from "./tabPanel";
 
 export interface SegmentedTab<T extends string> {
@@ -94,7 +95,7 @@ export const SegmentedTabs = <T extends string>({
                   color: active ? colors.accentSoft : colors.dim,
                 }}
               >
-                {tab.count}
+                {formatCount(tab.count)}
               </span>
             )}
           </button>

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { fade } from "../../../theme/uiTheme";
 import { useUITheme } from "../../../theme/ThemeProvider";
+import { formatCount } from "../../../lib/formatNumber";
 
 export interface DashboardTileProps {
   icon: LucideIcon;
@@ -118,7 +119,7 @@ export const DashboardTile = ({
                 color: colors.text,
               }}
             >
-              {value}
+              {formatCount(value)}
             </span>
             <span
               className="ws-ellipsis"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import type { ContentKind, SlideDeckDoc } from "../../types";
@@ -8,30 +8,27 @@ import type {
   AssetUsageRequest,
 } from "../../lib/assetUsage";
 import {
-  assetUsageDocumentChanges,
+  applyAssetUsage,
   assetUsageEditSchema,
   assetUsagePath,
-  assetUsageSlideChanges,
+  assetUsageReturnPath,
+  isAssetUsageDocKind,
 } from "../../lib/assetUsage";
+import { now } from "../../lib/id";
 import { useStore } from "../../store/useStore";
 import type { DeckEditor } from "../editor/useDeckEditor";
-import routes from "../../routes";
 
 /**
  * Editing an asset for one place it is used: a slide, a manuscript or a
- * passage. The settings travel to the asset's own editor page and come back
- * with it, so the picture, clip or sound in the library is never touched and
- * every other place it is used stays as it is.
+ * passage. The settings are saved onto that one place from the asset's own
+ * editor page, so the picture, clip or sound in the library is never touched
+ * and every other place it is used stays as it is.
  */
 
 const editStateSchema = z.object({ assetUsageEdit: assetUsageEditSchema });
 
-const resultStateSchema = z.object({ assetUsageResult: assetUsageEditSchema });
-
-const DOCUMENT_ROUTE: Partial<Record<ContentKind, (id: string) => string>> = {
-  manuscript: routes.manuscript,
-  scripture: routes.passage,
-};
+/** What the opening page fills in; the editor works out the rest. */
+export type AssetUsagePlaceRequest = Pick<AssetUsagePlace, "label" | "slideId">;
 
 interface AssetUsageEditorOptions {
   kind: ContentKind;
@@ -54,9 +51,8 @@ export const useOpenAssetUsageEditor = ({
   const { dirty, save } = editor;
 
   return useCallback(
-    (request: AssetUsageRequest, place: Omit<AssetUsagePlace, "returnTo">) => {
-      const returnTo = DOCUMENT_ROUTE[kind]?.(doc.id);
-      if (!returnTo) return;
+    (request: AssetUsageRequest, place: AssetUsagePlaceRequest) => {
+      if (!isAssetUsageDocKind(kind)) return;
       /* Written even when nothing has changed: a document that has never been
          saved would have nothing to come back to. */
       if (!save()) {
@@ -67,7 +63,12 @@ export const useOpenAssetUsageEditor = ({
         return;
       }
       if (dirty) pushToast("Changes saved.");
-      const edit: AssetUsageEdit = { ...request, ...place, returnTo };
+      const edit: AssetUsageEdit = {
+        ...request,
+        ...place,
+        docKind: kind,
+        docId: doc.id,
+      };
       navigate(assetUsagePath(edit), { state: { assetUsageEdit: edit } });
     },
     [dirty, doc.id, kind, navigate, pushToast, save],
@@ -78,62 +79,62 @@ export type OpenAssetUsageEditor = ReturnType<typeof useOpenAssetUsageEditor>;
 
 export interface AssetUsageEditorSession {
   edit: AssetUsageEdit;
-  /** Leaves the settings as they were. */
-  cancel: () => void;
-  /** Hands the settings back to the page the edit came from. */
-  apply: (settings: AssetUsageEdit["settings"]) => void;
+  /** Where the back arrow goes, once there is nothing left unsaved. */
+  returnTo: string;
+  back: () => void;
+  /** Writes the settings onto the one place they were edited for. */
+  save: (settings: AssetUsageEdit["settings"]) => boolean;
 }
+
+/**
+ * Saving reads the document straight from the store rather than from an open
+ * editor: the page that opened this one was left behind, and the asset editor
+ * only ever touches the single slide or document the edit names.
+ */
+const saveAssetUsage = (edit: AssetUsageEdit): boolean => {
+  const state = useStore.getState();
+  if (edit.docKind === "manuscript") {
+    const manuscript = state.manuscripts.find((item) => item.id === edit.docId);
+    if (!manuscript) return false;
+    return state.upsertManuscript({
+      ...applyAssetUsage(manuscript, edit),
+      updatedAt: now(),
+    });
+  }
+  const passage = state.scriptures.find((item) => item.id === edit.docId);
+  if (!passage) return false;
+  return state.upsertScripture({
+    ...applyAssetUsage(passage, edit),
+    updatedAt: now(),
+  });
+};
 
 export const useAssetUsageEditor = (): AssetUsageEditorSession | null => {
   const navigate = useNavigate();
   const { state } = useLocation();
+
   const edit = useMemo(() => {
     const parsed = editStateSchema.safeParse(state);
     return parsed.success ? parsed.data.assetUsageEdit : null;
   }, [state]);
 
-  const cancel = useCallback(() => {
-    if (edit) navigate(edit.returnTo);
-  }, [edit, navigate]);
+  const returnTo = edit ? assetUsageReturnPath(edit) : "";
 
-  const apply = useCallback(
-    (settings: AssetUsageEdit["settings"]) => {
-      if (!edit) return;
-      navigate(edit.returnTo, {
-        state: { assetUsageResult: { ...edit, settings } },
-      });
+  const back = useCallback(() => {
+    if (returnTo) navigate(returnTo);
+  }, [navigate, returnTo]);
+
+  const save = useCallback(
+    (settings: AssetUsageEdit["settings"]): boolean => {
+      if (!edit) return false;
+      const parsed = assetUsageEditSchema.safeParse({ ...edit, settings });
+      return parsed.success ? saveAssetUsage(parsed.data) : false;
     },
-    [edit, navigate],
+    [edit],
   );
 
   return useMemo(
-    () => (edit ? { edit, cancel, apply } : null),
-    [apply, cancel, edit],
+    () => (edit ? { edit, returnTo, back, save } : null),
+    [back, edit, returnTo, save],
   );
-};
-
-/**
- * Takes the settings coming back from an asset editor and stages them on the
- * slide or document they were edited for, like any other edit, so undo can take
- * them back and Save decides.
- */
-export const useAssetUsageResult = (editor: DeckEditor): void => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const pushToast = useStore((s) => s.pushToast);
-  const { patchDoc, patchSlideOverrides } = editor;
-
-  useEffect(() => {
-    const parsed = resultStateSchema.safeParse(location.state);
-    if (!parsed.success) return;
-    const result = parsed.data.assetUsageResult;
-    if (result.slideId)
-      patchSlideOverrides(result.slideId, assetUsageSlideChanges(result));
-    else patchDoc(assetUsageDocumentChanges(result));
-    navigate(`${location.pathname}${location.search}`, {
-      replace: true,
-      state: null,
-    });
-    pushToast(`Applied to ${result.label}. Save to keep it.`);
-  }, [location, navigate, patchDoc, patchSlideOverrides, pushToast]);
 };

@@ -1,6 +1,7 @@
 import { FileText } from "lucide-react";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { formatCount } from "../../../lib/formatNumber";
 import { rankBarStyle } from "../utils";
 import type { CollectionUsage } from "../useDashboardData";
 
@@ -51,7 +52,7 @@ export const ManuscriptsByCategory = ({
             }}
           >
             <span>{c.name}</span>
-            <span style={{ color: colors.text }}>{c.count}</span>
+            <span style={{ color: colors.text }}>{formatCount(c.count)}</span>
           </div>
           <div
             style={{

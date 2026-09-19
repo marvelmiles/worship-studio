@@ -26,6 +26,10 @@ import { LazyMount } from "../ui/LazyMount";
 import { CustomColorPicker } from "./CustomColorPicker";
 import { BgSwatch } from "./BgSwatch";
 
+/** The panel is a column beside the slide, so it shows what was added most
+ *  recently and leaves the whole library to the dropdown above it. */
+export const BACKGROUND_PICKER_LIMIT = 20;
+
 interface BackgroundPickerProps {
   backgrounds: Background[];
   value: string;
@@ -43,18 +47,51 @@ interface BackgroundPickerProps {
   limit?: number;
 }
 
+/** A background in the library, or a picture or clip that can become one. */
 type PickerEntry =
-  | { group: "library"; background: Background }
-  | { group: "pictures" | "clips"; item: MediaItem };
-
-const GROUP_TITLE: Record<PickerEntry["group"], string> = {
-  library: "Asset library",
-  pictures: "Images",
-  clips: "Videos",
-};
+  | { source: "library"; background: Background }
+  | { source: "module"; item: MediaItem };
 
 const entryId = (entry: PickerEntry): string =>
-  entry.group === "library" ? entry.background.id : entry.item.id;
+  entry.source === "library" ? entry.background.id : entry.item.id;
+
+const entryName = (entry: PickerEntry): string =>
+  entry.source === "library" ? entry.background.name : entry.item.name;
+
+const entryCreatedAt = (entry: PickerEntry): string | undefined =>
+  entry.source === "library"
+    ? entry.background.createdAt
+    : entry.item.createdAt;
+
+/* Which file an entry stands for, so the same picture or clip is listed once
+   however it got here. A background names its file with blobId or mediaId
+   depending on when it was made, and a colour stands only for itself. */
+const entryFileId = (entry: PickerEntry): string =>
+  entry.source === "library"
+    ? (entry.background.blobId ??
+      entry.background.mediaId ??
+      entry.background.id)
+    : entry.item.id;
+
+const backgroundFileIds = (backgrounds: Background[]): Set<string> =>
+  new Set(
+    backgrounds.flatMap((background) =>
+      [background.blobId, background.mediaId].filter(
+        (id): id is string => Boolean(id),
+      ),
+    ),
+  );
+
+/** The library entry wins, so its name and settings are the ones on show. */
+const withoutRepeats = (entries: PickerEntry[]): PickerEntry[] => {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const fileId = entryFileId(entry);
+    if (seen.has(fileId)) return false;
+    seen.add(fileId);
+    return true;
+  });
+};
 
 export const BackgroundPicker = ({
   backgrounds,
@@ -68,9 +105,8 @@ export const BackgroundPicker = ({
   imageSettings,
   videoSettings,
   onEditUsage,
-  limit,
+  limit = BACKGROUND_PICKER_LIMIT,
 }: BackgroundPickerProps) => {
-  const { colors, fonts } = useUITheme();
   const media = useStore((s) => s.media);
   const beginUpload = useStore((s) => s.beginUpload);
   const attachImageBackground = useStore((s) => s.attachImageBackground);
@@ -85,65 +121,33 @@ export const BackgroundPicker = ({
       ? media.find((item) => item.id === background.mediaId)
       : undefined;
 
-  /** Whether this background carries settings a single use can adjust. */
-  const canEdit = (background: Background): boolean =>
-    Boolean(onEditUsage) &&
-    (isImageBackground(background) ||
-      (isVideoBackground(background) && Boolean(clipFor(background))));
-
-  /* Pictures and clips already attached as backgrounds are listed once, under
-     the asset library, so the modules below only offer what is not there yet. */
-  const attachedBlobIds = useMemo(
-    () => new Set(backgrounds.map((bg) => bg.blobId).filter(Boolean)),
+  /* Pictures and clips already attached as backgrounds are listed once, so the
+     modules below only offer what is not in the library yet. */
+  const attachedFileIds = useMemo(
+    () => backgroundFileIds(backgrounds),
     [backgrounds],
   );
 
   const unattached = useMemo(
-    () => media.filter((item) => !attachedBlobIds.has(item.id)),
-    [media, attachedBlobIds],
+    () => media.filter((item) => !attachedFileIds.has(item.id)),
+    [media, attachedFileIds],
   );
 
-  const modulePictures = useMemo(
-    () => unattached.filter((item) => item.kind === "image"),
-    [unattached],
-  );
-  const moduleClips = useMemo(
-    () => unattached.filter((item) => item.kind === "video"),
-    [unattached],
-  );
-
-  /* One capped, newest-first list across all three groups, so the panel stays
-     short while the whole library is still a dropdown away. */
+  /* Colors, pictures and clips share one newest-first list: what a background
+     is made of is a detail of the tile, not a reason to split the panel up. */
   const entries = useMemo<PickerEntry[]>(() => {
     const all: PickerEntry[] = [
       ...backgrounds.map(
-        (background) => ({ group: "library", background }) as PickerEntry,
+        (background) => ({ source: "library", background }) as PickerEntry,
       ),
-      ...modulePictures.map(
-        (item) => ({ group: "pictures", item }) as PickerEntry,
-      ),
-      ...moduleClips.map((item) => ({ group: "clips", item }) as PickerEntry),
+      ...unattached.map((item) => ({ source: "module", item }) as PickerEntry),
     ];
-    return mostRecent(all, {
+    return mostRecent(withoutRepeats(all), {
       limit,
-      createdAt: (entry) =>
-        entry.group === "library"
-          ? entry.background.createdAt
-          : entry.item.createdAt,
+      createdAt: entryCreatedAt,
       keep: (entry) => entryId(entry) === activeId,
     });
-  }, [activeId, backgrounds, limit, modulePictures, moduleClips]);
-
-  const groups = useMemo(
-    () =>
-      (["library", "pictures", "clips"] as const)
-        .map((group) => ({
-          group,
-          entries: entries.filter((entry) => entry.group === group),
-        }))
-        .filter((section) => section.entries.length > 0),
-    [entries],
-  );
+  }, [activeId, backgrounds, limit, unattached]);
 
   const options = [
     ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
@@ -151,17 +155,11 @@ export const BackgroundPicker = ({
       value: bg.id,
       label: `${bg.name} (${bg.category})`,
     })),
-    ...modulePictures.map((item) => ({
-      value: `image:${item.id}`,
-      label: `${item.name} (Images)`,
-    })),
-    ...moduleClips.map((item) => ({
-      value: `video:${item.id}`,
-      label: `${item.name} (Videos)`,
+    ...unattached.map((item) => ({
+      value: `${item.kind}:${item.id}`,
+      label: `${item.name} (${item.kind === "image" ? "Images" : "Videos"})`,
     })),
   ];
-
-  const total = backgrounds.length + unattached.length;
 
   const selectBackground = (id: string) => {
     const background = backgrounds.find((bg) => bg.id === id);
@@ -180,6 +178,7 @@ export const BackgroundPicker = ({
       onEditUsage({
         assetId: background.id,
         kind: "image",
+        inUse,
         settings: (inUse ? imageSettings : null) ?? defaults,
         defaults,
       });
@@ -191,23 +190,67 @@ export const BackgroundPicker = ({
     onEditUsage({
       assetId: background.id,
       kind: "video",
+      inUse,
       settings: (inUse ? videoSettings : null) ?? defaults,
       defaults,
     });
   };
 
-  /** Brings a picture or clip in from its module, then selects it. */
+  /** Brings a picture or clip in from its module as a background. */
+  const attachFromModule = (item: MediaItem): string =>
+    item.kind === "image"
+      ? attachImageBackground(item.id)
+      : attachVideoBackground(item.id);
+
   const selectFromModule = (item: MediaItem) => {
-    const id =
-      item.kind === "image"
-        ? attachImageBackground(item.id)
-        : attachVideoBackground(item.id);
+    const id = attachFromModule(item);
     if (!id) return;
     onSelect(
       id,
       item.kind === "image"
         ? (item.image ?? { ...DEFAULT_BACKGROUND_IMAGE_SETTINGS })
         : undefined,
+    );
+  };
+
+  /* A picture or clip has to be a background before it can carry settings for
+     one slide, so the pencil attaches it first and then opens its editor. */
+  const editFromModule = (item: MediaItem) => {
+    if (!onEditUsage) return;
+    const assetId = attachFromModule(item);
+    if (!assetId) return;
+    const inUse = assetId === activeId;
+    if (item.kind === "image") {
+      const defaults: ImageSettings = {
+        ...DEFAULT_BACKGROUND_IMAGE_SETTINGS,
+        ...item.image,
+      };
+      onEditUsage({
+        assetId,
+        kind: "image",
+        inUse,
+        settings: defaults,
+        defaults,
+      });
+      return;
+    }
+    const defaults = backgroundVideoSettings(item);
+    onEditUsage({
+      assetId,
+      kind: "video",
+      inUse,
+      settings: defaults,
+      defaults,
+    });
+  };
+
+  const canEdit = (entry: PickerEntry): boolean => {
+    if (!onEditUsage) return false;
+    if (entry.source === "module") return true;
+    const { background } = entry;
+    return (
+      isImageBackground(background) ||
+      (isVideoBackground(background) && Boolean(clipFor(background)))
     );
   };
 
@@ -231,62 +274,40 @@ export const BackgroundPicker = ({
         />
       </Field>
 
-      {groups.map(({ group, entries: tiles }) => (
-        <div key={group} style={{ marginBottom: 12 }}>
-          <GroupLabel title={GROUP_TITLE[group]} count={tiles.length} />
-          <SwatchGrid>
-            {tiles.map((entry) =>
-              entry.group === "library" ? (
-                <SwatchTile
-                  key={entry.background.id}
-                  name={entry.background.name}
-                  active={activeId === entry.background.id}
-                  onPick={() => selectBackground(entry.background.id)}
-                  onEdit={
-                    canEdit(entry.background)
-                      ? () => editBackground(entry.background)
-                      : undefined
-                  }
-                >
-                  <BgSwatch
-                    bg={entry.background}
-                    settings={
-                      activeId === entry.background.id
-                        ? imageSettings
-                        : undefined
-                    }
-                    style={{ width: "100%", height: "100%" }}
-                  />
-                </SwatchTile>
-              ) : (
-                <SwatchTile
-                  key={entry.item.id}
-                  name={entry.item.name}
-                  active={false}
-                  onPick={() => selectFromModule(entry.item)}
-                >
-                  <ModuleThumb item={entry.item} />
-                </SwatchTile>
-              ),
+      <SwatchGrid>
+        {entries.map((entry) => (
+          <SwatchTile
+            key={entryId(entry)}
+            name={entryName(entry)}
+            active={activeId === entryId(entry)}
+            onPick={() =>
+              entry.source === "library"
+                ? selectBackground(entry.background.id)
+                : selectFromModule(entry.item)
+            }
+            onEdit={
+              canEdit(entry)
+                ? () =>
+                    entry.source === "library"
+                      ? editBackground(entry.background)
+                      : editFromModule(entry.item)
+                : undefined
+            }
+          >
+            {entry.source === "library" ? (
+              <BgSwatch
+                bg={entry.background}
+                settings={
+                  activeId === entry.background.id ? imageSettings : undefined
+                }
+                style={{ width: "100%", height: "100%" }}
+              />
+            ) : (
+              <ModuleThumb item={entry.item} />
             )}
-          </SwatchGrid>
-        </div>
-      ))}
-
-      {entries.length < total && (
-        <p
-          style={{
-            margin: "0 0 10px",
-            fontFamily: fonts.ui,
-            fontSize: 11.5,
-            lineHeight: 1.5,
-            color: colors.sub,
-          }}
-        >
-          Showing the {entries.length} most recent. The dropdown above lists all{" "}
-          {total}.
-        </p>
-      )}
+          </SwatchTile>
+        ))}
+      </SwatchGrid>
 
       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
         {onManage && (
@@ -353,36 +374,13 @@ export const BackgroundPicker = ({
   );
 };
 
-const GroupLabel = ({ title, count }: { title: string; count: number }) => {
-  const { colors, fonts } = useUITheme();
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "baseline",
-        justifyContent: "space-between",
-        gap: 8,
-        fontFamily: fonts.ui,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: colors.sub,
-        margin: "2px 0 7px",
-      }}
-    >
-      <span>{title}</span>
-      <span style={{ fontWeight: 600, letterSpacing: 0 }}>{count}</span>
-    </div>
-  );
-};
-
 const SwatchGrid = ({ children }: { children: ReactNode }) => (
   <div
     style={{
       display: "grid",
       gridTemplateColumns: "repeat(4,1fr)",
       gap: 6,
+      marginBottom: 12,
     }}
   >
     {children}

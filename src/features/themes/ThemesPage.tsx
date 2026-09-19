@@ -26,8 +26,10 @@ import routes from "../../routes";
 const STACKED_WIDTH = 1080;
 const COMPACT_WIDTH = 560;
 
-const RESET_TITLE =
-  "Put this default theme back to the font, colours, background and animation it shipped with";
+const resetTitle = (canReset: boolean): string =>
+  canReset
+    ? "Put this default theme back to the font, colours, background and animation it shipped with"
+    : "Nothing to reset: this theme is the way it shipped";
 
 type ThemesTab = "themes" | "preview" | "style";
 
@@ -177,7 +179,7 @@ export const ThemesPage = () => {
               (compact ? (
                 <IconButton
                   icon={RotateCcw}
-                  title={RESET_TITLE}
+                  title={resetTitle(canReset)}
                   disabled={!canReset}
                   onClick={() => setConfirmReset(true)}
                 />
@@ -185,7 +187,7 @@ export const ThemesPage = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  title={RESET_TITLE}
+                  title={resetTitle(canReset)}
                   disabled={!canReset}
                   onClick={() => setConfirmReset(true)}
                 >

@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import type { ImageSettings, MediaItem, VideoSettings } from "../../types";
 import { useStore } from "../../store/useStore";
+import { shallowEqual } from "../../lib/equality";
 import type { PresentedMedia } from "../../store/slices/presentSlice";
 import { useDraftHistory } from "../../hooks/useDraftHistory";
 import {
@@ -36,6 +37,8 @@ export interface MediaEditor {
   patchImage: (changes: Partial<ImageSettings>) => void;
   patchVideo: (changes: Partial<VideoSettings>) => void;
   resetSettings: () => void;
+  /** Off while every adjustment already sits where this file starts. */
+  canResetSettings: boolean;
   save: () => boolean;
   present: (options: { pip: boolean }) => void;
   isPresenting: boolean;
@@ -100,6 +103,11 @@ export const useMediaEditor = (item: MediaItem): MediaEditor => {
       }),
     [apply, draft],
   );
+
+  const canResetSettings =
+    item.kind === "image"
+      ? !shallowEqual(draft.image, DEFAULT_IMAGE_SETTINGS)
+      : !shallowEqual(draft.video, DEFAULT_VIDEO_SETTINGS);
 
   const onMainStage =
     presentation?.kind === item.kind && presentation.id === item.id;
@@ -171,6 +179,7 @@ export const useMediaEditor = (item: MediaItem): MediaEditor => {
     patchImage,
     patchVideo,
     resetSettings,
+    canResetSettings,
     save,
     present,
     isPresenting,

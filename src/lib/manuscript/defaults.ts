@@ -1,4 +1,5 @@
-import type { Manuscript } from "../../types";
+import type { Manuscript, Slide } from "../../types";
+import { deepEqual } from "../equality";
 
 export interface DefaultManuscriptPlan {
   /** The full library to show: everything the user owns, then the defaults. */
@@ -60,3 +61,28 @@ export const planDefaultManuscripts = (
 
   return { manuscripts: [...owned, ...builtIns], toInstall, staleIds };
 };
+
+/* Slide ids are generated fresh every time the shipped text is parsed, so they
+   say nothing about whether the content still matches. */
+const slideContent = ({ id: _id, flowId: _flowId, ...slide }: Slide) => slide;
+
+/* The stamps belong to the library rather than to the content a reset puts
+   back, and a reset keeps both of them as they are. */
+const content = ({
+  createdAt: _createdAt,
+  updatedAt: _updatedAt,
+  ...manuscript
+}: Manuscript) => ({
+  ...manuscript,
+  slides: (manuscript.slides ?? []).map(slideContent),
+});
+
+/**
+ * Whether resetting a manuscript to its shipped version would change anything.
+ * A reset writes the shipped fields over the open draft rather than replacing
+ * it, so the comparison is against what pressing it would leave behind.
+ */
+export const matchesDefault = (
+  draft: Manuscript,
+  shipped: Manuscript,
+): boolean => deepEqual(content(draft), content({ ...draft, ...shipped }));

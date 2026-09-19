@@ -13,8 +13,10 @@ import type { LucideIcon } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { useLibraryLayout } from "../../hooks/useLibraryLayout";
 import { formatBytes } from "../../lib/storageStats";
 import { formatDuration } from "../../lib/media";
+import { formatDate } from "../../lib/id";
 import { sortPinnedFirst } from "../../lib/pinning";
 import {
   DEFAULT_LIBRARY_SORT,
@@ -35,6 +37,8 @@ import {
   cardOpenProps,
 } from "../../components/ui/InteractiveCard";
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
+import { LayoutToggle } from "../../components/ui/LayoutToggle";
+import { LibraryListRow } from "../../components/ui/LibraryListRow";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
@@ -90,6 +94,7 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<MediaItem | null>(null);
+  const { layout, setLayout } = useLibraryLayout(config.title.toLowerCase());
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -180,6 +185,11 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
           placeholder={`Search ${config.title.toLowerCase()}…`}
         />
         <LibrarySortSelect value={sort} onChange={setSort} nameLabel="Name" />
+        <LayoutToggle
+          value={layout}
+          onChange={setLayout}
+          noun={config.title.toLowerCase()}
+        />
       </div>
 
       {list.length === 0 ? (
@@ -206,19 +216,23 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
           />
         )
       ) : (
-        <div className="ws-card-grid">
-          {list.map((item) => (
-            <MediaCard
-              key={item.id}
-              item={item}
-              library={library}
-              isBackground={backgroundImageIds.has(item.id)}
-              onOpen={() => openEditor(item)}
-              onPresent={(pip) => present(item, pip)}
-              onToggleBackground={() => toggleBackground(item)}
-              onDelete={() => setDeleting(item)}
-            />
-          ))}
+        <div className={layout === "grid" ? "ws-card-grid" : "ws-list"}>
+          {list.map((item) => {
+            const props = {
+              item,
+              library,
+              isBackground: backgroundImageIds.has(item.id),
+              onOpen: () => openEditor(item),
+              onPresent: (pip: boolean) => present(item, pip),
+              onToggleBackground: () => toggleBackground(item),
+              onDelete: () => setDeleting(item),
+            };
+            return layout === "grid" ? (
+              <MediaCard key={item.id} {...props} />
+            ) : (
+              <MediaRow key={item.id} {...props} />
+            );
+          })}
         </div>
       )}
 
@@ -249,6 +263,96 @@ interface MediaCardProps {
   onDelete: () => void;
 }
 
+const MediaThumb = ({ item }: { item: MediaItem }) => (
+  <LazyMount>
+    {item.kind === "image" ? (
+      <ImageSurface item={item} variant="thumb" />
+    ) : (
+      <>
+        <VideoThumb item={item} />
+        {item.duration !== undefined && (
+          <div className="ws-thumb-badge">{formatDuration(item.duration)}</div>
+        )}
+      </>
+    )}
+  </LazyMount>
+);
+
+const mediaDetails = (item: MediaItem): string[] => [
+  ...(item.width && item.height ? [`${item.width}×${item.height}`] : []),
+  formatBytes(item.size || 0),
+  ...(item.duration !== undefined ? [formatDuration(item.duration)] : []),
+  `Added ${formatDate(item.createdAt)}`,
+  `Last modified ${formatDate(item.updatedAt)}`,
+];
+
+const MediaMenu = ({
+  item,
+  isBackground,
+  onOpen,
+  onToggleBackground,
+}: Pick<
+  MediaCardProps,
+  "item" | "isBackground" | "onOpen" | "onToggleBackground"
+>) => (
+  <MoreMenu
+    filled
+    size="sm"
+    items={[
+      { label: "Open in editor", icon: PenLine, onClick: onOpen },
+      ...(item.kind === "image"
+        ? [
+            {
+              label: isBackground
+                ? "Remove from backgrounds"
+                : "Use as background",
+              icon: Wallpaper,
+              active: isBackground,
+              onClick: onToggleBackground,
+            },
+          ]
+        : []),
+    ]}
+  />
+);
+
+const MediaRow = ({
+  item,
+  library,
+  isBackground,
+  onOpen,
+  onPresent,
+  onToggleBackground,
+  onDelete,
+}: MediaCardProps) => (
+  <LibraryListRow
+    cover={<MediaThumb item={item} />}
+    title={item.name}
+    details={mediaDetails(item)}
+    onOpen={onOpen}
+    actions={
+      <>
+        <PresentMenu onPresent={({ pip }) => onPresent(pip)} />
+        <PinButton kind={item.kind} item={item} library={library} />
+        <IconButton
+          filled
+          danger
+          size="sm"
+          icon={Trash2}
+          title={`Delete ${item.kind}`}
+          onClick={onDelete}
+        />
+        <MediaMenu
+          item={item}
+          isBackground={isBackground}
+          onOpen={onOpen}
+          onToggleBackground={onToggleBackground}
+        />
+      </>
+    }
+  />
+);
+
 const MediaCard = ({
   item,
   library,
@@ -261,20 +365,7 @@ const MediaCard = ({
   return (
     <div className="ws-glass ws-card" {...cardOpenProps(item.name, onOpen)}>
       <div className="ws-thumb" title="Open editor">
-        <LazyMount>
-          {item.kind === "image" ? (
-            <ImageSurface item={item} variant="thumb" />
-          ) : (
-            <>
-              <VideoThumb item={item} />
-              {item.duration !== undefined && (
-                <div className="ws-thumb-badge">
-                  {formatDuration(item.duration)}
-                </div>
-              )}
-            </>
-          )}
-        </LazyMount>
+        <MediaThumb item={item} />
       </div>
       <div className="ws-card-body">
         <div className="ws-card-title">
@@ -295,24 +386,11 @@ const MediaCard = ({
             title={`Delete ${item.kind}`}
             onClick={onDelete}
           />
-          <MoreMenu
-            filled
-            size="sm"
-            items={[
-              { label: "Open in editor", icon: PenLine, onClick: onOpen },
-              ...(item.kind === "image"
-                ? [
-                    {
-                      label: isBackground
-                        ? "Remove from backgrounds"
-                        : "Use as background",
-                      icon: Wallpaper,
-                      active: isBackground,
-                      onClick: onToggleBackground,
-                    },
-                  ]
-                : []),
-            ]}
+          <MediaMenu
+            item={item}
+            isBackground={isBackground}
+            onOpen={onOpen}
+            onToggleBackground={onToggleBackground}
           />
         </CardActions>
       </div>

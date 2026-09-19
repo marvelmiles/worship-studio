@@ -26,6 +26,7 @@ import {
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import routes from "../../routes";
+import { formatCountLabel } from "../../lib/formatNumber";
 
 export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
   const navigate = useNavigate();
@@ -165,7 +166,7 @@ const PassageCard = ({
           />
         )}
         <div className="ws-thumb-badge">
-          {passage.slides?.length || 0} slides
+          {formatCountLabel(passage.slides?.length || 0, "slide")}
         </div>
       </div>
       <div className="ws-card-body">
@@ -173,8 +174,7 @@ const PassageCard = ({
           <span className="ws-ellipsis">{passage.title}</span>
         </div>
         <div className="ws-card-sub">
-          {passage.version} · {passage.verses.length} verse
-          {passage.verses.length === 1 ? "" : "s"}
+          {passage.version} · {formatCountLabel(passage.verses.length, "verse")}
         </div>
         <CardActions>
           {trashView ? (

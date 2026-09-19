@@ -120,6 +120,79 @@ code {
   gap: 16px;
 }
 
+/* The detailed alternative to the card grid: one row per item, with the dates
+   and sizes a picture-led card has no room for. */
+.ws-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ws-list-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.ws-list-row:hover {
+  border-color: var(--ws-border-strong, rgba(255, 255, 255, 0.12));
+}
+
+.ws-list-row:focus-visible {
+  outline: 2px solid var(--ws-accent, #2563eb);
+  outline-offset: 2px;
+}
+
+.ws-list-cover {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+.ws-list-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-list-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  margin-top: 5px;
+  font-family: var(--ws-font-ui, Inter, system-ui, sans-serif);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.ws-list-row .ws-card-actions {
+  margin-top: 0;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+@media (min-width: 720px) {
+  .ws-list-row {
+    flex-wrap: nowrap;
+    padding: 10px 14px 10px 10px;
+  }
+
+  .ws-list-cover {
+    width: 132px;
+  }
+
+  .ws-list-row .ws-card-actions {
+    width: auto;
+    justify-content: flex-end;
+  }
+}
+
 .ws-row {
   display: flex;
   align-items: center;

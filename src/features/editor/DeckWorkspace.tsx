@@ -22,10 +22,7 @@ import type { SlideElementCapabilities } from "../../lib/slideElements";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import {
-  useAssetUsageResult,
-  useOpenAssetUsageEditor,
-} from "../assets/assetUsageEdit";
+import { useOpenAssetUsageEditor } from "../assets/assetUsageEdit";
 import type { DeckEditor } from "./useDeckEditor";
 import { useFollowPresentation } from "./useFollowPresentation";
 import { useRefitOnTextSize } from "./useRefitOnTextSize";
@@ -141,7 +138,6 @@ export const DeckWorkspace = ({
 
   const documentNoun = DOCUMENT_NOUN[kind] ?? "document";
   const openAssetUsage = useOpenAssetUsageEditor({ kind, doc, editor });
-  useAssetUsageResult(editor);
 
   const leaveGuard = useUnsavedChanges(editor.dirty);
   const validation = useValidation({
