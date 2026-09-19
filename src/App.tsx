@@ -29,11 +29,13 @@ import { Presentation } from "./features/presentation/Presentation";
 import { PresentWindow } from "./features/presentation/PresentWindow";
 import { AssetsModal } from "./features/assets/AssetsModal";
 import { AudioEditorPage } from "./features/assets/AudioEditorPage";
+import { AssetUsageEditorPage } from "./features/assets/AssetUsageEditorPage";
 import { SettingsModal } from "./features/settings/SettingsModal";
 import { ThemesPage } from "./features/themes/ThemesPage";
 import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
+import routes, { isSelfScrollingRoute } from "./routes";
 
 const App = () => {
   const { colors, fonts } = useUITheme();
@@ -47,8 +49,8 @@ const App = () => {
     void load();
   }, [load]);
 
-  if (location.pathname === "/present") return <PresentWindow />;
-  if (location.pathname === "/stream-live") return <StreamWindow />;
+  if (location.pathname === routes.presentWindow()) return <PresentWindow />;
+  if (location.pathname === routes.streamWindow()) return <StreamWindow />;
 
   return (
     <div
@@ -70,36 +72,39 @@ const App = () => {
           flex: 1,
           minHeight: 0,
           overflowX: "hidden",
-          overflowY:
-            ["/scripture", "/bible", "/themes"].some((p) =>
-              location.pathname.startsWith(p),
-            ) ||
-            /^\/(manuscripts|images|videos|audio)\/./.test(location.pathname)
-              ? "hidden"
-              : "auto",
+          overflowY: isSelfScrollingRoute(location.pathname)
+            ? "hidden"
+            : "auto",
         }}
       >
         {loading ? (
           <LoadingArea size={30} />
         ) : (
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/manuscripts" element={<ManuscriptLibrary />} />
+            <Route path={routes.dashboard()} element={<Dashboard />} />
             <Route
-              path="/manuscripts/:manuscriptId"
-              element={<ManuscriptEditor />}
+              path={routes.manuscripts()}
+              element={<ManuscriptLibrary />}
             />
-            <Route path="/bible" element={<BiblePage />} />
-            <Route path="/scripture/:passageId" element={<ScriptureEditor />} />
-            <Route path="/images" element={<ImagesPage />} />
-            <Route path="/images/:mediaId" element={<ImageEditorPage />} />
-            <Route path="/videos" element={<VideosPage />} />
-            <Route path="/videos/:mediaId" element={<VideoEditorPage />} />
-            <Route path="/audio/:audioId" element={<AudioEditorPage />} />
-            <Route path="/themes" element={<ThemesPage />} />
-            <Route path="/themes/:themeId" element={<ThemesPage />} />
-            <Route path="/stream" element={<StreamPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path={routes.manuscript()} element={<ManuscriptEditor />} />
+            <Route path={routes.bible()} element={<BiblePage />} />
+            <Route path={routes.passage()} element={<ScriptureEditor />} />
+            <Route path={routes.images()} element={<ImagesPage />} />
+            <Route path={routes.image()} element={<ImageEditorPage />} />
+            <Route path={routes.videos()} element={<VideosPage />} />
+            <Route path={routes.video()} element={<VideoEditorPage />} />
+            <Route path={routes.sound()} element={<AudioEditorPage />} />
+            <Route
+              path={routes.assetUsage()}
+              element={<AssetUsageEditorPage />}
+            />
+            <Route path={routes.themes()} element={<ThemesPage />} />
+            <Route path={routes.theme()} element={<ThemesPage />} />
+            <Route path={routes.stream()} element={<StreamPage />} />
+            <Route
+              path={routes.notFound()}
+              element={<Navigate to={routes.dashboard()} replace />}
+            />
           </Routes>
         )}
       </main>

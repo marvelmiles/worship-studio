@@ -5,26 +5,30 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useViewport } from "../../hooks/useViewport";
 import { useBgMap } from "../../hooks/useBgMap";
+import { useBackgroundView } from "../../hooks/useBackgroundView";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useValidation } from "../../hooks/useValidation";
 import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
 } from "../../hooks/useUnsavedChanges";
-import {
-  resolveBackgroundView,
-  resolveLineStyle,
-  resolveStyle,
-} from "../../lib/resolve";
+import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
 import { computeTagGroups } from "../../lib/tagGroups";
+import { slideTextMetrics, type SlideTextMetrics } from "../../lib/slideLayout";
+import type { ReflowOptions } from "../../lib/slideReflow";
 import { validateName } from "../../lib/validation";
 import { DEFAULT_SLIDE_ELEMENTS } from "../../lib/slideElements";
 import type { SlideElementCapabilities } from "../../lib/slideElements";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ContextMenu } from "../../components/ui/ContextMenu";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import {
+  useAssetUsageResult,
+  useOpenAssetUsageEditor,
+} from "../assets/assetUsageEdit";
 import type { DeckEditor } from "./useDeckEditor";
 import { useFollowPresentation } from "./useFollowPresentation";
+import { useRefitOnTextSize } from "./useRefitOnTextSize";
 import { SlideListPanel } from "./SlideListPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import { InspectorPanel } from "./InspectorPanel";
@@ -64,6 +68,15 @@ interface DeckWorkspaceProps {
   topBarActions: (compact: boolean) => ReactNode;
   emptyState: ReactNode;
   elements?: SlideElementCapabilities;
+  /** How this document's slides are re-cut when its text size changes. */
+  reflow?: ReflowOptions;
+  /**
+   * Re-cuts the slides for a new text size. Documents built from a source of
+   * their own, such as a passage built from verses, pass their own so the cut
+   * can fall inside a line rather than only between lines.
+   */
+  refit?: (metrics: SlideTextMetrics) => boolean;
+  unsavedMessage?: string;
   children?: ReactNode;
 }
 
@@ -76,13 +89,16 @@ export const DeckWorkspace = ({
   topBarActions,
   emptyState,
   elements = DEFAULT_SLIDE_ELEMENTS,
+  reflow,
+  refit,
+  unsavedMessage = UNSAVED_CHANGES_MESSAGE,
   children,
 }: DeckWorkspaceProps) => {
   const { colors } = useUITheme();
   const navigate = useNavigate();
   const { width } = useViewport();
   const isStacked = width < STACKED_WIDTH;
-  useDocumentTitle(`${doc.title} · WorshipStudio`);
+  useDocumentTitle(doc.title);
 
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -105,6 +121,28 @@ export const DeckWorkspace = ({
   );
   const bgMap = useBgMap();
 
+  const { fontSize: docFontSize, lineHeight: docLineHeight } = resolveStyle(
+    undefined,
+    doc,
+    theme,
+  );
+  const textMetrics = useMemo(
+    () =>
+      slideTextMetrics({ fontSize: docFontSize, lineHeight: docLineHeight }),
+    [docFontSize, docLineHeight],
+  );
+  useRefitOnTextSize({
+    metrics: textMetrics,
+    reflow,
+    refit: refit ?? editor.refitSlides,
+    onRefit: () =>
+      pushToast("Slides re-cut so the text keeps its space on screen."),
+  });
+
+  const documentNoun = DOCUMENT_NOUN[kind] ?? "document";
+  const openAssetUsage = useOpenAssetUsageEditor({ kind, doc, editor });
+  useAssetUsageResult(editor);
+
   const leaveGuard = useUnsavedChanges(editor.dirty);
   const validation = useValidation({
     title: validateName(doc.title, TITLE_LABEL[kind] ?? "title"),
@@ -121,7 +159,7 @@ export const DeckWorkspace = ({
 
   useFollowPresentation(kind, doc.id, editor.slides, editor.setSelectedId);
 
-  const previewBackground = resolveBackgroundView(slide, doc, theme, bgMap);
+  const previewBackground = useBackgroundView(slide, doc, theme, bgMap);
   const isPresentingThisDoc =
     presentation?.kind === kind && presentation.id === doc.id;
 
@@ -189,6 +227,7 @@ export const DeckWorkspace = ({
       )}
       background={previewBackground.background}
       backgroundImage={previewBackground.image}
+      backgroundVideo={previewBackground.video}
       text={textSurface.text}
       formatting={textSurface.formatting}
       onChangeLabel={(label) =>
@@ -213,7 +252,7 @@ export const DeckWorkspace = ({
       theme={theme}
       backgrounds={backgrounds}
       audio={audio}
-      documentNoun={DOCUMENT_NOUN[kind] ?? "document"}
+      documentNoun={documentNoun}
       selectedLine={textSurface.selectedLine}
       onScopeToLine={textSurface.setLineScope}
       formatting={textSurface.formatting}
@@ -222,6 +261,12 @@ export const DeckWorkspace = ({
       activeTextBoxId={textSurface.activeTextBoxId}
       elements={elements}
       onAddTextBox={elementEditing.addTextBox}
+      onEditAsset={(request, forSlideId) =>
+        openAssetUsage(request, {
+          label: forSlideId ? "this slide" : `this ${documentNoun}`,
+          slideId: forSlideId,
+        })
+      }
     />
   ) : null;
 
@@ -312,7 +357,7 @@ export const DeckWorkspace = ({
       <ConfirmDialog
         open={leaveGuard.prompting}
         title="Unsaved changes"
-        message={UNSAVED_CHANGES_MESSAGE}
+        message={unsavedMessage}
         confirmLabel="Leave without saving"
         onConfirm={leaveGuard.discard}
         onCancel={leaveGuard.cancel}

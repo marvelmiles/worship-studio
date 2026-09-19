@@ -1,37 +1,87 @@
 import { useMemo, useRef, useState } from "react";
-import { Check, Film, Layers, Pencil, Plus, Upload } from "lucide-react";
+import {
+  Check,
+  Film,
+  Image as ImageIcon,
+  Layers,
+  Pencil,
+  Plus,
+  Upload,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import type { MediaKind } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
 import { formatDuration, sortMediaByRecency } from "../../lib/media";
+import routes from "../../routes";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LazyMount } from "../../components/ui/LazyMount";
 import { LibrarySection } from "../../components/ui/LibrarySection";
 import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
+import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
 import type { AssetSection } from "./assetLibraryNavigation";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
 import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
 
-type VideoSource = "all" | "backgrounds";
+type SourceFilter = "all" | "added";
 
-interface VideoSourceListProps {
+interface KindCopy {
+  icon: LucideIcon;
+  libraryLabel: string;
+  uploadLabel: string;
+  accept: string;
+  editTitle: string;
+  emptyTitle: string;
+}
+
+const COPY: Record<MediaKind, KindCopy> = {
+  image: {
+    icon: ImageIcon,
+    libraryLabel: "Images library",
+    uploadLabel: "Upload images",
+    accept: "image/*",
+    editTitle: "Edit in Images",
+    emptyTitle: "No images here",
+  },
+  video: {
+    icon: Film,
+    libraryLabel: "Videos library",
+    uploadLabel: "Upload videos",
+    accept: "video/*",
+    editTitle: "Edit in Videos",
+    emptyTitle: "No videos here",
+  },
+};
+
+interface MediaSourceListProps {
+  kind: MediaKind;
   title: string;
   description: string;
   attentionId: string | null;
+  /** Media already pulled into this part of the library, by the id it was given. */
   addedByMediaId: Map<string, string>;
   onAdd: (mediaId: string) => void;
   onRemove: (entryId: string) => void;
   addLabel: string;
   addedLabel: string;
+  addedFilterLabel: string;
   section: AssetSection;
   filterable?: boolean;
   emptyMessage: string;
 }
 
-export const VideoSourceList = ({
+/**
+ * The Images or Videos module, shown inside the asset library. Uploading here
+ * adds to that module, and the pencil opens that module's own editor page, so
+ * there is one library and one editor per kind of file rather than a copy of
+ * each living in the asset library.
+ */
+export const MediaSourceList = ({
+  kind,
   title,
   description,
   attentionId,
@@ -40,67 +90,58 @@ export const VideoSourceList = ({
   onRemove,
   addLabel,
   addedLabel,
+  addedFilterLabel,
   section,
   filterable,
   emptyMessage,
-}: VideoSourceListProps) => {
+}: MediaSourceListProps) => {
   const { colors, fonts } = useUITheme();
   const media = useStore((s) => s.media);
-  const backgrounds = useStore((s) => s.backgrounds);
   const beginUpload = useStore((s) => s.beginUpload);
   const openEditor = useOpenAssetEditor();
-  const videoInput = useRef<HTMLInputElement>(null);
-  const [source, setSource] = useState<VideoSource>("all");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [filter, setFilter] = useState<SourceFilter>("all");
 
-  const backgroundClips = useMemo(
-    () =>
-      new Set(
-        backgrounds.flatMap((bg) =>
-          bg.type === "video" && bg.mediaId ? [bg.mediaId] : [],
-        ),
-      ),
-    [backgrounds],
-  );
+  const copy = COPY[kind];
 
   const library = useMemo(
-    () =>
-      media.filter((item) => item.kind === "video").sort(sortMediaByRecency),
-    [media],
+    () => media.filter((item) => item.kind === kind).sort(sortMediaByRecency),
+    [media, kind],
   );
 
-  const videos = useMemo(
+  const items = useMemo(
     () =>
-      source === "all"
+      filter === "all"
         ? library
-        : library.filter((item) => backgroundClips.has(item.id)),
-    [backgroundClips, library, source],
+        : library.filter((item) => addedByMediaId.has(item.id)),
+    [addedByMediaId, filter, library],
   );
 
   const upload = (files: File[]) =>
-    beginUpload("video", files, (ids) => {
+    beginUpload(kind, files, (ids) => {
       for (const id of ids) if (id) onAdd(id);
     });
 
   return (
     <LibrarySection
       title={title}
-      meta={`${videos.length} of ${library.length}`}
+      meta={`${items.length} of ${library.length}`}
       description={description}
       action={
         <Button
           variant="primary"
           size="sm"
-          onClick={() => videoInput.current?.click()}
+          onClick={() => fileInput.current?.click()}
         >
           <Upload size={14} />
-          Upload video
+          {copy.uploadLabel}
         </Button>
       }
     >
       <input
-        ref={videoInput}
+        ref={fileInput}
         type="file"
-        accept="video/*"
+        accept={copy.accept}
         multiple
         hidden
         onChange={(event) => {
@@ -112,33 +153,33 @@ export const VideoSourceList = ({
 
       {filterable && (
         <div style={{ marginBottom: 14 }}>
-          <SegmentedTabs<VideoSource>
-            ariaLabel="Video source"
+          <SegmentedTabs<SourceFilter>
+            ariaLabel={`${copy.libraryLabel} filter`}
             tabs={[
               {
                 id: "all",
-                label: "Videos library",
-                icon: Film,
+                label: copy.libraryLabel,
+                icon: copy.icon,
                 count: library.length,
               },
               {
-                id: "backgrounds",
-                label: "Background videos",
+                id: "added",
+                label: addedFilterLabel,
                 icon: Layers,
-                count: backgroundClips.size,
+                count: addedByMediaId.size,
               },
             ]}
-            value={source}
-            onChange={setSource}
+            value={filter}
+            onChange={setFilter}
             minSegmentWidth={150}
           />
         </div>
       )}
 
-      {videos.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState
-          icon={Film}
-          title="No videos here"
+          icon={copy.icon}
+          title={copy.emptyTitle}
           message={emptyMessage}
           compact
           bare
@@ -151,7 +192,7 @@ export const VideoSourceList = ({
             gap: 10,
           }}
         >
-          {videos.map((item) => {
+          {items.map((item) => {
             const entryId = addedByMediaId.get(item.id);
             const added = Boolean(entryId);
             return (
@@ -174,12 +215,18 @@ export const VideoSourceList = ({
                   }}
                 >
                   <LazyMount>
-                    <VideoThumb item={item} applySettings />
+                    {item.kind === "image" ? (
+                      <ImageSurface item={item} variant="thumb" />
+                    ) : (
+                      <VideoThumb item={item} applySettings />
+                    )}
                   </LazyMount>
                   <button
-                    onClick={() => openEditor(`/videos/${item.id}`, section)}
+                    onClick={() =>
+                      openEditor(routes.mediaItem(item.kind, item.id), section)
+                    }
                     aria-label={`Edit ${item.name}`}
-                    title="Edit video"
+                    title={copy.editTitle}
                     style={{
                       ...CARD_OVERLAY_BUTTON,
                       position: "absolute",
@@ -204,8 +251,8 @@ export const VideoSourceList = ({
                       className="ws-ellipsis"
                       style={{
                         fontFamily: fonts.ui,
-                        fontSize: 11.5,
-                        color: colors.sub,
+                        fontSize: 12,
+                        color: colors.text,
                       }}
                     >
                       {item.name}
@@ -214,8 +261,8 @@ export const VideoSourceList = ({
                       <div
                         style={{
                           fontFamily: fonts.ui,
-                          fontSize: 11,
-                          color: colors.dim,
+                          fontSize: 11.5,
+                          color: colors.sub,
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >

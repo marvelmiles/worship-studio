@@ -20,7 +20,7 @@ type Role = "choose" | "receive" | "send";
 const STREAM_SUBTITLE = "Share and project cameras over WiFi.";
 
 export const StreamPage = () => {
-  useDocumentTitle("Stream · WorshipStudio");
+  useDocumentTitle("Stream");
   const { colors, fonts } = useUITheme();
   const [role, setRole] = useState<Role>("choose");
 

@@ -5,11 +5,12 @@ import { useStore } from "../../store/useStore";
 import { useFullscreen } from "../../hooks/useFullscreen";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
-import { audioSettingsOf, videoSettingsOf } from "../../lib/media";
+import { videoSettingsOf } from "../../lib/media";
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { activatesOnSpace, targetOwnsKey } from "../../lib/mediaKeys";
 import {
   resolveAudioId,
+  resolveAudioSettings,
   resolveAutoPlay,
   resolveSlideDuration,
 } from "../../lib/resolve";
@@ -66,13 +67,16 @@ export const usePresentation = (
     fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
   const toggleFullscreen = fullscreenOverride?.toggle ?? localFullscreen.toggle;
 
+  const media = useStore((s) => s.media);
   const currentSlide = slides[slideIndex];
   const next = slides[slideIndex + 1];
   const frame = deck
-    ? buildStageFrame(deck, currentSlide, bgMap, prefs.transition)
+    ? buildStageFrame(deck, currentSlide, bgMap, prefs.transition, media)
     : null;
   const nextFrame =
-    deck && next ? buildStageFrame(deck, next, bgMap, prefs.transition) : null;
+    deck && next
+      ? buildStageFrame(deck, next, bgMap, prefs.transition, media)
+      : null;
 
   const doc = deck?.doc;
   const theme = deck?.theme;
@@ -317,9 +321,12 @@ export const usePresentation = (
 
   const playbackPaused = isVideoSlide ? !mediaPlayback.playing : paused;
 
+  /* The manuscript, passage or slide can trim and level the sound for itself,
+     so what plays is the sound's own settings with those layered on top. */
   const audioSettings = useMemo(
-    () => (audioItem ? audioSettingsOf(audioItem) : null),
-    [audioItem],
+    () =>
+      audioItem ? resolveAudioSettings(currentTextSlide, doc, audioItem) : null,
+    [audioItem, currentTextSlide, doc],
   );
   const audioPlayback = useMemo<MediaPlayback | null>(
     () =>
@@ -350,6 +357,7 @@ export const usePresentation = (
     frame,
     nextFrame,
     audioItem,
+    audioSettings,
     audioPlayback,
     paused,
     playbackPaused,

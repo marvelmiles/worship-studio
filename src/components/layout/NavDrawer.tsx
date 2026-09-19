@@ -4,7 +4,9 @@ import { X } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { IconButton } from "../ui/Button";
-import { isDestinationActive, type AppNavigationItem } from "./appNavigation";
+import type { AppNavigationItem } from "./appNavigation";
+import { isRouteActive } from "../../routes";
+import { APP_NAME } from "../../lib/appInfo";
 
 interface NavDrawerProps {
   open: boolean;
@@ -41,9 +43,7 @@ export const NavDrawer = ({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {items.map((item) => {
-          const active = item.path
-            ? isDestinationActive(item.path, pathname)
-            : false;
+          const active = item.path ? isRouteActive(item.path, pathname) : false;
           return (
             <button
               key={item.id}
@@ -145,7 +145,7 @@ export const NavDrawer = ({
               color: colors.text,
             }}
           >
-            WorshipStudio
+            {APP_NAME}
           </span>
           <IconButton icon={X} title="Close menu" onClick={onClose} />
         </div>

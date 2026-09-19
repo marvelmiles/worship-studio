@@ -1,4 +1,5 @@
 import { PRESENT_WINDOW_NAME } from "./presentChannel";
+import routes from "../routes";
 
 export interface LiveWindowState {
   isLive: boolean;
@@ -199,6 +200,6 @@ export const createLiveWindow = (
 };
 
 export const presentLiveWindow = createLiveWindow(
-  "/present",
+  routes.presentWindow(),
   PRESENT_WINDOW_NAME,
 );

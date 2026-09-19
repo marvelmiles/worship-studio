@@ -1,11 +1,43 @@
 import { readFileSync } from "node:fs";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import {
+  APP_DESCRIPTION,
+  APP_NAME,
+  APP_SHORT_DESCRIPTION,
+  APP_TITLE,
+  APP_URL,
+} from "./app.config";
 
 const { version } = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
 ) as { version: string };
+
+const HTML_IDENTITY: Record<string, string> = {
+  APP_TITLE,
+  APP_NAME,
+  APP_DESCRIPTION,
+  APP_SHORT_DESCRIPTION,
+  APP_URL,
+};
+
+/**
+ * Fills the {{APP_*}} placeholders in index.html from the app's identity, so the
+ * shell, the manifest and the app itself all read the name from one place. It
+ * runs before the other plugins see the HTML.
+ */
+const appHtmlIdentity = (): Plugin => ({
+  name: "app-html-identity",
+  transformIndexHtml: {
+    order: "pre",
+    handler: (html) =>
+      html.replace(
+        /\{\{(APP_[A-Z_]+)\}\}/g,
+        (match, key: string) => HTML_IDENTITY[key] ?? match,
+      ),
+  },
+});
 
 export default defineConfig({
   define: {
@@ -18,6 +50,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    appHtmlIdentity(),
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: false,
@@ -31,8 +64,8 @@ export default defineConfig({
         "apple-touch-icon.png",
       ],
       manifest: {
-        name: "WorshipStudio · Worship Presentation Studio",
-        short_name: "WorshipStudio",
+        name: APP_TITLE,
+        short_name: APP_NAME,
         description:
           "Present songs, Bible passages, images and videos live, installable and offline-ready.",
         theme_color: "#101013",

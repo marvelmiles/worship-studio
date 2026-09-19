@@ -6,7 +6,9 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useViewport } from "../../hooks/useViewport";
 import { IconButton } from "../ui/Button";
 import { NavDrawer } from "./NavDrawer";
-import { isDestinationActive, useAppNavigation } from "./appNavigation";
+import { useAppNavigation } from "./appNavigation";
+import { APP_NAME } from "../../lib/appInfo";
+import routes, { isRouteActive } from "../../routes";
 
 /* The header never squeezes: it spends the width it has on whole icon slots and
    only opens a drawer for whatever is left over. */
@@ -59,8 +61,8 @@ export const AppHeader = () => {
       }}
     >
       <Link
-        to="/"
-        aria-label="WorshipStudio home"
+        to={routes.dashboard()}
+        aria-label={`${APP_NAME} home`}
         style={{
           display: "flex",
           alignItems: "center",
@@ -91,7 +93,7 @@ export const AppHeader = () => {
               whiteSpace: "nowrap",
             }}
           >
-            WorshipStudio
+            {APP_NAME}
           </span>
         )}
       </Link>
@@ -106,8 +108,8 @@ export const AppHeader = () => {
         }}
       >
         {visibleDestinations.map((item) => {
-          const path = item.path ?? "/";
-          const active = isDestinationActive(path, location.pathname);
+          const path = item.path ?? routes.dashboard();
+          const active = isRouteActive(path, location.pathname);
           return (
             <Link
               key={item.id}
@@ -157,7 +159,7 @@ export const AppHeader = () => {
             title={item.label}
             active={
               item.path
-                ? isDestinationActive(item.path, location.pathname)
+                ? isRouteActive(item.path, location.pathname)
                 : undefined
             }
             onClick={item.run}

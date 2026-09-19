@@ -5,9 +5,11 @@ import type {
   MediaItem,
   ResolvedStyle,
   Slide,
+  VideoSettings,
 } from "../../types";
 import {
   resolveAnimation,
+  resolveBackgroundId,
   resolveBackgroundView,
   resolveLineStyle,
   resolveStyle,
@@ -22,6 +24,7 @@ export type StageContent =
       lineStyles: ResolvedStyle[];
       background: Background;
       backgroundImage: ImageSettings | null;
+      backgroundVideo: VideoSettings | null;
     }
   | { kind: "image"; item: MediaItem }
   | { kind: "video"; item: MediaItem };
@@ -37,6 +40,7 @@ export const buildStageFrame = (
   deckSlide: DeckSlide | undefined,
   bgMap: Record<string, Background>,
   fallbackAnimation: AnimationKind,
+  media: MediaItem[] = [],
 ): StageFrame | null => {
   if (!deckSlide) return null;
 
@@ -44,7 +48,9 @@ export const buildStageFrame = (
     const { doc, theme } = deck;
     if (!theme) return null;
     const slide = deckSlide.slide;
-    const background = resolveBackgroundView(slide, doc, theme, bgMap);
+    const backgroundId = resolveBackgroundId(slide, doc, theme);
+    const clip = media.find((item) => item.id === bgMap[backgroundId]?.mediaId);
+    const background = resolveBackgroundView(slide, doc, theme, bgMap, clip);
     return {
       content: {
         kind: "text",
@@ -55,6 +61,7 @@ export const buildStageFrame = (
         ),
         background: background.background,
         backgroundImage: background.image,
+        backgroundVideo: background.video,
       },
       animation: resolveAnimation(slide, doc, theme, fallbackAnimation),
       backdrop: background.background,

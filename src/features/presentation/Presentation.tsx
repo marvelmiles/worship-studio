@@ -280,6 +280,7 @@ export const Presentation = () => {
     presentation.audioItem && presentation.audioPlayback ? (
       <AudioSurface
         item={presentation.audioItem}
+        settings={presentation.audioSettings ?? undefined}
         loop={presentation.prefs.loopAudio}
         playback={presentation.audioPlayback}
       />

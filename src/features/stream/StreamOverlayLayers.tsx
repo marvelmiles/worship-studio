@@ -102,11 +102,12 @@ const DeckOverlayLayer = ({
 }) => {
   const prefs = useStore((s) => s.prefs);
   const bgMap = useBgMap();
+  const media = useStore((s) => s.media);
   const deck = useDeck(overlay.kind, overlay.contentId);
   const slide = deck?.slides[Math.max(0, overlay.slideIndex)];
   const frame =
     deck && slide
-      ? buildStageFrame(deck, slide, bgMap, prefs.transition)
+      ? buildStageFrame(deck, slide, bgMap, prefs.transition, media)
       : null;
 
   if (frame?.content.kind !== "text") return null;

@@ -448,3 +448,23 @@ input[type="range"].ws-scrubber::-moz-range-progress {
       0 0 0 9px color-mix(in srgb, var(--ws-accent, #2563eb) 26%, transparent);
   }
 }
+
+/* An action that stays out of the way until its row or tile is hovered, focused
+   or already the one in use: the edit pen on a background, clip or sound. On a
+   touch screen there is no hover, so it is always shown. */
+.ws-reveal-host .ws-reveal {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.ws-reveal-host:hover .ws-reveal,
+.ws-reveal-host:focus-within .ws-reveal,
+.ws-reveal-host.is-active .ws-reveal {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ws-reveal-host .ws-reveal {
+    opacity: 1;
+  }
+}

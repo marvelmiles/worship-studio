@@ -9,6 +9,7 @@ import type {
   VideoSettings,
 } from "../types";
 import { uid } from "./id";
+import { SLIDE_ASPECT } from "./slideLayout";
 import {
   backgroundImageSettings,
   DEFAULT_IMAGE_SETTINGS,
@@ -16,8 +17,6 @@ import {
   imageSettingsOf,
   videoSettingsOf,
 } from "./media";
-
-export const SLIDE_ASPECT = 16 / 9;
 
 export const DEFAULT_SLIDE_MEDIA_RADIUS = 1.4;
 export const DEFAULT_SLIDE_MEDIA_OPACITY = 100;

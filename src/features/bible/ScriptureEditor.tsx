@@ -5,9 +5,18 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { Button, IconButton } from "../../components/ui/Button";
 import { useDeckEditor } from "../editor/useDeckEditor";
+import { useOpenAssetUsageEditor } from "../assets/assetUsageEdit";
 import { DeckWorkspace } from "../editor/DeckWorkspace";
 import { PassageSettingsModal } from "./PassageSettingsModal";
-import { slideIndexForVerse } from "./lib/scriptureSlides";
+import {
+  buildScriptureSlides,
+  slideIndexForVerse,
+} from "./lib/scriptureSlides";
+import type { SlideTextMetrics } from "../../lib/slideLayout";
+import routes from "../../routes";
+
+const sameLines = (a: string[], b: string[]): boolean =>
+  a.length === b.length && a.every((line, index) => line === b[index]);
 
 export const ScriptureEditor = () => {
   const { colors, fonts } = useUITheme();
@@ -34,7 +43,7 @@ export const ScriptureEditor = () => {
           <p style={{ fontFamily: fonts.ui, color: colors.sub }}>
             It may have been deleted.
           </p>
-          <Button variant="primary" onClick={() => navigate("/bible")}>
+          <Button variant="primary" onClick={() => navigate(routes.bible())}>
             <ArrowLeft size={15} />
             Back to Bible
           </Button>
@@ -56,7 +65,13 @@ const ScriptureWorkspace = ({ passageId }: { passageId: string }) => {
   if (current) lastRef.current = current;
   const passage = lastRef.current;
   const editor = useDeckEditor(passage!, upsertScripture);
+  const openAssetUsage = useOpenAssetUsageEditor({
+    kind: "scripture",
+    doc: editor.doc,
+    editor,
+  });
   const [settingsOpen, setSettingsOpen] = useState(false);
+
   const startPresent = useStore((s) => s.startPresent);
   const ctrlNumBuffer = useRef("");
   useEffect(() => {
@@ -87,13 +102,39 @@ const ScriptureWorkspace = ({ passageId }: { passageId: string }) => {
 
   const draft = editor.doc;
 
+  /* A passage is built from its verses rather than from written lines, so a new
+     text size re-cuts it from those: a long verse can then be broken across
+     slides instead of overflowing one. */
+  const refitFromVerses = (metrics: SlideTextMetrics): boolean => {
+    const next = buildScriptureSlides({
+      version: draft.version,
+      range: draft.range,
+      verses: draft.verses,
+      versesPerSlide: draft.versesPerSlide,
+      showVerseNumbers: draft.showVerseNumbers,
+      showReference: draft.showReference,
+      splitLongVerses: Boolean(draft.quick),
+      style: metrics,
+    });
+    const unchanged =
+      next.length === draft.slides.length &&
+      next.every((slide, index) =>
+        sameLines(slide.lines, draft.slides[index].lines),
+      );
+    if (unchanged) return false;
+    editor.setSlides(next);
+    editor.setSelectedId(next[0]?.id ?? null);
+    return true;
+  };
+
   return (
     <DeckWorkspace
       doc={draft}
       kind="scripture"
       editor={editor}
-      backTo="/bible"
+      backTo={routes.bible()}
       backTitle="Back to Bible"
+      refit={refitFromVerses}
       topBarActions={(compact) =>
         compact ? (
           <IconButton
@@ -149,6 +190,9 @@ const ScriptureWorkspace = ({ passageId }: { passageId: string }) => {
         onClose={() => setSettingsOpen(false)}
         passage={draft}
         editor={editor}
+        onEditAsset={(request) =>
+          openAssetUsage(request, { label: "this passage", slideId: null })
+        }
       />
     </DeckWorkspace>
   );

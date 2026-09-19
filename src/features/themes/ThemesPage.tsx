@@ -18,10 +18,10 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { PanelTabs, type PanelTab } from "../../components/ui/PanelTabs";
 import { ThemeListPanel } from "./ThemeListPanel";
-import { THEMES_PATH, themePath } from "./themeRoutes";
 import { ThemeInspectorPanel } from "./ThemeInspectorPanel";
 import { ThemePreviewPanel } from "./ThemePreviewPanel";
 import { useThemeDraft } from "./useThemeDraft";
+import routes from "../../routes";
 
 const STACKED_WIDTH = 1080;
 const COMPACT_WIDTH = 560;
@@ -49,7 +49,7 @@ export const ThemesPage = () => {
   const isStacked = width < STACKED_WIDTH;
   const compact = width < COMPACT_WIDTH;
 
-  useDocumentTitle("Themes · WorshipStudio");
+  useDocumentTitle("Themes");
 
   const controller = useThemeDraft(themeId ?? null);
   const {
@@ -74,12 +74,13 @@ export const ThemesPage = () => {
   const attentionId = useAttention(deepLinkedThemeId, listRef);
   const [tab, setTab] = useState<ThemesTab>("preview");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const leaveGuard = useUnsavedChanges(dirty);
 
   useEffect(() => {
     if (themeId || !saved) return;
-    navigate(themePath(saved.id), { replace: true });
+    navigate(routes.theme(saved.id), { replace: true });
   }, [navigate, saved, themeId]);
 
   const backgroundById = useMemo(() => {
@@ -91,7 +92,7 @@ export const ThemesPage = () => {
   const addTheme = () => {
     const created = createTheme();
     if (!created) return;
-    navigate(themePath(created.id));
+    navigate(routes.theme(created.id));
     if (isStacked) setTab("preview");
   };
 
@@ -100,7 +101,9 @@ export const ThemesPage = () => {
     if (!saved || saved.builtIn) return;
     deleteTheme(saved.id);
     const next = themes.find((theme) => theme.id !== saved.id);
-    navigate(next ? themePath(next.id) : THEMES_PATH, { replace: true });
+    navigate(next ? routes.theme(next.id) : routes.themes(), {
+      replace: true,
+    });
   };
 
   if (themes.length === 0)
@@ -128,7 +131,7 @@ export const ThemesPage = () => {
       selectedId={saved?.id ?? null}
       attentionId={attentionId}
       onSelect={(id) => {
-        navigate(themePath(id));
+        navigate(routes.theme(id));
         if (isStacked) setTab("preview");
       }}
       onAdd={addTheme}
@@ -176,7 +179,7 @@ export const ThemesPage = () => {
                   icon={RotateCcw}
                   title={RESET_TITLE}
                   disabled={!canReset}
-                  onClick={resetToDefaults}
+                  onClick={() => setConfirmReset(true)}
                 />
               ) : (
                 <Button
@@ -184,7 +187,7 @@ export const ThemesPage = () => {
                   size="sm"
                   title={RESET_TITLE}
                   disabled={!canReset}
-                  onClick={resetToDefaults}
+                  onClick={() => setConfirmReset(true)}
                 >
                   <RotateCcw size={13} />
                   Reset to default
@@ -252,6 +255,18 @@ export const ThemesPage = () => {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmReset}
+        title="Reset to default?"
+        message={`"${saved?.name ?? ""}" goes back to the font, colours, background and animation it shipped with. Anything you changed here is replaced, and the reset only sticks once you save.`}
+        confirmLabel="Reset to default"
+        onConfirm={() => {
+          setConfirmReset(false);
+          resetToDefaults();
+        }}
+        onCancel={() => setConfirmReset(false)}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

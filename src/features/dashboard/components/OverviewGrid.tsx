@@ -13,9 +13,9 @@ import {
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { useStore } from "../../../store/useStore";
 import { overlayTarget } from "../../../lib/overlayTarget";
-import { THEMES_PATH } from "../../themes/themeRoutes";
 import { DashboardTile, type DashboardTileProps } from "./DashboardTile";
 import type { DashboardCounts } from "../useDashboardData";
+import routes from "../../../routes";
 
 interface OverviewGridProps {
   counts: DashboardCounts;
@@ -24,13 +24,9 @@ interface OverviewGridProps {
 export const OverviewGrid = ({ counts }: OverviewGridProps) => {
   const { charts } = useUITheme();
   const navigate = useNavigate();
-  const createManuscript = useStore((s) => s.createManuscript);
   const openOverlay = useStore((s) => s.openOverlay);
 
-  const newManuscript = () => {
-    const created = createManuscript();
-    if (created) navigate(`/manuscripts/${created.id}`);
-  };
+  const newManuscript = () => navigate(routes.newManuscript());
 
   const tiles: DashboardTileProps[] = [
     {
@@ -39,7 +35,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.manuscripts,
       color: charts[0],
       title: "Open the manuscript library",
-      onClick: () => navigate("/manuscripts"),
+      onClick: () => navigate(routes.manuscripts()),
     },
     {
       icon: Layers,
@@ -47,7 +43,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.totalSlides,
       color: charts[1],
       title: "Open the manuscript library",
-      onClick: () => navigate("/manuscripts"),
+      onClick: () => navigate(routes.manuscripts()),
     },
     {
       icon: BookOpen,
@@ -55,7 +51,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.savedPassages,
       color: charts[2],
       title: "Open your saved Bible passages",
-      onClick: () => navigate("/bible", { state: { tab: "saved" } }),
+      onClick: () => navigate(routes.bible(), { state: { tab: "saved" } }),
     },
     {
       icon: ImageIcon,
@@ -63,7 +59,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.imageCount,
       color: charts[3],
       title: "Open the image library",
-      onClick: () => navigate("/images"),
+      onClick: () => navigate(routes.images()),
     },
     {
       icon: Film,
@@ -71,7 +67,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.videoCount,
       color: charts[4],
       title: "Open the video library",
-      onClick: () => navigate("/videos"),
+      onClick: () => navigate(routes.videos()),
     },
     {
       icon: Palette,
@@ -79,7 +75,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       value: counts.themes,
       color: charts[5],
       title: "Open the themes page",
-      onClick: () => navigate(THEMES_PATH),
+      onClick: () => navigate(routes.themes()),
     },
     {
       icon: Volume2,
@@ -102,7 +98,7 @@ export const OverviewGrid = ({ counts }: OverviewGridProps) => {
       label: "Manage Themes",
       sub: "Fonts, colors, backgrounds",
       title: "Open the themes page: Fonts, colors, backgrounds",
-      onClick: () => navigate(THEMES_PATH),
+      onClick: () => navigate(routes.themes()),
     },
     {
       icon: Upload,

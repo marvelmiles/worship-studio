@@ -43,6 +43,8 @@ export interface SlideOverrides extends TextStyle {
   audioId?: string;
   animation?: AnimationKind;
   backgroundImage?: ImageSettings;
+  backgroundVideo?: VideoSettings;
+  audioSettings?: AudioSettings;
 }
 
 export interface SlideFrame {
@@ -83,6 +85,8 @@ export interface Slide {
   id: string;
   type: string;
   label: string;
+  /** Slides cut from one written section share this, so a size change can re-cut them. */
+  flowId?: string;
   lines: string[];
   overrides: SlideOverrides;
   lineOverrides?: Record<number, TextStyle>;
@@ -107,7 +111,9 @@ export interface SlideDeckDoc {
   defaultThemeId: string;
   defaultBackgroundId?: string;
   defaultBackgroundImage?: ImageSettings;
+  defaultBackgroundVideo?: VideoSettings;
   defaultAudioId?: string | null;
+  defaultAudioSettings?: AudioSettings;
   animation?: AnimationKind;
   autoPlay?: boolean;
   slideDurationSeconds?: number;

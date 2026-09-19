@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
-import { THEMES_PATH } from "../../features/themes/themeRoutes";
+import routes from "../../routes";
 
 export interface AppNavigationItem {
   id: string;
@@ -29,9 +29,6 @@ export interface AppNavigation {
   destinations: AppNavigationItem[];
   actions: AppNavigationItem[];
 }
-
-export const isDestinationActive = (path: string, pathname: string): boolean =>
-  path === "/" ? pathname === "/" : pathname.startsWith(path);
 
 export const useAppNavigation = (): AppNavigation => {
   const navigate = useNavigate();
@@ -60,36 +57,42 @@ export const useAppNavigation = (): AppNavigation => {
           "Dashboard",
           "Your library at a glance",
           LayoutDashboard,
-          "/",
+          routes.dashboard(),
         ),
         destination(
           "manuscripts",
           "Manuscripts",
           "Lyrics, hymns and sermons",
           FileText,
-          "/manuscripts",
+          routes.manuscripts(),
         ),
         destination(
           "bible",
           "Bible",
           "Read and project scripture",
           BookOpen,
-          "/bible",
+          routes.bible(),
         ),
         destination(
           "images",
           "Images",
           "Your image library",
           ImageIcon,
-          "/images",
+          routes.images(),
         ),
-        destination("videos", "Videos", "Your video library", Film, "/videos"),
+        destination(
+          "videos",
+          "Videos",
+          "Your video library",
+          Film,
+          routes.videos(),
+        ),
         destination(
           "stream",
           "Stream",
           "Cameras and live projection",
           Radio,
-          "/stream",
+          routes.stream(),
         ),
       ],
       actions: [
@@ -112,8 +115,8 @@ export const useAppNavigation = (): AppNavigation => {
           label: "Manage themes",
           description: "Fonts, colors, backgrounds",
           icon: Palette,
-          path: THEMES_PATH,
-          run: () => navigate(THEMES_PATH),
+          path: routes.themes(),
+          run: () => navigate(routes.themes()),
         },
         {
           id: "shortcuts",

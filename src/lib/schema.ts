@@ -40,24 +40,46 @@ const textStyleShape = {
 const textStyleSchema = z.object(textStyleShape).passthrough();
 
 const adjustmentsShape = {
-  brightness: z.number().optional(),
-  contrast: z.number().optional(),
-  saturation: z.number().optional(),
-  grayscale: z.number().optional(),
-  sepia: z.number().optional(),
-  blur: z.number().optional(),
+  brightness: z.number(),
+  contrast: z.number(),
+  saturation: z.number(),
+  grayscale: z.number(),
+  sepia: z.number(),
+  blur: z.number(),
 };
 
-const imageSettingsSchema = z
-  .object({
-    ...adjustmentsShape,
-    rotate: rotateSchema.optional(),
-    flipH: z.boolean().optional(),
-    flipV: z.boolean().optional(),
-    fit: fitSchema.optional(),
-    scrim: z.boolean().optional(),
-  })
-  .passthrough();
+/* Settings as a complete set, for anything handed between pages. What is read
+   back from storage is the same shape with every field optional, so a record
+   written by an older build still loads. */
+export const imageSettingsSchema = z.object({
+  ...adjustmentsShape,
+  rotate: rotateSchema,
+  flipH: z.boolean(),
+  flipV: z.boolean(),
+  fit: fitSchema,
+  scrim: z.boolean(),
+});
+
+export const videoSettingsSchema = z.object({
+  ...adjustmentsShape,
+  trimStart: z.number(),
+  trimEnd: z.number().nullable(),
+  volume: z.number(),
+  muted: z.boolean(),
+  loop: z.boolean(),
+  playbackRate: z.number(),
+  fit: fitSchema,
+});
+
+export const audioSettingsSchema = z.object({
+  trimStart: z.number().min(0),
+  trimEnd: z.number().min(0).nullable(),
+  volume: z.number().min(0).max(100),
+});
+
+const storedImageSettingsSchema = imageSettingsSchema.partial().passthrough();
+
+const storedVideoSettingsSchema = videoSettingsSchema.partial().passthrough();
 
 const slideOverridesSchema = z
   .object({
@@ -65,20 +87,9 @@ const slideOverridesSchema = z
     backgroundId: z.string().optional(),
     audioId: z.string().optional(),
     animation: animationSchema,
-    backgroundImage: imageSettingsSchema.optional().catch(undefined),
-  })
-  .passthrough();
-
-const videoSettingsSchema = z
-  .object({
-    ...adjustmentsShape,
-    trimStart: z.number().optional(),
-    trimEnd: z.number().nullable().optional(),
-    volume: z.number().optional(),
-    muted: z.boolean().optional(),
-    loop: z.boolean().optional(),
-    playbackRate: z.number().optional(),
-    fit: fitSchema.optional(),
+    backgroundImage: storedImageSettingsSchema.optional().catch(undefined),
+    backgroundVideo: storedVideoSettingsSchema.optional().catch(undefined),
+    audioSettings: audioSettingsSchema.optional().catch(undefined),
   })
   .passthrough();
 
@@ -100,8 +111,8 @@ const slideMediaSchema = z
     frame: slideFrameSchema.optional(),
     radius: z.number().optional(),
     opacity: z.number().optional(),
-    image: imageSettingsSchema.optional().catch(undefined),
-    video: videoSettingsSchema.optional().catch(undefined),
+    image: storedImageSettingsSchema.optional().catch(undefined),
+    video: storedVideoSettingsSchema.optional().catch(undefined),
   })
   .passthrough();
 
@@ -124,6 +135,7 @@ const slideSchema = z
     id: z.string().optional(),
     type: z.string().optional(),
     label: z.string().optional(),
+    flowId: z.string().optional().catch(undefined),
     lines: z.array(z.string()).optional(),
     overrides: slideOverridesSchema.optional(),
     media: z.array(slideMediaSchema).optional().catch(undefined),
@@ -155,8 +167,14 @@ export const manuscriptSchema = z
     format: z.enum(["song", "sermon"]).optional().catch(undefined),
     defaultThemeId: z.string().optional().default("classic"),
     defaultBackgroundId: z.string().optional(),
-    defaultBackgroundImage: imageSettingsSchema.optional().catch(undefined),
+    defaultBackgroundImage: storedImageSettingsSchema
+      .optional()
+      .catch(undefined),
+    defaultBackgroundVideo: storedVideoSettingsSchema
+      .optional()
+      .catch(undefined),
     defaultAudioId: z.string().nullable().optional(),
+    defaultAudioSettings: audioSettingsSchema.optional().catch(undefined),
     animation: animationSchema,
     autoPlay: z.boolean().optional(),
     slideDurationSeconds: z.number().optional(),
@@ -198,19 +216,13 @@ const backgroundSchema = z
     css: z.string().optional(),
     color: z.string().optional(),
     blobId: z.string().optional(),
-    image: imageSettingsSchema.optional().catch(undefined),
+    image: storedImageSettingsSchema.optional().catch(undefined),
     mediaId: z.string().optional(),
     size: z.number().optional(),
     light: z.boolean().optional(),
     builtIn: z.boolean().optional(),
   })
   .passthrough();
-
-const audioSettingsSchema = z.object({
-  trimStart: z.number().min(0),
-  trimEnd: z.number().min(0).nullable(),
-  volume: z.number().min(0).max(100),
-});
 
 const audioSchema = z
   .object({
@@ -244,8 +256,14 @@ export const scriptureSchema = z
     slides: z.array(slideSchema).optional(),
     defaultThemeId: z.string().optional().default("scripture"),
     defaultBackgroundId: z.string().optional(),
-    defaultBackgroundImage: imageSettingsSchema.optional().catch(undefined),
+    defaultBackgroundImage: storedImageSettingsSchema
+      .optional()
+      .catch(undefined),
+    defaultBackgroundVideo: storedVideoSettingsSchema
+      .optional()
+      .catch(undefined),
     defaultAudioId: z.string().nullable().optional(),
+    defaultAudioSettings: audioSettingsSchema.optional().catch(undefined),
     animation: animationSchema,
     style: textStyleSchema.optional(),
     createdAt: z.string().optional(),
@@ -267,8 +285,8 @@ export const mediaSchema = z
     width: z.number().optional(),
     height: z.number().optional(),
     hasThumb: z.boolean().optional(),
-    image: imageSettingsSchema.optional().catch(undefined),
-    video: videoSettingsSchema.optional().catch(undefined),
+    image: storedImageSettingsSchema.optional().catch(undefined),
+    video: storedVideoSettingsSchema.optional().catch(undefined),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
     pinned: z.boolean().optional(),

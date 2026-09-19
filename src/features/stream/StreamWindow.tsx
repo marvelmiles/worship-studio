@@ -9,6 +9,7 @@ import { StreamVideo } from "./StreamVideo";
 import { useMirroredStreamOverlays } from "./lib/streamOverlayStore";
 import { useOpenerLiveComposition } from "./lib/useOpenerComposition";
 import { useOverlayContentSync } from "./lib/useOverlayContentSync";
+import { documentTitle } from "../../lib/appInfo";
 
 export const StreamWindow = () => {
   const overlays = useMirroredStreamOverlays();
@@ -22,7 +23,7 @@ export const StreamWindow = () => {
   const stream = composition.primary;
 
   useEffect(() => {
-    document.title = "WorshipStudio · Live camera";
+    document.title = documentTitle("Live camera");
     document.body.style.background = "#000";
     document.body.style.margin = "0";
   }, []);

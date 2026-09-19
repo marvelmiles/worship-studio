@@ -1,11 +1,13 @@
 import { useEffect } from "react";
+import { documentTitle } from "../lib/appInfo";
 
-export const useDocumentTitle = (title: string): void => {
+/** Names the browser tab after the page, under the app's own name. */
+export const useDocumentTitle = (page: string): void => {
   useEffect(() => {
-    const prev = document.title;
-    document.title = title;
+    const previous = document.title;
+    document.title = documentTitle(page);
     return () => {
-      document.title = prev;
+      document.title = previous;
     };
-  }, [title]);
+  }, [page]);
 };

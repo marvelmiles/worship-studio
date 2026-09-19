@@ -38,6 +38,7 @@ import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
+import routes from "../../routes";
 
 interface MediaPageConfig {
   kind: MediaKind;
@@ -48,7 +49,6 @@ interface MediaPageConfig {
   emptyTitle: string;
   emptyMessage: string;
   emptyIcon: LucideIcon;
-  editPath: string;
 }
 
 const CONFIGS: Record<MediaKind, MediaPageConfig> = {
@@ -61,7 +61,6 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     emptyTitle: "No images yet",
     emptyMessage: "Upload some to present or use as backgrounds.",
     emptyIcon: ImageIcon,
-    editPath: "/images",
   },
   video: {
     kind: "video",
@@ -72,13 +71,12 @@ const CONFIGS: Record<MediaKind, MediaPageConfig> = {
     emptyTitle: "No videos yet",
     emptyMessage: "Upload some to play them on the projector.",
     emptyIcon: Film,
-    editPath: "/videos",
   },
 };
 
 export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
   const config = CONFIGS[kind];
-  useDocumentTitle(`${config.title} · WorshipStudio`);
+  useDocumentTitle(config.title);
 
   const media = useStore((s) => s.media);
   const backgrounds = useStore((s) => s.backgrounds);
@@ -96,7 +94,7 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const openEditor = (item: MediaItem) =>
-    navigate(`${config.editPath}/${item.id}`);
+    navigate(routes.mediaItem(kind, item.id));
 
   const openId = (location.state as { openId?: string } | null)?.openId;
   const handedOff = useRef<string | null>(null);
@@ -104,11 +102,11 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
     if (!openId || handedOff.current === openId) return;
     handedOff.current = openId;
     const known = media.some((m) => m.id === openId && m.kind === kind);
-    navigate(known ? `${config.editPath}/${openId}` : location.pathname, {
+    navigate(known ? routes.mediaItem(kind, openId) : location.pathname, {
       replace: true,
       state: null,
     });
-  }, [openId, media, kind, navigate, location.pathname, config.editPath]);
+  }, [openId, media, kind, navigate, location.pathname]);
 
   const library = useMemo(
     () => media.filter((m) => m.kind === kind),

@@ -1,6 +1,13 @@
-import type { ManuscriptFormat, Slide } from "../types";
+import type { ManuscriptFormat, Slide, TextStyle } from "../types";
 import type { Collection } from "../data/collections";
 import { uid } from "./id";
+import {
+  chunkToFit,
+  slideChunkLabel,
+  slideRowCapacity,
+  slideTextMetrics,
+  type SlideTextMetrics,
+} from "./slideLayout";
 import { defaultFormatForCollection } from "./manuscript/format";
 import { extractManuscriptMetadata } from "./manuscript/metadata";
 import { readHymnalSource } from "./manuscript/hymnal";
@@ -219,22 +226,30 @@ const compactSections = (sections: Section[]): Section[] => {
   return kept;
 };
 
-const chunkSection = (lines: LyricLine[], maxLines: number): LyricLine[][] => {
+/**
+ * Blank lines still break a stanza by hand; within a stanza the slide is cut
+ * wherever the next line would no longer fit at the deck's text size.
+ */
+const chunkSection = (
+  lines: LyricLine[],
+  maxLines: number,
+  metrics: SlideTextMetrics,
+): LyricLine[][] => {
   const chunks: LyricLine[][] = [];
-  let current: LyricLine[] = [];
+  let block: LyricLine[] = [];
   const flush = () => {
-    if (current.length) {
-      chunks.push(current);
-      current = [];
-    }
+    if (!block.length) return;
+    chunks.push(
+      ...chunkToFit(block, (line) => line.text, metrics, { maxLines }),
+    );
+    block = [];
   };
   for (const line of lines) {
     if (!line.text.trim()) {
       flush();
       continue;
     }
-    current.push(line);
-    if (current.length >= maxLines) flush();
+    block.push(line);
   }
   flush();
   return chunks.length ? chunks : [[]];
@@ -303,9 +318,14 @@ export interface ParsedManuscript {
 export interface ParseManuscriptOptions {
   maxLines?: number;
   format?: ManuscriptFormat;
+  /** The deck's resolved text style, which decides how much fits on a slide. */
+  style?: Pick<TextStyle, "fontSize" | "lineHeight"> | null;
 }
 
-export const DEFAULT_MAX_LINES = 6;
+/** How many written lines a slide holds at the default text size. */
+export const defaultMaxLines = (
+  style?: Pick<TextStyle, "fontSize" | "lineHeight"> | null,
+): number => slideRowCapacity(slideTextMetrics(style));
 
 const emptySlide = (): Slide => ({
   id: uid(),
@@ -320,7 +340,8 @@ export const parseManuscript = (
   text: string,
   options: ParseManuscriptOptions = {},
 ): ParsedManuscript => {
-  const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
+  const metrics = slideTextMetrics(options.style);
+  const maxLines = options.maxLines ?? slideRowCapacity(metrics);
   const source = readHymnalSource(text);
   const allLines = source.text.split("\n");
   const metadata = extractManuscriptMetadata(allLines);
@@ -369,16 +390,17 @@ export const parseManuscript = (
     const number = numbers[sourceIndex];
     const label =
       number !== null ? `${section.baseLabel} ${number}` : section.baseLabel;
-    const chunks = chunkSection(section.lines, maxLines);
+    const chunks = chunkSection(section.lines, maxLines, metrics);
     const firstSlide = slides.length;
+    const flowId = uid();
 
     chunks.forEach((chunk, i) => {
       const slideIndex = slides.length;
       slides.push({
         id: uid(),
         type: section.type,
-        label:
-          chunks.length > 1 ? `${label} · ${i + 1}/${chunks.length}` : label,
+        flowId,
+        label: slideChunkLabel(label, i, chunks.length),
         lines: chunk.map((line) => line.text),
         overrides: {},
         notes: "",

@@ -13,11 +13,8 @@ import {
   sortLibrary,
   type LibrarySortOption,
 } from "../../lib/librarySort";
-import {
-  resolveBackgroundView,
-  resolveLineStyle,
-  resolveStyle,
-} from "../../lib/resolve";
+import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import { useBackgroundView } from "../../hooks/useBackgroundView";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { Button, IconButton } from "../../components/ui/Button";
@@ -42,13 +39,13 @@ import {
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import routes from "../../routes";
 
 export const ManuscriptLibrary = () => {
-  useDocumentTitle("Manuscripts · WorshipStudio");
+  useDocumentTitle("Manuscripts");
   const navigate = useNavigate();
   const manuscripts = useStore((s) => s.manuscripts);
   const themes = useStore((s) => s.themes);
-  const createManuscript = useStore((s) => s.createManuscript);
   const deleteManuscript = useStore((s) => s.deleteManuscript);
   const startPresent = useStore((s) => s.startPresent);
   const pushToast = useStore((s) => s.pushToast);
@@ -59,10 +56,7 @@ export const ManuscriptLibrary = () => {
   const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<Manuscript | null>(null);
 
-  const onNew = () => {
-    const created = createManuscript();
-    if (created) navigate(`/manuscripts/${created.id}`);
-  };
+  const onNew = () => navigate(routes.newManuscript());
 
   const searching = Boolean(query.trim());
 
@@ -168,7 +162,7 @@ export const ManuscriptLibrary = () => {
             library={manuscripts}
             themes={themes}
             bgMap={bgMap}
-            onOpen={() => navigate(`/manuscripts/${manuscript.id}`)}
+            onOpen={() => navigate(routes.manuscript(manuscript.id))}
             onPresent={(pip) =>
               startPresent(
                 "manuscript",
@@ -220,7 +214,7 @@ const ManuscriptCard = ({
   const first = manuscript.slides?.[0];
   const theme =
     themes.find((t) => t.id === manuscript.defaultThemeId) || themes[0];
-  const { background, image } = resolveBackgroundView(
+  const { background, image, video } = useBackgroundView(
     first,
     manuscript,
     theme,
@@ -248,6 +242,7 @@ const ManuscriptCard = ({
               slide={first}
               bg={background}
               bgImage={image}
+              bgVideo={video}
               radius={0}
               style={resolveStyle(first, manuscript, theme)}
               lineStyles={first.lines.map((_, i) =>

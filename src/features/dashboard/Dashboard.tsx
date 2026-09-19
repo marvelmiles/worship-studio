@@ -8,7 +8,7 @@ import { ManuscriptsByCategory } from "./components/ManuscriptsByCategory";
 import { MostUsedArtifacts } from "./components/MostUsedArtifacts";
 
 export const Dashboard = () => {
-  useDocumentTitle("Dashboard · WorshipStudio");
+  useDocumentTitle("Dashboard");
   const {
     greeting,
     counts,

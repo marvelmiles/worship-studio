@@ -37,6 +37,14 @@ export const DEFAULT_VIDEO_SETTINGS: VideoSettings = {
   fit: "contain",
 };
 
+/** A moving background fills the frame, runs silently and never stops. */
+export const DEFAULT_BACKGROUND_VIDEO_SETTINGS: VideoSettings = {
+  ...DEFAULT_VIDEO_SETTINGS,
+  fit: "cover",
+  muted: true,
+  loop: true,
+};
+
 export const DEFAULT_BACKGROUND_IMAGE_SETTINGS: ImageSettings = {
   ...DEFAULT_ADJUSTMENTS,
   rotate: 0,
@@ -77,6 +85,14 @@ export const snapshotBackgroundImage = (
 export const videoSettingsOf = (item: MediaItem): VideoSettings => ({
   ...DEFAULT_VIDEO_SETTINGS,
   ...(item.video || {}),
+});
+
+export const backgroundVideoSettings = (item?: MediaItem): VideoSettings => ({
+  ...DEFAULT_BACKGROUND_VIDEO_SETTINGS,
+  ...(item?.video || {}),
+  fit: item?.video?.fit ?? DEFAULT_BACKGROUND_VIDEO_SETTINGS.fit,
+  muted: true,
+  loop: true,
 });
 
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Background, ImageSettings } from "../../types";
+import type { Background, ImageSettings, VideoSettings } from "../../types";
 import {
   backgroundImageSettings,
   isImageBackground,
@@ -24,6 +24,7 @@ type SurfaceVariant = "full" | "thumb";
 interface BackgroundSurfaceProps {
   background?: Background;
   settings?: ImageSettings | null;
+  videoSettings?: VideoSettings | null;
   variant?: SurfaceVariant;
   style?: CSSProperties;
 }
@@ -31,6 +32,7 @@ interface BackgroundSurfaceProps {
 export const BackgroundSurface = ({
   background,
   settings,
+  videoSettings,
   variant = "full",
   style,
 }: BackgroundSurfaceProps) => {
@@ -38,6 +40,7 @@ export const BackgroundSurface = ({
     return (
       <VideoBackgroundSurface
         mediaId={background?.mediaId ?? ""}
+        settings={videoSettings}
         variant={variant}
         style={style}
       />
@@ -91,10 +94,12 @@ const ImageBackgroundSurface = ({
 
 const VideoBackgroundSurface = ({
   mediaId,
+  settings,
   variant,
   style,
 }: {
   mediaId: string;
+  settings?: VideoSettings | null;
   variant: SurfaceVariant;
   style?: CSSProperties;
 }) => {
@@ -106,7 +111,13 @@ const VideoBackgroundSurface = ({
   if (!item)
     return <div style={{ position: "absolute", inset: 0, ...surfaceStyle }} />;
   if (variant === "full")
-    return <BackgroundVideoLayer item={item} style={surfaceStyle} />;
+    return (
+      <BackgroundVideoLayer
+        item={item}
+        settings={settings}
+        style={surfaceStyle}
+      />
+    );
   return (
     <div style={{ position: "absolute", inset: 0, ...surfaceStyle }}>
       <VideoThumb item={item} applySettings />

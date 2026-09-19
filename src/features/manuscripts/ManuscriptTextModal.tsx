@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Info, RefreshCw } from "lucide-react";
-import type { Manuscript, ManuscriptFormat } from "../../types";
+import type { Manuscript, ManuscriptFormat, Theme } from "../../types";
+import { useUITheme } from "../../theme/ThemeProvider";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
+import { resolveStyle } from "../../lib/resolve";
+import { slideRowCapacity, slideTextMetrics } from "../../lib/slideLayout";
 import {
   DEFAULT_MANUSCRIPT_FORMAT,
   MANUSCRIPT_FORMAT_OPTIONS,
@@ -25,6 +28,7 @@ interface ManuscriptTextModalProps {
   open: boolean;
   onClose: () => void;
   manuscript: Manuscript;
+  theme: Theme;
   onRegenerate: (
     body: string,
     maxLines: number,
@@ -36,14 +40,22 @@ export const ManuscriptTextModal = ({
   open,
   onClose,
   manuscript,
+  theme,
   onRegenerate,
 }: ManuscriptTextModalProps) => {
+  const { colors, fonts } = useUITheme();
+  /* What the manuscript's own text size can hold with room to spare above and
+     below, which is where the slider starts and what it falls back to. */
+  const fittedLines = slideRowCapacity(
+    slideTextMetrics(resolveStyle(undefined, manuscript, theme)),
+  );
+
   const [body, setBody] = useState(manuscript.body);
   const [format, setFormat] = useState<ManuscriptFormat>(
     manuscript.format ?? DEFAULT_MANUSCRIPT_FORMAT,
   );
   const [guideOpen, setGuideOpen] = useState(false);
-  const [maxLines, setMaxLines] = useState(manuscript.maxLines || 6);
+  const [maxLines, setMaxLines] = useState(manuscript.maxLines || fittedLines);
   const formatting = useTextFormatting({ value: body, onChange: setBody });
   const isSermon = format === "sermon";
 
@@ -57,8 +69,8 @@ export const ManuscriptTextModal = ({
     const opened = storedFormat ?? DEFAULT_MANUSCRIPT_FORMAT;
     setBody(storedBody);
     setFormat(opened);
-    setMaxLines(clampLines(storedMaxLines || 6, opened));
-  }, [open, storedBody, storedMaxLines, storedFormat]);
+    setMaxLines(clampLines(storedMaxLines || fittedLines, opened));
+  }, [open, storedBody, storedMaxLines, storedFormat, fittedLines]);
 
   const changeFormat = (next: ManuscriptFormat) => {
     setFormat(next);
@@ -137,6 +149,19 @@ export const ManuscriptTextModal = ({
             onChange={(e) => setMaxLines(Number(e.target.value))}
           />
         </Field>
+        <p
+          style={{
+            fontFamily: fonts.ui,
+            fontSize: 11.5,
+            lineHeight: 1.55,
+            color: colors.dim,
+            margin: "-6px 0 0",
+          }}
+        >
+          At this manuscript's text size a slide shows about {fittedLines} line
+          {fittedLines === 1 ? "" : "s"} and still keeps its space top and
+          bottom. Anything longer moves onto the next slide.
+        </p>
       </div>
       {guideOpen && (
         <ManuscriptFormatGuideModal

@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import type {
   ChangeEvent,
   CSSProperties,
@@ -74,32 +75,37 @@ interface TextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
 }
 
-export const TextInput = (props: TextInputProps) => {
-  const { colors } = useUITheme();
-  const { style, onFocus, onBlur, invalid, ...rest } = props;
-  const resting = invalid ? colors.danger : colors.border;
-  return (
-    <input
-      {...rest}
-      aria-invalid={invalid || undefined}
-      style={{
-        ...inputStyle,
-        ...(invalid ? { borderColor: colors.danger } : {}),
-        ...(style || {}),
-      }}
-      onFocus={(e) => {
-        e.target.style.borderColor = invalid
-          ? colors.danger
-          : colors.borderStrong;
-        onFocus?.(e);
-      }}
-      onBlur={(e) => {
-        e.target.style.borderColor = resting;
-        onBlur?.(e);
-      }}
-    />
-  );
-};
+export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
+  (props, ref) => {
+    const { colors } = useUITheme();
+    const { style, onFocus, onBlur, invalid, ...rest } = props;
+    const resting = invalid ? colors.danger : colors.border;
+    return (
+      <input
+        {...rest}
+        ref={ref}
+        aria-invalid={invalid || undefined}
+        style={{
+          ...inputStyle,
+          ...(invalid ? { borderColor: colors.danger } : {}),
+          ...(style || {}),
+        }}
+        onFocus={(e) => {
+          e.target.style.borderColor = invalid
+            ? colors.danger
+            : colors.borderStrong;
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = resting;
+          onBlur?.(e);
+        }}
+      />
+    );
+  },
+);
+
+TextInput.displayName = "TextInput";
 
 export type Option = string | { value: string; label: string };
 

@@ -1,10 +1,12 @@
 import type {
+  AudioSettings,
   Background,
   ImageSettings,
   Manuscript,
   MediaItem,
   ScripturePassage,
   Slide,
+  VideoSettings,
 } from "../types";
 import { DEFAULT_BIBLE_VERSION, isBibleVersion } from "../data/bibleBooks";
 import { DEFAULT_COLLECTION } from "../data/collections";
@@ -14,7 +16,9 @@ import { normalizeSlideMedia } from "../lib/slideMedia";
 import { normalizeSlideTextBox } from "../lib/slideTextBox";
 import { now, uid } from "../lib/id";
 import {
+  DEFAULT_AUDIO_SETTINGS,
   DEFAULT_BACKGROUND_IMAGE_SETTINGS,
+  DEFAULT_BACKGROUND_VIDEO_SETTINGS,
   DEFAULT_IMAGE_SETTINGS,
   DEFAULT_VIDEO_SETTINGS,
 } from "../lib/media";
@@ -26,15 +30,24 @@ import type {
   ImportedSlide,
 } from "../lib/schema";
 
-const DEFAULT_MAX_LINES = 6;
-
 const normalizeBackgroundImage = (
   settings: Partial<ImageSettings> | undefined,
 ): ImageSettings | undefined =>
   settings ? { ...DEFAULT_BACKGROUND_IMAGE_SETTINGS, ...settings } : undefined;
 
+const normalizeBackgroundVideo = (
+  settings: Partial<VideoSettings> | undefined,
+): VideoSettings | undefined =>
+  settings ? { ...DEFAULT_BACKGROUND_VIDEO_SETTINGS, ...settings } : undefined;
+
+const normalizeAudioSettings = (
+  settings: Partial<AudioSettings> | undefined,
+): AudioSettings | undefined =>
+  settings ? { ...DEFAULT_AUDIO_SETTINGS, ...settings } : undefined;
+
 const normalizeSlide = (slide: ImportedSlide): Slide => {
-  const { backgroundImage, ...overrides } = slide.overrides ?? {};
+  const { backgroundImage, backgroundVideo, audioSettings, ...overrides } =
+    slide.overrides ?? {};
   return {
     ...slide,
     id: slide.id || uid(),
@@ -44,6 +57,8 @@ const normalizeSlide = (slide: ImportedSlide): Slide => {
     overrides: {
       ...overrides,
       backgroundImage: normalizeBackgroundImage(backgroundImage),
+      backgroundVideo: normalizeBackgroundVideo(backgroundVideo),
+      audioSettings: normalizeAudioSettings(audioSettings),
     },
     media: slide.media?.map(normalizeSlideMedia),
     textBoxes: slide.textBoxes?.map(normalizeSlideTextBox),
@@ -63,6 +78,10 @@ export const normalizeImportedManuscript = (
     defaultBackgroundImage: normalizeBackgroundImage(
       entry.defaultBackgroundImage,
     ),
+    defaultBackgroundVideo: normalizeBackgroundVideo(
+      entry.defaultBackgroundVideo,
+    ),
+    defaultAudioSettings: normalizeAudioSettings(entry.defaultAudioSettings),
     collection: entry.collection ?? DEFAULT_COLLECTION,
     createdAt: entry.createdAt ?? timestamp,
     updatedAt: entry.updatedAt ?? timestamp,
@@ -70,7 +89,8 @@ export const normalizeImportedManuscript = (
     slides: entry.slides?.length
       ? entry.slides.map(normalizeSlide)
       : parseManuscriptSlides(body, {
-          maxLines: entry.maxLines ?? DEFAULT_MAX_LINES,
+          maxLines: entry.maxLines,
+          style: entry.style,
           format: resolveManuscriptFormat({
             format: entry.format,
             collection: entry.collection,
@@ -89,6 +109,10 @@ export const normalizeImportedScripture = (
     defaultBackgroundImage: normalizeBackgroundImage(
       entry.defaultBackgroundImage,
     ),
+    defaultBackgroundVideo: normalizeBackgroundVideo(
+      entry.defaultBackgroundVideo,
+    ),
+    defaultAudioSettings: normalizeAudioSettings(entry.defaultAudioSettings),
     version: isBibleVersion(entry.version)
       ? entry.version
       : DEFAULT_BIBLE_VERSION,

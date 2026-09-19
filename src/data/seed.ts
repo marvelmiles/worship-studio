@@ -27,7 +27,10 @@ const buildManuscript = (hymn: HymnSource, timestamp: string): Manuscript => ({
   builtIn: true,
   style: HYMN_STYLE,
   music: hymn.music,
-  slides: parseManuscriptSlides(hymn.body, { maxLines: HYMN_MAX_LINES }),
+  slides: parseManuscriptSlides(hymn.body, {
+    maxLines: HYMN_MAX_LINES,
+    style: HYMN_STYLE,
+  }),
 });
 
 const STAMP_GAP_MS = 1000;
@@ -46,4 +49,15 @@ export const seedManuscripts = async (): Promise<Manuscript[]> => {
       new Date(newest - index * STAMP_GAP_MS).toISOString(),
     ),
   );
+};
+
+/**
+ * The manuscript as it ships, for putting a built-in back the way it came. The
+ * library's own marks are left to the caller to carry over.
+ */
+export const defaultManuscript = async (
+  id: string,
+): Promise<Manuscript | null> => {
+  const hymn = (await loadHymns()).find((entry) => entry.id === id);
+  return hymn ? buildManuscript(hymn, now()) : null;
 };

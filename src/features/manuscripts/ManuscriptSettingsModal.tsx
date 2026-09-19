@@ -8,8 +8,10 @@ import type {
 } from "../../types";
 import { COLLECTIONS, DEFAULT_COLLECTION } from "../../data/collections";
 import {
+  resolveAudioSettings,
   resolveAutoPlay,
   resolveBackgroundImage,
+  resolveBackgroundVideo,
   resolveSlideDuration,
   resolveStyle,
 } from "../../lib/resolve";
@@ -28,7 +30,9 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
+import type { AssetUsageRequest } from "../../lib/assetUsage";
 import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
+import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 
 interface ManuscriptSettingsModalProps {
@@ -41,6 +45,7 @@ interface ManuscriptSettingsModalProps {
   audio: AudioItem[];
   onPatchManuscript: (changes: Partial<Manuscript>) => void;
   onStyleChange: (key: keyof TextStyle, value: unknown) => void;
+  onEditAsset: (request: AssetUsageRequest) => void;
 }
 
 const GRID = {
@@ -121,8 +126,10 @@ export const ManuscriptSettingsModal = ({
   audio,
   onPatchManuscript,
   onStyleChange,
+  onEditAsset,
 }: ManuscriptSettingsModalProps) => {
   const openAssetLibrary = useOpenAssetLibrary();
+  const media = useStore((s) => s.media);
   const titleError = validateName(manuscript.title, "manuscript title");
   const manuscriptStyle = resolveStyle(undefined, manuscript, theme);
   const duration = resolveSlideDuration(manuscript, theme);
@@ -133,9 +140,23 @@ export const ManuscriptSettingsModal = ({
   const effectiveBackground = backgrounds.find(
     (bg) => bg.id === (manuscript.defaultBackgroundId || theme.backgroundId),
   );
+  const backgroundVideoItem = media.find(
+    (item) => item.id === effectiveBackground?.mediaId,
+  );
   const backgroundImage = effectiveBackground
     ? resolveBackgroundImage(undefined, manuscript, effectiveBackground)
     : null;
+  const backgroundVideo = effectiveBackground
+    ? resolveBackgroundVideo(
+        undefined,
+        manuscript,
+        effectiveBackground,
+        backgroundVideoItem,
+      )
+    : null;
+  const manuscriptAudio = audio.find(
+    (item) => item.id === (manuscript.defaultAudioId || ""),
+  );
 
   return (
     <Modal
@@ -202,10 +223,8 @@ export const ManuscriptSettingsModal = ({
         }
         onManage={() => openAssetLibrary("backgrounds", { locked: true })}
         imageSettings={backgroundImage}
-        onImageSettingsChange={(settings) =>
-          onPatchManuscript({ defaultBackgroundImage: settings })
-        }
-        usageLabel="this manuscript"
+        videoSettings={backgroundVideo}
+        onEditUsage={onEditAsset}
       />
 
       <SectionTitle>Audio</SectionTitle>
@@ -217,6 +236,12 @@ export const ManuscriptSettingsModal = ({
         }
         onSelect={(id) => onPatchManuscript({ defaultAudioId: id || null })}
         onManage={() => openAssetLibrary("audio", { locked: true })}
+        settings={
+          manuscriptAudio
+            ? resolveAudioSettings(undefined, manuscript, manuscriptAudio)
+            : undefined
+        }
+        onEditUsage={onEditAsset}
       />
 
       <SectionTitle>Animation</SectionTitle>

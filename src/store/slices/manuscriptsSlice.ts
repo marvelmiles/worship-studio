@@ -1,23 +1,20 @@
 import type { Manuscript } from "../../types";
-import { DEFAULT_COLLECTION } from "../../data/collections";
-import { now, uid } from "../../lib/id";
-import { parseManuscriptSlides } from "../../lib/parser";
+import { now } from "../../lib/id";
+import { defaultManuscript } from "../../data/seed";
 import { deleteRecord, saveRecord } from "../../lib/storage";
 import { afterDelete, afterWrite, blockWrite } from "../helpers";
 import type { SliceCreator } from "../storeTypes";
 
-export const UNTITLED_MANUSCRIPT = "Untitled Manuscript";
-
-export const isUntitledManuscript = (title: string): boolean => {
-  const trimmed = title.trim();
-  return !trimmed || trimmed === UNTITLED_MANUSCRIPT;
-};
+export {
+  isUntitledManuscript,
+  UNTITLED_MANUSCRIPT,
+} from "../../lib/manuscript/newManuscript";
 
 export interface ManuscriptsSlice {
   manuscripts: Manuscript[];
 
   upsertManuscript: (manuscript: Manuscript) => boolean;
-  createManuscript: () => Manuscript | null;
+  defaultManuscriptFor: (id: string) => Promise<Manuscript | null>;
   deleteManuscript: (id: string) => void;
 }
 
@@ -43,30 +40,24 @@ export const createManuscriptsSlice: SliceCreator<ManuscriptsSlice> = (
     return true;
   },
 
-  createManuscript: () => {
-    if (blockWrite(get)) return null;
-    const body = "[verse]\nType your text here";
-    const manuscript: Manuscript = {
-      id: uid(),
-      title: UNTITLED_MANUSCRIPT,
-      author: "",
-      collection: DEFAULT_COLLECTION,
-      defaultThemeId: get().prefs.defaultManuscriptThemeId || "classic",
-      defaultBackgroundId: "",
-      defaultAudioId: null,
-      body,
-      maxLines: 6,
-      autoPlay: undefined,
-      slideDurationSeconds: undefined,
-      createdAt: now(),
+  /**
+   * A built-in manuscript the way it ships, keeping the dates and library marks
+   * the stored copy carries so a reset only puts the content back.
+   */
+  defaultManuscriptFor: async (id) => {
+    const stored = get().manuscripts.find((m) => m.id === id);
+    if (!stored?.builtIn) return null;
+    const shipped = await defaultManuscript(id);
+    if (!shipped) return null;
+    return {
+      ...shipped,
+      createdAt: stored.createdAt,
       updatedAt: now(),
-      deleted: false,
-      builtIn: false,
-      style: {},
-      slides: parseManuscriptSlides(body, { maxLines: 6 }),
+      deleted: stored.deleted,
+      pinned: stored.pinned,
+      keepOnReset: stored.keepOnReset,
+      mark: stored.mark,
     };
-    get().upsertManuscript(manuscript);
-    return manuscript;
   },
 
   deleteManuscript: (id) => {

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Slide, SlideFrame } from "../../../types";
-import { SLIDE_ASPECT } from "../../../lib/slideMedia";
+import { SLIDE_ASPECT } from "../../../lib/slideLayout";
 import { splitLinesIntoBlocks } from "../../../lib/textBlocks";
 import { useDeck } from "../../presentation/useDeck";
 import {

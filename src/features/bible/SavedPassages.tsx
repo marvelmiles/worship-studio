@@ -11,11 +11,8 @@ import {
   sortLibrary,
   type LibrarySortOption,
 } from "../../lib/librarySort";
-import {
-  resolveBackgroundView,
-  resolveLineStyle,
-  resolveStyle,
-} from "../../lib/resolve";
+import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import { useBackgroundView } from "../../hooks/useBackgroundView";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { Button, IconButton } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
@@ -28,6 +25,7 @@ import {
 } from "../../components/ui/InteractiveCard";
 import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { PresentMenu } from "../../components/ui/PresentMenu";
+import routes from "../../routes";
 
 export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
   const navigate = useNavigate();
@@ -102,7 +100,7 @@ export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
               themes={themes}
               bgMap={bgMap}
               trashView={trashView}
-              onOpen={() => navigate(`/scripture/${passage.id}`)}
+              onOpen={() => navigate(routes.passage(passage.id))}
               onPresent={(pip) =>
                 startPresent("scripture", passage.id, 0, pip ? "pip" : "stage")
               }
@@ -145,7 +143,7 @@ const PassageCard = ({
   const first = passage.slides?.[0];
   const theme =
     themes.find((t) => t.id === passage.defaultThemeId) || themes[0];
-  const background = resolveBackgroundView(first, passage, theme, bgMap);
+  const background = useBackgroundView(first, passage, theme, bgMap);
 
   return (
     <div
@@ -158,6 +156,7 @@ const PassageCard = ({
             slide={first}
             bg={background.background}
             bgImage={background.image}
+            bgVideo={background.video}
             radius={0}
             style={resolveStyle(first, passage, theme)}
             lineStyles={first.lines.map((_, i) =>

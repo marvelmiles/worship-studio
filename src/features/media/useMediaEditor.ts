@@ -9,6 +9,7 @@ import {
   imageSettingsOf,
   videoSettingsOf,
 } from "../../lib/media";
+import { settingsGrouping } from "../../lib/settingsHistory";
 import { imageDeckIndex } from "../presentation/useDeck";
 
 export interface MediaDraft {
@@ -22,25 +23,6 @@ const draftOf = (item: MediaItem): MediaDraft => ({
   image: imageSettingsOf(item),
   video: videoSettingsOf(item),
 });
-
-const CONTINUOUS_KEYS = new Set([
-  "brightness",
-  "contrast",
-  "saturation",
-  "grayscale",
-  "sepia",
-  "blur",
-  "volume",
-  "trimStart",
-  "trimEnd",
-]);
-
-const groupingFor = (changes: object, scope: string) => {
-  const keys = Object.keys(changes);
-  return keys.every((key) => CONTINUOUS_KEYS.has(key))
-    ? { coalesceKey: `${scope}:${keys.join(",")}` }
-    : undefined;
-};
 
 export interface MediaEditor {
   draft: MediaDraft;
@@ -95,7 +77,7 @@ export const useMediaEditor = (item: MediaItem): MediaEditor => {
     (changes: Partial<ImageSettings>) =>
       patch(
         { image: { ...draft.image, ...changes } },
-        groupingFor(changes, "image"),
+        settingsGrouping(changes, "image"),
       ),
     [patch, draft.image],
   );
@@ -104,7 +86,7 @@ export const useMediaEditor = (item: MediaItem): MediaEditor => {
     (changes: Partial<VideoSettings>) =>
       patch(
         { video: { ...draft.video, ...changes } },
-        groupingFor(changes, "video"),
+        settingsGrouping(changes, "video"),
       ),
     [patch, draft.video],
   );

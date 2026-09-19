@@ -1,5 +1,11 @@
 import type { PointerEvent, ReactNode } from "react";
-import type { Background, ImageSettings, ResolvedStyle, Slide } from "../types";
+import type {
+  Background,
+  ImageSettings,
+  ResolvedStyle,
+  Slide,
+  VideoSettings,
+} from "../types";
 import { useUITheme } from "../theme/ThemeProvider";
 import {
   backgroundImageSettings,
@@ -11,8 +17,7 @@ import { SlideMediaLayers } from "./media/SlideMediaLayers";
 import type { SlideTextEditing } from "../hooks/useSlideTextEditor";
 import { SlideTextBlock } from "./SlideTextBlock";
 import { SlideTextBoxLayers } from "./SlideTextBoxLayers";
-
-const BODY_PADDING = "7cqw 9cqw";
+import { SLIDE_BODY_PADDING } from "../lib/slideLayout";
 
 export interface ClickPoint {
   x: number;
@@ -24,6 +29,7 @@ interface SlideCanvasProps {
   style: ResolvedStyle;
   bg: Background;
   bgImage?: ImageSettings | null;
+  bgVideo?: VideoSettings | null;
   showLabel?: boolean;
   radius?: number;
   fill?: boolean;
@@ -44,6 +50,7 @@ export const SlideCanvas = ({
   style,
   bg,
   bgImage,
+  bgVideo,
   showLabel,
   radius = 14,
   fill,
@@ -107,6 +114,7 @@ export const SlideCanvas = ({
       {paintsVideo && (
         <BackgroundSurface
           background={bg}
+          videoSettings={bgVideo}
           variant={playBackground || live ? "full" : "thumb"}
         />
       )}
@@ -118,7 +126,7 @@ export const SlideCanvas = ({
           selectedLine={bodyActive ? selectedLine : null}
           editing={bodyActive ? editing : undefined}
           marked={editable}
-          padding={BODY_PADDING}
+          padding={SLIDE_BODY_PADDING}
           onPointerDown={
             onActivateText ? (event) => activate(null, event) : undefined
           }

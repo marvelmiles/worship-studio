@@ -1,7 +1,7 @@
 export const COLLECTIONS = [
+  "Hymns",
   "Worship",
   "Praise",
-  "Hymns",
   "Special Songs",
   "Choir Ministration",
   "Sermons",

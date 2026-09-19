@@ -2,6 +2,12 @@ import { useCallback } from "react";
 import type { Slide, SlideDeckDoc, TextStyle } from "../../../types";
 import { uid } from "../../../lib/id";
 import { textCarrierOf, withCarrierText } from "../../../lib/slideTextBox";
+import type { SlideTextMetrics } from "../../../lib/slideLayout";
+import {
+  detachFlow,
+  reflowSlides,
+  type ReflowOptions,
+} from "../../../lib/slideReflow";
 import type { DeckDocument } from "./useDeckDocument";
 import { blankSlide } from "./slideEditHelpers";
 
@@ -17,6 +23,34 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
     setSlides,
     setSelectedId,
   } = deck;
+
+  /** Puts the whole document back to a known state, such as a built-in's defaults. */
+  const replaceDoc = useCallback(
+    (next: Partial<T>) => {
+      patchDoc(next);
+      setSelectedId(next.slides?.[0]?.id ?? null);
+    },
+    [patchDoc, setSelectedId],
+  );
+
+  /**
+   * Re-cuts the automatically built runs of slides for the size the text is at
+   * now, so raising the size moves the overflow onto another slide instead of
+   * filling the frame edge to edge.
+   */
+  const refitSlides = useCallback(
+    (metrics: SlideTextMetrics, options?: ReflowOptions): boolean => {
+      const slides = currentSlides();
+      const next = reflowSlides(slides, metrics, options);
+      if (next === slides) return false;
+      setSlides(next);
+      const selected = currentSelectedId();
+      if (selected && !next.some((slide) => slide.id === selected))
+        setSelectedId(next[0]?.id ?? null);
+      return true;
+    },
+    [currentSelectedId, currentSlides, setSelectedId, setSlides],
+  );
 
   const updateDocStyle = useCallback(
     (key: keyof TextStyle, value: unknown) => {
@@ -49,11 +83,11 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
     (index: number) => {
       const slides = currentSlides();
       if (!slides[index]) return;
-      const copy: Slide = {
+      const copy: Slide = detachFlow({
         ...slides[index],
         id: uid(),
         label: `${slides[index].label} (copy)`,
-      };
+      });
       const next = [...slides];
       next.splice(index + 1, 0, copy);
       setSlides(next);
@@ -78,7 +112,7 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
 
   const insertSlideAt = useCallback(
     (index: number) => {
-      const slide = blankSlide();
+      const slide = detachFlow(blankSlide());
       const next = [...currentSlides()];
       next.splice(index, 0, slide);
       setSlides(next);
@@ -122,7 +156,7 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
         1,
         asSlide(slide, carrier.lines.slice(0, middle), firstOverrides),
         asSlide(
-          { ...slide, id: uid(), label: `${slide.label} (b)` },
+          detachFlow({ ...slide, id: uid(), label: `${slide.label} (b)` }),
           carrier.lines.slice(middle),
           secondOverrides,
         ),
@@ -160,7 +194,7 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
         ],
       };
       const merged = withCarrierText(
-        withPlacements,
+        detachFlow(withPlacements),
         carrier,
         [...carrier.lines, ...incoming.lines],
         Object.keys(lineOverrides).length ? lineOverrides : undefined,
@@ -183,6 +217,8 @@ export const useSlideArrangement = <T extends SlideDeckDoc>(
   );
 
   return {
+    replaceDoc,
+    refitSlides,
     updateDocStyle,
     moveSlide,
     duplicateSlide,

@@ -1,4 +1,4 @@
-import type { Background, MediaItem, MediaKind } from "../../types";
+import type { MediaItem, MediaKind } from "../../types";
 import { now, uid } from "../../lib/id";
 import {
   deleteFileBlob,
@@ -34,7 +34,6 @@ export interface MediaSlice {
     options?: MediaUpdateOptions,
   ) => boolean;
   removeMedia: (id: string) => Promise<void>;
-  useImageAsBackground: (id: string) => string;
   toggleImageBackground: (id: string) => boolean;
 }
 
@@ -162,26 +161,7 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
     afterDelete(get);
   },
 
-  useImageAsBackground: (id) => {
-    if (blockWrite(get)) return "";
-    const item = get().media.find((m) => m.id === id && m.kind === "image");
-    if (!item) return "";
-    const background: Background = {
-      id: uid(),
-      name: item.name,
-      category: "Custom",
-      type: "image",
-      blobId: item.id,
-      size: item.size,
-      builtIn: false,
-      createdAt: now(),
-    };
-    set((state) => ({ backgrounds: [...state.backgrounds, background] }));
-    void saveRecord("backgrounds", background);
-    afterWrite(get);
-    return background.id;
-  },
-
+  /** Puts a picture behind slides, or takes it back out if it is already there. */
   toggleImageBackground: (id) => {
     if (blockWrite(get)) return false;
     const item = get().media.find((m) => m.id === id && m.kind === "image");
@@ -192,7 +172,6 @@ export const createMediaSlice: SliceCreator<MediaSlice> = (set, get) => ({
         void get().removeBackground(background.id);
       return false;
     }
-    get().useImageAsBackground(id);
-    return true;
+    return Boolean(get().attachImageBackground(id));
   },
 });

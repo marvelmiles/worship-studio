@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { APP_NAME } from "../../lib/appInfo";
 
 /** Off while the project is still being built towards its v1.0.0 release:
  *  there is no earlier version to announce changes against yet. */
@@ -127,7 +128,7 @@ export const UpdateModal = () => {
               color: colors.text,
             }}
           >
-            WorshipStudio Update
+            {APP_NAME} Update
           </h2>
           <p
             style={{

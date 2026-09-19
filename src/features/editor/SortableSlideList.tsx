@@ -18,11 +18,8 @@ import { GripVertical } from "lucide-react";
 import type { Background, Slide, SlideDeckDoc, Theme } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
-import {
-  resolveBackgroundView,
-  resolveLineStyle,
-  resolveStyle,
-} from "../../lib/resolve";
+import { resolveLineStyle, resolveStyle } from "../../lib/resolve";
+import { useBackgroundView } from "../../hooks/useBackgroundView";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { FIXED_SHORTCUT_BY_TYPE, type TagGroup } from "../../lib/tagGroups";
 import { revealInScrollParent } from "../../lib/scrollReveal";
@@ -160,7 +157,7 @@ const SortableRow = ({
     return () => cancelAnimationFrame(frame);
   }, [selected]);
 
-  const background = resolveBackgroundView(slide, doc, theme, bgMap);
+  const background = useBackgroundView(slide, doc, theme, bgMap);
 
   return (
     <div
@@ -221,6 +218,7 @@ const SortableRow = ({
           slide={slide}
           bg={background.background}
           bgImage={background.image}
+          bgVideo={background.video}
           style={resolveStyle(slide, doc, theme)}
           lineStyles={slide.lines.map((_, i) =>
             resolveLineStyle(slide, i, doc, theme),

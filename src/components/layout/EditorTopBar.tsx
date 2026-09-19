@@ -19,7 +19,8 @@ const ignorePresent = () => {};
 
 interface EditorTopBarProps {
   title: string;
-  onTitle: (title: string) => void;
+  /** Left out where the title belongs to something else, such as an asset. */
+  onTitle?: (title: string) => void;
   compact: boolean;
   titleLabel?: string;
   backTitle?: string;
@@ -102,23 +103,38 @@ export const EditorTopBar = ({
       )}
       {leading}
       <div style={{ flex: 1, minWidth: 120 }}>
-        <input
-          value={title}
-          onChange={(event) => onTitle(event.target.value)}
-          aria-label={titleLabel}
-          aria-invalid={titleError ? true : undefined}
-          style={{
-            width: "100%",
-            background: "transparent",
-            border: "none",
-            borderBottom: `1px solid ${titleError ? colors.danger : "transparent"}`,
-            outline: "none",
-            fontFamily: fonts.display,
-            fontSize: compact ? 17 : 20,
-            fontWeight: 600,
-            color: colors.text,
-          }}
-        />
+        {onTitle ? (
+          <input
+            value={title}
+            onChange={(event) => onTitle(event.target.value)}
+            aria-label={titleLabel}
+            aria-invalid={titleError ? true : undefined}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "none",
+              borderBottom: `1px solid ${titleError ? colors.danger : "transparent"}`,
+              outline: "none",
+              fontFamily: fonts.display,
+              fontSize: compact ? 17 : 20,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          />
+        ) : (
+          <h1
+            className="ws-ellipsis"
+            style={{
+              margin: 0,
+              fontFamily: fonts.display,
+              fontSize: compact ? 17 : 20,
+              fontWeight: 600,
+              color: colors.text,
+            }}
+          >
+            {title}
+          </h1>
+        )}
         {titleError && (
           <span
             role="alert"

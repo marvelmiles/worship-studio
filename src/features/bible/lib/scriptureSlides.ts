@@ -7,6 +7,12 @@ import type {
 } from "../../../types";
 import { uid } from "../../../lib/id";
 import { splitTextIntoParts } from "../../../lib/textBlocks";
+import {
+  slideCharacterBudget,
+  slideChunkLabel,
+  slideTextMetrics,
+  type SlideTextMetrics,
+} from "../../../lib/slideLayout";
 import { SCRIPTURE_REFERENCE_FONT_SIZE } from "../../../data/themes";
 import { formatRange, formatReference } from "./reference";
 
@@ -18,6 +24,8 @@ export interface ScriptureSlideOptions {
   showVerseNumbers: boolean;
   showReference: boolean;
   splitLongVerses?: boolean;
+  /** The passage's resolved text style, which decides how much fits on a slide. */
+  style?: Pick<TextStyle, "fontSize" | "lineHeight"> | null;
 }
 
 const REFERENCE_LINE_STYLE: TextStyle = {
@@ -25,7 +33,14 @@ const REFERENCE_LINE_STYLE: TextStyle = {
   uppercase: false,
 };
 
-const MAX_SLIDE_CHARS = 90;
+/**
+ * A passage slide spends one row on its reference, so the verse itself gets
+ * whatever is left once the slide has kept its space top and bottom.
+ */
+const slideCharacters = (
+  metrics: SlideTextMetrics,
+  showReference: boolean,
+): number => slideCharacterBudget(metrics, showReference ? 1 : 0);
 
 const chunkLines = (
   chunk: BibleVerse[],
@@ -42,16 +57,24 @@ const chunkLines = (
   });
 };
 
-const chunkParts = (lines: string[], split: boolean): string[][] => {
+const chunkParts = (
+  lines: string[],
+  split: boolean,
+  budget: number,
+): string[][] => {
   const text = lines.join(" ");
-  if (!split || text.length <= MAX_SLIDE_CHARS) return [lines];
-  return splitTextIntoParts(text, MAX_SLIDE_CHARS).map((part) => [part]);
+  if (text.length <= budget) return [lines];
+  /* A passage that was never meant to be re-cut still has to fit, so an
+     oversized verse is split either way; the flag only decides whether short
+     ones are broken up as well. */
+  if (!split && lines.length > 1) return [lines];
+  return splitTextIntoParts(text, budget).map((part) => [part]);
 };
 
 export const slideIndexForVerse = (
   passage: Pick<
     ScriptureSlideOptions,
-    "verses" | "versesPerSlide" | "showVerseNumbers"
+    "verses" | "versesPerSlide" | "showVerseNumbers" | "showReference" | "style"
   > & {
     quick?: boolean;
   },
@@ -60,11 +83,19 @@ export const slideIndexForVerse = (
   const { verses, showVerseNumbers } = passage;
   const perSlide = Math.max(1, passage.versesPerSlide);
   const split = Boolean(passage.quick);
+  const budget = slideCharacters(
+    slideTextMetrics(passage.style),
+    passage.showReference !== false,
+  );
   let index = 0;
   for (let start = 0; start < verses.length; start += perSlide) {
     const chunk = verses.slice(start, start + perSlide);
     if (chunk.some((v) => v.v === verse)) return index;
-    index += chunkParts(chunkLines(chunk, showVerseNumbers), split).length;
+    index += chunkParts(
+      chunkLines(chunk, showVerseNumbers),
+      split,
+      budget,
+    ).length;
   }
   return -1;
 };
@@ -81,6 +112,10 @@ export const buildScriptureSlides = (
     showReference,
   } = options;
   const perSlide = Math.max(1, versesPerSlide);
+  const budget = slideCharacters(
+    slideTextMetrics(options.style),
+    showReference,
+  );
   const slides: Slide[] = [];
 
   for (let start = 0; start < verses.length; start += perSlide) {
@@ -93,7 +128,9 @@ export const buildScriptureSlides = (
     const parts = chunkParts(
       chunkLines(chunk, showVerseNumbers),
       Boolean(options.splitLongVerses),
+      budget,
     );
+    const flowId = uid();
     parts.forEach((partLines, p) => {
       const lines = [...partLines];
       const lineOverrides: Record<number, TextStyle> = {};
@@ -101,13 +138,11 @@ export const buildScriptureSlides = (
         lines.push(formatReference(chunkRange, version));
         lineOverrides[lines.length - 1] = { ...REFERENCE_LINE_STYLE };
       }
-      const label =
-        parts.length > 1
-          ? `${formatRange(chunkRange)} (${p + 1}/${parts.length})`
-          : formatRange(chunkRange);
+      const label = slideChunkLabel(formatRange(chunkRange), p, parts.length);
       slides.push({
         id: uid(),
         type: "scripture",
+        flowId,
         label,
         lines,
         overrides: {},

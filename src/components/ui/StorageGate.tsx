@@ -6,6 +6,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { Button } from "./Button";
 import { formatBytes } from "../../lib/storageStats";
 import { InfoTip } from "./InfoTip";
+import { APP_NAME } from "../../lib/appInfo";
 
 export const StorageGate = () => {
   const { colors, fonts, glass, shadows } = useUITheme();
@@ -83,7 +84,7 @@ export const StorageGate = () => {
             marginTop: 0,
           }}
         >
-          Your browser hasn't given WorshipStudio enough room to run smoothly
+          Your browser hasn't given {APP_NAME} enough room to run smoothly
           {storage.budget > 0
             ? ` (about ${formatBytes(storage.budget)} available)`
             : ""}
@@ -148,7 +149,7 @@ export const StorageGate = () => {
         >
           What gets cleared
           <InfoTip title="Free up storage" side="top" align="center">
-            Clears WorshipStudio&apos;s stored data on this device (manuscripts,
+            Clears {APP_NAME}&apos;s stored data on this device (manuscripts,
             custom themes, backgrounds and audio) and restores the defaults.
           </InfoTip>
         </div>

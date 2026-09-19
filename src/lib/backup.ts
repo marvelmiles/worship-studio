@@ -8,6 +8,7 @@ import {
   ZipPassThrough,
 } from "fflate";
 import { getFileBlob, putFileBlob } from "./fileStore";
+import { APP_NAME } from "./appInfo";
 
 const DATA_ENTRY = "data.json";
 const FILES_PREFIX = "files/";
@@ -63,7 +64,7 @@ export const exportBackup = async (
         suggestedName,
         types: [
           {
-            description: "WorshipStudio backup",
+            description: `${APP_NAME} backup`,
             accept: { "application/zip": [".zip"] },
           },
         ],

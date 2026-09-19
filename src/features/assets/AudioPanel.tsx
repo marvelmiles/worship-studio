@@ -14,7 +14,8 @@ import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
 import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
 import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
-import { VideoSourceList } from "./VideoSourceList";
+import { MediaSourceList } from "./MediaSourceList";
+import routes from "../../routes";
 
 type AudioTab = "sounds" | "videos";
 
@@ -111,7 +112,7 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
             key={item.id}
             item={item}
             attention={item.id === attentionId}
-            onEdit={() => openEditor(`/audio/${item.id}`, "audio")}
+            onEdit={() => openEditor(routes.sound(item.id), "audio")}
             onRemove={() => void removeAudio(item.id)}
           />
         ))
@@ -131,15 +132,17 @@ const VideoSoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   }, [audio]);
 
   return (
-    <VideoSourceList
+    <MediaSourceList
+      kind="video"
       title="Sound from videos"
-      description="Take the soundtrack of a clip and keep it alongside your sounds."
+      description="Your Videos page. Take the soundtrack of a clip and keep it alongside your sounds; the pencil opens the clip in the video editor."
       attentionId={attentionId}
       addedByMediaId={added}
       onAdd={addVideoAudio}
       onRemove={(audioId) => void removeAudio(audioId)}
       addLabel="Use sound"
       addedLabel="In sounds"
+      addedFilterLabel="Sounds from videos"
       section="audio"
       filterable
       emptyMessage="Upload a video and its sound is added to your sounds."
@@ -190,7 +193,7 @@ const AudioRow = ({ item, attention, onEdit, onRemove }: AudioRowProps) => {
           {item.name}
         </div>
         <div
-          style={{ fontFamily: fonts.ui, fontSize: 11.5, color: colors.dim }}
+          style={{ fontFamily: fonts.ui, fontSize: 11.5, color: colors.sub }}
         >
           {item.builtIn
             ? "Default"

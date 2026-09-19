@@ -1,19 +1,10 @@
-import { useMemo, useRef, useState } from "react";
-import {
-  Film,
-  Image as ImageIcon,
-  Palette,
-  Pencil,
-  Upload,
-  X,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { Film, Image as ImageIcon, Palette, Pencil, X } from "lucide-react";
 import type { Background } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
 import { isImageBackground, isVideoBackground } from "../../lib/media";
-import { Button } from "../../components/ui/Button";
-import { EmptyState } from "../../components/ui/EmptyState";
 import { LibrarySection } from "../../components/ui/LibrarySection";
 import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
 import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
@@ -21,7 +12,7 @@ import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { BgSwatch } from "../../components/controls/BgSwatch";
 import { CustomColorPicker } from "../../components/controls/CustomColorPicker";
 import { BackgroundImageEditorModal } from "../../components/media/BackgroundImageEditorModal";
-import { VideoSourceList } from "./VideoSourceList";
+import { MediaSourceList } from "./MediaSourceList";
 import { CARD_OVERLAY_BUTTON } from "./assetCardStyles";
 
 type BackgroundTab = "images" | "colors" | "videos";
@@ -49,10 +40,12 @@ export const BackgroundsPanel = ({
 }: BackgroundsPanelProps) => {
   const backgrounds = useStore((s) => s.backgrounds);
   const media = useStore((s) => s.media);
+  /* Coming back from a media editor, open the tab that file lives on. */
   const [tab, setTab] = useState<BackgroundTab>(() => {
     const target = backgrounds.find((bg) => bg.id === targetItemId);
     if (target) return tabOf(target);
-    return media.some((item) => item.id === targetItemId) ? "videos" : "images";
+    const item = media.find((entry) => entry.id === targetItemId);
+    return item?.kind === "video" ? "videos" : "images";
   });
 
   const images = useMemo(
@@ -105,52 +98,69 @@ const ImagesTab = ({
   images,
   attentionId,
 }: BackgroundTabProps & { images: Background[] }) => {
-  const beginUpload = useStore((s) => s.beginUpload);
-  const imageInput = useRef<HTMLInputElement>(null);
+  const media = useStore((s) => s.media);
+  const attachImageBackground = useStore((s) => s.attachImageBackground);
+  const removeBackground = useStore((s) => s.removeBackground);
   const [editing, setEditing] = useState<Background | null>(null);
 
+  const pictureIds = useMemo(
+    () =>
+      new Set(
+        media.flatMap((item) => (item.kind === "image" ? [item.id] : [])),
+      ),
+    [media],
+  );
+
+  const attached = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const background of images)
+      if (background.blobId && pictureIds.has(background.blobId))
+        map.set(background.blobId, background.id);
+    return map;
+  }, [images, pictureIds]);
+
+  /* Pictures saved straight into the asset library have no entry on the Images
+     page, so they are listed on their own and keep their own editor. */
+  const standalone = useMemo(
+    () =>
+      images.filter(
+        (background) =>
+          !background.blobId || !pictureIds.has(background.blobId),
+      ),
+    [images, pictureIds],
+  );
+
   return (
-    <LibrarySection
-      title="Image backgrounds"
-      meta={`${images.length} saved`}
-      description="Pictures you can set behind any slide, cropped and adjusted here."
-      action={
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => imageInput.current?.click()}
-        >
-          <Upload size={14} />
-          Upload images
-        </Button>
-      }
-    >
-      <input
-        ref={imageInput}
-        type="file"
-        accept="image/*"
-        multiple
-        hidden
-        onChange={(event) => {
-          const files = Array.from(event.target.files || []);
-          if (files.length) beginUpload("background", files);
-          event.target.value = "";
-        }}
+    <>
+      <MediaSourceList
+        kind="image"
+        title="Image backgrounds"
+        description="Your Images page. Attach a picture to set it behind any slide; the pencil opens it in the image editor."
+        attentionId={attentionId}
+        addedByMediaId={attached}
+        onAdd={attachImageBackground}
+        onRemove={(backgroundId) => void removeBackground(backgroundId)}
+        addLabel="Attach"
+        addedLabel="Attached"
+        addedFilterLabel="Background images"
+        section="backgrounds"
+        filterable
+        emptyMessage="Upload a picture and it is attached as a background."
       />
-      {images.length === 0 ? (
-        <EmptyState
-          icon={ImageIcon}
-          title="No images yet"
-          message="Upload pictures to use them behind your slides."
-          compact
-          bare
-        />
-      ) : (
-        <BackgroundGrid
-          backgrounds={images}
-          attentionId={attentionId}
-          onEditImage={setEditing}
-        />
+      {standalone.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <LibrarySection
+            title="Saved pictures"
+            meta={`${standalone.length} saved`}
+            description="Backgrounds saved on their own rather than from your Images page."
+          >
+            <BackgroundGrid
+              backgrounds={standalone}
+              attentionId={attentionId}
+              onEditImage={setEditing}
+            />
+          </LibrarySection>
+        </div>
       )}
       {editing && (
         <BackgroundImageEditorModal
@@ -159,7 +169,7 @@ const ImagesTab = ({
           onClose={() => setEditing(null)}
         />
       )}
-    </LibrarySection>
+    </>
   );
 };
 
@@ -195,16 +205,19 @@ const VideosTab = ({ attentionId }: BackgroundTabProps) => {
   }, [backgrounds]);
 
   return (
-    <VideoSourceList
+    <MediaSourceList
+      kind="video"
       title="Video backgrounds"
-      description="Attach a clip from your video library to loop behind slides."
+      description="Your Videos page. Attach a clip to loop it behind slides; the pencil opens it in the video editor."
       attentionId={attentionId}
       addedByMediaId={attached}
       onAdd={attachVideoBackground}
       onRemove={(backgroundId) => void removeBackground(backgroundId)}
       addLabel="Attach"
       addedLabel="Attached"
+      addedFilterLabel="Background videos"
       section="backgrounds"
+      filterable
       emptyMessage="Upload a video and it is attached as a background."
     />
   );
@@ -252,14 +265,14 @@ const BackgroundGrid = ({
             className="ws-ellipsis"
             style={{
               fontFamily: fonts.ui,
-              fontSize: 11.5,
-              color: colors.sub,
+              fontSize: 12,
+              color: colors.text,
               marginTop: 5,
             }}
           >
             {bg.name}
             {bg.builtIn && (
-              <span style={{ color: colors.dim }}> · default</span>
+              <span style={{ color: colors.sub }}> · default</span>
             )}
           </div>
           {!bg.builtIn && (

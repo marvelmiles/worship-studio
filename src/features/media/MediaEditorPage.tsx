@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Undo2 } from "lucide-react";
+import { Film, Image as ImageIcon, Undo2 } from "lucide-react";
 import type { MediaItem, MediaKind } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
@@ -10,6 +10,7 @@ import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { useSpacePlayPause } from "../../hooks/useSpacePlayPause";
 import { useValidation } from "../../hooks/useValidation";
+import { useConfirmedAction } from "../../hooks/useConfirmedAction";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import {
   useUnsavedChanges,
@@ -23,6 +24,8 @@ import { formatBytes } from "../../lib/storageStats";
 import { validateName } from "../../lib/validation";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { MissingPage } from "../../components/ui/MissingPage";
+import { EditorSplitLayout } from "../../components/layout/EditorSplitLayout";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { ImageLayer } from "../../components/media/ImageLayer";
 import { ImageSettingsControls } from "../../components/media/ImageSettingsControls";
@@ -31,11 +34,7 @@ import { VideoSurface } from "../../components/media/VideoSurface";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import { useMediaEditor } from "./useMediaEditor";
 import { useEditorReturn } from "../assets/assetLibraryNavigation";
-
-const LIBRARY_PATH: Record<MediaKind, string> = {
-  image: "/images",
-  video: "/videos",
-};
+import routes from "../../routes";
 
 const BACK_TITLE: Record<MediaKind, string> = {
   image: "Back to images",
@@ -43,7 +42,6 @@ const BACK_TITLE: Record<MediaKind, string> = {
 };
 
 export const MediaEditorPage = ({ kind }: { kind: MediaKind }) => {
-  const { colors, fonts } = useUITheme();
   const { mediaId } = useParams();
   const navigate = useNavigate();
   const item = useStore((s) =>
@@ -52,42 +50,27 @@ export const MediaEditorPage = ({ kind }: { kind: MediaKind }) => {
   const lastRef = useRef(item);
   if (item) lastRef.current = item;
 
-  if (!lastRef.current) {
-    const label = kind === "image" ? "Image" : "Video";
+  if (!lastRef.current)
     return (
-      <div
-        style={{
-          height: "100%",
-          display: "grid",
-          placeItems: "center",
-          padding: 24,
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: fonts.display, color: colors.text }}>
-            {label} not found
-          </h2>
-          <p style={{ fontFamily: fonts.ui, color: colors.sub }}>
-            It may have been deleted.
-          </p>
-          <Button
-            variant="primary"
-            onClick={() => navigate(LIBRARY_PATH[kind])}
-          >
-            <ArrowLeft size={15} />
-            {BACK_TITLE[kind]}
-          </Button>
-        </div>
-      </div>
+      <MissingPage
+        icon={kind === "image" ? ImageIcon : Film}
+        title={kind === "image" ? "Image not found" : "Video not found"}
+        message="It may have been deleted."
+        actionLabel={BACK_TITLE[kind]}
+        onAction={() => navigate(routes.mediaLibrary(kind))}
+      />
     );
-  }
 
   return <MediaWorkspace key={lastRef.current.id} item={lastRef.current} />;
 };
 
 const MediaWorkspace = ({ item }: { item: MediaItem }) => {
   const { colors, fonts } = useUITheme();
-  const editorReturn = useEditorReturn(LIBRARY_PATH[item.kind], item.id);
+  const editorReturn = useEditorReturn(
+    routes.mediaLibrary(item.kind),
+    item.id,
+    BACK_TITLE[item.kind],
+  );
   const { width } = useViewport();
   const stacked = width < 1080;
   const compact = width < 560;
@@ -98,6 +81,7 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
   const editor = useMediaEditor(item);
   const src = useBlobUrl(item.id);
   const leaveGuard = useUnsavedChanges(editor.dirty);
+  const resetAll = useConfirmedAction(editor.resetSettings);
   const isImage = item.kind === "image";
   const validation = useValidation({
     name: validateName(
@@ -106,7 +90,7 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
     ),
   });
 
-  useDocumentTitle(`${editor.draft.name} · WorshipStudio`);
+  useDocumentTitle(editor.draft.name);
 
   const videoSettings = editor.draft.video;
   const video = useMediaPlayback(videoSettings, { autoPlay: false });
@@ -296,11 +280,7 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
         title={editor.draft.name}
         onTitle={editor.setName}
         compact={compact}
-        backTitle={
-          editorReturn.fromLibrary
-            ? "Back to image library"
-            : BACK_TITLE[item.kind]
-        }
+        backTitle={editorReturn.backTitle}
         onBack={editorReturn.back}
         onPresent={editor.present}
         actions={
@@ -308,10 +288,10 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
             <IconButton
               icon={Undo2}
               title="Reset all settings"
-              onClick={editor.resetSettings}
+              onClick={resetAll.request}
             />
           ) : (
-            <Button variant="ghost" size="sm" onClick={editor.resetSettings}>
+            <Button variant="ghost" size="sm" onClick={resetAll.request}>
               <Undo2 size={14} />
               Reset all
             </Button>
@@ -334,33 +314,20 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
         }
       />
 
-      {stacked ? (
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-          {preview}
-          <div style={{ borderTop: `1px solid ${colors.border}` }}>
-            {sidebar}
-          </div>
-        </div>
-      ) : (
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: "grid",
-            gridTemplateColumns: "1fr 340px",
-          }}
-        >
-          <div style={{ overflow: "hidden" }}>{preview}</div>
-          <div
-            style={{
-              overflow: "auto",
-              borderLeft: `1px solid ${colors.border}`,
-            }}
-          >
-            {sidebar}
-          </div>
-        </div>
-      )}
+      <EditorSplitLayout
+        stacked={stacked}
+        preview={preview}
+        sidebar={sidebar}
+      />
+
+      <ConfirmDialog
+        open={resetAll.prompting}
+        title="Reset all settings?"
+        message="Every adjustment here goes back to the way it started. This can't be undone, and the reset only sticks once you save."
+        confirmLabel="Reset all"
+        onConfirm={resetAll.confirm}
+        onCancel={resetAll.cancel}
+      />
 
       <ConfirmDialog
         open={leaveGuard.prompting}

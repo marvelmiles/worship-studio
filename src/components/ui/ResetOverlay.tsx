@@ -1,5 +1,6 @@
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { APP_NAME } from "../../lib/appInfo";
 
 export const ResetOverlay = () => {
   const { colors, fonts } = useUITheme();
@@ -39,7 +40,7 @@ export const ResetOverlay = () => {
             color: colors.text,
           }}
         >
-          Resetting WorshipStudio
+          Resetting {APP_NAME}
         </div>
         <p
           style={{

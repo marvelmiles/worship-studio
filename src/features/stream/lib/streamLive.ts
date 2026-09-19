@@ -1,5 +1,6 @@
 import type { PipPlacement } from "../../../types";
 import { createLiveWindow } from "../../../lib/liveWindow";
+import routes from "../../../routes";
 
 const STREAM_WINDOW_NAME = "worship-studio-stream-output";
 
@@ -30,7 +31,7 @@ let composition: LiveComposition = EMPTY_LIVE_COMPOSITION;
 let version = 0;
 
 export const streamLiveWindow = createLiveWindow(
-  "/stream-live",
+  routes.streamWindow(),
   STREAM_WINDOW_NAME,
 );
 

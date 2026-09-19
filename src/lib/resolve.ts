@@ -1,15 +1,25 @@
 import type {
   AnimationKind,
+  AudioItem,
+  AudioSettings,
   Background,
   ImageSettings,
+  MediaItem,
   ResolvedStyle,
   Slide,
   SlideDeckDoc,
   TextStyle,
   Theme,
+  VideoSettings,
 } from "../types";
 import { BACKGROUNDS } from "../data/backgrounds";
-import { backgroundImageSettings, isImageBackground } from "./media";
+import {
+  audioSettingsOf,
+  backgroundImageSettings,
+  backgroundVideoSettings,
+  isImageBackground,
+  isVideoBackground,
+} from "./media";
 
 const TEXT_KEYS = [
   "fontFamily",
@@ -129,9 +139,48 @@ export const resolveBackgroundImage = (
   return settings;
 };
 
+/**
+ * Whether a layer's settings belong to the background in play. A layer that
+ * names a different background is styling something else, so its settings are
+ * left out rather than bleeding onto the one actually shown.
+ */
+const appliesToBackground = (
+  layerBackgroundId: string | undefined,
+  backgroundId: string,
+): boolean => !layerBackgroundId || layerBackgroundId === backgroundId;
+
+/**
+ * A moving background's settings for this document or slide alone. The clip in
+ * the library keeps its own settings; these sit on top of them for one use.
+ */
+export const resolveBackgroundVideo = (
+  slide: Slide | undefined,
+  doc: SlideDeckDoc | undefined,
+  background: Background,
+  item?: MediaItem,
+): VideoSettings | null => {
+  if (!isVideoBackground(background)) return null;
+  let settings = backgroundVideoSettings(item);
+
+  if (
+    doc?.defaultBackgroundVideo &&
+    appliesToBackground(doc.defaultBackgroundId, background.id)
+  )
+    settings = { ...settings, ...doc.defaultBackgroundVideo };
+
+  if (
+    slide?.overrides?.backgroundVideo &&
+    appliesToBackground(slide.overrides.backgroundId, background.id)
+  )
+    settings = { ...settings, ...slide.overrides.backgroundVideo };
+
+  return settings;
+};
+
 export interface ResolvedBackground {
   background: Background;
   image: ImageSettings | null;
+  video: VideoSettings | null;
 }
 
 export const resolveBackgroundView = (
@@ -139,9 +188,14 @@ export const resolveBackgroundView = (
   doc: SlideDeckDoc | undefined,
   theme: Theme,
   bgMap: Record<string, Background>,
+  videoItem?: MediaItem,
 ): ResolvedBackground => {
   const background = resolveBackground(slide, doc, theme, bgMap);
-  return { background, image: resolveBackgroundImage(slide, doc, background) };
+  return {
+    background,
+    image: resolveBackgroundImage(slide, doc, background),
+    video: resolveBackgroundVideo(slide, doc, background, videoItem),
+  };
 };
 
 export const resolveAnimation = (
@@ -166,6 +220,31 @@ export const resolveAudioId = (
     theme?.defaultAudioId ||
     null
   );
+};
+
+/**
+ * The background audio's settings for this document or slide alone, layered
+ * over whatever the sound carries in the library.
+ */
+export const resolveAudioSettings = (
+  slide: Slide | undefined,
+  doc: SlideDeckDoc | undefined,
+  item: AudioItem,
+): AudioSettings => {
+  let settings = audioSettingsOf(item);
+
+  const docAudioId = doc?.defaultAudioId;
+  if (doc?.defaultAudioSettings && (!docAudioId || docAudioId === item.id))
+    settings = { ...settings, ...doc.defaultAudioSettings };
+
+  const slideAudioId = slide?.overrides?.audioId;
+  if (
+    slide?.overrides?.audioSettings &&
+    (!slideAudioId || slideAudioId === item.id)
+  )
+    settings = { ...settings, ...slide.overrides.audioSettings };
+
+  return settings;
 };
 
 export const resolveAutoPlay = (

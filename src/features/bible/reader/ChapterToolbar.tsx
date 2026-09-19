@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   ArrowRight,
   ChevronLeft,
@@ -9,6 +10,10 @@ import {
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { Button, IconButton } from "../../../components/ui/Button";
 import { TextInput } from "../../../components/ui/Field";
+import {
+  CLEAR_BUTTON_INSET,
+  ClearInputButton,
+} from "../../../components/ui/ClearInputButton";
 
 interface ChapterToolbarProps {
   reference: string;
@@ -38,16 +43,34 @@ export const ChapterToolbar = ({
   onNextChapter,
 }: ChapterToolbarProps) => {
   const { colors, fonts } = useUITheme();
+  const referenceRef = useRef<HTMLInputElement>(null);
+
+  const clearReference = () => {
+    onReferenceChange("");
+    referenceRef.current?.focus();
+  };
+
   return (
     <div className="ws-row-wrap" style={{ marginBottom: 14 }}>
       <div style={{ position: "relative", flex: 1, minWidth: 190 }}>
         <TextInput
+          ref={referenceRef}
           value={reference}
           placeholder="Go to reference, like John 3:16-18"
           onChange={(event) => onReferenceChange(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") onJumpToReference();
+            if (event.key === "Escape" && reference) {
+              event.preventDefault();
+              clearReference();
+            }
           }}
+          style={reference ? { paddingRight: CLEAR_BUTTON_INSET } : undefined}
+        />
+        <ClearInputButton
+          value={reference}
+          onClear={clearReference}
+          label="Clear reference"
         />
       </div>
       <Button

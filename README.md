@@ -76,7 +76,14 @@ Then open the URL Vite prints (default http://localhost:5173).
   `++underline++`, `~~strikethrough~~`, `==highlight==`) so they survive copy
   and paste. Ctrl+Z / Ctrl+Y step through the edits.
 - **Backgrounds & audio.** A built‑in gradient/solid background gallery plus
-  custom image and MP3 uploads, managed in the Asset Library.
+  custom image and MP3 uploads, managed in the Asset Library. The Inspector
+  lists the twenty newest backgrounds and the ten newest sounds, with the whole
+  library a dropdown or the Asset Library away.
+- **Tune an asset for one place.** The pencil beside a background or sound opens
+  that picture, clip or sound in its own full editor page, with a back arrow to
+  the slide, manuscript or passage it came from. What is applied there comes
+  back to that one place only: the file in your library, and everywhere else it
+  is used, stay exactly as they were.
 - **Themes.** Five built‑in themes that set the default look per manuscript.
 - **Presentation mode.** Full‑screen projection, configurable transitions, a
   presenter bar (current slide notes, next‑slide preview, elapsed timer, slide
@@ -187,6 +194,7 @@ src/
     settings/   Settings modal, split per section
     stream/     Camera sharing: sender/, receiver/, stage/, overlays and lib/
     assets/     Asset Library modal
+  routes.ts     every path in the app, one function per route
   App.tsx       layout shell, routes, global overlays
   main.tsx      entry (Router)
 ```

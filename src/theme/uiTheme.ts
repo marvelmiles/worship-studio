@@ -123,7 +123,7 @@ export const studioTheme: UITheme = {
 
     sub: "#b3b3b8",
 
-    dim: "#7a7b84",
+    dim: "#8e8f99",
 
     danger: "#dc2626",
 

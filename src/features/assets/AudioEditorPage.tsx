@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Music, Undo2 } from "lucide-react";
+import { Music, Undo2 } from "lucide-react";
 import type { AudioItem, AudioSettings } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -12,6 +12,7 @@ import { useMediaPlayback } from "../../hooks/useMediaPlayback";
 import { useSpacePlayPause } from "../../hooks/useSpacePlayPause";
 import { useUndoRedoShortcuts } from "../../hooks/useUndoRedoShortcuts";
 import { useValidation } from "../../hooks/useValidation";
+import { useConfirmedAction } from "../../hooks/useConfirmedAction";
 import {
   useUnsavedChanges,
   UNSAVED_CHANGES_MESSAGE,
@@ -22,58 +23,44 @@ import {
   DEFAULT_AUDIO_SETTINGS,
   formatDuration,
 } from "../../lib/media";
+import { settingsGrouping } from "../../lib/settingsHistory";
 import { formatBytes } from "../../lib/storageStats";
 import { validateName } from "../../lib/validation";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { MissingPage } from "../../components/ui/MissingPage";
+import { EditorSplitLayout } from "../../components/layout/EditorSplitLayout";
 import { EditorTopBar } from "../../components/layout/EditorTopBar";
 import { AudioSurface } from "../../components/media/AudioSurface";
 import { AudioSettingsControls } from "../../components/media/AudioSettingsControls";
 import { VideoTransportBar } from "../../components/media/VideoTransportBar";
 import { useEditorReturn } from "./assetLibraryNavigation";
+import routes from "../../routes";
 
 interface AudioDraft {
   name: string;
   settings: AudioSettings;
 }
 
-const CONTINUOUS_KEYS = new Set(["volume", "trimStart", "trimEnd"]);
-
 export const AudioEditorPage = () => {
   const { audioId } = useParams();
   const navigate = useNavigate();
-  const { colors, fonts } = useUITheme();
   const item = useStore((s) =>
     s.audio.find((entry) => entry.id === audioId && !entry.builtIn),
   );
   const lastRef = useRef(item);
   if (item) lastRef.current = item;
 
-  if (!lastRef.current) {
+  if (!lastRef.current)
     return (
-      <div
-        style={{
-          height: "100%",
-          display: "grid",
-          placeItems: "center",
-          padding: 24,
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <h2 style={{ fontFamily: fonts.display, color: colors.text }}>
-            Sound not found
-          </h2>
-          <p style={{ fontFamily: fonts.ui, color: colors.sub }}>
-            It may have been deleted, or it is one of the bundled sounds.
-          </p>
-          <Button variant="primary" onClick={() => navigate("/")}>
-            <ArrowLeft size={15} />
-            Back to dashboard
-          </Button>
-        </div>
-      </div>
+      <MissingPage
+        icon={Music}
+        title="Sound not found"
+        message="It may have been deleted, or it is one of the bundled sounds."
+        actionLabel="Back to dashboard"
+        onAction={() => navigate(routes.dashboard())}
+      />
     );
-  }
 
   return <AudioWorkspace key={lastRef.current.id} item={lastRef.current} />;
 };
@@ -98,11 +85,16 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
   const { settings } = draft;
 
   const leaveGuard = useUnsavedChanges(history.dirty);
-  const editorReturn = useEditorReturn("/", item.id, "audio");
+  const editorReturn = useEditorReturn(
+    routes.dashboard(),
+    item.id,
+    "Back to dashboard",
+    "audio",
+  );
   const validation = useValidation({
     name: validateName(draft.name, "sound name"),
   });
-  useDocumentTitle(`${draft.name} · WorshipStudio`);
+  useDocumentTitle(draft.name);
 
   const player = useMediaPlayback(settings, { autoPlay: false });
   const duration = item.duration || player.duration || 0;
@@ -130,20 +122,20 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
   );
 
   const patchSettings = useCallback(
-    (changes: Partial<AudioSettings>) => {
-      const keys = Object.keys(changes);
+    (changes: Partial<AudioSettings>) =>
       patch(
         { settings: { ...settings, ...changes } },
-        keys.every((key) => CONTINUOUS_KEYS.has(key))
-          ? { coalesceKey: `settings:${keys.join(",")}` }
-          : undefined,
-      );
-    },
+        settingsGrouping(changes, "settings"),
+      ),
     [patch, settings],
   );
 
-  const resetSettings = () =>
-    apply({ ...draft, settings: { ...DEFAULT_AUDIO_SETTINGS } });
+  const resetAll = useConfirmedAction(
+    useCallback(
+      () => apply({ ...draft, settings: { ...DEFAULT_AUDIO_SETTINGS } }),
+      [apply, draft],
+    ),
+  );
 
   const handleSave = () => {
     if (validation.invalid) {
@@ -282,17 +274,17 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
         title={draft.name}
         onTitle={setName}
         compact={compact}
-        backTitle={editorReturn.fromLibrary ? "Back to audio library" : "Back"}
+        backTitle={editorReturn.backTitle}
         onBack={editorReturn.back}
         actions={
           compact ? (
             <IconButton
               icon={Undo2}
               title="Reset all settings"
-              onClick={resetSettings}
+              onClick={resetAll.request}
             />
           ) : (
-            <Button variant="ghost" size="sm" onClick={resetSettings}>
+            <Button variant="ghost" size="sm" onClick={resetAll.request}>
               <Undo2 size={14} />
               Reset all
             </Button>
@@ -309,33 +301,20 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
         onSave={handleSave}
       />
 
-      {stacked ? (
-        <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-          {preview}
-          <div style={{ borderTop: `1px solid ${colors.border}` }}>
-            {sidebar}
-          </div>
-        </div>
-      ) : (
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            display: "grid",
-            gridTemplateColumns: "1fr 340px",
-          }}
-        >
-          <div style={{ overflow: "hidden" }}>{preview}</div>
-          <div
-            style={{
-              overflow: "auto",
-              borderLeft: `1px solid ${colors.border}`,
-            }}
-          >
-            {sidebar}
-          </div>
-        </div>
-      )}
+      <EditorSplitLayout
+        stacked={stacked}
+        preview={preview}
+        sidebar={sidebar}
+      />
+
+      <ConfirmDialog
+        open={resetAll.prompting}
+        title="Reset all settings?"
+        message="Every adjustment here goes back to the way it started. This can't be undone, and the reset only sticks once you save."
+        confirmLabel="Reset all"
+        onConfirm={resetAll.confirm}
+        onCancel={resetAll.cancel}
+      />
 
       <ConfirmDialog
         open={leaveGuard.prompting}

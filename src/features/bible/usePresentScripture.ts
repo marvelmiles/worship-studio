@@ -5,6 +5,7 @@ import type {
   ScriptureSelection,
 } from "../../store/useStore";
 import { useStore } from "../../store/useStore";
+import routes from "../../routes";
 
 export const usePresentScripture = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export const usePresentScripture = () => {
     (selection: ScriptureSelection | null) => {
       if (!selection?.verses.length) return;
       const passage = stageScriptureSelection(selection);
-      if (passage) navigate(`/scripture/${passage.id}`);
+      if (passage) navigate(routes.passage(passage.id));
     },
     [stageScriptureSelection, navigate],
   );

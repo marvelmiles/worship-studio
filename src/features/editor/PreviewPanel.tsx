@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type {
   Background,
   ImageSettings,
+  VideoSettings,
   ResolvedStyle,
   Slide,
 } from "../../types";
@@ -21,6 +22,7 @@ interface PreviewPanelProps {
   lineStyles?: ResolvedStyle[];
   background: Background;
   backgroundImage: ImageSettings | null;
+  backgroundVideo?: VideoSettings | null;
   text: string;
   formatting: TextFormattingController;
   onChangeLabel: (label: string) => void;
@@ -36,6 +38,7 @@ export const PreviewPanel = ({
   lineStyles,
   background,
   backgroundImage,
+  backgroundVideo,
   text,
   formatting,
   onChangeLabel,
@@ -99,6 +102,7 @@ export const PreviewPanel = ({
           slide={slide}
           bg={background}
           bgImage={backgroundImage}
+          bgVideo={backgroundVideo}
           style={style}
           lineStyles={lineStyles}
           showLabel

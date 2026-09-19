@@ -51,6 +51,7 @@ import {
 } from "../importNormalizers";
 import { DEFAULT_PREFS } from "./prefsSlice";
 import type { SliceCreator } from "../storeTypes";
+import { APP_NAME } from "../../lib/appInfo";
 
 /** The backup file format, versioned on its own so a later reader can migrate. */
 const BACKUP_VERSION = 1;
@@ -232,7 +233,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
   importData: async (file, mode, onProgress) => {
     const invalidBackup = {
       ok: false,
-      message: "That file isn't a valid WorshipStudio backup.",
+      message: `That file isn't a valid ${APP_NAME} backup.`,
     };
     try {
       if (!(await isZipFile(file))) return invalidBackup;
@@ -462,7 +463,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       get().pushToast(
         keptTotal
           ? `Reset complete. ${keptTotal} kept item${keptTotal === 1 ? "" : "s"} survived.`
-          : "Reset complete. WorshipStudio is back to defaults.",
+          : `Reset complete. ${APP_NAME} is back to defaults.`,
       );
     }
   },

@@ -6,7 +6,7 @@ import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
 import { EmptyState } from "../../components/ui/EmptyState";
-import { inputStyle } from "../../components/ui/Field";
+import { SearchInput } from "../../components/ui/SearchInput";
 
 export type PickableKind = Exclude<ContentKind, "image" | "scripture">;
 
@@ -68,12 +68,13 @@ export const OverlayContentPicker = ({
 
   return (
     <Modal open onClose={onClose} title={KIND_TITLE[kind]} width={470}>
-      <input
+      <SearchInput
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Search"
-        aria-label={`Search ${kind === "manuscript" ? "manuscripts" : "clips"}`}
-        style={{ ...inputStyle, marginBottom: 12 }}
+        onChange={setQuery}
+        placeholder={
+          kind === "manuscript" ? "Search manuscripts…" : "Search clips…"
+        }
+        style={{ minWidth: 0, marginBottom: 12 }}
       />
 
       {filtered.length === 0 ? (

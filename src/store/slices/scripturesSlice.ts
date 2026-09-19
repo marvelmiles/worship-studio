@@ -3,6 +3,7 @@ import type {
   BibleVersionId,
   PassageRange,
   ScripturePassage,
+  TextStyle,
 } from "../../types";
 import { now, uid } from "../../lib/id";
 import { SCRIPTURE_PASSAGE_FONT_SIZE } from "../../data/themes";
@@ -63,6 +64,8 @@ export interface ScripturesSlice {
   ) => ScripturePassage | null;
 }
 
+const PASSAGE_STYLE: TextStyle = { fontSize: SCRIPTURE_PASSAGE_FONT_SIZE };
+
 const buildPassage = (
   options: SavePassageOptions,
   id: string,
@@ -90,11 +93,12 @@ const buildPassage = (
       showVerseNumbers,
       showReference,
       splitLongVerses: options.splitLongVerses ?? quick,
+      style: PASSAGE_STYLE,
     }),
     defaultThemeId: themeId,
     defaultBackgroundId: "",
     defaultAudioId: null,
-    style: { fontSize: SCRIPTURE_PASSAGE_FONT_SIZE },
+    style: PASSAGE_STYLE,
     createdAt: now(),
     updatedAt: now(),
     deleted: false,
@@ -152,6 +156,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
         showVerseNumbers,
         showReference,
         splitLongVerses: Boolean(current.quick),
+        style: current.style ?? PASSAGE_STYLE,
       }),
       updatedAt: now(),
     };
@@ -163,10 +168,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
     const current = get().scriptures.find((s) => s.id === id);
     if (!current) return;
     const next: ScripturePassage = { ...current, ...changes, updatedAt: now() };
-    next.style = {
-      fontSize: SCRIPTURE_PASSAGE_FONT_SIZE,
-      ...next.style,
-    };
+    next.style = { ...PASSAGE_STYLE, ...next.style };
     next.slides = buildScriptureSlides({
       version: next.version,
       range: next.range,
@@ -175,6 +177,7 @@ export const createScripturesSlice: SliceCreator<ScripturesSlice> = (
       showVerseNumbers: next.showVerseNumbers,
       showReference: next.showReference,
       splitLongVerses: Boolean(next.quick),
+      style: next.style,
     });
     next.title = formatReference(next.range, next.version);
     get().upsertScripture(next);

@@ -21,6 +21,7 @@ export interface AssetsSlice {
   addCustomBackground: (value: string, name?: string) => string;
   updateBackground: (id: string, changes: Partial<Background>) => void;
   removeBackground: (id: string) => Promise<void>;
+  attachImageBackground: (mediaId: string) => string;
   attachVideoBackground: (mediaId: string) => string;
   uploadAudio: (file: File, name?: string) => Promise<string>;
   addVideoAudio: (mediaId: string) => string;
@@ -116,6 +117,37 @@ export const createAssetsSlice: SliceCreator<AssetsSlice> = (set, get) => ({
       }
     }
     afterDelete(get);
+  },
+
+  /**
+   * Makes a picture from the Images module usable as a background, reusing the
+   * one already attached so the same picture never lands in the library twice.
+   */
+  attachImageBackground: (mediaId) => {
+    const attached = get().backgrounds.find(
+      (b) => b.type === "image" && b.blobId === mediaId,
+    );
+    if (attached) return attached.id;
+    if (blockWrite(get)) return "";
+    const item = get().media.find(
+      (m) => m.id === mediaId && m.kind === "image",
+    );
+    if (!item) return "";
+    const background: Background = {
+      id: uid(),
+      name: item.name,
+      category: "Pictures",
+      type: "image",
+      blobId: item.id,
+      image: item.image,
+      size: item.size,
+      builtIn: false,
+      createdAt: now(),
+    };
+    set((state) => ({ backgrounds: [...state.backgrounds, background] }));
+    void saveRecord("backgrounds", background);
+    afterWrite(get);
+    return background.id;
   },
 
   attachVideoBackground: (mediaId) => {

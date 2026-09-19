@@ -99,6 +99,8 @@ export const Stage = ({
   const backdrop = content.kind === "text" ? content.background : null;
   const backdropImage =
     content.kind === "text" ? content.backgroundImage : null;
+  const backdropVideo =
+    content.kind === "text" ? content.backgroundVideo : null;
   const ambientUrl = useBlobUrl(
     content.kind === "image" ? content.item.id : null,
   );
@@ -149,6 +151,7 @@ export const Stage = ({
           <BackgroundSurface
             background={backdrop ?? undefined}
             settings={backdropImage}
+            videoSettings={backdropVideo}
           />
         )}
       </div>

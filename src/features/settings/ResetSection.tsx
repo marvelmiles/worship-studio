@@ -8,6 +8,7 @@ import { InfoTip } from "../../components/ui/InfoTip";
 import { SectionTitle, TextInput } from "../../components/ui/Field";
 import { Modal } from "../../components/ui/Modal";
 import { MAX_KEPT_ITEMS } from "../../lib/keepOnReset";
+import { APP_NAME } from "../../lib/appInfo";
 
 const RESET_PHRASE = "ResetApp";
 
@@ -28,7 +29,7 @@ export const ResetSection = ({
       <SectionTitle
         info={
           <InfoTip title="Reset">
-            Restore WorshipStudio to its original state, exactly like the first
+            Restore {APP_NAME} to its original state, exactly like the first
             time you opened it.{" "}
             {keptItems.length > 0
               ? `${keptItems.length} of ${MAX_KEPT_ITEMS} "keep on reset" slots are in use, and those items will survive.`

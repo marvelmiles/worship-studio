@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useStore } from "../../store/useStore";
 import { overlayTarget } from "../../lib/overlayTarget";
+import { isRoutePath } from "../../routes";
 
 export type AssetSection = "backgrounds" | "audio";
 
@@ -13,7 +14,7 @@ export interface OpenAssetLibraryOptions {
 
 const returnStateSchema = z.object({
   returnTo: z.object({
-    path: z.string().startsWith("/"),
+    path: z.string().refine(isRoutePath),
     section: z.enum(["backgrounds", "audio"]),
     locked: z.boolean(),
   }),
@@ -60,14 +61,22 @@ const reopenStateSchema = z.object({
   }),
 });
 
+const SECTION_TITLE: Record<AssetSection, string> = {
+  backgrounds: "Back to the background library",
+  audio: "Back to the audio library",
+};
+
 export interface EditorReturn {
   fromLibrary: boolean;
+  /** Names where the back arrow goes, so the editor does not have to guess. */
+  backTitle: string;
   back: () => void;
 }
 
 export const useEditorReturn = (
   fallbackPath: string,
   itemId: string,
+  fallbackTitle: string,
   fallbackSection?: AssetSection,
 ): EditorReturn => {
   const navigate = useNavigate();
@@ -86,7 +95,11 @@ export const useEditorReturn = (
     });
   }, [fallbackPath, fallbackSection, itemId, navigate, returnTo]);
 
-  return { fromLibrary: Boolean(returnTo), back };
+  return {
+    fromLibrary: Boolean(returnTo),
+    backTitle: returnTo ? SECTION_TITLE[returnTo.section] : fallbackTitle,
+    back,
+  };
 };
 
 export const useReopenAssetLibraryOnArrival = (): void => {

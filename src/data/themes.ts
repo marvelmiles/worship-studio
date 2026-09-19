@@ -1,7 +1,12 @@
 import type { Theme } from "../types";
+import { DEFAULT_SLIDE_FONT_SIZE } from "../lib/slideLayout";
 
-export const SCRIPTURE_PASSAGE_FONT_SIZE = 6.7;
-export const SCRIPTURE_REFERENCE_FONT_SIZE = 6.5;
+/**
+ * Passages read at the same size as everything else; the reference under them
+ * is a caption, so it sits a step down.
+ */
+export const SCRIPTURE_PASSAGE_FONT_SIZE = DEFAULT_SLIDE_FONT_SIZE;
+export const SCRIPTURE_REFERENCE_FONT_SIZE = 4.2;
 
 export const THEMES: Theme[] = [
   {
@@ -14,7 +19,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.22,
     letterSpacing: 0.2,
-    fontSize: 6,
+    fontSize: DEFAULT_SLIDE_FONT_SIZE,
     uppercase: false,
     textShadow: "0 2px 22px rgba(0,0,0,0.55)",
     backgroundId: "bg-dawn",
@@ -30,7 +35,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.18,
     letterSpacing: -0.5,
-    fontSize: 5.2,
+    fontSize: DEFAULT_SLIDE_FONT_SIZE,
     uppercase: false,
     textShadow: "0 2px 30px rgba(0,0,0,0.45)",
     backgroundId: "bg-mountain",
@@ -46,7 +51,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.3,
     letterSpacing: 0,
-    fontSize: 5.0,
+    fontSize: DEFAULT_SLIDE_FONT_SIZE,
     uppercase: false,
     textShadow: "none",
     backgroundId: "bg-parchment",
@@ -62,7 +67,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.25,
     letterSpacing: 0,
-    fontSize: 5.3,
+    fontSize: DEFAULT_SLIDE_FONT_SIZE,
     uppercase: false,
     textShadow: "0 1px 18px rgba(0,0,0,0.7)",
     backgroundId: "bg-deep",
@@ -78,7 +83,7 @@ export const THEMES: Theme[] = [
     align: "center",
     lineHeight: 1.15,
     letterSpacing: 0.5,
-    fontSize: 5.4,
+    fontSize: DEFAULT_SLIDE_FONT_SIZE,
     uppercase: true,
     textShadow: "0 3px 28px rgba(0,0,0,0.5)",
     backgroundId: "bg-celebration",

@@ -24,8 +24,14 @@ import { StyleControls } from "../../components/controls/StyleControls";
 import { BackgroundPicker } from "../../components/controls/BackgroundPicker";
 import { AudioPicker } from "../../components/controls/AudioPicker";
 import { AnimationPicker } from "../../components/controls/AnimationPicker";
-import { resolveBackgroundImage, resolveStyle } from "../../lib/resolve";
+import {
+  resolveAudioSettings,
+  resolveBackgroundImage,
+  resolveBackgroundVideo,
+  resolveStyle,
+} from "../../lib/resolve";
 import { getChapterVerses } from "./lib/offlineBible";
+import type { AssetUsageRequest } from "../../lib/assetUsage";
 import type { DeckEditor } from "../editor/useDeckEditor";
 
 interface PassageSettingsModalProps {
@@ -33,6 +39,7 @@ interface PassageSettingsModalProps {
   onClose: () => void;
   passage: ScripturePassage;
   editor: DeckEditor;
+  onEditAsset: (request: AssetUsageRequest) => void;
 }
 
 const GRID = {
@@ -46,11 +53,13 @@ export const PassageSettingsModal = ({
   onClose,
   passage,
   editor,
+  onEditAsset,
 }: PassageSettingsModalProps) => {
   const { colors, fonts } = useUITheme();
   const themes = useStore((s) => s.themes);
   const backgrounds = useStore((s) => s.backgrounds);
   const audio = useStore((s) => s.audio);
+  const media = useStore((s) => s.media);
   const addCustomBackground = useStore((s) => s.addCustomBackground);
   const rebuildScriptureSlides = useStore((s) => s.rebuildScriptureSlides);
   const pushToast = useStore((s) => s.pushToast);
@@ -94,9 +103,23 @@ export const PassageSettingsModal = ({
   const effectiveBackground = backgrounds.find(
     (bg) => bg.id === (passage.defaultBackgroundId || theme.backgroundId),
   );
+  const backgroundVideoItem = media.find(
+    (item) => item.id === effectiveBackground?.mediaId,
+  );
   const backgroundImage = effectiveBackground
     ? resolveBackgroundImage(undefined, passage, effectiveBackground)
     : null;
+  const backgroundVideo = effectiveBackground
+    ? resolveBackgroundVideo(
+        undefined,
+        passage,
+        effectiveBackground,
+        backgroundVideoItem,
+      )
+    : null;
+  const passageAudio = audio.find(
+    (item) => item.id === (passage.defaultAudioId || ""),
+  );
 
   const rangeError =
     verseStart > verseEnd
@@ -287,10 +310,8 @@ export const PassageSettingsModal = ({
           })
         }
         imageSettings={backgroundImage}
-        onImageSettingsChange={(settings) =>
-          editor.patchDoc({ defaultBackgroundImage: settings })
-        }
-        usageLabel="this passage"
+        videoSettings={backgroundVideo}
+        onEditUsage={onEditAsset}
       />
 
       <SectionTitle>Audio</SectionTitle>
@@ -302,6 +323,12 @@ export const PassageSettingsModal = ({
         }
         onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
         onUploaded={(id) => editor.patchDoc({ defaultAudioId: id })}
+        settings={
+          passageAudio
+            ? resolveAudioSettings(undefined, passage, passageAudio)
+            : undefined
+        }
+        onEditUsage={onEditAsset}
       />
 
       <SectionTitle>Animation</SectionTitle>

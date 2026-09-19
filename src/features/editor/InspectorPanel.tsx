@@ -4,7 +4,6 @@ import { ArrowDownToLine, Copy, Trash2 } from "lucide-react";
 import type {
   AudioItem,
   Background,
-  ImageSettings,
   SlideDeckDoc,
   TextStyle,
   Theme,
@@ -13,8 +12,10 @@ import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import {
   layerTextStyle,
+  resolveAudioSettings,
   resolveBackgroundId,
   resolveBackgroundImage,
+  resolveBackgroundVideo,
   resolveLineStyle,
   resolveStyle,
 } from "../../lib/resolve";
@@ -25,7 +26,7 @@ import {
 } from "../../lib/slideElements";
 import type { SlideElementCapabilities } from "../../lib/slideElements";
 import { Button } from "../../components/ui/Button";
-import { inputStyle, SectionTitle, Toggle } from "../../components/ui/Field";
+import { inputStyle, SectionTitle } from "../../components/ui/Field";
 import { PillTabs } from "../../components/ui/PillTabs";
 import { InfoTip } from "../../components/ui/InfoTip";
 import { StyleControls } from "../../components/controls/StyleControls";
@@ -37,6 +38,8 @@ import type { TextFormattingController } from "../../hooks/useTextFormatting";
 import { SlideElementsPanel } from "./SlideElementsPanel";
 import type { SlideElementRef } from "./SlideElementOverlay";
 import type { DeckEditor } from "./useDeckEditor";
+import { useStore } from "../../store/useStore";
+import type { AssetUsageRequest } from "../../lib/assetUsage";
 import { useOpenAssetLibrary } from "../assets/assetLibraryNavigation";
 
 interface InspectorPanelProps {
@@ -54,10 +57,17 @@ interface InspectorPanelProps {
   activeTextBoxId: string | null;
   elements: SlideElementCapabilities;
   onAddTextBox: () => void;
+  /** Opens a picture, clip or sound in its own editor for one place here. */
+  onEditAsset: (request: AssetUsageRequest, slideId: string | null) => void;
 }
 
 type StyleScope = "slide" | "line";
 type AudioScope = "slide" | "document";
+
+/* The panel is a column beside the slide, so it lists what was added most
+   recently and leaves the whole library to the asset library. */
+const BACKGROUND_LIMIT = 20;
+const AUDIO_LIMIT = 10;
 
 export const InspectorPanel = ({
   editor,
@@ -74,9 +84,11 @@ export const InspectorPanel = ({
   activeTextBoxId,
   elements,
   onAddTextBox,
+  onEditAsset,
 }: InspectorPanelProps) => {
   const { colors, fonts } = useUITheme();
   const { selectedSlide: slide, selectedIndex } = editor;
+  const media = useStore((s) => s.media);
   const openAssetLibrary = useOpenAssetLibrary();
   const [audioScope, setAudioScope] = useState<AudioScope>("document");
   const themeAudio = theme.defaultAudioId
@@ -115,8 +127,19 @@ export const InspectorPanel = ({
   const effectiveBackground = backgrounds.find(
     (bg) => bg.id === effectiveBackgroundId,
   );
+  const backgroundVideoItem = media.find(
+    (item) => item.id === effectiveBackground?.mediaId,
+  );
   const backgroundImage = effectiveBackground
     ? resolveBackgroundImage(slide, doc, effectiveBackground)
+    : null;
+  const backgroundVideo = effectiveBackground
+    ? resolveBackgroundVideo(
+        slide,
+        doc,
+        effectiveBackground,
+        backgroundVideoItem,
+      )
     : null;
   const ownLineOverrides = textBox
     ? textBox.lineOverrides
@@ -152,8 +175,12 @@ export const InspectorPanel = ({
   const setOverride = (key: string, value: unknown) =>
     editor.updateSlideOverride(slide.id, key, value);
 
-  const setBackgroundImage = (settings: ImageSettings) =>
-    editor.patchSlideOverrides(slide.id, { backgroundImage: settings });
+  const slideAudioItem = audio.find(
+    (item) => item.id === (slide.overrides?.audioId || ""),
+  );
+  const documentAudioItem = audio.find(
+    (item) => item.id === (doc.defaultAudioId || ""),
+  );
 
   const showElements =
     allowsAnySlideElement(elements) ||
@@ -267,20 +294,10 @@ export const InspectorPanel = ({
         }
         onManage={() => openAssetLibrary("backgrounds", { locked: true })}
         imageSettings={backgroundImage}
-        onImageSettingsChange={setBackgroundImage}
-        usageLabel="this slide"
+        videoSettings={backgroundVideo}
+        onEditUsage={(request) => onEditAsset(request, slide.id)}
+        limit={BACKGROUND_LIMIT}
       />
-      {backgroundImage && (
-        <div style={{ marginBottom: 12 }}>
-          <Toggle
-            label="Darken overlay (legibility)"
-            checked={backgroundImage.scrim}
-            onChange={(scrim) =>
-              setBackgroundImage({ ...backgroundImage, scrim })
-            }
-          />
-        </div>
-      )}
 
       {showElements && (
         <>
@@ -315,6 +332,13 @@ export const InspectorPanel = ({
           inheritLabel={`Use ${documentNoun} audio`}
           onSelect={(id) => setOverride("audioId", id)}
           onManage={() => openAssetLibrary("audio", { locked: true })}
+          settings={
+            slideAudioItem
+              ? resolveAudioSettings(slide, doc, slideAudioItem)
+              : undefined
+          }
+          onEditUsage={(request) => onEditAsset(request, slide.id)}
+          limit={AUDIO_LIMIT}
         />
       ) : (
         <AudioPicker
@@ -326,6 +350,13 @@ export const InspectorPanel = ({
           }
           onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
           onManage={() => openAssetLibrary("audio", { locked: true })}
+          settings={
+            documentAudioItem
+              ? resolveAudioSettings(undefined, doc, documentAudioItem)
+              : undefined
+          }
+          onEditUsage={(request) => onEditAsset(request, null)}
+          limit={AUDIO_LIMIT}
         />
       )}
 

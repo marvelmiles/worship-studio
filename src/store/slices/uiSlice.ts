@@ -2,6 +2,7 @@ import type { AppAlert, Toast } from "../../types";
 import { uid } from "../../lib/id";
 import { missingCapabilities } from "../../lib/capabilities";
 import type { SliceCreator } from "../storeTypes";
+import { APP_NAME } from "../../lib/appInfo";
 
 export type OverlayName = "assets" | "settings" | "shortcuts" | "about";
 
@@ -95,7 +96,7 @@ export const createUiSlice: SliceCreator<UiSlice> = (set, get) => ({
     const names = missing.map((m) => m.label).join(", ");
     get().pushAlert(
       critical
-        ? `This browser is missing features WorshipStudio needs to run: ${names}. Please update to the latest version of your browser.`
+        ? `This browser is missing features ${APP_NAME} needs to run: ${names}. Please update to the latest version of your browser.`
         : `Some features are unavailable in this browser: ${names}. Everything else works; updating your browser usually restores them.`,
       critical ? "error" : "warning",
       "capabilities",

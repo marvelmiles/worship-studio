@@ -40,7 +40,7 @@ const versionOptions = BIBLE_VERSIONS.map((v) => ({
 
 export const BiblePage = () => {
   const { colors, fonts } = useUITheme();
-  useDocumentTitle("Bible · WorshipStudio");
+  useDocumentTitle("Bible");
 
   const prefs = useStore((s) => s.prefs);
   const setBibleVersion = useStore((s) => s.setBibleVersion);

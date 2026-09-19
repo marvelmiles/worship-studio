@@ -1,4 +1,5 @@
 import { registerSW } from "virtual:pwa-register";
+import { APP_NAME } from "./lib/appInfo";
 
 const POLL_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -7,7 +8,7 @@ let swRegistration: ServiceWorkerRegistration | undefined;
 registerSW({
   immediate: true,
   onOfflineReady() {
-    console.info("[WorshipStudio] Ready to work offline.");
+    console.info(`[${APP_NAME}] Ready to work offline.`);
   },
   onRegisteredSW(_swUrl, registration) {
     if (!registration) return;
@@ -15,7 +16,7 @@ registerSW({
     setInterval(() => void registration.update(), POLL_INTERVAL_MS);
   },
   onRegisterError(error) {
-    console.error("[WorshipStudio] Service worker registration failed:", error);
+    console.error(`[${APP_NAME}] Service worker registration failed:`, error);
   },
 });
 

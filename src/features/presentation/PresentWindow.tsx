@@ -20,6 +20,7 @@ import { useDeck } from "./useDeck";
 import { buildStageFrame } from "./stageContent";
 import { SecondaryPip } from "./SecondaryPip";
 import { Stage } from "./Stage";
+import { documentTitle } from "../../lib/appInfo";
 
 export const PresentWindow = () => {
   const { stage } = useUITheme();
@@ -64,7 +65,7 @@ export const PresentWindow = () => {
   }, []);
 
   useEffect(() => {
-    document.title = "WorshipStudio · Live";
+    document.title = documentTitle("Live");
     document.body.style.background = stage.surface;
     document.body.style.margin = "0";
   }, [stage.surface]);
@@ -107,6 +108,7 @@ export const PresentWindow = () => {
     return () => window.clearTimeout(timer);
   }, [state, deck, load]);
 
+  const media = useStore((s) => s.media);
   const frame =
     deck && state
       ? buildStageFrame(
@@ -114,6 +116,7 @@ export const PresentWindow = () => {
           deck.slides[state.slideIndex],
           bgMap,
           prefs.transition,
+          media,
         )
       : null;
 

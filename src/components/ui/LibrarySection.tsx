@@ -57,7 +57,7 @@ export const LibrarySection = ({
                   flexShrink: 0,
                   fontSize: 11.5,
                   fontWeight: 600,
-                  color: colors.dim,
+                  color: colors.sub,
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
@@ -70,9 +70,9 @@ export const LibrarySection = ({
               style={{
                 margin: "3px 0 0",
                 fontFamily: fonts.ui,
-                fontSize: 12,
-                lineHeight: 1.5,
-                color: colors.dim,
+                fontSize: 12.5,
+                lineHeight: 1.55,
+                color: colors.sub,
               }}
             >
               {description}

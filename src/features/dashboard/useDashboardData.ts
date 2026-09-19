@@ -15,9 +15,9 @@ import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
 import { overlayTarget } from "../../lib/overlayTarget";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
-import { themePath } from "../themes/themeRoutes";
 import { greeting, itemActivity, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
+import routes from "../../routes";
 
 export interface DashboardCounts {
   manuscripts: number;
@@ -127,7 +127,7 @@ export const useDashboardData = () => {
         detail: `Manuscript · ${activity.verb}`,
         at: activity.at,
         icon: FileText,
-        open: () => navigate(`/manuscripts/${m.id}`),
+        open: () => navigate(routes.manuscript(m.id)),
       });
     }
 
@@ -143,7 +143,7 @@ export const useDashboardData = () => {
         detail: `Bible passage · ${activity.verb}`,
         at: activity.at,
         icon: BookOpen,
-        open: () => navigate(`/scripture/${p.id}`),
+        open: () => navigate(routes.passage(p.id)),
       });
     }
 
@@ -157,7 +157,7 @@ export const useDashboardData = () => {
         at: r.at,
         icon: BookOpen,
         open: () =>
-          navigate("/bible", {
+          navigate(routes.bible(), {
             state: {
               read: { bookId: r.bookId, chapter: r.chapter, verse: r.verse },
             },
@@ -178,8 +178,7 @@ export const useDashboardData = () => {
         detail: `${label} · ${activity.verb}`,
         at: activity.at,
         icon: m.kind === "image" ? ImageIcon : Film,
-        open: () =>
-          navigate(`${m.kind === "image" ? "/images" : "/videos"}/${m.id}`),
+        open: () => navigate(routes.mediaItem(m.kind, m.id)),
       });
     }
 
@@ -219,7 +218,7 @@ export const useDashboardData = () => {
         detail: `Theme · ${activity.verb}`,
         at: activity.at,
         icon: Palette,
-        open: () => navigate(themePath(t.id)),
+        open: () => navigate(routes.theme(t.id)),
       });
     }
 
