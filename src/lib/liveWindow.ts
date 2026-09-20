@@ -1,61 +1,54 @@
 import { PRESENT_WINDOW_NAME } from "./presentChannel";
+import {
+  externalPlacement,
+  isExtendedDisplay,
+  isOnPlacement,
+  moveToPlacement,
+  type ScreenPlacement,
+} from "./screens";
 import routes from "../routes";
+
+export { isExtendedDisplay };
 
 export interface LiveWindowState {
   isLive: boolean;
   isFullscreen: boolean;
 }
 
+/** Where the live window ended up, as far as the browser would say. */
+export type GoLivePlacement =
+  /** Standing on another display, which is what going live is for. */
+  | "external"
+  /** On this display: one screen, or the browser would not place it. */
+  | "same-screen";
+
 export interface GoLiveResult {
   ok: boolean;
-  reason?: "no-external" | "unsupported" | "blocked" | "error";
+  reason?: "blocked" | "error";
+  placement: GoLivePlacement;
+  /** Whether this device has another display at all. */
+  isExtended: boolean;
 }
 
 export interface LiveWindowController {
-  goLive: () => GoLiveResult;
+  goLive: () => Promise<GoLiveResult>;
   endLive: () => void;
   toggleFullscreen: () => Promise<boolean>;
   subscribe: (listener: () => void) => () => void;
   getState: () => LiveWindowState;
 }
 
-interface ScreenDetailed {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  isPrimary?: boolean;
-  isInternal?: boolean;
-}
-
-interface ScreenDetails {
-  screens: ScreenDetailed[];
-  currentScreen: ScreenDetailed;
-}
-
 type Listener = () => void;
 
-export const isExtendedDisplay = (): boolean => {
-  try {
-    return Boolean(
-      (window.screen as unknown as { isExtended?: boolean }).isExtended,
-    );
-  } catch {
-    return false;
-  }
-};
-
-const defaultFeatures = (
-  left?: number,
-  top?: number,
-  width?: number,
-  height?: number,
-): string => {
-  return [
-    `left=${left ?? window.screen.width}`,
-    `top=${top ?? 0}`,
-    `width=${width ?? 1280}`,
-    `height=${height ?? 720}`,
+/* popup=yes keeps this a window rather than a tab: a tab cannot be put on
+   another display, and cannot fill one on its own. */
+const windowFeatures = (placement: ScreenPlacement | null): string =>
+  [
+    `left=${placement?.left ?? window.screen.width}`,
+    `top=${placement?.top ?? 0}`,
+    `width=${placement?.width ?? 1280}`,
+    `height=${placement?.height ?? 720}`,
+    "popup=yes",
     "toolbar=no",
     "location=no",
     "menubar=no",
@@ -63,31 +56,20 @@ const defaultFeatures = (
     "scrollbars=no",
     "resizable=yes",
   ].join(",");
-};
 
-const moveToExternalDisplay = async (opened: Window): Promise<void> => {
-  const getScreenDetails = (
-    window as unknown as { getScreenDetails?: () => Promise<ScreenDetails> }
-  ).getScreenDetails;
-  if (typeof getScreenDetails !== "function") return;
+/* Without the window-management permission a browser will not say where a
+   window is, so this only ever confirms what was asked for. */
+const placementOfWindow = (opened: Window): GoLivePlacement => {
   try {
-    const details = await getScreenDetails();
-    const external =
-      details.screens.find(
-        (s) => s.isInternal === false && s !== details.currentScreen,
-      ) || details.screens.find((s) => s !== details.currentScreen);
-    if (!external || opened.closed) return;
-    opened.moveTo(external.left, external.top);
-    opened.resizeTo(external.width, external.height);
-  } catch {}
-};
-
-const enterFullscreen = async (opened: Window): Promise<void> => {
-  if (opened.closed) return;
-  try {
-    if (opened.document.fullscreenElement) return;
-    await opened.document.documentElement.requestFullscreen?.();
-  } catch {}
+    return opened.screenX >= window.screen.width ||
+      opened.screenY >= window.screen.height ||
+      opened.screenX < 0 ||
+      opened.screenY < 0
+      ? "external"
+      : "same-screen";
+  } catch {
+    return "same-screen";
+  }
 };
 
 const whenLoaded = (opened: Window, run: () => void): void => {
@@ -98,13 +80,6 @@ const whenLoaded = (opened: Window, run: () => void): void => {
     }
   } catch {}
   opened.addEventListener("load", run, { once: true });
-};
-
-/* The window has to sit on the projector before it fills a screen, so the
-   fullscreen request waits for the move to finish. */
-const projectFullscreen = async (opened: Window): Promise<void> => {
-  await moveToExternalDisplay(opened);
-  await enterFullscreen(opened);
 };
 
 export const createLiveWindow = (
@@ -141,17 +116,57 @@ export const createLiveWindow = (
     setState({ isLive: false, isFullscreen: false });
   };
 
-  const goLive = (): GoLiveResult => {
-    if (win && !win.closed) {
-      setState({ isLive: true });
-      return { ok: true };
+  const goLive = async (): Promise<GoLiveResult> => {
+    const isExtended = isExtendedDisplay();
+
+    /* Asked for before the window is opened, because opening a window spends
+       the click, and after it nothing may ask to place windows any more. A
+       device that has not granted that yet answers nothing here and the live
+       window sorts itself out from the inside instead. */
+    const placement = isExtended ? await externalPlacement() : null;
+
+    const standing = win && !win.closed ? win : null;
+    if (standing) {
+      /* Going live again is how a person retries once they have allowed this
+         site to place windows. A window that is already filling the wrong
+         screen cannot be walked across to the right one, so it is opened
+         again where it belongs; the live window asks for the running order
+         back as soon as it loads. */
+      if (!placement || isOnPlacement(standing, placement)) {
+        setState({ isLive: true });
+        standing.focus();
+        return {
+          ok: true,
+          placement: placement ? "external" : placementOfWindow(standing),
+          isExtended,
+        };
+      }
+      endLive();
     }
 
-    const opened = window.open(route, windowName, defaultFeatures());
-    if (!opened) return { ok: false, reason: "blocked" };
+    const opened = window.open(route, windowName, windowFeatures(placement));
+    if (!opened) {
+      return {
+        ok: false,
+        reason: "blocked",
+        placement: "same-screen",
+        isExtended,
+      };
+    }
 
     win = opened;
     setState({ isLive: true });
+
+    /* Some browsers take the position on open, some ignore it and some land
+       the window half on each display, so it is pushed into place as well. */
+    if (placement) {
+      moveToPlacement(opened, placement);
+      whenLoaded(opened, () => {
+        if (!opened.closed && !isOnPlacement(opened, placement)) {
+          moveToPlacement(opened, placement);
+        }
+      });
+    }
 
     whenLoaded(opened, () => {
       try {
@@ -162,7 +177,6 @@ export const createLiveWindow = (
         });
         setState({ isFullscreen: Boolean(opened.document.fullscreenElement) });
       } catch {}
-      void projectFullscreen(opened);
     });
 
     closeWatcher = window.setInterval(() => {
@@ -173,15 +187,24 @@ export const createLiveWindow = (
       }
     }, 800);
 
-    return { ok: true };
+    return {
+      ok: true,
+      placement: placement ? "external" : placementOfWindow(opened),
+      isExtended,
+    };
   };
 
+  /* The live window asks for fullscreen itself: only it can name the display
+     to fill, and only it still carries the click that opened it. */
   const toggleFullscreen = async (): Promise<boolean> => {
     if (!win || win.closed) return false;
     try {
-      if (win.document.fullscreenElement) await win.document.exitFullscreen();
-      else await win.document.documentElement.requestFullscreen();
-      return true;
+      if (win.document.fullscreenElement) {
+        await win.document.exitFullscreen();
+        return true;
+      }
+      win.focus();
+      return false;
     } catch {
       return false;
     }

@@ -4,6 +4,7 @@ import type { ManuscriptsSlice } from "./slices/manuscriptsSlice";
 import type { ScripturesSlice } from "./slices/scripturesSlice";
 import type { MediaSlice } from "./slices/mediaSlice";
 import type { AssetsSlice } from "./slices/assetsSlice";
+import type { OverlayPresetsSlice } from "./slices/overlayPresetsSlice";
 import type { UploadsSlice } from "./slices/uploadsSlice";
 import type { ThemesSlice } from "./slices/themesSlice";
 import type { PrefsSlice } from "./slices/prefsSlice";
@@ -18,6 +19,7 @@ export type StoreState = UiSlice &
   ScripturesSlice &
   MediaSlice &
   AssetsSlice &
+  OverlayPresetsSlice &
   UploadsSlice &
   ThemesSlice &
   PrefsSlice &

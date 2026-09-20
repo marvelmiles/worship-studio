@@ -8,7 +8,7 @@ import { Button } from "./Button";
 import { Checkbox } from "./Field";
 
 export const GO_LIVE_FULLSCREEN_TIP =
-  "Press F11 straight after Go Live to fill the external screen. You can also use the fullscreen arrow at the top right corner of the live window, and F11 again (or Esc) leaves fullscreen.";
+  "The live window fills the external display on its own. If it ever opens on this screen instead, allow this site to manage windows when your browser asks and press Go Live again. Inside the live window, F or the arrow at its top right corner toggles fullscreen, and Esc leaves it.";
 
 export const GoLiveTipDialog = () => {
   const { colors, fonts } = useUITheme();

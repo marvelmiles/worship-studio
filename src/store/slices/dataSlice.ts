@@ -15,7 +15,6 @@ import { DEFAULT_AUDIO } from "../../data/sounds";
 import { seedManuscripts } from "../../data/seed";
 import { HYMNAL_VERSION } from "../../data/hymns";
 import { planDefaultManuscripts } from "../../lib/manuscript/defaults";
-import { now } from "../../lib/id";
 import { dataFileSchema, type ImportedPrefs } from "../../lib/schema";
 import {
   readAllRecords,
@@ -47,14 +46,16 @@ import {
   normalizeImportedBackground,
   normalizeImportedManuscript,
   normalizeImportedMedia,
+  normalizeImportedOverlayPreset,
   normalizeImportedScripture,
 } from "../importNormalizers";
+import type { StreamOverlayPreset } from "../../features/stream/lib/overlayPresets";
+import { buildBackup, type BackupSource } from "../../lib/backupPayload";
+import { wholeLibrarySelection } from "../../lib/shareSelection";
 import { DEFAULT_PREFS } from "./prefsSlice";
-import type { SliceCreator } from "../storeTypes";
+import type { SliceCreator, StoreState } from "../storeTypes";
 import { APP_NAME } from "../../lib/appInfo";
 
-/** The backup file format, versioned on its own so a later reader can migrate. */
-const BACKUP_VERSION = 1;
 const MIN_RESET_OVERLAY_MS = 900;
 
 export interface DataSlice {
@@ -98,36 +99,20 @@ const mergeIncoming = <T extends { id: string }>(
   return mergeById(current, incoming, importedWins);
 };
 
-/* Every blob a backup has to carry, once each. Assets that borrow a media
-   item's file ride along with that item; the rest, including assets whose
-   source media was deleted, are collected on their own. */
-const backupFileIds = ({
-  media,
-  backgrounds,
-  audio,
-}: {
-  media: MediaItem[];
-  backgrounds: Background[];
-  audio: AudioItem[];
-}): string[] => {
-  const fileIds = new Set<string>();
-  const mediaIds = new Set(media.map((item) => item.id));
+/** The library as a backup reads it. */
+const backupSource = (state: StoreState): BackupSource => ({
+  manuscripts: state.manuscripts,
+  scriptures: state.scriptures,
+  media: state.media,
+  themes: state.themes,
+  backgrounds: state.backgrounds,
+  audio: state.audio,
+  overlayPresets: state.overlayPresets,
+  prefs: state.prefs,
+});
 
-  for (const item of media) {
-    fileIds.add(item.id);
-    if (item.hasThumb) fileIds.add(thumbId(item.id));
-  }
-  for (const background of backgrounds) {
-    if (!background.blobId || mediaIds.has(background.blobId)) continue;
-    fileIds.add(background.blobId);
-    fileIds.add(thumbId(background.blobId));
-  }
-  for (const item of audio) {
-    if (!item.blobId || mediaIds.has(item.blobId)) continue;
-    fileIds.add(item.blobId);
-  }
-  return [...fileIds];
-};
+const newestFirst = (presets: StreamOverlayPreset[]): StreamOverlayPreset[] =>
+  [...presets].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
 export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
   loading: true,
@@ -141,6 +126,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       backgrounds,
       audio,
       storedThemes,
+      overlayPresets,
       prefsRows,
     ] = await Promise.all([
       readAllRecords<Manuscript>("manuscripts"),
@@ -149,6 +135,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       readAllRecords<Background>("backgrounds"),
       readAllRecords<AudioItem>("audio"),
       readAllRecords<Theme>("themes"),
+      readAllRecords<StreamOverlayPreset>("overlayPresets"),
       readAllRecords<Prefs>("prefs"),
     ]);
 
@@ -185,6 +172,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
       themes: sortBuiltInFirst(ensureBuiltInThemes(themes)),
       backgrounds: [...BACKGROUNDS, ...customBackgrounds(backgrounds)],
       audio: [...DEFAULT_AUDIO, ...customAudio(audio)],
+      overlayPresets: newestFirst(overlayPresets),
       prefs,
       showGuide: !prefs.onboarded,
       loading: false,
@@ -201,33 +189,12 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
 
   exportData: async (onProgress) => {
     onProgress?.(0.02);
-    const {
-      manuscripts,
-      scriptures,
-      media,
-      themes,
-      backgrounds,
-      audio,
-      prefs,
-    } = get();
-    const customBg = customBackgrounds(backgrounds);
-    const customAud = customAudio(audio);
-    const payload = {
-      version: BACKUP_VERSION,
-      exportedAt: now(),
-      manuscripts,
-      scriptures: scriptures.filter((scripture) => !scripture.quick),
-      media,
-      themes,
-      backgrounds: customBg,
-      audio: customAud,
-      prefs,
-    };
-    return exportBackup(
-      payload,
-      backupFileIds({ media, backgrounds: customBg, audio: customAud }),
-      onProgress,
+    const source = backupSource(get());
+    const { payload, fileIds } = buildBackup(
+      source,
+      wholeLibrarySelection(source),
     );
+    return exportBackup(payload, fileIds, onProgress);
   },
 
   importData: async (file, mode, onProgress) => {
@@ -295,6 +262,14 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         isOverride,
         importedWins,
       );
+      const overlayPresets = newestFirst(
+        mergeIncoming(
+          state.overlayPresets,
+          data.overlayPresets?.map(normalizeImportedOverlayPreset),
+          isOverride,
+          importedWins,
+        ),
+      );
 
       const prefs =
         data.prefs && importedWins
@@ -339,6 +314,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
               "themes",
               "backgrounds",
               "audio",
+              "overlayPresets",
               "files",
             ] as StoreName[]
           ).map(clearStore),
@@ -362,6 +338,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         themes,
         backgrounds: [...BACKGROUNDS, ...customBg],
         audio: [...DEFAULT_AUDIO, ...customAud],
+        overlayPresets,
         prefs,
       });
 
@@ -375,6 +352,10 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         ...themes.map((value) => ({ store: "themes" as const, value })),
         ...customBg.map((value) => ({ store: "backgrounds" as const, value })),
         ...customAud.map((value) => ({ store: "audio" as const, value })),
+        ...overlayPresets.map((value) => ({
+          store: "overlayPresets" as const,
+          value,
+        })),
         { store: "prefs", value: prefs },
       ];
 
@@ -428,6 +409,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
             "themes",
             "backgrounds",
             "audio",
+            "overlayPresets",
             "prefs",
             "files",
           ] as StoreName[]
@@ -447,6 +429,7 @@ export const createDataSlice: SliceCreator<DataSlice> = (set, get) => ({
         themes: survivors.themes,
         backgrounds: BACKGROUNDS,
         audio: DEFAULT_AUDIO,
+        overlayPresets: [],
         prefs: freshPrefs,
       });
     } finally {

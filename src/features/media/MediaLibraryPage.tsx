@@ -5,6 +5,7 @@ import {
   Image as ImageIcon,
   ImagePlus,
   PenLine,
+  Share2,
   Trash2,
   Upload,
   Wallpaper,
@@ -40,6 +41,10 @@ import { LibrarySortSelect } from "../../components/ui/LibrarySortSelect";
 import { LayoutToggle } from "../../components/ui/LayoutToggle";
 import { LibraryListRow } from "../../components/ui/LibraryListRow";
 import { PresentMenu } from "../../components/ui/PresentMenu";
+import { QuickShareModal } from "../share/QuickShareModal";
+import { useBackupSource } from "../share/lib/useBackupSource";
+import { useQuickShareTarget } from "../share/lib/useQuickShareTarget";
+import { recordsForMedia } from "../../lib/shareCatalog";
 import { ImageSurface } from "../../components/media/ImageSurface";
 import { VideoThumb } from "../../components/media/VideoThumb";
 import routes from "../../routes";
@@ -89,6 +94,9 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
   const startPresent = useStore((s) => s.startPresent);
   const toggleImageBackground = useStore((s) => s.toggleImageBackground);
   const pushToast = useStore((s) => s.pushToast);
+
+  const shareSource = useBackupSource();
+  const quickShare = useQuickShareTarget();
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -225,6 +233,11 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
               onOpen: () => openEditor(item),
               onPresent: (pip: boolean) => present(item, pip),
               onToggleBackground: () => toggleBackground(item),
+              onQuickShare: () =>
+                quickShare.open(
+                  recordsForMedia(shareSource, item.id),
+                  item.name,
+                ),
               onDelete: () => setDeleting(item),
             };
             return layout === "grid" ? (
@@ -234,6 +247,14 @@ export const MediaLibraryPage = ({ kind }: { kind: MediaKind }) => {
             );
           })}
         </div>
+      )}
+
+      {quickShare.target && (
+        <QuickShareModal
+          records={quickShare.target.records}
+          title={quickShare.target.title}
+          onClose={quickShare.close}
+        />
       )}
 
       <ConfirmDialog
@@ -260,6 +281,7 @@ interface MediaCardProps {
   onOpen: () => void;
   onPresent: (pip: boolean) => void;
   onToggleBackground: () => void;
+  onQuickShare: () => void;
   onDelete: () => void;
 }
 
@@ -291,15 +313,22 @@ const MediaMenu = ({
   isBackground,
   onOpen,
   onToggleBackground,
+  onQuickShare,
 }: Pick<
   MediaCardProps,
-  "item" | "isBackground" | "onOpen" | "onToggleBackground"
+  "item" | "isBackground" | "onOpen" | "onToggleBackground" | "onQuickShare"
 >) => (
   <MoreMenu
     filled
     size="sm"
     items={[
       { label: "Open in editor", icon: PenLine, onClick: onOpen },
+      {
+        label: "Quick share",
+        icon: Share2,
+        title: "Send this to another device on your WiFi",
+        onClick: onQuickShare,
+      },
       ...(item.kind === "image"
         ? [
             {
@@ -323,6 +352,7 @@ const MediaRow = ({
   onOpen,
   onPresent,
   onToggleBackground,
+  onQuickShare,
   onDelete,
 }: MediaCardProps) => (
   <LibraryListRow
@@ -347,6 +377,7 @@ const MediaRow = ({
           isBackground={isBackground}
           onOpen={onOpen}
           onToggleBackground={onToggleBackground}
+          onQuickShare={onQuickShare}
         />
       </>
     }
@@ -360,6 +391,7 @@ const MediaCard = ({
   onOpen,
   onPresent,
   onToggleBackground,
+  onQuickShare,
   onDelete,
 }: MediaCardProps) => {
   return (
@@ -391,6 +423,7 @@ const MediaCard = ({
             isBackground={isBackground}
             onOpen={onOpen}
             onToggleBackground={onToggleBackground}
+            onQuickShare={onQuickShare}
           />
         </CardActions>
       </div>

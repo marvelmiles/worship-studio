@@ -6,8 +6,8 @@ import { Button } from "../../../components/ui/Button";
 import { Spinner } from "../../../components/ui/Spinner";
 import { LobbyActions } from "../components/LobbyActions";
 import { QuickConnectNote } from "../components/QuickConnectNote";
-import { StreamCard, StreamCardTitle } from "../components/StreamCard";
-import { deriveNetworkRoom } from "../lib/room";
+import { Panel, PanelTitle } from "../../../components/ui/Panel";
+import { deriveNetworkRoom } from "../../../lib/networkRoom";
 import { watchBroadcasters, type DeviceEntry } from "../lib/signaling";
 import {
   canJoinCamera,
@@ -81,8 +81,8 @@ export const AutoReceivePanel = ({
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
-      <StreamCard style={{ padding: 20 }}>
-        <StreamCardTitle
+      <Panel style={{ padding: 20 }}>
+        <PanelTitle
           icon={MonitorSmartphone}
           title="Devices on your WiFi"
           info={`On the other device, open Stream and choose Share this camera. Pick it here, up to ${MAX_STREAM_CAMERAS} in all.`}
@@ -106,7 +106,7 @@ export const AutoReceivePanel = ({
             ))}
           </div>
         )}
-      </StreamCard>
+      </Panel>
 
       <QuickConnectNote />
 

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, PenLine, Plus, Trash2 } from "lucide-react";
+import { FileText, PenLine, Plus, Share2, Trash2 } from "lucide-react";
 import type { Manuscript, Theme } from "../../types";
 import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
@@ -27,6 +27,8 @@ import { LazyMount } from "../../components/ui/LazyMount";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
+import { QuickShareModal } from "../share/QuickShareModal";
+import { useQuickShareTarget } from "../share/lib/useQuickShareTarget";
 import type { MoreMenuItem } from "../../components/ui/MoreMenu";
 import {
   KeepOnResetBadge,
@@ -59,6 +61,7 @@ export const ManuscriptLibrary = () => {
   const [collection, setCollection] = useState("All");
   const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
   const [deleting, setDeleting] = useState<Manuscript | null>(null);
+  const quickShare = useQuickShareTarget();
   const { layout, setLayout } = useLibraryLayout("manuscripts");
 
   const onNew = () => navigate(routes.newManuscript());
@@ -179,6 +182,11 @@ export const ManuscriptLibrary = () => {
                 0,
                 pip ? "pip" : "stage",
               ),
+            onQuickShare: () =>
+              quickShare.open(
+                [{ collection: "manuscripts", id: manuscript.id }],
+                manuscript.title,
+              ),
             onDelete: () => setDeleting(manuscript),
           };
           return layout === "grid" ? (
@@ -188,6 +196,14 @@ export const ManuscriptLibrary = () => {
           );
         })}
       </div>
+
+      {quickShare.target && (
+        <QuickShareModal
+          records={quickShare.target.records}
+          title={quickShare.target.title}
+          onClose={quickShare.close}
+        />
+      )}
 
       <ConfirmDialog
         open={Boolean(deleting)}
@@ -202,6 +218,21 @@ export const ManuscriptLibrary = () => {
 
 const swatchStyle = { aspectRatio: "16/9" } as const;
 
+const manuscriptMenuItems = (
+  onOpen: () => void,
+  onQuickShare: () => void,
+  keepAction: MoreMenuItem | null,
+): MoreMenuItem[] => [
+  { label: "Open in editor", icon: PenLine, onClick: onOpen },
+  {
+    label: "Quick share",
+    icon: Share2,
+    title: "Send this to another device on your WiFi",
+    onClick: onQuickShare,
+  },
+  ...(keepAction ? [keepAction] : []),
+];
+
 interface ManuscriptCardProps {
   manuscript: Manuscript;
   library: Manuscript[];
@@ -209,6 +240,7 @@ interface ManuscriptCardProps {
   bgMap: BgMap;
   onOpen: () => void;
   onPresent: (pip: boolean) => void;
+  onQuickShare: () => void;
   onDelete: () => void;
 }
 
@@ -272,6 +304,7 @@ const ManuscriptRow = ({
   bgMap,
   onOpen,
   onPresent,
+  onQuickShare,
   onDelete,
 }: ManuscriptCardProps) => {
   const keepAction = useKeepOnResetAction("manuscript", manuscript);
@@ -300,10 +333,7 @@ const ManuscriptRow = ({
           <MoreMenu
             filled
             size="sm"
-            items={[
-              { label: "Open in editor", icon: PenLine, onClick: onOpen },
-              ...(keepAction ? [keepAction] : []),
-            ]}
+            items={manuscriptMenuItems(onOpen, onQuickShare, keepAction)}
           />
         </>
       }
@@ -318,15 +348,13 @@ const ManuscriptCard = ({
   bgMap,
   onOpen,
   onPresent,
+  onQuickShare,
   onDelete,
 }: ManuscriptCardProps) => {
   const keepAction = useKeepOnResetAction("manuscript", manuscript);
   const cover = useManuscriptCover(manuscript, themes, bgMap);
 
-  const menuItems: MoreMenuItem[] = [
-    { label: "Open in editor", icon: PenLine, onClick: onOpen },
-    ...(keepAction ? [keepAction] : []),
-  ];
+  const menuItems = manuscriptMenuItems(onOpen, onQuickShare, keepAction);
 
   return (
     <div

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useStore } from "../../../store/useStore";
 import { useScreenWakeLock } from "../../../hooks/useScreenWakeLock";
+import { useBackgroundKeepAlive } from "../../../hooks/useBackgroundKeepAlive";
 import { useResumePlaybackOnVisible } from "../../../hooks/useResumePlaybackOnVisible";
 import {
   listCameras,
@@ -10,6 +11,7 @@ import {
   type FacingMode,
 } from "../lib/cameras";
 import type { SenderHandle } from "../lib/senderPeer";
+import { useCameraRecovery } from "./useCameraRecovery";
 
 const mergeAudioInto = (
   videoStream: MediaStream,
@@ -20,44 +22,45 @@ const mergeAudioInto = (
     ...(audioSource?.getAudioTracks() ?? []),
   ]);
 
-const hasLiveVideoTrack = (stream: MediaStream | null): boolean =>
-  stream?.getVideoTracks().some((track) => track.readyState === "live") ??
-  false;
-
 export const useSharingCamera = (getSender: () => SenderHandle | null) => {
   const pushToast = useStore((s) => s.pushToast);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const isRecoveringRef = useRef(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [facing, setFacing] = useState<FacingMode>("environment");
   const [isAudioOn, setIsAudioOn] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
 
   useScreenWakeLock(isCapturing);
+  useBackgroundKeepAlive(isCapturing);
   useResumePlaybackOnVisible(videoRef);
 
-  const showStream = useCallback((stream: MediaStream) => {
-    streamRef.current = stream;
-    if (videoRef.current) videoRef.current.srcObject = stream;
+  const showStream = useCallback((next: MediaStream) => {
+    streamRef.current = next;
+    setStream(next);
+    const video = videoRef.current;
+    if (!video) return;
+    video.srcObject = next;
+    void video.play().catch(() => {});
   }, []);
 
   const switchToStream = useCallback(
-    async (stream: MediaStream) => {
+    async (next: MediaStream) => {
       const sender = getSender();
       if (sender) {
-        await sender.replaceVideo(stream);
+        await sender.replaceVideo(next);
         showStream(sender.stream);
         return;
       }
-      showStream(mergeAudioInto(stream, streamRef.current));
+      showStream(mergeAudioInto(next, streamRef.current));
     },
     [getSender, showStream],
   );
 
   const attachStream = useCallback(
-    (stream: MediaStream) => {
-      showStream(stream);
+    (next: MediaStream) => {
+      showStream(next);
       setIsCapturing(true);
       void listCameras().then(setCameras);
     },
@@ -67,6 +70,7 @@ export const useSharingCamera = (getSender: () => SenderHandle | null) => {
   const stopCapture = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+    setStream(null);
     setIsCapturing(false);
   }, []);
 
@@ -78,12 +82,12 @@ export const useSharingCamera = (getSender: () => SenderHandle | null) => {
     const target: FacingMode =
       facing === "environment" ? "user" : "environment";
     try {
-      const { stream, switched } = await openCameraFacing(
+      const { stream: opened, switched } = await openCameraFacing(
         target,
         streamRef.current,
         cameras,
       );
-      await switchToStream(stream);
+      await switchToStream(opened);
       if (switched) setFacing(target);
       else
         pushToast("This device wouldn't switch to the other camera.", "error");
@@ -109,37 +113,25 @@ export const useSharingCamera = (getSender: () => SenderHandle | null) => {
     }
   }, [getSender, isAudioOn, pushToast]);
 
-  // The OS can end camera capture while the phone sleeps; reopen it on return so the live link carries video again.
-  useEffect(() => {
-    if (!isCapturing) return;
+  /* Recovery keeps trying for as long as the camera is refused, so the person
+     is told once rather than on every attempt. */
+  const hasWarnedRef = useRef(false);
 
-    const recoverCamera = async () => {
-      if (document.visibilityState !== "visible" || isRecoveringRef.current) {
-        return;
-      }
-      if (hasLiveVideoTrack(streamRef.current)) return;
-      isRecoveringRef.current = true;
-      try {
-        await switchToStream(await reopenCamera(facing));
-      } catch {
-        pushToast(
-          "Couldn't restart the camera. Tap Stop and share again.",
-          "error",
-        );
-      } finally {
-        isRecoveringRef.current = false;
-      }
-    };
+  const reopen = useCallback(async () => {
+    try {
+      await switchToStream(await reopenCamera(facing));
+      hasWarnedRef.current = false;
+    } catch {
+      if (hasWarnedRef.current) return;
+      hasWarnedRef.current = true;
+      pushToast(
+        "Couldn't restart the camera. Tap Stop and share again.",
+        "error",
+      );
+    }
+  }, [facing, pushToast, switchToStream]);
 
-    const handleRecovery = () => void recoverCamera();
-    document.addEventListener("visibilitychange", handleRecovery);
-    const videoTrack = streamRef.current?.getVideoTracks()[0];
-    videoTrack?.addEventListener("ended", handleRecovery);
-    return () => {
-      document.removeEventListener("visibilitychange", handleRecovery);
-      videoTrack?.removeEventListener("ended", handleRecovery);
-    };
-  }, [facing, isCapturing, pushToast, switchToStream]);
+  useCameraRecovery({ isCapturing, stream, reopen });
 
   return {
     videoRef,

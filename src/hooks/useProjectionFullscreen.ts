@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
-
-const OPENER_FULLSCREEN_GRACE_MS = 800;
+import { fullscreenOnExternalScreen } from "../lib/screens";
 
 const isDocumentFullscreen = (): boolean => Boolean(document.fullscreenElement);
-
-const requestDocumentFullscreen = (): void => {
-  void document.documentElement.requestFullscreen?.().catch(() => {});
-};
 
 interface ProjectionFullscreen {
   isFullscreen: boolean;
   toggle: () => void;
 }
 
+/**
+ * Fills the projector from inside the live window.
+ *
+ * This window still carries the click that opened it, which is the one moment
+ * it may ask to use another display, so the request goes out as soon as it is
+ * on screen. Where the browser takes a display with the request, the picture
+ * lands on the projector even when the window itself opened on the laptop.
+ */
 export const useProjectionFullscreen = (): ProjectionFullscreen => {
   const [isFullscreen, setIsFullscreen] = useState(isDocumentFullscreen);
 
@@ -22,15 +25,9 @@ export const useProjectionFullscreen = (): ProjectionFullscreen => {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
-  /* The opener places this window on the projector and asks for fullscreen
-     itself; this claims it from inside only if that request was refused,
-     because the window still carries the activation from the Go Live click. */
   useEffect(() => {
-    if (!window.opener) return;
-    const timer = window.setTimeout(() => {
-      if (!isDocumentFullscreen()) requestDocumentFullscreen();
-    }, OPENER_FULLSCREEN_GRACE_MS);
-    return () => window.clearTimeout(timer);
+    if (!window.opener || isDocumentFullscreen()) return;
+    void fullscreenOnExternalScreen(document.documentElement);
   }, []);
 
   const toggle = useCallback(() => {
@@ -38,7 +35,7 @@ export const useProjectionFullscreen = (): ProjectionFullscreen => {
       void document.exitFullscreen?.().catch(() => {});
       return;
     }
-    requestDocumentFullscreen();
+    void fullscreenOnExternalScreen(document.documentElement);
   }, []);
 
   return { isFullscreen, toggle };

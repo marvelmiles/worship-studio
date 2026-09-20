@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { isExtendedDisplay, presentLiveWindow } from "../lib/liveWindow";
+import { presentLiveWindow } from "../lib/liveWindow";
 import { useGoLiveToast } from "./useGoLiveToast";
 
 export interface PresentOptions {
@@ -17,10 +17,10 @@ export const usePresentActions = (
   const announceGoLive = useGoLiveToast("Presentation window");
 
   const startLive = useCallback(() => {
-    const result = presentLiveWindow.goLive();
-    announceGoLive(result, isExtendedDisplay());
-    if (!result.ok) return;
-    onPresent({ pip: true });
+    void presentLiveWindow.goLive().then((result) => {
+      announceGoLive(result);
+      if (result.ok) onPresent({ pip: true });
+    });
   }, [announceGoLive, onPresent]);
 
   const startPreview = useCallback(

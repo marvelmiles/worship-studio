@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   BookOpen,
+  Bookmark,
   Eye,
   EyeOff,
   FileText,
@@ -26,6 +27,7 @@ import { OverlayImagePicker } from "./OverlayImagePicker";
 import { OverlayPassagePicker } from "./OverlayPassagePicker";
 import { OverlaySectionLabel } from "./OverlayControls";
 import { OverlaySettingsPanel } from "./OverlaySettingsPanel";
+import { SavedOverlaysModal } from "./SavedOverlaysModal";
 import {
   createContentOverlay,
   createMarqueeOverlay,
@@ -73,6 +75,7 @@ export const StreamOverlayPanel = ({
   const [picking, setPicking] = useState<PickableKind | null>(null);
   const [pickingPicture, setPickingPicture] = useState(false);
   const [pickingPassage, setPickingPassage] = useState(false);
+  const [pickingSaved, setPickingSaved] = useState(false);
   const selected =
     overlays.find((overlay) => overlay.id === selectedId) ?? null;
   const anyOnAir = overlays.some((overlay) => overlay.status === "live");
@@ -126,6 +129,15 @@ export const StreamOverlayPanel = ({
           >
             <Megaphone size={14} />
             Announcement
+          </Button>
+          <Button
+            variant="subtle"
+            size="sm"
+            title="Add an overlay you saved for another service"
+            onClick={() => setPickingSaved(true)}
+          >
+            <Bookmark size={14} />
+            Saved
           </Button>
         </div>
       </div>
@@ -209,6 +221,15 @@ export const StreamOverlayPanel = ({
           addStreamOverlay(overlay);
           onSelect(overlay.id);
           setPickingPassage(false);
+        }}
+      />
+
+      <SavedOverlaysModal
+        open={pickingSaved}
+        onClose={() => setPickingSaved(false)}
+        onUse={(overlay) => {
+          addStreamOverlay(overlay);
+          onSelect(overlay.id);
         }}
       />
 

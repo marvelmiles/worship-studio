@@ -1,11 +1,11 @@
 import { setStreamAudioEnabled } from "./cameras";
-import { detectDeviceName } from "./deviceName";
+import { detectDeviceName } from "../../../lib/deviceName";
 import { watchConnectionStatus, type PeerStatus } from "./peerStatus";
+import { tuneVideoSender } from "./peerTuning";
 import {
   createPeerConnection,
-  tuneVideoSender,
   waitForIceGathering,
-} from "./peerTuning";
+} from "../../../lib/webrtcPeer";
 import { parseStatusMessage, sendStatusMessage } from "./statusChannel";
 
 export interface SenderHandle {

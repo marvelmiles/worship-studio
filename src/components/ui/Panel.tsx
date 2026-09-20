@@ -1,14 +1,15 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { useUITheme } from "../../../theme/ThemeProvider";
-import { InfoTip } from "../../../components/ui/InfoTip";
+import { useUITheme } from "../../theme/ThemeProvider";
+import { InfoTip } from "./InfoTip";
 
-interface StreamCardProps {
+/** The raised, bordered surface a page section sits on. */
+interface PanelProps {
   children: ReactNode;
   style?: CSSProperties;
 }
 
-export const StreamCard = ({ children, style }: StreamCardProps) => {
+export const Panel = ({ children, style }: PanelProps) => {
   const { colors } = useUITheme();
   return (
     <div
@@ -25,7 +26,7 @@ export const StreamCard = ({ children, style }: StreamCardProps) => {
   );
 };
 
-interface StreamCardTitleProps {
+interface PanelTitleProps {
   title: string;
   icon?: LucideIcon;
   info?: ReactNode;
@@ -33,13 +34,13 @@ interface StreamCardTitleProps {
   centered?: boolean;
 }
 
-export const StreamCardTitle = ({
+export const PanelTitle = ({
   title,
   icon: Icon,
   info,
   trailing,
   centered = false,
-}: StreamCardTitleProps) => {
+}: PanelTitleProps) => {
   const { colors, fonts } = useUITheme();
   return (
     <div

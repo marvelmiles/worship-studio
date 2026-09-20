@@ -38,5 +38,5 @@ const fromUserAgent = (ua: string): string => {
   if (/Macintosh|Mac OS X/.test(ua)) return "Mac";
   if (/Windows/.test(ua)) return "Windows PC";
   if (/Linux/.test(ua)) return "Linux device";
-  return "Camera";
+  return "Device";
 };

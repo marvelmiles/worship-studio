@@ -9,7 +9,7 @@ import {
   type Database,
   type DatabaseReference,
 } from "firebase/database";
-import { getSignalingDb } from "./firebase";
+import { getSignalingDb } from "../../../lib/signalingDb";
 
 const ROOT_PATH = "signal";
 const STALE_PRESENCE_MS = 5 * 60 * 1000;

@@ -6,7 +6,7 @@ import { Spinner } from "../../../components/ui/Spinner";
 import { StreamStatusBadge } from "../StreamStatusBadge";
 import { ReadCode, ShowCode } from "../CodeExchange";
 import { LobbyActions } from "../components/LobbyActions";
-import { StreamCard, StreamCardTitle } from "../components/StreamCard";
+import { Panel, PanelTitle } from "../../../components/ui/Panel";
 import { StreamStatusLine } from "../components/StreamStatusLine";
 import { openCamera } from "../lib/cameras";
 import type { PeerStatus } from "../lib/peerStatus";
@@ -93,8 +93,8 @@ export const ManualSenderPanel = ({
   if (!isStreaming) {
     return (
       <div>
-        <StreamCard style={{ maxWidth: 420, margin: "0 auto" }}>
-          <StreamCardTitle
+        <Panel style={{ maxWidth: 420, margin: "0 auto" }}>
+          <PanelTitle
             centered
             title="Scan the other device's code"
             info="On the other device, open Stream and choose Show a camera here. Scan the code it shows, or paste it."
@@ -104,7 +104,7 @@ export const ManualSenderPanel = ({
             scanLabel="Aim at the code on the other device's screen."
             onCode={applyInvite}
           />
-        </StreamCard>
+        </Panel>
         <LobbyActions>
           {onUseOneTap && (
             <Button variant="ghost" size="sm" onClick={onUseOneTap}>
@@ -130,8 +130,8 @@ export const ManualSenderPanel = ({
         alignItems: "start",
       }}
     >
-      <StreamCard>
-        <StreamCardTitle title="Show this reply to the other device" />
+      <Panel>
+        <PanelTitle title="Show this reply to the other device" />
         {reply ? (
           <ShowCode
             value={reply}
@@ -142,7 +142,7 @@ export const ManualSenderPanel = ({
             <Spinner size={20} />
           </div>
         )}
-      </StreamCard>
+      </Panel>
 
       <SharingCameraCard
         videoRef={camera.videoRef}

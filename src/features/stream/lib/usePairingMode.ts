@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { signalingConfigured } from "./firebase";
+import { signalingConfigured } from "../../../lib/signalingDb";
 
 export type PairingMode = "auto" | "manual";
 

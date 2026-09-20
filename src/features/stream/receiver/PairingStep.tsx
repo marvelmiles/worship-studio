@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useUITheme } from "../../../theme/ThemeProvider";
-import { StreamCard } from "../components/StreamCard";
+import { Panel } from "../../../components/ui/Panel";
 
 interface PairingStepProps {
   stepNumber: number;
@@ -15,7 +15,7 @@ export const PairingStep = ({
 }: PairingStepProps) => {
   const { colors, fonts } = useUITheme();
   return (
-    <StreamCard>
+    <Panel>
       <div
         style={{
           display: "flex",
@@ -52,6 +52,6 @@ export const PairingStep = ({
         </span>
       </div>
       {children}
-    </StreamCard>
+    </Panel>
   );
 };

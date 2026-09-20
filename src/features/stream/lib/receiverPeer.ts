@@ -1,11 +1,10 @@
 import { withVideoQualityHints } from "./sdp";
 import { watchConnectionStatus, type PeerStatus } from "./peerStatus";
+import { minimisePlayoutDelay, preferCompactCodecs } from "./peerTuning";
 import {
   createPeerConnection,
-  minimisePlayoutDelay,
-  preferCompactCodecs,
   waitForIceGathering,
-} from "./peerTuning";
+} from "../../../lib/webrtcPeer";
 import {
   parseStatusMessage,
   sendStatusMessage,

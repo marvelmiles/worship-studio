@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Film, Music, Pencil, Trash2, Upload } from "lucide-react";
+import { Film, Music, Pencil, Share2, Trash2, Upload } from "lucide-react";
 import type { AudioItem } from "../../types";
 import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -10,9 +10,12 @@ import { formatDuration } from "../../lib/media";
 import { Button, IconButton } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LibrarySection } from "../../components/ui/LibrarySection";
+import { MoreMenu } from "../../components/ui/MoreMenu";
 import { SegmentedTabs } from "../../components/ui/SegmentedTabs";
 import type { SegmentedTab } from "../../components/ui/SegmentedTabs";
 import { pillTabPanelProps } from "../../components/ui/tabPanel";
+import { QuickShareModal } from "../share/QuickShareModal";
+import { useQuickShareTarget } from "../share/lib/useQuickShareTarget";
 import { useOpenAssetEditor } from "./assetLibraryNavigation";
 import { MediaSourceList } from "./MediaSourceList";
 import routes from "../../routes";
@@ -69,6 +72,7 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
   const beginUpload = useStore((s) => s.beginUpload);
   const removeAudio = useStore((s) => s.removeAudio);
   const openEditor = useOpenAssetEditor();
+  const quickShare = useQuickShareTarget();
   const audioInput = useRef<HTMLInputElement>(null);
 
   return (
@@ -114,9 +118,19 @@ const SoundsTab = ({ attentionId }: { attentionId: string | null }) => {
             item={item}
             attention={item.id === attentionId}
             onEdit={() => openEditor(routes.sound(item.id), "audio")}
+            onQuickShare={() =>
+              quickShare.open([{ collection: "audio", id: item.id }], item.name)
+            }
             onRemove={() => void removeAudio(item.id)}
           />
         ))
+      )}
+      {quickShare.target && (
+        <QuickShareModal
+          records={quickShare.target.records}
+          title={quickShare.target.title}
+          onClose={quickShare.close}
+        />
       )}
     </LibrarySection>
   );
@@ -155,10 +169,17 @@ interface AudioRowProps {
   item: AudioItem;
   attention: boolean;
   onEdit: () => void;
+  onQuickShare: () => void;
   onRemove: () => void;
 }
 
-const AudioRow = ({ item, attention, onEdit, onRemove }: AudioRowProps) => {
+const AudioRow = ({
+  item,
+  attention,
+  onEdit,
+  onQuickShare,
+  onRemove,
+}: AudioRowProps) => {
   const { colors, fonts } = useUITheme();
   const url = useAssetUrl(item);
   return (
@@ -211,6 +232,17 @@ const AudioRow = ({ item, attention, onEdit, onRemove }: AudioRowProps) => {
         <>
           <IconButton icon={Pencil} title="Edit audio" onClick={onEdit} />
           <IconButton icon={Trash2} danger title="Remove" onClick={onRemove} />
+          <MoreMenu
+            size="sm"
+            items={[
+              {
+                label: "Quick share",
+                icon: Share2,
+                title: "Send this sound to another device on your WiFi",
+                onClick: onQuickShare,
+              },
+            ]}
+          />
         </>
       )}
     </div>

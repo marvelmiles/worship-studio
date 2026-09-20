@@ -1,5 +1,13 @@
 import { useRef, useState } from "react";
-import { Combine, Download, Replace, Shield, Upload } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import {
+  Combine,
+  Download,
+  Replace,
+  Share2,
+  Shield,
+  Upload,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ImportMode } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
@@ -9,6 +17,7 @@ import { Button } from "../../components/ui/Button";
 import { InfoTip } from "../../components/ui/InfoTip";
 import { SectionTitle } from "../../components/ui/Field";
 import { ProgressBar } from "../../components/ui/ProgressBar";
+import routes from "../../routes";
 
 const EXPORT_SETTLE_MS = 450;
 const IMPORT_SETTLE_MS = 300;
@@ -43,6 +52,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const DataSection = () => {
   const { colors, fonts } = useUITheme();
+  const navigate = useNavigate();
+  const closeOverlay = useStore((s) => s.closeOverlay);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const pushToast = useStore((s) => s.pushToast);
@@ -93,7 +104,9 @@ export const DataSection = () => {
           <InfoTip title="Backup and restore">
             Export everything (manuscripts, scripture passages, images, videos,
             themes, custom backgrounds, audio and settings) to a single backup
-            file (.zip), then bring it back here on any device.
+            file (.zip), then bring it back here on any device. Quick Share
+            sends the same data straight to a device on the same WiFi, with no
+            file to carry.
           </InfoTip>
         }
       >
@@ -127,6 +140,18 @@ export const DataSection = () => {
         >
           <Upload size={15} />
           Import Data
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={Boolean(busyWith)}
+          onClick={() => {
+            closeOverlay();
+            navigate(routes.share());
+          }}
+          title="Send this library straight to another device on the same WiFi"
+        >
+          <Share2 size={15} />
+          Quick Share
         </Button>
         <input
           ref={fileInputRef}

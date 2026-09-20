@@ -12,7 +12,7 @@ import { useUITheme } from "../../../theme/ThemeProvider";
 import { useAutoHideChrome } from "../../../hooks/useAutoHideChrome";
 import { useFullscreen } from "../../../hooks/useFullscreen";
 import { Button, StageButton } from "../../../components/ui/Button";
-import { StreamCard, StreamCardTitle } from "../components/StreamCard";
+import { Panel, PanelTitle } from "../../../components/ui/Panel";
 import type { FacingMode } from "../lib/cameras";
 
 interface SharingCameraCardProps {
@@ -48,7 +48,11 @@ export const SharingCameraCard = ({
 }: SharingCameraCardProps) => {
   const { stage } = useUITheme();
   const shellRef = useRef<HTMLDivElement>(null);
-  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(shellRef);
+  const {
+    isFullscreen,
+    fillStyle,
+    toggle: toggleFullscreen,
+  } = useFullscreen(shellRef);
   /* Nothing but the camera should be on screen while it is filling it, so the
      controls step aside and come back on a touch, a click or a moved pointer. */
   const chrome = useAutoHideChrome({ enabled: isFullscreen });
@@ -66,11 +70,12 @@ export const SharingCameraCard = ({
               width: "100%",
               height: "100%",
               background: "#000",
+              ...(fillStyle ?? {}),
             }
           : undefined
       }
     >
-      <StreamCard
+      <Panel
         style={
           isFullscreen
             ? {
@@ -87,7 +92,7 @@ export const SharingCameraCard = ({
         }
       >
         {!isFullscreen && (
-          <StreamCardTitle icon={Radio} title="Your camera" trailing={badge} />
+          <PanelTitle icon={Radio} title="Your camera" trailing={badge} />
         )}
         <div
           onPointerDown={chrome.wake}
@@ -208,7 +213,7 @@ export const SharingCameraCard = ({
             </Button>
           </div>
         )}
-      </StreamCard>
+      </Panel>
     </div>
   );
 };

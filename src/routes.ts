@@ -49,6 +49,9 @@ const theme = (themeId = ":themeId") => `${themes()}/${segment(themeId)}`;
 
 const stream = () => `${home()}stream`;
 
+/** Hands a library straight to another device on the same network. */
+const share = () => `${home()}share`;
+
 /** The editor that tunes one asset for a single slide, manuscript or passage. */
 const assetUsages = () => `${home()}use`;
 const assetUsage = (
@@ -83,6 +86,7 @@ const routes = {
   themes,
   theme,
   stream,
+  share,
   assetUsage,
   presentWindow,
   streamWindow,

@@ -14,6 +14,7 @@ import type { AssetUsageRequest } from "../../lib/assetUsage";
 import type { MediaPlayback } from "../../lib/presentChannel";
 import { AudioSurface } from "../media/AudioSurface";
 import { Button } from "../ui/Button";
+import { RadioDot } from "./RadioDot";
 
 /** A short list beside the slide; the asset library holds the rest. */
 export const AUDIO_PICKER_LIMIT = 10;
@@ -302,29 +303,7 @@ const AudioRow = ({
           textAlign: "left",
         }}
       >
-        <span
-          aria-hidden
-          style={{
-            width: 14,
-            height: 14,
-            flexShrink: 0,
-            borderRadius: "50%",
-            border: `1.5px solid ${selected ? colors.accent : colors.borderStrong}`,
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          {selected && (
-            <span
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: colors.accent,
-              }}
-            />
-          )}
-        </span>
+        <RadioDot selected={selected} />
         <span style={{ minWidth: 0 }}>
           <span
             style={{

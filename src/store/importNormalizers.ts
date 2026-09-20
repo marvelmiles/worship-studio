@@ -26,9 +26,14 @@ import type {
   ImportedBackground,
   ImportedManuscript,
   ImportedMedia,
+  ImportedOverlayPreset,
   ImportedScripture,
   ImportedSlide,
 } from "../lib/schema";
+import type {
+  SavedOverlay,
+  StreamOverlayPreset,
+} from "../features/stream/lib/overlayPresets";
 
 const normalizeBackgroundImage = (
   settings: Partial<ImageSettings> | undefined,
@@ -153,3 +158,16 @@ export const normalizeImportedBackground = (
   category: entry.category ?? "Custom",
   image: normalizeBackgroundImage(entry.image),
 });
+
+export const normalizeImportedOverlayPreset = (
+  entry: ImportedOverlayPreset,
+): StreamOverlayPreset => {
+  const createdAt = entry.createdAt || now();
+  return {
+    id: entry.id || uid(),
+    name: entry.name,
+    overlay: entry.overlay as SavedOverlay,
+    createdAt,
+    updatedAt: entry.updatedAt || createdAt,
+  };
+};

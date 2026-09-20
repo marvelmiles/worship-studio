@@ -126,12 +126,45 @@ as storage:
             },
             "ts": { ".validate": "newData.isNumber()" }
           }
+        },
+        "share": {
+          "devices": {
+            "$device": {
+              ".validate": "newData.hasChildren(['name','ts'])",
+              "name": {
+                ".validate": "newData.isString() && newData.val().length < 64"
+              },
+              "ts": { ".validate": "newData.isNumber()" }
+            }
+          },
+          "calls": {
+            "$device": {
+              "$caller": {
+                "offer": {
+                  ".validate": "newData.isString() && newData.val().length < 20000"
+                },
+                "answer": {
+                  ".validate": "newData.isString() && newData.val().length < 20000"
+                },
+                "name": {
+                  ".validate": "newData.isString() && newData.val().length < 64"
+                },
+                "ts": { ".validate": "newData.isNumber()" }
+              }
+            }
+          }
         }
       }
     }
   }
 }
 ```
+
+The `share` subtree carries Quick Share, which hands a whole library from one
+device to another (`src/features/share/QUICK_SHARE.md`). It relays the same
+offer and answer and nothing else; a deployment running the earlier rules keeps
+working, because read and write are already granted for the whole room. Adding
+the block above only tightens what may be written.
 
 The rooms are public within the `signal/` namespace, which is fine because a
 room id is derived from your network's public IP (people not on your WiFi do not

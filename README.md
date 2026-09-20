@@ -77,8 +77,9 @@ Then open the URL Vite prints (default http://localhost:5173).
   and paste. Ctrl+Z / Ctrl+Y step through the edits.
 - **Backgrounds & audio.** A built‑in gradient/solid background gallery plus
   custom image and MP3 uploads, managed in the Asset Library. The Inspector
-  lists the twenty newest backgrounds and the ten newest sounds, with the whole
-  library a dropdown or the Asset Library away.
+  gives each of them one list, scoped to the slide or to the whole document:
+  every background in one scrolling grid of tiles, newest first, and the ten
+  newest sounds, with the rest of the sound library an Asset Library away.
 - **Tune an asset for one place.** The pencil beside a background or sound opens
   that picture, clip or sound in its own full editor page, with a back arrow to
   the slide, manuscript or passage it came from. What is applied there comes
@@ -88,6 +89,14 @@ Then open the URL Vite prints (default http://localhost:5173).
 - **Presentation mode.** Full‑screen projection, configurable transitions, a
   presenter bar (current slide notes, next‑slide preview, elapsed timer, slide
   counter), black/white screen, pause, and optional looping background audio.
+- **Go Live puts the picture on the projector.** With a screen attached over
+  HDMI (or VGA through an adapter), Go Live opens the audience window on that
+  display and fills it, while the operator keeps the app and the presenter
+  view on the laptop. It uses the browser's Window Management API, so the
+  first Go Live on a machine asks to "manage windows on all your displays":
+  allow it, and every Go Live after that lands on the projector by itself. If
+  the permission is refused, the window still opens and fills the laptop
+  screen, and can be dragged across and filled with F.
 - **A second module in the corner.** While a manuscript, passage, picture or
   clip holds the screen, a picture, a clip or the live camera can run in a
   small window in a corner of it, on the preview and on the audience display
@@ -109,12 +118,40 @@ Then open the URL Vite prints (default http://localhost:5173).
   a laptop webcam reads far more reliably than one dense code, and the scanner
   searches the whole camera frame rather than only the aiming box.
 - **A broadcast that survives a sleeping phone.** The sharing device holds a
-  screen wake lock, a brief network drop reads as Reconnecting rather than
-  ending the stream, and a one-tap camera is reconnected automatically (ICE
-  restart) when the phone comes back. If the operating system stopped the
-  camera while the page was hidden, it is reopened on return.
+  screen wake lock and plays an inaudible tone so the browser leaves the page
+  running instead of freezing it once the screen locks or the browser is put
+  away. A brief network drop reads as Reconnecting rather than ending the
+  stream, and a one-tap camera is reconnected automatically (ICE restart) when
+  the phone comes back. The capture is watched throughout, by its own events
+  and on a timer, so a camera the operating system stopped or muted is reopened
+  the moment the device is back.
+- **A full screen camera on any phone.** The sharing device can fill its screen
+  with what it is sending, with controls that fade away and return on a touch.
+  Where a browser keeps the Fullscreen API for its own video player, iPhones
+  among them, the camera fills the viewport instead of leaving the button dead.
+- **Overlays saved for next time.** Any element staged over a broadcast, a
+  passage, a manuscript, a picture, a clip or a scrolling announcement, can be
+  saved with its placement, styling and content under a name of its own, then
+  added to a later broadcast from Saved. Saved overlays are kept with the rest
+  of the library and travel through backup export and import.
 - **Backup.** Export the whole library (including images, videos and audio) to a
   single `.zip` and restore it later, validated on import.
+- **Quick Share.** The share icon in the header opens a page where every device
+  with it open on the same WiFi sees the others. Pick the devices, then pick
+  what to send from a tab per part of the library: manuscripts, passages,
+  images, videos, audio, colours, themes, saved overlays and settings. Each tab
+  lists the real items with their thumbnails, searchable, sortable and
+  selectable one at a time or all at once, and what you tick is kept as you move
+  between tabs. Images and videos cover everything of that kind anywhere in the
+  project, the media library and the asset library at once, listing a picture
+  attached as a background only once. Anything an item needs travels with it: a
+  manuscript takes its background, sound, placed clips and theme. Every library
+  also offers **Quick share** in its own card menu, for sending one image,
+  video, manuscript, passage or sound on its own. The receiving device is told
+  who is sending and what is coming, and accepts or declines; what it accepts is
+  merged into its library, so nothing it already has is lost. The data travels
+  device to device over the WiFi and never through a server
+  (`src/features/share/QUICK_SHARE.md`).
 
 ### Keyboard shortcuts (presentation)
 
@@ -192,6 +229,7 @@ src/
     media/      Image and video libraries and editors
     presentation/ Presentation overlay (Framer Motion) and its projection hooks
     settings/   Settings modal, split per section
+    share/      Quick Share: handing a library to a nearby device
     stream/     Camera sharing: sender/, receiver/, stage/, overlays and lib/
     assets/     Asset Library modal
   routes.ts     every path in the app, one function per route
@@ -233,7 +271,8 @@ These are deliberate engineering decisions, called out honestly:
 ## Environment variables
 
 Every variable is optional: without them the Stream module still pairs by QR or
-pasted code, which needs no server at all. Copy `.env.example` to `.env` to
+pasted code, which needs no server at all, and Quick Share says so and points at
+Export and Import. Copy `.env.example` to `.env` to
 enable one‑tap pairing over your WiFi through Firebase Realtime Database, which
 relays only the WebRTC handshake (see
 `src/features/stream/STREAM_SIGNALING.md`):

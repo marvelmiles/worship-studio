@@ -48,6 +48,84 @@ export interface ExportResult {
   cancelled?: boolean;
 }
 
+interface BackupZipOptions {
+  payload: unknown;
+  fileIds: string[];
+  /** Takes each piece of the archive as it is produced. */
+  onChunk: (chunk: Uint8Array) => void | Promise<void>;
+  onProgress?: (fraction: number) => void;
+}
+
+/**
+ * Writes the backup archive a piece at a time: the records as one JSON entry,
+ * then every file it names, streamed rather than held in memory. Whoever asks
+ * for it decides where the pieces go, so the same archive can be saved to disk
+ * or sent to another device.
+ */
+export const writeBackupZip = async ({
+  payload,
+  fileIds,
+  onChunk,
+  onProgress,
+}: BackupZipOptions): Promise<void> => {
+  let writeQueue: Promise<void> = Promise.resolve();
+  let zipError: Error | null = null;
+  const zip = new Zip((err, chunk) => {
+    if (err) {
+      zipError = err;
+      return;
+    }
+    writeQueue = writeQueue.then(() => onChunk(chunk));
+  });
+
+  const meta = new ZipDeflate(DATA_ENTRY, { level: 6 });
+  zip.add(meta);
+  meta.push(strToU8(JSON.stringify(payload)), true);
+
+  let done = 0;
+  for (const fileId of fileIds) {
+    const blob = await getFileBlob(fileId);
+    done += 1;
+    if (!blob) continue;
+    const entry = new ZipPassThrough(entryNameFor(fileId));
+    zip.add(entry);
+    const reader = blob.stream().getReader();
+    for (;;) {
+      const { value, done: streamDone } = await reader.read();
+      if (streamDone) break;
+      entry.push(value);
+      await writeQueue;
+      if (zipError) break;
+    }
+    entry.push(new Uint8Array(0), true);
+    if (zipError) break;
+    onProgress?.(done / Math.max(1, fileIds.length));
+  }
+
+  zip.end();
+  await writeQueue;
+  if (zipError) throw zipError;
+  onProgress?.(1);
+};
+
+/** The whole archive in memory, for handing to another device. */
+export const packBackupZip = async (
+  payload: unknown,
+  fileIds: string[],
+  onProgress?: (fraction: number) => void,
+): Promise<Blob> => {
+  const chunks: Uint8Array[] = [];
+  await writeBackupZip({
+    payload,
+    fileIds,
+    onChunk: (chunk) => {
+      chunks.push(chunk);
+    },
+    onProgress,
+  });
+  return new Blob(chunks as BlobPart[], { type: "application/zip" });
+};
+
 export const exportBackup = async (
   payload: unknown,
   fileIds: string[],
@@ -77,48 +155,15 @@ export const exportBackup = async (
     }
   }
 
-  let writeQueue: Promise<void> = Promise.resolve();
-  let zipError: Error | null = null;
-  const zip = new Zip((err, chunk, final) => {
-    if (err) {
-      zipError = err;
-      return;
-    }
-    if (sink) {
-      writeQueue = writeQueue.then(() => sink!.write(chunk));
-    } else {
-      fallbackChunks.push(chunk);
-    }
-    void final;
-  });
-
-  const meta = new ZipDeflate(DATA_ENTRY, { level: 6 });
-  zip.add(meta);
-  meta.push(strToU8(JSON.stringify(payload)), true);
-
-  let done = 0;
-  for (const fileId of fileIds) {
-    const blob = await getFileBlob(fileId);
-    done += 1;
-    if (!blob) continue;
-    const entry = new ZipPassThrough(entryNameFor(fileId));
-    zip.add(entry);
-    const reader = blob.stream().getReader();
-    for (;;) {
-      const { value, done: streamDone } = await reader.read();
-      if (streamDone) break;
-      entry.push(value);
-      await writeQueue;
-      if (zipError) break;
-    }
-    entry.push(new Uint8Array(0), true);
-    if (zipError) break;
-    onProgress?.(done / Math.max(1, fileIds.length));
-  }
-
-  zip.end();
-  await writeQueue;
-  if (zipError) {
+  try {
+    await writeBackupZip({
+      payload,
+      fileIds,
+      onChunk: (chunk) =>
+        sink ? sink.write(chunk) : void fallbackChunks.push(chunk),
+      onProgress,
+    });
+  } catch {
     if (sink) await sink.close().catch(() => {});
     return { ok: false };
   }
@@ -136,7 +181,6 @@ export const exportBackup = async (
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  onProgress?.(1);
   return { ok: true };
 };
 

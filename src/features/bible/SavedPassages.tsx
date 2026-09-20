@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, PenLine, RotateCcw, Trash2 } from "lucide-react";
+import { BookOpen, PenLine, RotateCcw, Share2, Trash2 } from "lucide-react";
 import type { ScripturePassage, Theme } from "../../types";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
@@ -18,6 +18,8 @@ import { Button, IconButton } from "../../components/ui/Button";
 import { SearchInput } from "../../components/ui/SearchInput";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { MoreMenu } from "../../components/ui/MoreMenu";
+import { QuickShareModal } from "../share/QuickShareModal";
+import { useQuickShareTarget } from "../share/lib/useQuickShareTarget";
 import { PinButton } from "../../components/ui/PinControl";
 import {
   CardActions,
@@ -40,6 +42,7 @@ export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
 
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LibrarySortOption>(DEFAULT_LIBRARY_SORT);
+  const quickShare = useQuickShareTarget();
 
   const saved = useMemo(
     () => scriptures.filter((passage) => !passage.quick),
@@ -105,12 +108,26 @@ export const SavedPassages = ({ trashView }: { trashView: boolean }) => {
               onPresent={(pip) =>
                 startPresent("scripture", passage.id, 0, pip ? "pip" : "stage")
               }
+              onQuickShare={() =>
+                quickShare.open(
+                  [{ collection: "scriptures", id: passage.id }],
+                  passage.title,
+                )
+              }
               onTrash={() => trashScripture(passage.id)}
               onRestore={() => restoreScripture(passage.id)}
               onDelete={() => deleteScripture(passage.id)}
             />
           ))}
         </div>
+      )}
+
+      {quickShare.target && (
+        <QuickShareModal
+          records={quickShare.target.records}
+          title={quickShare.target.title}
+          onClose={quickShare.close}
+        />
       )}
     </>
   );
@@ -124,6 +141,7 @@ interface PassageCardProps {
   trashView: boolean;
   onOpen: () => void;
   onPresent: (pip: boolean) => void;
+  onQuickShare: () => void;
   onTrash: () => void;
   onRestore: () => void;
   onDelete: () => void;
@@ -137,6 +155,7 @@ const PassageCard = ({
   trashView,
   onOpen,
   onPresent,
+  onQuickShare,
   onTrash,
   onRestore,
   onDelete,
@@ -205,6 +224,12 @@ const PassageCard = ({
                 size="sm"
                 items={[
                   { label: "Open in editor", icon: PenLine, onClick: onOpen },
+                  {
+                    label: "Quick share",
+                    icon: Share2,
+                    title: "Send this to another device on your WiFi",
+                    onClick: onQuickShare,
+                  },
                 ]}
               />
             </>

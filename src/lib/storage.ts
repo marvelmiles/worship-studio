@@ -6,6 +6,7 @@ export type StoreName =
   | "backgrounds"
   | "themes"
   | "audio"
+  | "overlayPresets"
   | "prefs"
   | "files";
 export type Backend = "indexeddb" | "session" | "memory";
@@ -15,7 +16,7 @@ interface HasId {
 }
 
 const DB_NAME = "worshipflow";
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 const STORES: StoreName[] = [
   "manuscripts",
   "scriptures",
@@ -23,6 +24,7 @@ const STORES: StoreName[] = [
   "backgrounds",
   "themes",
   "audio",
+  "overlayPresets",
   "prefs",
   "files",
 ];
@@ -43,6 +45,7 @@ const mem: Record<StoreName, Map<string, unknown>> = {
   backgrounds: new Map(),
   themes: new Map(),
   audio: new Map(),
+  overlayPresets: new Map(),
   prefs: new Map(),
   files: new Map(),
 };

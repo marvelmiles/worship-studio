@@ -11,6 +11,7 @@ import {
   Palette,
   Radio,
   Settings,
+  Share2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "../../store/useStore";
@@ -93,6 +94,13 @@ export const useAppNavigation = (): AppNavigation => {
           "Cameras and live projection",
           Radio,
           routes.stream(),
+        ),
+        destination(
+          "share",
+          "Quick Share",
+          "Send your library to a nearby device",
+          Share2,
+          routes.share(),
         ),
       ],
       actions: [

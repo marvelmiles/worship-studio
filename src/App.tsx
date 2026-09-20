@@ -23,6 +23,7 @@ import {
   VideoEditorPage,
 } from "./features/media/MediaEditorPage";
 import { StreamPage } from "./features/stream/StreamPage";
+import { QuickSharePage } from "./features/share/QuickSharePage";
 import { StreamWindow } from "./features/stream/StreamWindow";
 import { StreamProjectionRoot } from "./features/stream/StreamProjectionRoot";
 import { Presentation } from "./features/presentation/Presentation";
@@ -101,6 +102,7 @@ const App = () => {
             <Route path={routes.themes()} element={<ThemesPage />} />
             <Route path={routes.theme()} element={<ThemesPage />} />
             <Route path={routes.stream()} element={<StreamPage />} />
+            <Route path={routes.share()} element={<QuickSharePage />} />
             <Route
               path={routes.notFound()}
               element={<Navigate to={routes.dashboard()} replace />}

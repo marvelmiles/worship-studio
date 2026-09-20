@@ -85,6 +85,16 @@ export const checkCapabilities = (): Capability[] => {
       ok: safe(() => typeof window.open === "function"),
     },
     {
+      id: "windowPlacement",
+      label: "Opening Go Live on the projector (Window Management)",
+      critical: false,
+      ok: safe(
+        () =>
+          typeof (window as { getScreenDetails?: unknown }).getScreenDetails ===
+          "function",
+      ),
+    },
+    {
       id: "fullscreen",
       label: "Fullscreen presentation",
       critical: false,

@@ -73,7 +73,7 @@ export const Presentation = () => {
     void toggleLiveFullscreen().then((ok) => {
       if (!ok) {
         pushToast(
-          "Could not enter fullscreen remotely. Click the fullscreen icon inside the projected window.",
+          "The live window is in front. Press F there, or use its fullscreen button, to fill the display.",
         );
       }
     });
@@ -234,7 +234,7 @@ export const Presentation = () => {
       pushToast("Ended the live projection.");
       return;
     }
-    announceGoLive(goLive(), isExtended);
+    void goLive().then(announceGoLive);
   };
 
   const handleExit = () => {

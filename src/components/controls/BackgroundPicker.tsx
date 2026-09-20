@@ -7,6 +7,7 @@ import type {
   VideoSettings,
 } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { fade } from "../../theme/uiTheme";
 import { useStore } from "../../store/useStore";
 import {
   DEFAULT_BACKGROUND_IMAGE_SETTINGS,
@@ -18,17 +19,17 @@ import {
 } from "../../lib/media";
 import { mostRecent } from "../../lib/recentItems";
 import type { AssetUsageRequest } from "../../lib/assetUsage";
-import { Field, Select } from "../ui/Field";
 import { Button } from "../ui/Button";
 import { ImageSurface } from "../media/ImageSurface";
 import { VideoThumb } from "../media/VideoThumb";
 import { LazyMount } from "../ui/LazyMount";
 import { CustomColorPicker } from "./CustomColorPicker";
 import { BgSwatch } from "./BgSwatch";
+import { RadioDot } from "./RadioDot";
 
-/** The panel is a column beside the slide, so it shows what was added most
- *  recently and leaves the whole library to the dropdown above it. */
-export const BACKGROUND_PICKER_LIMIT = 20;
+/** The tiles scroll rather than run down the panel, so the whole library is
+ *  one list however long it gets. */
+const GRID_MAX_HEIGHT = 244;
 
 interface BackgroundPickerProps {
   backgrounds: Background[];
@@ -43,8 +44,6 @@ interface BackgroundPickerProps {
   videoSettings?: VideoSettings | null;
   /** Opens the asset's own editor for the one place this picker edits. */
   onEditUsage?: (request: AssetUsageRequest) => void;
-  /** How many tiles to show at most, newest first. */
-  limit?: number;
 }
 
 /** A background in the library, or a picture or clip that can become one. */
@@ -76,8 +75,8 @@ const entryFileId = (entry: PickerEntry): string =>
 const backgroundFileIds = (backgrounds: Background[]): Set<string> =>
   new Set(
     backgrounds.flatMap((background) =>
-      [background.blobId, background.mediaId].filter(
-        (id): id is string => Boolean(id),
+      [background.blobId, background.mediaId].filter((id): id is string =>
+        Boolean(id),
       ),
     ),
   );
@@ -105,7 +104,6 @@ export const BackgroundPicker = ({
   imageSettings,
   videoSettings,
   onEditUsage,
-  limit = BACKGROUND_PICKER_LIMIT,
 }: BackgroundPickerProps) => {
   const media = useStore((s) => s.media);
   const beginUpload = useStore((s) => s.beginUpload);
@@ -142,24 +140,8 @@ export const BackgroundPicker = ({
       ),
       ...unattached.map((item) => ({ source: "module", item }) as PickerEntry),
     ];
-    return mostRecent(withoutRepeats(all), {
-      limit,
-      createdAt: entryCreatedAt,
-      keep: (entry) => entryId(entry) === activeId,
-    });
-  }, [activeId, backgrounds, limit, unattached]);
-
-  const options = [
-    ...(inheritLabel ? [{ value: "", label: inheritLabel }] : []),
-    ...backgrounds.map((bg) => ({
-      value: bg.id,
-      label: `${bg.name} (${bg.category})`,
-    })),
-    ...unattached.map((item) => ({
-      value: `${item.kind}:${item.id}`,
-      label: `${item.name} (${item.kind === "image" ? "Images" : "Videos"})`,
-    })),
-  ];
+    return mostRecent(withoutRepeats(all), { createdAt: entryCreatedAt });
+  }, [backgrounds, unattached]);
 
   const selectBackground = (id: string) => {
     const background = backgrounds.find((bg) => bg.id === id);
@@ -254,25 +236,15 @@ export const BackgroundPicker = ({
     );
   };
 
-  const selectOption = (option: string) => {
-    const [prefix, mediaId] = option.split(":");
-    if (prefix !== "image" && prefix !== "video") {
-      selectBackground(option);
-      return;
-    }
-    const item = media.find((entry) => entry.id === mediaId);
-    if (item) selectFromModule(item);
-  };
-
   return (
     <>
-      <Field label="Background">
-        <Select
-          value={value}
-          options={options}
-          onChange={(e) => selectOption(e.target.value)}
+      {inheritLabel && (
+        <InheritOption
+          label={inheritLabel}
+          selected={value === ""}
+          onSelect={() => onSelect("")}
         />
-      </Field>
+      )}
 
       <SwatchGrid>
         {entries.map((entry) => (
@@ -381,11 +353,53 @@ const SwatchGrid = ({ children }: { children: ReactNode }) => (
       gridTemplateColumns: "repeat(4,1fr)",
       gap: 6,
       marginBottom: 12,
+      maxHeight: GRID_MAX_HEIGHT,
+      overflowY: "auto",
+      alignContent: "start",
     }}
   >
     {children}
   </div>
 );
+
+interface InheritOptionProps {
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+/** Hands the choice back to whatever this slide, document or theme inherits. */
+const InheritOption = ({ label, selected, onSelect }: InheritOptionProps) => {
+  const { colors, fonts } = useUITheme();
+  return (
+    <button
+      aria-pressed={selected}
+      onClick={onSelect}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        width: "100%",
+        marginBottom: 8,
+        padding: "8px 10px",
+        borderRadius: 10,
+        cursor: "pointer",
+        textAlign: "left",
+        background: selected ? fade(colors.accent, 0.12) : "transparent",
+        border: `1px solid ${selected ? colors.accent : colors.border}`,
+        color: selected ? colors.accentSoft : colors.text,
+        fontFamily: fonts.ui,
+        fontSize: 12.5,
+        fontWeight: 600,
+      }}
+    >
+      <RadioDot selected={selected} />
+      <span className="ws-ellipsis" style={{ minWidth: 0 }}>
+        {label}
+      </span>
+    </button>
+  );
+};
 
 interface SwatchTileProps {
   name: string;
@@ -410,6 +424,7 @@ const SwatchTile = ({
     >
       <button
         title={name}
+        aria-pressed={active}
         onClick={onPick}
         style={{
           display: "block",
