@@ -5,8 +5,12 @@ import { useStore } from "../store/useStore";
 const POPUP_BLOCKED_MESSAGE =
   "Popup blocked. Allow popups for this site to go live.";
 
-/* The live window asks for the other display as it loads, so the first Go
-   Live on a machine ends with a browser prompt rather than a picture. */
+/* Answering the display prompt takes longer than the click the live window
+   was riding on, so the first Go Live on a machine buys the permission and
+   the second one uses it. */
+const RETRY_MESSAGE =
+  "Display access sorted. Press Go Live once more and it fills the projector.";
+
 const PENDING_MESSAGE =
   "Sending the live window to the other display. Choose Allow if your browser asks to manage windows, and it moves across on its own.";
 
@@ -25,7 +29,8 @@ export const useGoLiveToast = (windowLabel: string): GoLiveAnnouncer => {
   return useCallback(
     (result) => {
       if (!result.ok) {
-        if (result.reason === "blocked")
+        if (result.reason === "retry") pushToast(RETRY_MESSAGE);
+        else if (result.reason === "blocked")
           pushToast(POPUP_BLOCKED_MESSAGE, "error");
         return;
       }
@@ -35,7 +40,11 @@ export const useGoLiveToast = (windowLabel: string): GoLiveAnnouncer => {
         return;
       }
       if (result.placement === "external") {
-        pushToast("Live on the external display in fullscreen.");
+        pushToast(
+          result.display
+            ? `Live on ${result.display} in fullscreen.`
+            : "Live on the external display in fullscreen.",
+        );
         showGoLiveTip();
         return;
       }

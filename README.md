@@ -94,12 +94,15 @@ Then open the URL Vite prints (default http://localhost:5173).
   display and fills it, while the operator keeps the app and the presenter
   view on the laptop. It uses the browser's Window Management API, so the
   first Go Live on a machine asks to "manage windows on all your displays".
-  The live window itself asks, as it loads, and walks onto the projector the
-  moment you allow it; every Go Live after that lands there straight away.
-  Settings has a Projector section that asks up front and then names the
-  display the audience will see. If the permission is refused, the window
-  still opens and fills the laptop screen, and can be dragged across and
-  filled with F.
+  Holding that permission is what lets the window open already filling the
+  television, in one click, because a window cannot be told to fill a display
+  after it has opened. Answering the prompt can take longer than the click it
+  was riding on, so the first press may only buy the permission and say so:
+  press Go Live once more and it lands on the projector. Settings has a
+  Projector section that asks up front, so the first press projects too, and
+  names the display the audience will see. If the permission is refused, the
+  window still opens, and the button at its top right corner, or F, fills the
+  screen.
 - **A second module in the corner.** While a manuscript, passage, picture or
   clip holds the screen, a picture, a clip or the live camera can run in a
   small window in a corner of it, on the preview and on the audience display

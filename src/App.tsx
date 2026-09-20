@@ -37,6 +37,7 @@ import { ShortcutsModal } from "./features/shortcuts/ShortcutsModal";
 import { AboutModal } from "./features/about/AboutModal";
 import { UpdateModal } from "./features/updates/UpdateModal";
 import routes, { isSelfScrollingRoute } from "./routes";
+import { PlayGround } from "./Playground";
 
 const App = () => {
   const { colors, fonts } = useUITheme();
@@ -82,6 +83,7 @@ const App = () => {
           <LoadingArea size={30} />
         ) : (
           <Routes>
+            <Route path="/playground" element={<PlayGround />} />
             <Route path={routes.dashboard()} element={<Dashboard />} />
             <Route
               path={routes.manuscripts()}

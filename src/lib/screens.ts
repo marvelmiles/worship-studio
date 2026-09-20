@@ -186,6 +186,24 @@ export const knownProjectorScreen =
     return details ? projectorScreenOf(details) : null;
   };
 
+/**
+ * The display this page is on, for a device with nowhere else to project.
+ * A television fed by HDMI is often set to mirror the laptop rather than
+ * extend it, and then this is the screen the congregation is watching.
+ */
+export const knownCurrentScreen = async (): Promise<ProjectorScreen | null> => {
+  if ((await screenAccess()) !== "granted") return null;
+  const details = await readScreenDetails();
+  if (!details) return null;
+  const { currentScreen } = details;
+  return {
+    placement: placementOf(currentScreen),
+    bounds: boundsOf(currentScreen),
+    label: screenLabel(currentScreen, details.screens.indexOf(currentScreen)),
+    screen: currentScreen,
+  };
+};
+
 /** Whether a window is standing on the display this describes. */
 export const isOnScreen = (
   target: Window,

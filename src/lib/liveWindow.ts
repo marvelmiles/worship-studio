@@ -2,11 +2,14 @@ import { PRESENT_WINDOW_NAME } from "./presentChannel";
 import {
   isExtendedDisplay,
   isOnScreen,
+  knownCurrentScreen,
   knownProjectorScreen,
   moveToScreen,
+  readScreenDetails,
   screenAccess,
   type ProjectorScreen,
   type ScreenAccess,
+  type ScreenPlacement,
 } from "./screens";
 import routes from "../routes";
 
@@ -28,12 +31,15 @@ export type GoLivePlacement =
 
 export interface GoLiveResult {
   ok: boolean;
-  reason?: "blocked" | "error";
+  /** "retry" is a popup lost to the permission prompt, which the next press wins back. */
+  reason?: "blocked" | "retry" | "error";
   placement: GoLivePlacement;
   /** Whether this device has another display at all. */
   isExtended: boolean;
   /** Whether this site may put a window on that display yet. */
   access: ScreenAccess;
+  /** What the browser calls the display being projected onto. */
+  display?: string;
 }
 
 export interface LiveWindowController {
@@ -52,15 +58,26 @@ type Listener = () => void;
    of times while it settles. */
 const SETTLE_DELAYS_MS = [0, 250, 800];
 
-/* popup=yes keeps this a window rather than a tab: a tab cannot be put on
-   another display, and cannot fill one on its own. */
-const windowFeatures = (projector: ProjectorScreen | null): string => {
-  const placement = projector?.placement;
-  return [
-    `left=${placement?.left ?? window.screen.width}`,
-    `top=${placement?.top ?? 0}`,
-    `width=${placement?.width ?? 1280}`,
-    `height=${placement?.height ?? 720}`,
+/**
+ * How the live window is asked for.
+ *
+ * `popup` keeps this a window rather than a tab: a tab cannot be put on
+ * another display, and cannot fill one on its own. `fullscreen` is the part
+ * that puts the picture on the television: a site holding the window
+ * management permission may open a popup already filling the display its
+ * coordinates fall on, spending the one click for both. Asking a window to
+ * fill a display from the inside, after it has opened, is refused, because by
+ * then the click that opened it is gone.
+ */
+export const windowFeatures = (
+  placement: ScreenPlacement,
+  canFillOnOpen: boolean,
+): string => {
+  const features = [
+    `left=${placement.left}`,
+    `top=${placement.top}`,
+    `width=${placement.width}`,
+    `height=${placement.height}`,
     "popup=yes",
     "toolbar=no",
     "location=no",
@@ -68,7 +85,39 @@ const windowFeatures = (projector: ProjectorScreen | null): string => {
     "status=no",
     "scrollbars=no",
     "resizable=yes",
-  ].join(",");
+  ];
+  if (canFillOnOpen) features.push("fullscreen");
+  return features.join(",");
+};
+
+/* Where to put a window on a device whose displays the browser will not name.
+   A second screen sits beside this one more often than not, so that is where
+   it is aimed; with nowhere else to go it fills the screen it has. */
+const guessedPlacement = (isExtended: boolean): ScreenPlacement =>
+  isExtended
+    ? { left: window.screen.width, top: 0, width: 1280, height: 720 }
+    : {
+        left: 0,
+        top: 0,
+        width: window.screen.availWidth,
+        height: window.screen.availHeight,
+      };
+
+/* A window opened straight into fullscreen is where it belongs already, and
+   nudging it would drop it back out of fullscreen. */
+const isFillingScreen = (
+  opened: Window,
+  projector: ProjectorScreen,
+): boolean => {
+  try {
+    if (opened.document.fullscreenElement) return true;
+    return (
+      opened.innerWidth >= projector.bounds.width - 2 &&
+      opened.innerHeight >= projector.bounds.height - 2
+    );
+  } catch {
+    return false;
+  }
 };
 
 /* Without the window-management permission a browser will not say where a
@@ -160,7 +209,8 @@ export const createLiveWindow = (
     for (const delay of SETTLE_DELAYS_MS) {
       const timer = window.setTimeout(() => {
         settleTimers.delete(timer);
-        if (opened.closed || isOnScreen(opened, projector)) return;
+        if (opened.closed || isFillingScreen(opened, projector)) return;
+        if (isOnScreen(opened, projector)) return;
         moveToScreen(opened, projector);
       }, delay);
       settleTimers.add(timer);
@@ -170,21 +220,36 @@ export const createLiveWindow = (
   const goLive = async (): Promise<GoLiveResult> => {
     const isExtended = isExtendedDisplay();
 
-    /* Both answers are read before the window is opened, because opening one
-       spends the click and nothing may ask to place windows afterwards. Only
-       a site that already holds the permission gets a display here; the rest
-       open where the browser allows and the live window asks from there. */
-    const access = isExtended ? await screenAccess() : "unsupported";
-    const projector = isExtended ? await knownProjectorScreen() : null;
+    /* The permission is asked for here, before anything else, because this is
+       still the click the person just made: opening a window spends it, and
+       from inside that window the browser will no longer take the question.
+       Answering the prompt can outlast the click, so the window that follows
+       may be blocked; that is what "retry" reports, and the second Go Live
+       has the permission in hand and lands on the projector. */
+    let access = await screenAccess();
+    const wasAsked = access === "prompt";
+    if (wasAsked) {
+      await readScreenDetails();
+      access = await screenAccess();
+    }
+
+    /* Without another display there is still a screen to fill: a television
+       fed straight from HDMI usually mirrors this one. */
+    const projector = await knownProjectorScreen();
+    const target = projector ?? (await knownCurrentScreen());
+    const canFillOnOpen = access === "granted";
 
     const standing = win && !win.closed ? win : null;
     if (standing) {
       /* Going live again is how a person retries once they have allowed this
-         site to place windows. A window that is already filling the wrong
-         screen cannot be walked across to the right one, so it is opened
-         again where it belongs; the live window asks for the running order
-         back as soon as it loads. */
-      if (!projector || isOnScreen(standing, projector)) {
+         site to place windows. A window cannot be told to fill a display
+         after the fact, so one sitting in a frame, or on the wrong screen, is
+         opened again as a window that fills; the live window asks for the
+         running order back as soon as it loads. */
+      const isSettled = target
+        ? isOnScreen(standing, target) && isFillingScreen(standing, target)
+        : true;
+      if (isSettled || !canFillOnOpen) {
         setState({ isLive: true });
         standing.focus();
         return {
@@ -192,19 +257,28 @@ export const createLiveWindow = (
           placement: settledPlacement(standing, projector, access),
           isExtended,
           access,
+          display: projector?.label,
         };
       }
       endLive();
     }
 
-    const opened = window.open(route, windowName, windowFeatures(projector));
+    const opened = window.open(
+      route,
+      windowName,
+      windowFeatures(
+        target?.placement ?? guessedPlacement(isExtended),
+        canFillOnOpen && Boolean(target),
+      ),
+    );
     if (!opened) {
       return {
         ok: false,
-        reason: "blocked",
+        reason: wasAsked ? "retry" : "blocked",
         placement: "same-screen",
         isExtended,
         access,
+        display: projector?.label,
       };
     }
 
@@ -243,6 +317,7 @@ export const createLiveWindow = (
       placement: settledPlacement(opened, projector, access),
       isExtended,
       access,
+      display: projector?.label,
     };
   };
 
