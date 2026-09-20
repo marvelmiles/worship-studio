@@ -5,10 +5,16 @@ import { useStore } from "../store/useStore";
 const POPUP_BLOCKED_MESSAGE =
   "Popup blocked. Allow popups for this site to go live.";
 
-/* A browser only hands over another display once the site is allowed to place
-   windows, so the first Go Live on a machine can land on this screen. */
+/* The live window asks for the other display as it loads, so the first Go
+   Live on a machine ends with a browser prompt rather than a picture. */
+const PENDING_MESSAGE =
+  "Sending the live window to the other display. Choose Allow if your browser asks to manage windows, and it moves across on its own.";
+
+const DENIED_MESSAGE =
+  "This site is blocked from using the other display. Turn on Window management for it in your browser's site settings, then press Go Live again. You can also drag the live window onto the other display and press F.";
+
 const SAME_SCREEN_MESSAGE =
-  "Opened on this screen. Allow this site to manage windows when your browser asks, then press Go Live again. You can also drag the window to the other display and press F.";
+  "Opened on this screen. Drag the live window onto the other display and press F to fill it.";
 
 export type GoLiveAnnouncer = (result: GoLiveResult) => void;
 
@@ -33,7 +39,15 @@ export const useGoLiveToast = (windowLabel: string): GoLiveAnnouncer => {
         showGoLiveTip();
         return;
       }
-      pushToast(SAME_SCREEN_MESSAGE, "error");
+      if (result.placement === "pending") {
+        pushToast(PENDING_MESSAGE);
+        showGoLiveTip();
+        return;
+      }
+      pushToast(
+        result.access === "denied" ? DENIED_MESSAGE : SAME_SCREEN_MESSAGE,
+        "error",
+      );
     },
     [pushToast, showGoLiveTip, windowLabel],
   );

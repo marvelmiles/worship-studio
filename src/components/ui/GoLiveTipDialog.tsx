@@ -8,7 +8,7 @@ import { Button } from "./Button";
 import { Checkbox } from "./Field";
 
 export const GO_LIVE_FULLSCREEN_TIP =
-  "The live window fills the external display on its own. If it ever opens on this screen instead, allow this site to manage windows when your browser asks and press Go Live again. Inside the live window, F or the arrow at its top right corner toggles fullscreen, and Esc leaves it.";
+  "The live window fills the external display on its own. The first time on a machine your browser asks whether this site may manage windows: choose Allow and the window moves across by itself. Inside the live window, F or the arrow at its top right corner toggles fullscreen, and Esc leaves it.";
 
 export const GoLiveTipDialog = () => {
   const { colors, fonts } = useUITheme();

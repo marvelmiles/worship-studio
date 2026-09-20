@@ -93,10 +93,13 @@ Then open the URL Vite prints (default http://localhost:5173).
   HDMI (or VGA through an adapter), Go Live opens the audience window on that
   display and fills it, while the operator keeps the app and the presenter
   view on the laptop. It uses the browser's Window Management API, so the
-  first Go Live on a machine asks to "manage windows on all your displays":
-  allow it, and every Go Live after that lands on the projector by itself. If
-  the permission is refused, the window still opens and fills the laptop
-  screen, and can be dragged across and filled with F.
+  first Go Live on a machine asks to "manage windows on all your displays".
+  The live window itself asks, as it loads, and walks onto the projector the
+  moment you allow it; every Go Live after that lands there straight away.
+  Settings has a Projector section that asks up front and then names the
+  display the audience will see. If the permission is refused, the window
+  still opens and fills the laptop screen, and can be dragged across and
+  filled with F.
 - **A second module in the corner.** While a manuscript, passage, picture or
   clip holds the screen, a picture, a clip or the live camera can run in a
   small window in a corner of it, on the preview and on the audience display

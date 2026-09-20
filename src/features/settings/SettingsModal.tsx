@@ -10,6 +10,7 @@ import {
   TransitionsSection,
 } from "./PreferenceSections";
 import { DataSection } from "./DataSection";
+import { ProjectorSection } from "./ProjectorSection";
 import { ResetSection } from "./ResetSection";
 import { StorageSection } from "./StorageSection";
 
@@ -46,6 +47,7 @@ export const SettingsModal = () => {
       width={560}
     >
       <PresentationSection prefs={prefs} onChange={updatePrefs} />
+      <ProjectorSection />
       <DefaultThemesSection
         prefs={prefs}
         themes={themes}

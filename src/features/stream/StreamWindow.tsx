@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
 import { useViewShortcuts } from "../../hooks/useViewShortcuts";
 import { viewCommandTitle } from "../../lib/viewCommands";
@@ -11,6 +12,8 @@ import { useOpenerLiveComposition } from "./lib/useOpenerComposition";
 import { useOverlayContentSync } from "./lib/useOverlayContentSync";
 import { documentTitle } from "../../lib/appInfo";
 
+const HINT_DELAY_MS = 2500;
+
 export const StreamWindow = () => {
   const overlays = useMirroredStreamOverlays();
   useOverlayContentSync(overlays);
@@ -18,8 +21,12 @@ export const StreamWindow = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
   useViewShortcuts({ onToggleFullscreen: toggleFullscreen });
-  const [hintVisible, setHintVisible] = useState(true);
-  const hideTimer = useRef<number>();
+  /* A window that is not filling the display keeps its fullscreen button in
+     view: that button is the way back onto the projector. */
+  const { visible: isChromeVisible } = useAutoHideChrome({
+    enabled: isFullscreen,
+    delayMs: HINT_DELAY_MS,
+  });
   const stream = composition.primary;
 
   useEffect(() => {
@@ -27,17 +34,6 @@ export const StreamWindow = () => {
     document.body.style.background = "#000";
     document.body.style.margin = "0";
   }, []);
-
-  useEffect(() => {
-    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
-    return () => window.clearTimeout(hideTimer.current);
-  }, []);
-
-  const wake = () => {
-    setHintVisible(true);
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
-  };
 
   const claimFocus = () => {
     try {
@@ -48,7 +44,6 @@ export const StreamWindow = () => {
 
   return (
     <div
-      onPointerMove={wake}
       onPointerDown={claimFocus}
       style={{ position: "fixed", inset: 0, background: "#000" }}
     >
@@ -95,8 +90,8 @@ export const StreamWindow = () => {
           backdropFilter: "blur(10px)",
           border: "1px solid rgba(255,255,255,0.16)",
           color: "#fff",
-          opacity: hintVisible ? 1 : 0,
-          pointerEvents: hintVisible ? "auto" : "none",
+          opacity: isChromeVisible ? 1 : 0,
+          pointerEvents: isChromeVisible ? "auto" : "none",
           transition: "opacity 0.3s ease",
         }}
       >

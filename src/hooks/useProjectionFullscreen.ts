@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fullscreenOnExternalScreen } from "../lib/screens";
+import { fillProjector } from "../lib/screens";
 
 const isDocumentFullscreen = (): boolean => Boolean(document.fullscreenElement);
 
@@ -12,9 +12,10 @@ interface ProjectionFullscreen {
  * Fills the projector from inside the live window.
  *
  * This window still carries the click that opened it, which is the one moment
- * it may ask to use another display, so the request goes out as soon as it is
- * on screen. Where the browser takes a display with the request, the picture
- * lands on the projector even when the window itself opened on the laptop.
+ * a browser will let it ask for the other display, so the request goes out as
+ * soon as it is on screen and before anything else can spend that click. Once
+ * the display is known the window puts itself on it, so the picture reaches
+ * the projector even when the window itself opened on the laptop.
  */
 export const useProjectionFullscreen = (): ProjectionFullscreen => {
   const [isFullscreen, setIsFullscreen] = useState(isDocumentFullscreen);
@@ -27,7 +28,7 @@ export const useProjectionFullscreen = (): ProjectionFullscreen => {
 
   useEffect(() => {
     if (!window.opener || isDocumentFullscreen()) return;
-    void fullscreenOnExternalScreen(document.documentElement);
+    void fillProjector(document.documentElement);
   }, []);
 
   const toggle = useCallback(() => {
@@ -35,7 +36,7 @@ export const useProjectionFullscreen = (): ProjectionFullscreen => {
       void document.exitFullscreen?.().catch(() => {});
       return;
     }
-    void fullscreenOnExternalScreen(document.documentElement);
+    void fillProjector(document.documentElement);
   }, []);
 
   return { isFullscreen, toggle };

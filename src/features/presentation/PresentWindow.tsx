@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useStore } from "../../store/useStore";
 import { useUITheme } from "../../theme/ThemeProvider";
+import { useAutoHideChrome } from "../../hooks/useAutoHideChrome";
 import { useBgMap } from "../../hooks/useBgMap";
 import { useProjectionFullscreen } from "../../hooks/useProjectionFullscreen";
 import { useViewShortcuts } from "../../hooks/useViewShortcuts";
@@ -22,6 +23,8 @@ import { SecondaryPip } from "./SecondaryPip";
 import { Stage } from "./Stage";
 import { documentTitle } from "../../lib/appInfo";
 
+const HINT_DELAY_MS = 2500;
+
 export const PresentWindow = () => {
   const { stage } = useUITheme();
   const prefs = useStore((s) => s.prefs);
@@ -30,8 +33,12 @@ export const PresentWindow = () => {
   const [state, setState] = useState<PresentState | null>(null);
   const { isFullscreen, toggle: toggleFullscreen } = useProjectionFullscreen();
   useViewShortcuts({ onToggleFullscreen: toggleFullscreen });
-  const [hintVisible, setHintVisible] = useState(true);
-  const hideTimer = useRef<number>();
+  /* A window that is not filling the display keeps its fullscreen button in
+     view: that button is the way back onto the projector. */
+  const { visible: isChromeVisible } = useAutoHideChrome({
+    enabled: isFullscreen,
+    delayMs: HINT_DELAY_MS,
+  });
   const lastReloadKey = useRef<string>("");
   const videoRef = useRef<VideoSurfaceHandle>(null);
   const secondaryVideoRef = useRef<VideoSurfaceHandle>(null);
@@ -69,17 +76,6 @@ export const PresentWindow = () => {
     document.body.style.background = stage.surface;
     document.body.style.margin = "0";
   }, [stage.surface]);
-
-  useEffect(() => {
-    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
-    return () => window.clearTimeout(hideTimer.current);
-  }, []);
-
-  const wake = () => {
-    setHintVisible(true);
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => setHintVisible(false), 2500);
-  };
 
   const claimFocus = () => {
     try {
@@ -142,8 +138,8 @@ export const PresentWindow = () => {
         backdropFilter: "blur(10px)",
         border: `1px solid ${stage.border}`,
         color: stage.text,
-        opacity: hintVisible ? 1 : 0,
-        pointerEvents: hintVisible ? "auto" : "none",
+        opacity: isChromeVisible ? 1 : 0,
+        pointerEvents: isChromeVisible ? "auto" : "none",
         transition: "opacity 0.3s ease",
       }}
     >
@@ -154,7 +150,6 @@ export const PresentWindow = () => {
   if (!state || !frame) {
     return (
       <div
-        onPointerMove={wake}
         onPointerDown={claimFocus}
         style={{ position: "fixed", inset: 0, background: stage.surface }}
       >
@@ -165,7 +160,6 @@ export const PresentWindow = () => {
 
   return (
     <div
-      onPointerMove={wake}
       onPointerDown={claimFocus}
       style={{ position: "fixed", inset: 0, background: stage.surface }}
     >
