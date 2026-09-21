@@ -7,9 +7,10 @@ interface AudioWindow extends Window {
   webkitAudioContext?: AudioContextConstructor;
 }
 
-/* Loud enough for the browser to count this page as playing something, far too
-   quiet and too low to be heard. */
-const KEEP_ALIVE_GAIN = 0.0001;
+/* Chrome only counts a page as playing once its output rises above roughly
+   -72 dBFS, so the tone sits at -60 dBFS: enough to keep a hidden or minimised
+   page running, and still far too quiet and too low to be heard. */
+const KEEP_ALIVE_GAIN = 0.001;
 const KEEP_ALIVE_FREQUENCY = 30;
 
 const audioContextConstructor = (): AudioContextConstructor | null => {

@@ -16,7 +16,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
+import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { keepsSelectionProps } from "../../lib/selectionScope";
 import {
@@ -27,6 +29,7 @@ import { OverlayImagePicker } from "./OverlayImagePicker";
 import { OverlayPassagePicker } from "./OverlayPassagePicker";
 import { OverlaySectionLabel } from "./OverlayControls";
 import { OverlaySettingsPanel } from "./OverlaySettingsPanel";
+import { SaveOverlayDialog } from "./SaveOverlayDialog";
 import { SavedOverlaysModal } from "./SavedOverlaysModal";
 import {
   createContentOverlay,
@@ -41,6 +44,7 @@ import {
 import {
   addStreamOverlay,
   clearStreamOverlays,
+  linkStreamOverlayPreset,
   removeStreamOverlay,
   takeAllStreamOverlaysOffAir,
   toggleStreamOverlayHidden,
@@ -76,6 +80,18 @@ export const StreamOverlayPanel = ({
   const [pickingPicture, setPickingPicture] = useState(false);
   const [pickingPassage, setPickingPassage] = useState(false);
   const [pickingSaved, setPickingSaved] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [unsavingId, setUnsavingId] = useState<string | null>(null);
+  const presets = useStore((s) => s.overlayPresets);
+  const removeOverlayPreset = useStore((s) => s.removeOverlayPreset);
+  const pushToast = useStore((s) => s.pushToast);
+  const savedPresetOf = (overlay: StreamOverlay) =>
+    overlay.presetId
+      ? presets.find((preset) => preset.id === overlay.presetId)
+      : undefined;
+  const saving = overlays.find((overlay) => overlay.id === savingId) ?? null;
+  const unsaving = overlays.find((overlay) => overlay.id === unsavingId);
+  const unsavingPreset = unsaving ? savedPresetOf(unsaving) : undefined;
   const selected =
     overlays.find((overlay) => overlay.id === selectedId) ?? null;
   const anyOnAir = overlays.some((overlay) => overlay.status === "live");
@@ -137,7 +153,7 @@ export const StreamOverlayPanel = ({
             onClick={() => setPickingSaved(true)}
           >
             <Bookmark size={14} />
-            Saved
+            {`Saved (${presets.length})`}
           </Button>
         </div>
       </div>
@@ -187,8 +203,14 @@ export const StreamOverlayPanel = ({
                 key={overlay.id}
                 overlay={overlay}
                 selected={overlay.id === selectedId}
+                isSaved={savedPresetOf(overlay) !== undefined}
                 onSelect={() =>
                   onSelect(overlay.id === selectedId ? null : overlay.id)
+                }
+                onToggleSaved={() =>
+                  savedPresetOf(overlay)
+                    ? setUnsavingId(overlay.id)
+                    : setSavingId(overlay.id)
                 }
               />
             ))}
@@ -222,6 +244,26 @@ export const StreamOverlayPanel = ({
           onSelect(overlay.id);
           setPickingPassage(false);
         }}
+      />
+
+      {saving && (
+        <SaveOverlayDialog overlay={saving} onClose={() => setSavingId(null)} />
+      )}
+
+      <ConfirmDialog
+        open={unsavingPreset !== undefined}
+        title="Remove from saved?"
+        message={`"${unsavingPreset?.name ?? ""}" is taken out of Saved. The element stays on this broadcast.`}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (unsaving && unsavingPreset) {
+            removeOverlayPreset(unsavingPreset.id);
+            linkStreamOverlayPreset(unsaving.id, undefined);
+            pushToast(`"${unsavingPreset.name}" removed from saved.`);
+          }
+          setUnsavingId(null);
+        }}
+        onCancel={() => setUnsavingId(null)}
       />
 
       <SavedOverlaysModal
@@ -285,11 +327,15 @@ const TextAction = ({
 const OverlayRow = ({
   overlay,
   selected,
+  isSaved,
   onSelect,
+  onToggleSaved,
 }: {
   overlay: StreamOverlay;
   selected: boolean;
+  isSaved: boolean;
   onSelect: () => void;
+  onToggleSaved: () => void;
 }) => {
   const { colors, fonts } = useUITheme();
   const Icon = KIND_ICON[overlay.kind];
@@ -334,6 +380,16 @@ const OverlayRow = ({
         </span>
         <StatusChip visibility={visibility} staged={hasStagedEdits(overlay)} />
       </button>
+      <RowButton
+        icon={Bookmark}
+        label={
+          isSaved
+            ? "Saved, and kept in step with every change. Click to remove it from saved"
+            : "Save this element for another service"
+        }
+        active={isSaved}
+        onClick={onToggleSaved}
+      />
       <RowButton
         icon={overlay.hidden ? EyeOff : Eye}
         label={
@@ -411,18 +467,21 @@ const RowButton = ({
   onClick,
   danger,
   accent,
+  active,
 }: {
   icon: LucideIcon;
   label: string;
   onClick: () => void;
   danger?: boolean;
   accent?: boolean;
+  active?: boolean;
 }) => {
   const { colors } = useUITheme();
   return (
     <button
       title={label}
       aria-label={label}
+      aria-pressed={active}
       onClick={onClick}
       style={{
         width: 25,
@@ -433,11 +492,15 @@ const RowButton = ({
         borderRadius: 7,
         border: "none",
         cursor: "pointer",
-        background: "transparent",
-        color: danger ? colors.danger : accent ? colors.accentSoft : colors.sub,
+        background: active ? fade(colors.accent, 0.16) : "transparent",
+        color: danger
+          ? colors.danger
+          : accent || active
+            ? colors.accentSoft
+            : colors.sub,
       }}
     >
-      <Icon size={13} />
+      <Icon size={13} fill={active ? "currentColor" : "none"} />
     </button>
   );
 };

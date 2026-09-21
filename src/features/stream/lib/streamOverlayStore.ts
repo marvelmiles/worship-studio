@@ -159,6 +159,18 @@ export const setStreamOverlayAutoSync = (
   });
 };
 
+/** Ties an overlay to the saved copy it keeps in step with, or unties it. */
+export const linkStreamOverlayPreset = (
+  id: string,
+  presetId: string | undefined,
+): void => {
+  replace(id, (overlay) =>
+    overlay.presetId === presetId
+      ? overlay
+      : ({ ...overlay, presetId } as StreamOverlay),
+  );
+};
+
 const writeStreamOverlay = (id: string, patch: OverlayEdit): void => {
   replace(id, (overlay) => ({ ...overlay, ...patch }) as StreamOverlay);
 };

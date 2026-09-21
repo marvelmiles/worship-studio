@@ -1,12 +1,4 @@
-import { useState } from "react";
-import {
-  Bookmark,
-  Eye,
-  MonitorPlay,
-  MonitorX,
-  RotateCcw,
-  Square,
-} from "lucide-react";
+import { Eye, MonitorPlay, MonitorX, RotateCcw, Square } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { Button } from "../../components/ui/Button";
 import {
@@ -15,7 +7,6 @@ import {
   OverlaySettingsGroup,
   OverlaySlider,
 } from "./OverlayControls";
-import { SaveOverlayDialog } from "./SaveOverlayDialog";
 import { MarqueeOverlaySettings } from "./overlaySettings/MarqueeOverlaySettings";
 import { PictureOverlaySettings } from "./overlaySettings/PictureOverlaySettings";
 import { TextOverlaySettings } from "./overlaySettings/TextOverlaySettings";
@@ -42,7 +33,6 @@ export const OverlaySettingsPanel = ({
   overlay: StreamOverlay;
 }) => {
   const { colors, fonts } = useUITheme();
-  const [saving, setSaving] = useState(false);
   const edited = editedOverlay(overlay);
   const isLive = overlay.status === "live";
   const hasStaged = hasStagedEdits(overlay);
@@ -164,21 +154,6 @@ export const OverlaySettingsPanel = ({
           onChange={(radius) => editStreamOverlay(overlay.id, { radius })}
         />
       </OverlaySettingsGroup>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setSaving(true)}
-        style={{ width: "100%" }}
-        title="Keep this element, as it is set up here, for another service"
-      >
-        <Bookmark size={14} />
-        Save overlay
-      </Button>
-
-      {saving && (
-        <SaveOverlayDialog overlay={overlay} onClose={() => setSaving(false)} />
-      )}
     </div>
   );
 };

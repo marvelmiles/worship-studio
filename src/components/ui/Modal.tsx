@@ -12,6 +12,8 @@ interface ModalProps {
   width?: number;
   footer?: ReactNode;
   info?: ReactNode;
+  /** Controls that sit beside the close button and stay put while the body scrolls. */
+  headerActions?: ReactNode;
   dismissible?: boolean;
 }
 
@@ -23,6 +25,7 @@ export const Modal = ({
   width = 520,
   footer,
   info,
+  headerActions,
   dismissible = true,
 }: ModalProps) => {
   const { colors, fonts, glass, shadows } = useUITheme();
@@ -85,8 +88,21 @@ export const Modal = ({
           {info && (
             <div style={{ marginRight: "auto", marginLeft: 6 }}>{info}</div>
           )}
-          {dismissible && (
-            <IconButton icon={X} onClick={onClose} title="Close" />
+          {(headerActions || dismissible) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                marginLeft: "auto",
+                flexShrink: 0,
+              }}
+            >
+              {headerActions}
+              {dismissible && (
+                <IconButton icon={X} onClick={onClose} title="Close" />
+              )}
+            </div>
           )}
         </div>
         <div

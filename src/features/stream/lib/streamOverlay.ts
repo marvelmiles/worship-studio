@@ -34,6 +34,8 @@ export interface OverlayVideoPlayback {
 
 interface StreamOverlayBase {
   id: string;
+  /** The saved overlay this one keeps in step with, once it has been saved. */
+  presetId?: string;
   frame: SlideFrame;
   opacity: number;
   radius: number;

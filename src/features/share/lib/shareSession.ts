@@ -1,4 +1,9 @@
-import { acceptShareLink, completeShareLink, openShareLink } from "./sharePeer";
+import {
+  acceptShareLink,
+  completeShareLink,
+  openShareLink,
+  type ShareLink,
+} from "./sharePeer";
 import {
   parseShareMessage,
   sendShareMessage,
@@ -21,6 +26,16 @@ import {
 const DECISION_TIMEOUT_MS = 90 * 1000;
 /** How long to wait for the receiving device to finish taking it in. */
 const IMPORT_TIMEOUT_MS = 10 * 60 * 1000;
+/** How often a wait checks whether the person here has stopped it. */
+const STOP_POLL_MS = 250;
+
+/** Raised wherever a wait ends because either side stopped the transfer. */
+export class ShareStoppedError extends Error {
+  constructor() {
+    super("The transfer was stopped.");
+    this.name = "ShareStoppedError";
+  }
+}
 
 export type SendState =
   | "connecting"
@@ -29,10 +44,17 @@ export type SendState =
   | "importing"
   | "done"
   | "declined"
+  | "stopped"
   | "failed";
 
 export type ReceiveState =
-  "asking" | "receiving" | "importing" | "done" | "declined" | "failed";
+  | "asking"
+  | "receiving"
+  | "importing"
+  | "done"
+  | "declined"
+  | "stopped"
+  | "failed";
 
 export interface ShareOfferDetails {
   name: string;
@@ -42,7 +64,7 @@ export interface ShareOfferDetails {
 }
 
 export interface SendOutcome {
-  state: Extract<SendState, "done" | "declined" | "failed">;
+  state: Extract<SendState, "done" | "declined" | "stopped" | "failed">;
   message: string;
 }
 
@@ -51,10 +73,12 @@ const nextControl = (
   channel: RTCDataChannel,
   wanted: ShareMessage["type"][],
   timeoutMs: number,
+  shouldStop: () => boolean,
 ): Promise<ShareMessage> =>
   new Promise((resolve, reject) => {
     const stop = () => {
       window.clearTimeout(timer);
+      window.clearInterval(watcher);
       channel.removeEventListener("message", onMessage);
       channel.removeEventListener("close", onClose);
     };
@@ -62,13 +86,24 @@ const nextControl = (
       stop();
       reject(new Error("The other device did not reply."));
     }, timeoutMs);
+    const watcher = window.setInterval(() => {
+      if (!shouldStop()) return;
+      stop();
+      reject(new ShareStoppedError());
+    }, STOP_POLL_MS);
     const onClose = () => {
       stop();
       reject(new Error("The link closed."));
     };
     const onMessage = (event: MessageEvent<unknown>) => {
       const message = parseShareMessage(event.data);
-      if (!message || !wanted.includes(message.type)) return;
+      if (!message) return;
+      if (message.type === "cancel") {
+        stop();
+        reject(new ShareStoppedError());
+        return;
+      }
+      if (!wanted.includes(message.type)) return;
       stop();
       resolve(message);
     };
@@ -106,7 +141,16 @@ export const sendLibraryTo = async ({
   shouldStop,
 }: SendOptions): Promise<SendOutcome> => {
   onState("connecting");
-  const { link, offerSdp } = await openShareLink();
+
+  let link: ShareLink;
+  let offerSdp: string;
+  try {
+    ({ link, offerSdp } = await openShareLink());
+  } catch {
+    onState("failed");
+    return { state: "failed", message: `Could not reach ${target.name}.` };
+  }
+
   const call = callShareDevice(room, target.id, fromId, fromName, offerSdp);
   let answered = false;
   call.onAnswer((answerSdp) => {
@@ -115,7 +159,15 @@ export const sendLibraryTo = async ({
     void completeShareLink(link, answerSdp).catch(() => {});
   });
 
+  let channel: RTCDataChannel | null = null;
+
   const finish = async (outcome: SendOutcome): Promise<SendOutcome> => {
+    /* Saying so first spares the other side a wait that would otherwise only
+       end when the link times out. */
+    if (outcome.state === "stopped" && channel) {
+      sendShareMessage(channel, { type: "cancel" });
+      await whenFlushed(channel);
+    }
     await call.close();
     await clearShareCall(room, target.id, fromId);
     link.close();
@@ -124,7 +176,9 @@ export const sendLibraryTo = async ({
   };
 
   try {
-    const channel = await link.ready;
+    channel = await link.ready;
+    if (shouldStop()) throw new ShareStoppedError();
+
     sendShareMessage(channel, {
       type: "offer",
       name: fromName,
@@ -138,6 +192,7 @@ export const sendLibraryTo = async ({
       channel,
       ["accept", "decline"],
       DECISION_TIMEOUT_MS,
+      shouldStop,
     );
     if (decision.type === "decline") {
       return finish({ state: "declined", message: `${target.name} said no.` });
@@ -151,6 +206,7 @@ export const sendLibraryTo = async ({
       shouldStop,
     });
     if (!sent) {
+      if (shouldStop()) throw new ShareStoppedError();
       return finish({
         state: "failed",
         message: `The send to ${target.name} stopped early.`,
@@ -159,7 +215,12 @@ export const sendLibraryTo = async ({
     sendShareMessage(channel, { type: "sent", bytes: archive.size });
 
     onState("importing");
-    const result = await nextControl(channel, ["result"], IMPORT_TIMEOUT_MS);
+    const result = await nextControl(
+      channel,
+      ["result"],
+      IMPORT_TIMEOUT_MS,
+      shouldStop,
+    );
     if (result.type !== "result" || !result.ok) {
       return finish({
         state: "failed",
@@ -171,6 +232,9 @@ export const sendLibraryTo = async ({
     }
     return finish({ state: "done", message: result.message });
   } catch (error) {
+    if (error instanceof ShareStoppedError || shouldStop()) {
+      return finish({ state: "stopped", message: "" });
+    }
     return finish({
       state: "failed",
       message: error instanceof Error ? error.message : "The transfer failed.",
@@ -189,6 +253,8 @@ interface ReceiveOptions {
   /** Reads the archive into the library, and says how it went. */
   importArchive: (file: File) => Promise<{ ok: boolean; message: string }>;
   onFinished: (state: ReceiveState, message: string) => void;
+  /** Whether the person here has stopped taking it in. */
+  shouldStop: () => boolean;
 }
 
 /** Takes one offered library in, once the person here has accepted it. */
@@ -201,19 +267,38 @@ export const receiveLibraryFrom = async ({
   onProgress,
   importArchive,
   onFinished,
+  shouldStop,
 }: ReceiveOptions): Promise<void> => {
-  const { link, answerSdp } = await acceptShareLink(call.offerSdp);
-  const collector = createArchiveCollector();
+  let link: ShareLink;
+  let answerSdp: string;
+  try {
+    ({ link, answerSdp } = await acceptShareLink(call.offerSdp));
+  } catch {
+    onFinished("failed", "The devices could not reach each other.");
+    return;
+  }
 
-  const close = async () => {
+  const collector = createArchiveCollector();
+  let channel: RTCDataChannel | null = null;
+
+  const close = async (didStop: boolean) => {
+    if (didStop && channel) {
+      sendShareMessage(channel, { type: "cancel" });
+      await whenFlushed(channel);
+    }
     link.close();
     await clearShareCall(room, deviceId, call.callerId);
   };
 
   try {
     await answerShareCall(room, deviceId, call.callerId, answerSdp);
-    const channel = await link.ready;
-    const offer = await nextControl(channel, ["offer"], DECISION_TIMEOUT_MS);
+    channel = await link.ready;
+    const offer = await nextControl(
+      channel,
+      ["offer"],
+      DECISION_TIMEOUT_MS,
+      shouldStop,
+    );
     if (offer.type !== "offer") throw new Error("Nothing was offered.");
 
     onState("asking");
@@ -226,7 +311,7 @@ export const receiveLibraryFrom = async ({
     if (!accepted) {
       sendShareMessage(channel, { type: "decline" });
       await whenFlushed(channel);
-      await close();
+      await close(false);
       onFinished("declined", "You turned that down.");
       return;
     }
@@ -234,11 +319,18 @@ export const receiveLibraryFrom = async ({
     sendShareMessage(channel, { type: "accept" });
     onState("receiving");
 
+    const open = channel;
     const done = new Promise<void>((resolve, reject) => {
       const stop = () => {
-        channel.removeEventListener("message", onMessage);
-        channel.removeEventListener("close", onClose);
+        window.clearInterval(watcher);
+        open.removeEventListener("message", onMessage);
+        open.removeEventListener("close", onClose);
       };
+      const watcher = window.setInterval(() => {
+        if (!shouldStop()) return;
+        stop();
+        reject(new ShareStoppedError());
+      }, STOP_POLL_MS);
       const onClose = () => {
         stop();
         reject(new Error("The sending device disconnected."));
@@ -249,6 +341,11 @@ export const receiveLibraryFrom = async ({
           return;
         }
         const message = parseShareMessage(event.data);
+        if (message?.type === "cancel") {
+          stop();
+          reject(new ShareStoppedError());
+          return;
+        }
         if (message?.type !== "sent") return;
         stop();
         if (collector.bytes < message.bytes) {
@@ -257,8 +354,8 @@ export const receiveLibraryFrom = async ({
         }
         resolve();
       };
-      channel.addEventListener("message", onMessage);
-      channel.addEventListener("close", onClose);
+      open.addEventListener("message", onMessage);
+      open.addEventListener("close", onClose);
     });
 
     await done;
@@ -272,13 +369,18 @@ export const receiveLibraryFrom = async ({
       message: result.message,
     });
     await whenFlushed(channel);
-    await close();
+    await close(false);
     onFinished(result.ok ? "done" : "failed", result.message);
   } catch (error) {
-    await close();
+    const didStop = error instanceof ShareStoppedError;
+    await close(didStop);
     onFinished(
-      "failed",
-      error instanceof Error ? error.message : "The transfer failed.",
+      didStop ? "stopped" : "failed",
+      didStop
+        ? "The transfer was stopped."
+        : error instanceof Error
+          ? error.message
+          : "The transfer failed.",
     );
   } finally {
     collector.reset();

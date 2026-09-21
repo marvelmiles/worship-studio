@@ -102,7 +102,7 @@ export const SavedOverlaysModal = ({
       );
       return;
     }
-    onUse(fromSavedOverlay(preset.overlay));
+    onUse(fromSavedOverlay(preset.overlay, preset.id));
     onClose();
   };
 
@@ -120,7 +120,7 @@ export const SavedOverlaysModal = ({
           <EmptyState
             icon={Bookmark}
             title="Nothing saved yet"
-            message="Select an element on the broadcast and choose Save overlay to keep it for another service."
+            message="Use the bookmark on an element to keep it for another service."
             compact
             bare
           />

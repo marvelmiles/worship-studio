@@ -19,6 +19,9 @@ const shareMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("accept") }),
   z.object({ type: z.literal("decline") }),
   z.object({ type: z.literal("sent"), bytes: z.number().nonnegative() }),
+  /* Either side may walk away mid transfer, so the other stops waiting rather
+     than sitting on a link that will never carry anything else. */
+  z.object({ type: z.literal("cancel") }),
   z.object({ type: z.literal("importing") }),
   z.object({
     type: z.literal("result"),

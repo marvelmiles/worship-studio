@@ -35,7 +35,8 @@ export interface ShareLobby {
   deviceName: string;
   /** Every other device with this page open on the same network. */
   devices: ShareDevice[];
-  retry: () => void;
+  /** Looks again for the others, and says this device is here once more. */
+  refresh: () => void;
 }
 
 export const useShareLobby = ({
@@ -92,7 +93,9 @@ export const useShareLobby = ({
       setStatus("ready");
       stopWatching = watchShareDevices(networkRoom, (found) => {
         if (isCancelled) return;
-        setDevices(found.filter((device) => device.id !== deviceId));
+        setDevices(
+          newestPerDevice(found.filter((device) => device.id !== deviceId)),
+        );
       });
     });
 
@@ -109,6 +112,18 @@ export const useShareLobby = ({
     deviceId,
     deviceName: deviceName ?? "This device",
     devices,
-    retry: () => setAttempt((count) => count + 1),
+    refresh: () => setAttempt((count) => count + 1),
   };
+};
+
+/* A device that reloads announces itself under a new id while its old row is
+   still counting down to stale, so only the newer of the two is listed. */
+const newestPerDevice = (devices: ShareDevice[]): ShareDevice[] => {
+  const byName = new Map<string, ShareDevice>();
+  for (const device of devices) {
+    const seen = byName.get(device.name);
+    if (!seen || device.lastSeen > seen.lastSeen)
+      byName.set(device.name, device);
+  }
+  return [...byName.values()];
 };

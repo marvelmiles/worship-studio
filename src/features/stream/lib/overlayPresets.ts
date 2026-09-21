@@ -17,7 +17,7 @@ import {
 /** An overlay as it is kept for later: everything but where it is right now. */
 type Reusable<TOverlay extends StreamOverlay> = Omit<
   TOverlay,
-  "id" | "status" | "pending"
+  "id" | "status" | "pending" | "presetId"
 >;
 
 export type SavedOverlay = Reusable<ContentOverlay> | Reusable<MarqueeOverlay>;
@@ -52,14 +52,19 @@ export const toSavedOverlay = (overlay: StreamOverlay): SavedOverlay => {
   delete settled.id;
   delete settled.status;
   delete settled.pending;
+  delete settled.presetId;
   return settled as SavedOverlay;
 };
 
 /** A fresh, off-air overlay built from what was saved. */
-export const fromSavedOverlay = (saved: SavedOverlay): StreamOverlay =>
+export const fromSavedOverlay = (
+  saved: SavedOverlay,
+  presetId?: string,
+): StreamOverlay =>
   ({
     ...saved,
     id: uid(),
+    presetId,
     status: "draft",
     hidden: false,
     pending: null,

@@ -5,7 +5,6 @@ import {
   MonitorSmartphone,
   PackageCheck,
   RefreshCw,
-  SendHorizontal,
   Share2,
   Wifi,
   WifiOff,
@@ -14,29 +13,25 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { InfoTip } from "../../components/ui/InfoTip";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Panel, PanelTitle } from "../../components/ui/Panel";
-import { ProgressBar } from "../../components/ui/ProgressBar";
 import { Spinner } from "../../components/ui/Spinner";
-import { describeSelection, selectionBytes } from "../../lib/backupPayload";
 import {
-  pickedCount,
   pickedSelection,
   shareCatalog,
   type PickedShareItems,
 } from "../../lib/shareCatalog";
-import { isSelectionEmpty } from "../../lib/shareSelection";
-import { formatBytes } from "../../lib/storageStats";
-import { formatCountLabel } from "../../lib/formatNumber";
 import { IncomingShareDialog } from "./components/IncomingShareDialog";
-import { OutgoingShareList } from "./components/OutgoingShareList";
 import { ShareDeviceList } from "./components/ShareDeviceList";
 import { ShareItemPicker } from "./components/ShareItemPicker";
+import { ShareSendFab } from "./components/ShareSendFab";
 import { useBackupSource } from "./lib/useBackupSource";
 import { useIncomingShare } from "./lib/useIncomingShare";
-import { useOutgoingShares } from "./lib/useOutgoingShares";
-import { useShareLobby, type LobbyStatus } from "./lib/useShareLobby";
+import { canSendSelection, useQuickShare } from "./lib/useQuickShare";
+import { useStopSharePrompt } from "./lib/useStopSharePrompt";
+import type { LobbyStatus } from "./lib/useShareLobby";
 
 const SHARE_SUBTITLE =
   "Send your library straight to another device on this WiFi.";
@@ -48,44 +43,30 @@ export const QuickSharePage = () => {
   const { colors, fonts } = useUITheme();
   const source = useBackupSource();
 
-  const lobby = useShareLobby();
-  const outgoing = useOutgoingShares(
-    lobby.room,
-    lobby.deviceId,
-    lobby.deviceName,
-  );
-  const incoming = useIncomingShare(lobby.room, lobby.deviceId);
-
   const [step, setStep] = useState<Step>("devices");
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [picked, setPicked] = useState<PickedShareItems>({});
+
+  const startOver = () => {
+    setPicked({});
+    setStep("devices");
+  };
+  const quickShare = useQuickShare({ onSent: startOver, onReset: startOver });
+  const incoming = useIncomingShare(quickShare.room, quickShare.deviceId);
+  const stopPrompt = useStopSharePrompt({
+    isBusy: quickShare.isBusy,
+    stopDevice: quickShare.stopDevice,
+    stopAll: quickShare.stopAll,
+    refresh: quickShare.refresh,
+  });
 
   const tabs = useMemo(() => shareCatalog(source), [source]);
   const selection = useMemo(() => pickedSelection(picked), [picked]);
-  const summary = useMemo(
-    () => describeSelection(source, selection),
-    [selection, source],
-  );
-  const bytes = useMemo(
-    () => selectionBytes(source, selection),
-    [selection, source],
-  );
+  const canSend = canSendSelection(quickShare, selection);
 
-  const targets = lobby.devices.filter((device) =>
-    selectedDevices.includes(device.id),
-  );
-  const canSend =
-    lobby.status === "ready" &&
-    !outgoing.isBusy &&
-    targets.length > 0 &&
-    !isSelectionEmpty(selection);
-
-  const toggleDevice = (deviceId: string) =>
-    setSelectedDevices((current) =>
-      current.includes(deviceId)
-        ? current.filter((id) => id !== deviceId)
-        : [...current, deviceId],
-    );
+  const targetNames = quickShare.devices
+    .filter((device) => quickShare.selectedDeviceIds.includes(device.id))
+    .map((device) => device.name)
+    .join(", ");
 
   return (
     <div className="ws-page">
@@ -98,7 +79,7 @@ export const QuickSharePage = () => {
           display: "flex",
           flexDirection: "column",
           gap: 16,
-          paddingBottom: 24,
+          paddingBottom: 96,
         }}
       >
         <Panel>
@@ -119,12 +100,16 @@ export const QuickSharePage = () => {
                   color: colors.text,
                 }}
               >
-                {lobby.deviceName}
+                {quickShare.deviceName}
               </div>
-              <LobbyStatusLine status={lobby.status} />
+              <LobbyStatusLine status={quickShare.status} />
             </div>
-            {(lobby.status === "offline" || lobby.status === "ready") && (
-              <Button variant="ghost" size="sm" onClick={lobby.retry}>
+            {quickShare.status !== "unavailable" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={stopPrompt.askForRefresh}
+              >
                 <RefreshCw size={14} />
                 Refresh
               </Button>
@@ -132,7 +117,7 @@ export const QuickSharePage = () => {
           </div>
         </Panel>
 
-        {lobby.status === "unavailable" ? (
+        {quickShare.status === "unavailable" ? (
           <UnavailableNote />
         ) : step === "devices" ? (
           <>
@@ -143,21 +128,23 @@ export const QuickSharePage = () => {
                 info="Open Quick Share on the other device. It only needs to be on the same WiFi."
               />
               <ShareDeviceList
-                devices={lobby.devices}
-                selectedIds={selectedDevices}
-                isSearching={lobby.status === "starting"}
-                disabled={outgoing.isBusy}
-                onToggle={toggleDevice}
+                devices={quickShare.devices}
+                selectedIds={quickShare.selectedDeviceIds}
+                transfers={quickShare.transfers}
+                isSearching={quickShare.isSearching}
+                disabled={quickShare.isBusy}
+                onToggle={quickShare.toggleDevice}
+                onStop={stopPrompt.askForDevice}
               />
             </Panel>
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 variant="primary"
-                disabled={targets.length === 0}
+                disabled={quickShare.selectedDeviceIds.length === 0}
                 onClick={() => setStep("items")}
                 title={
-                  targets.length === 0
+                  quickShare.selectedDeviceIds.length === 0
                     ? "Choose at least one device first"
                     : "Choose what to send them"
                 }
@@ -168,131 +155,69 @@ export const QuickSharePage = () => {
             </div>
           </>
         ) : (
-          <>
-            <Panel>
-              <PanelTitle
-                icon={PackageCheck}
-                title="What to send"
-                info="Pick from any tab; what you tick is kept as you move between them. Whatever arrives is merged into the other device's library, so nothing it already has is lost."
-                trailing={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={outgoing.isBusy}
-                    onClick={() => setStep("devices")}
-                  >
-                    <ArrowLeft size={14} />
-                    Devices
-                  </Button>
-                }
-              />
-              <p
-                style={{
-                  margin: "0 0 12px",
-                  fontFamily: fonts.ui,
-                  fontSize: 12.5,
-                  color: colors.dim,
-                }}
-              >
-                Sending to{" "}
-                <span style={{ color: colors.text }}>
-                  {targets.map((device) => device.name).join(", ") ||
-                    "no device yet"}
-                </span>
-              </p>
-              <ShareItemPicker
-                tabs={tabs}
-                picked={picked}
-                disabled={outgoing.isBusy}
-                onChange={setPicked}
-              />
-            </Panel>
-
-            <div
+          <Panel>
+            <PanelTitle
+              icon={PackageCheck}
+              title="What to send"
+              info="Pick from any module; what you tick is kept as you move between them. Whatever arrives is merged into the other device's library, so nothing it already has is lost."
+              trailing={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep("devices")}
+                >
+                  <ArrowLeft size={14} />
+                  Devices
+                </Button>
+              }
+            />
+            <p
               style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 10,
+                margin: "0 0 12px",
+                fontFamily: fonts.ui,
+                fontSize: 12.5,
+                color: colors.dim,
               }}
             >
-              <span
-                style={{
-                  fontFamily: fonts.ui,
-                  fontSize: 12.5,
-                  color: colors.sub,
-                }}
-              >
-                {isSelectionEmpty(selection)
-                  ? "Nothing chosen yet."
-                  : `${formatCountLabel(pickedCount(picked), "item")} chosen: ${summary}${
-                      bytes > 0 ? `, about ${formatBytes(bytes)}` : ""
-                    }.`}
+              Sending to{" "}
+              <span style={{ color: colors.text }}>
+                {targetNames || "no device yet"}
               </span>
-              <span style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {pickedCount(picked) > 0 && !outgoing.isBusy && (
-                  <Button variant="ghost" onClick={() => setPicked({})}>
-                    Clear all
-                  </Button>
-                )}
-                <Button
-                  variant="primary"
-                  disabled={!canSend}
-                  busy={outgoing.isBusy}
-                  onClick={() => void outgoing.send(targets, selection)}
-                  title={
-                    canSend
-                      ? "Send what you chose to the chosen devices"
-                      : "Choose at least one device and one item"
-                  }
-                >
-                  <SendHorizontal size={15} />
-                  {targets.length > 1
-                    ? `Send to ${targets.length} devices`
-                    : "Send"}
-                </Button>
-              </span>
-            </div>
-
-            {outgoing.packing !== null && (
-              <Panel>
-                <ProgressBar
-                  value={outgoing.packing}
-                  label="Gathering what you chose"
-                />
-              </Panel>
-            )}
-
-            {outgoing.transfers.length > 0 && (
-              <Panel>
-                <PanelTitle
-                  icon={SendHorizontal}
-                  title="Sending"
-                  trailing={
-                    outgoing.isBusy ? undefined : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={outgoing.clear}
-                      >
-                        Clear
-                      </Button>
-                    )
-                  }
-                />
-                <OutgoingShareList transfers={outgoing.transfers} />
-              </Panel>
-            )}
-          </>
+            </p>
+            <ShareItemPicker
+              tabs={tabs}
+              picked={picked}
+              disabled={quickShare.isBusy}
+              onChange={setPicked}
+            />
+          </Panel>
         )}
       </div>
+
+      {step === "items" && quickShare.status !== "unavailable" && (
+        <ShareSendFab
+          canSend={canSend}
+          isBusy={quickShare.isBusy}
+          progress={quickShare.progress}
+          onSend={() => void quickShare.send(selection)}
+          onStop={stopPrompt.askForEverything}
+        />
+      )}
+
+      <ConfirmDialog
+        open={stopPrompt.prompt !== null}
+        title={stopPrompt.prompt?.title ?? ""}
+        message={stopPrompt.prompt?.message ?? ""}
+        confirmLabel={stopPrompt.prompt?.confirmLabel ?? "Stop"}
+        onConfirm={stopPrompt.confirm}
+        onCancel={stopPrompt.cancel}
+      />
 
       <IncomingShareDialog
         incoming={incoming.incoming}
         onAccept={incoming.accept}
         onDecline={incoming.decline}
-        onDismiss={incoming.dismiss}
+        onStop={incoming.stop}
       />
     </div>
   );

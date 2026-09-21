@@ -231,6 +231,14 @@ code {
   white-space: nowrap;
 }
 
+.ws-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* A title sitting beside its badges has to be the part that gives way, and a
    flex child only shrinks below its content once its automatic minimum is
    lifted. */

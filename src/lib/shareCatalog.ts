@@ -1,4 +1,12 @@
-import type { AudioItem, Background, MediaItem } from "../types";
+import type {
+  AudioItem,
+  Background,
+  ImageSettings,
+  MediaItem,
+  SlideDeckDoc,
+  Theme,
+  VideoSettings,
+} from "../types";
 import type { BackupSource } from "./backupPayload";
 import {
   PREFS_RECORD_ID,
@@ -6,6 +14,10 @@ import {
   type BackupRecordRef,
   type BackupSelection,
 } from "./shareSelection";
+import {
+  contentIdsOf,
+  isSavedMarquee,
+} from "../features/stream/lib/overlayPresets";
 import { formatDuration } from "./media";
 import { formatBytes } from "./storageStats";
 
@@ -20,15 +32,30 @@ export type ShareTabId =
   | "overlays"
   | "settings";
 
-/** How a shareable thing is shown: its own picture where it has one. */
+/** How a shareable thing is shown: whatever it actually looks like. */
 export type SharePreview =
   | { kind: "media"; item: MediaItem }
-  | { kind: "background"; background: Background }
+  | {
+      kind: "background";
+      background: Background;
+      settings?: ImageSettings;
+      videoSettings?: VideoSettings;
+    }
+  /** A document or passage, over the background and in the theme it uses. */
+  | {
+      kind: "deck";
+      text: string;
+      theme?: Theme;
+      background?: Background;
+      settings?: ImageSettings;
+      videoSettings?: VideoSettings;
+    }
+  | { kind: "theme"; theme: Theme; background?: Background }
   | { kind: "audio"; item: AudioItem }
-  | { kind: "text" };
+  | { kind: "settings" };
 
 export interface ShareItem {
-  /** Unique across the catalog, so one selection can span every tab. */
+  /** Unique across the catalog, so one selection can span every module. */
   key: string;
   name: string;
   detail: string;
@@ -65,6 +92,57 @@ const mediaDetail = (item: MediaItem): string =>
     item.size ? formatBytes(item.size) : undefined,
     item.duration !== undefined ? formatDuration(item.duration) : undefined,
   ]);
+
+const backgroundById = (
+  source: BackupSource,
+  id?: string,
+): Background | undefined =>
+  id
+    ? source.backgrounds.find((background) => background.id === id)
+    : undefined;
+
+const themeById = (source: BackupSource, id?: string): Theme | undefined =>
+  id ? source.themes.find((theme) => theme.id === id) : undefined;
+
+const mediaById = (source: BackupSource, id: string): MediaItem | undefined =>
+  source.media.find((item) => item.id === id);
+
+const EXCERPT_LIMIT = 90;
+
+const excerpt = (value: string): string =>
+  value.length > EXCERPT_LIMIT
+    ? `${value.slice(0, EXCERPT_LIMIT).trimEnd()}…`
+    : value;
+
+/** The first words a document actually shows, so its cover is its own. */
+const firstLineOf = (doc: SlideDeckDoc): string => {
+  for (const slide of doc.slides ?? []) {
+    const line = (slide.lines ?? []).find((text) => text.trim().length > 0);
+    if (line) return excerpt(line.trim());
+  }
+  return doc.title;
+};
+
+/** What a document looks like on screen: its background, theme and first line. */
+const deckPreview = (source: BackupSource, doc: SlideDeckDoc): SharePreview => {
+  const theme = themeById(source, doc.defaultThemeId);
+  const background =
+    backgroundById(source, doc.defaultBackgroundId) ??
+    backgroundById(source, theme?.backgroundId);
+  return {
+    kind: "deck",
+    text: firstLineOf(doc),
+    theme,
+    background,
+    settings: doc.defaultBackgroundImage,
+    videoSettings: doc.defaultBackgroundVideo,
+  };
+};
+
+const audioPreview = (source: BackupSource, item: AudioItem): SharePreview => {
+  const clip = item.mediaId ? mediaById(source, item.mediaId) : undefined;
+  return clip ? { kind: "media", item: clip } : { kind: "audio", item };
+};
 
 interface FileGroup {
   key: string;
@@ -147,7 +225,7 @@ const audioItems = (source: BackupSource): ShareItem[] =>
       updatedAt: stamp(item.updatedAt ?? item.createdAt),
       bytes: item.size ?? 0,
       records: [{ collection: "audio", id: item.id }],
-      preview: { kind: "audio", item },
+      preview: audioPreview(source, item),
     }));
 
 const colourItems = (source: BackupSource): ShareItem[] =>
@@ -168,7 +246,33 @@ const colourItems = (source: BackupSource): ShareItem[] =>
       preview: { kind: "background", background },
     }));
 
-/** Everything this library can hand to another device, tab by tab. */
+/* A saved overlay is shown by whatever it puts on screen, so its cover is the
+   picture, clip or document it points at. */
+const overlayPreview = (
+  source: BackupSource,
+  preset: BackupSource["overlayPresets"][number],
+): SharePreview => {
+  if (isSavedMarquee(preset.overlay))
+    return { kind: "deck", text: excerpt(preset.overlay.text || preset.name) };
+
+  const [contentId] = contentIdsOf([preset.overlay]);
+  if (!contentId) return { kind: "deck", text: preset.name };
+
+  const clip = mediaById(source, contentId);
+  if (clip) return { kind: "media", item: clip };
+
+  const doc =
+    source.manuscripts.find((item) => item.id === contentId) ??
+    source.scriptures.find((item) => item.id === contentId);
+  if (doc) return deckPreview(source, doc);
+
+  const background = backgroundById(source, contentId);
+  return background
+    ? { kind: "background", background }
+    : { kind: "deck", text: preset.name };
+};
+
+/** Everything this library can hand to another device, module by module. */
 export const shareCatalog = (source: BackupSource): ShareTab[] => [
   {
     id: "manuscripts",
@@ -186,7 +290,7 @@ export const shareCatalog = (source: BackupSource): ShareTab[] => [
         updatedAt: stamp(doc.updatedAt),
         bytes: 0,
         records: [{ collection: "manuscripts", id: doc.id }],
-        preview: { kind: "text" },
+        preview: deckPreview(source, doc),
       })),
   },
   {
@@ -205,7 +309,7 @@ export const shareCatalog = (source: BackupSource): ShareTab[] => [
         updatedAt: stamp(passage.updatedAt),
         bytes: 0,
         records: [{ collection: "scriptures", id: passage.id }],
-        preview: { kind: "text" },
+        preview: deckPreview(source, passage),
       })),
   },
   { id: "images", label: "Images", items: fileItems(source, "image") },
@@ -223,7 +327,11 @@ export const shareCatalog = (source: BackupSource): ShareTab[] => [
       updatedAt: stamp(theme.updatedAt ?? theme.createdAt),
       bytes: 0,
       records: [{ collection: "themes", id: theme.id }],
-      preview: { kind: "text" },
+      preview: {
+        kind: "theme",
+        theme,
+        background: backgroundById(source, theme.backgroundId),
+      },
     })),
   },
   {
@@ -237,7 +345,7 @@ export const shareCatalog = (source: BackupSource): ShareTab[] => [
       updatedAt: preset.updatedAt,
       bytes: 0,
       records: [{ collection: "overlayPresets", id: preset.id }],
-      preview: { kind: "text" },
+      preview: overlayPreview(source, preset),
     })),
   },
   {
@@ -252,24 +360,21 @@ export const shareCatalog = (source: BackupSource): ShareTab[] => [
         updatedAt: EPOCH,
         bytes: 0,
         records: [{ collection: "prefs", id: PREFS_RECORD_ID }],
-        preview: { kind: "text" },
+        preview: { kind: "settings" },
       },
     ],
   },
 ];
 
-/** What a person has ticked, across every tab at once. */
+/** What a person has ticked, across every module at once. */
 export type PickedShareItems = Readonly<Record<string, ShareItem>>;
 
-/** Unique per tab, so two tabs can never tick each other's items. */
+/** Unique per module, so two modules can never tick each other's items. */
 export const pickKey = (tab: ShareTabId, item: ShareItem): string =>
   `${tab}:${item.key}`;
 
 export const pickedSelection = (picked: PickedShareItems): BackupSelection =>
   selectionFrom(Object.values(picked).flatMap((item) => item.records));
-
-export const pickedCount = (picked: PickedShareItems): number =>
-  Object.keys(picked).length;
 
 /** The records behind one library item, so a card can share it on its own. */
 export const recordsForMedia = (

@@ -15,14 +15,16 @@ Share**.
    appears in the others' list. Closing the page removes it again.
 2. **Pick the devices.** The first screen is the list of devices here now; tick
    one or several and move on.
-3. **Pick what to send.** The second screen holds a tab per part of the
-   library: manuscripts, passages, images, videos, audio, colours, themes,
-   saved overlays and settings. Each tab lists the real things, with their
-   own thumbnails, searchable and sorted newest, oldest, recently modified or
-   A to Z. Click an item to tick it, or take a whole tab with **Select all**.
-   What is ticked is held across every tab, so one send can carry a manuscript,
+3. **Pick what to send.** The second screen opens on a module chooser:
+   manuscripts, passages, images, videos, audio, colours, themes, saved
+   overlays and settings. Each module lists the real things with their own
+   covers (a document shows its background, theme and first line; a theme
+   shows its background and font; a saved overlay shows what it puts on
+   screen), searchable and sorted newest, oldest, recently modified or A to Z.
+   Click an item to tick it, or take a whole module with **Select all**. What
+   is ticked is held across every module, so one send can carry a manuscript,
    two clips and a passage together.
-4. **What a tab covers.** Images and videos list everything of that kind
+4. **What a module covers.** Images and videos list everything of that kind
    anywhere in the project: the media library and the asset library at once. A
    picture attached as a background is one tile, not two, and ticking it sends
    every record that names its file, so it lands in both places on the other
@@ -37,6 +39,8 @@ Share**.
    handed to each device in turn.
 7. **The other device is asked first.** It sees who is sending, what is coming
    and how big it is, and can decline. Nothing moves until it accepts.
+   A device that declines or never replies leaves the list, with a toast
+   saying so.
 8. **The archive travels device to device.** It goes down a WebRTC data channel
    in 16 KB chunks, paused whenever the link has more queued than it can push
    (`lib/shareTransfer.ts`).
@@ -45,12 +49,33 @@ Share**.
    wins where both hold the same item. The result travels back, so the sender
    sees whether it landed.
 
+## Sending and stopping
+
+- A floating send button appears once at least one device and one item are
+  chosen. Pressed, it turns into a ring showing how far the whole send has
+  got, with a stop button above it. Ticking and unticking is locked while it
+  runs.
+- Each device card carries its own status and progress ring in place of its
+  checkbox, and its own stop button. A stopped device leaves the list; once
+  nothing is left sending, the screen starts over with no device chosen.
+- A device keeps its card while it is being sent to, even if it drops off the
+  network list for a moment because it slept or its browser was minimised.
+- Refresh is always available. During a send it asks first, since looking
+  again cancels what is still going.
+- Stopping always asks first. Either side can stop: the one that stops sends a
+  `cancel` message so the other stops waiting at once (`lib/shareProtocol.ts`).
+- Once every device has the whole thing, the screen clears itself; the
+  single-item modal closes.
+- While anything is moving, both sides hold a screen wake lock and an
+  inaudible audio keep-alive, so a phone that sleeps or is locked keeps
+  sending instead of freezing the page mid transfer.
+
 ## Sharing one thing from where it lives
 
 Every library lists its own quick share: the ellipsis menu on an image, a
 video, a manuscript or a saved passage, and on a sound in the asset library.
 Choosing it opens the same device list in a modal; tick the devices and press
-Send. The item's records are worked out by the same catalogue the page uses
+Send. The refresh button in its header looks for devices again. The item's records are worked out by the same catalogue the page uses
 (`lib/shareCatalog.ts`), so a picture that is also a background still goes over
 as both, and a manuscript still takes its assets with it.
 
@@ -66,18 +91,20 @@ front of the person doing it.
 
 ## What each part does
 
-| File                   | Role                                                     |
-| ---------------------- | -------------------------------------------------------- |
-| `lib/shareSignaling.ts`| Presence and offer/answer relay, under `signal/<room>/share` |
-| `lib/sharePeer.ts`     | The LAN-only peer connection and its data channel          |
-| `lib/shareProtocol.ts` | The control messages, validated with Zod                   |
-| `lib/shareTransfer.ts` | Chunking, backpressure and reassembly                      |
-| `lib/shareSession.ts`  | One conversation, from offer to result, for either side    |
-| `lib/useShareLobby.ts` | This device's presence and the list of the others          |
-| `lib/shareSelection.ts`| Which records travel, and what they cannot arrive without  |
-| `lib/shareCatalog.ts`  | Everything shareable, grouped into tabs of real items      |
-| `lib/useOutgoingShares.ts` | Building the archive and sending it, one device at a time |
-| `lib/useIncomingShare.ts`  | Answering offers and importing what arrives           |
+| File                        | Role                                                              |
+| --------------------------- | ----------------------------------------------------------------- |
+| `lib/shareSignaling.ts`     | Presence and offer/answer relay, under `signal/<room>/share`      |
+| `lib/sharePeer.ts`          | The LAN-only peer connection and its data channel                 |
+| `lib/shareProtocol.ts`      | The control messages, validated with Zod                          |
+| `lib/shareTransfer.ts`      | Chunking, backpressure and reassembly                             |
+| `lib/shareSession.ts`       | One conversation, from offer to result, for either side           |
+| `lib/useShareLobby.ts`      | This device's presence and the list of the others                 |
+| `lib/shareSelection.ts`     | Which records travel, and what they cannot arrive without         |
+| `lib/shareCatalog.ts`       | Everything shareable, grouped into modules with real covers       |
+| `lib/useOutgoingShares.ts`  | Building the archive and sending it, one device at a time         |
+| `lib/useQuickShare.ts`      | Lobby, selection and sending together, for the page and the modal |
+| `lib/useStopSharePrompt.ts` | The confirmation in front of every stop                           |
+| `lib/useIncomingShare.ts`   | Answering offers and importing what arrives                       |
 
 ## What Firebase carries
 

@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
+import { LayoutGrid, PackageOpen } from "lucide-react";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { Select } from "../../../components/ui/Field";
 import { LibrarySortSelect } from "../../../components/ui/LibrarySortSelect";
 import { SearchInput } from "../../../components/ui/SearchInput";
-import { SegmentedTabs } from "../../../components/ui/SegmentedTabs";
-import { PackageOpen } from "lucide-react";
 import {
   DEFAULT_LIBRARY_SORT,
   sortLibrary,
@@ -27,9 +27,9 @@ interface ShareItemPickerProps {
 }
 
 /**
- * Everything this device can hand over, tab by tab. What is chosen is held
- * across every tab at once, so a send can carry a manuscript, two clips and a
- * passage together.
+ * Everything this device can hand over, one module at a time. What is chosen
+ * is held across every module at once, so a send can carry a manuscript, two
+ * clips and a passage together.
  */
 export const ShareItemPicker = ({
   tabs,
@@ -37,7 +37,7 @@ export const ShareItemPicker = ({
   disabled,
   onChange,
 }: ShareItemPickerProps) => {
-  const { colors, fonts } = useUITheme();
+  const { colors } = useUITheme();
   const [activeTab, setActiveTab] = useState<ShareTabId>(
     tabs[0]?.id ?? "manuscripts",
   );
@@ -45,6 +45,20 @@ export const ShareItemPicker = ({
   const [query, setQuery] = useState("");
 
   const tab = tabs.find((entry) => entry.id === activeTab) ?? tabs[0];
+
+  const moduleOptions = useMemo(
+    () =>
+      tabs.map((entry) => {
+        const chosen = entry.items.filter(
+          (item) => picked[pickKey(entry.id, item)],
+        ).length;
+        return {
+          value: entry.id,
+          label: chosen > 0 ? `${entry.label} (${chosen})` : entry.label,
+        };
+      }),
+    [picked, tabs],
+  );
 
   const shown = useMemo(() => {
     if (!tab) return [];
@@ -55,9 +69,6 @@ export const ShareItemPicker = ({
     return sortLibrary(matching, sort, (item) => item.name);
   }, [query, sort, tab]);
 
-  const pickedInTab = tab
-    ? tab.items.filter((item) => picked[pickKey(tab.id, item)]).length
-    : 0;
   const allShownPicked =
     shown.length > 0 &&
     shown.every((item) => tab && picked[pickKey(tab.id, item)]);
@@ -84,80 +95,54 @@ export const ShareItemPicker = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <SegmentedTabs
-        tabs={tabs.map((entry) => {
-          const chosen = entry.items.filter(
-            (item) => picked[pickKey(entry.id, item)],
-          ).length;
-          return {
-            id: entry.id,
-            label: entry.label,
-            count: chosen > 0 ? chosen : entry.items.length,
-          };
-        })}
-        value={activeTab}
-        onChange={(id) => {
-          setActiveTab(id);
-          setQuery("");
-        }}
-        ariaLabel="What to send"
-        minSegmentWidth={118}
-      />
-
-      {tab && tab.items.length > 0 && (
-        <div className="ws-row-wrap">
-          <SearchInput
-            value={query}
-            onChange={setQuery}
-            placeholder={`Search ${tab.label.toLowerCase()}…`}
-            style={{ minWidth: 160 }}
+      <div className="ws-row-wrap">
+        <div style={{ position: "relative", flex: "1 1 190px", minWidth: 170 }}>
+          <LayoutGrid
+            size={15}
+            style={{
+              position: "absolute",
+              left: 13,
+              top: 13,
+              color: colors.dim,
+              pointerEvents: "none",
+            }}
           />
-          <LibrarySortSelect
-            value={sort}
-            onChange={setSort}
-            nameLabel="Name"
-            style={{ minWidth: 168 }}
+          <Select
+            value={activeTab}
+            aria-label="Module to share from"
+            options={moduleOptions}
+            onChange={(event) => {
+              setActiveTab(event.target.value as ShareTabId);
+              setQuery("");
+            }}
+            style={{ paddingLeft: 38 }}
           />
         </div>
-      )}
+        {tab && tab.items.length > 0 && (
+          <>
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={`Search ${tab.label.toLowerCase()}…`}
+              style={{ minWidth: 160 }}
+            />
+            <LibrarySortSelect
+              value={sort}
+              onChange={setSort}
+              nameLabel="Name"
+              style={{ minWidth: 168 }}
+            />
+          </>
+        )}
+      </div>
 
-      {tab && tab.items.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: fonts.ui,
-              fontSize: 12,
-              color: pickedInTab > 0 ? colors.accentSoft : colors.dim,
-            }}
-          >
-            {pickedInTab > 0
-              ? `${pickedInTab} of ${tab.items.length} chosen`
-              : `${tab.items.length} here`}
-          </span>
-          <span style={{ display: "flex", gap: 14 }}>
-            <TextAction
-              disabled={disabled || shown.length === 0}
-              onClick={() => setMany(shown, !allShownPicked)}
-            >
-              {allShownPicked ? "Clear these" : "Select all"}
-            </TextAction>
-            {pickedInTab > 0 && (
-              <TextAction
-                disabled={disabled}
-                onClick={() => setMany(tab.items, false)}
-              >
-                Clear tab
-              </TextAction>
-            )}
-          </span>
+      {tab && shown.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <SelectAllAction
+            disabled={disabled}
+            isClearing={allShownPicked}
+            onClick={() => setMany(shown, !allShownPicked)}
+          />
         </div>
       )}
 
@@ -189,7 +174,6 @@ export const ShareItemPicker = ({
             <ShareItemTile
               key={item.key}
               item={item}
-              tab={tab.id}
               picked={Boolean(picked[pickKey(tab.id, item)])}
               disabled={disabled}
               onToggle={() => toggle(item)}
@@ -201,15 +185,17 @@ export const ShareItemPicker = ({
   );
 };
 
-const TextAction = ({
-  disabled,
-  onClick,
-  children,
-}: {
+interface SelectAllActionProps {
   disabled: boolean;
+  isClearing: boolean;
   onClick: () => void;
-  children: string;
-}) => {
+}
+
+const SelectAllAction = ({
+  disabled,
+  isClearing,
+  onClick,
+}: SelectAllActionProps) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -227,7 +213,7 @@ const TextAction = ({
         color: disabled ? colors.dim : colors.accentSoft,
       }}
     >
-      {children}
+      {isClearing ? "Clear these" : "Select all"}
     </button>
   );
 };

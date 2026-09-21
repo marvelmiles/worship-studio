@@ -7,6 +7,7 @@ import { Field, TextInput } from "../../components/ui/Field";
 import { validateName } from "../../lib/validation";
 import { suggestedPresetName } from "./lib/overlayPresets";
 import type { StreamOverlay } from "./lib/streamOverlay";
+import { linkStreamOverlayPreset } from "./lib/streamOverlayStore";
 
 interface SaveOverlayDialogProps {
   /** The overlay being put away. Mounted only while the dialog is open. */
@@ -38,9 +39,14 @@ export const SaveOverlayDialog = ({
     }
     if (existing) {
       updateOverlayPreset(existing.id, overlay);
+      linkStreamOverlayPreset(overlay.id, existing.id);
       pushToast(`"${existing.name}" now matches this element.`);
-    } else if (saveOverlayPreset(overlay, name)) {
-      pushToast(`"${name.trim()}" saved for later.`);
+    } else {
+      const presetId = saveOverlayPreset(overlay, name);
+      if (presetId) {
+        linkStreamOverlayPreset(overlay.id, presetId);
+        pushToast(`"${name.trim()}" saved. Changes to it are kept in step.`);
+      }
     }
     onClose();
   };
@@ -69,8 +75,9 @@ export const SaveOverlayDialog = ({
           color: colors.sub,
         }}
       >
-        Its placement, styling and what it is showing are kept together. Add it
-        to any broadcast later from Saved.
+        Its placement, styling and what it is showing are kept together, and any
+        change you make to it from now on is saved too. Add it to any broadcast
+        later from Saved.
       </p>
       <Field label="Name" error={showError ? error : null}>
         <TextInput

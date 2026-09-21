@@ -8,6 +8,7 @@ import { StreamOverlayEditor } from "./StreamOverlayEditor";
 import { StreamOverlayLayers } from "./StreamOverlayLayers";
 import { StreamPipLayer, type StreamPipWindow } from "./StreamPipLayer";
 import { StreamVideo } from "./StreamVideo";
+import { useSavedOverlaySync } from "./lib/useSavedOverlaySync";
 import { StageDrawerPanel, type StageDrawer } from "./stage/StageDrawerPanel";
 import { StageHeader } from "./stage/StageHeader";
 import {
@@ -56,6 +57,7 @@ export const ProjectionSurface = ({
   const audio = useRemoteAudio(stream);
   const { isTablet } = useViewport();
   const overlays = useStreamOverlays();
+  useSavedOverlaySync(overlays);
   const selectedOverlayId = useSelectedStreamOverlayId();
   const shellRef = useRef<HTMLDivElement>(null);
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(shellRef);

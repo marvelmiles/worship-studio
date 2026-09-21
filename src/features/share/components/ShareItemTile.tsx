@@ -1,37 +1,15 @@
 import type { KeyboardEvent } from "react";
-import {
-  BookOpen,
-  Check,
-  FileText,
-  Layers,
-  Music,
-  Palette,
-  Settings,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Check, Music, Settings } from "lucide-react";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { fade } from "../../../theme/uiTheme";
 import { BgSwatch } from "../../../components/controls/BgSwatch";
 import { ImageSurface } from "../../../components/media/ImageSurface";
 import { VideoThumb } from "../../../components/media/VideoThumb";
 import { LazyMount } from "../../../components/ui/LazyMount";
-import type { ShareItem, ShareTabId } from "../../../lib/shareCatalog";
-
-const TAB_ICON: Record<ShareTabId, LucideIcon> = {
-  manuscripts: FileText,
-  passages: BookOpen,
-  images: FileText,
-  videos: FileText,
-  audio: Music,
-  colours: Palette,
-  themes: Palette,
-  overlays: Layers,
-  settings: Settings,
-};
+import type { ShareItem, SharePreview } from "../../../lib/shareCatalog";
 
 interface ShareItemTileProps {
   item: ShareItem;
-  tab: ShareTabId;
   picked: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -39,7 +17,6 @@ interface ShareItemTileProps {
 
 export const ShareItemTile = ({
   item,
-  tab,
   picked,
   disabled,
   onToggle,
@@ -80,7 +57,7 @@ export const ShareItemTile = ({
           background: colors.raise,
         }}
       >
-        <ShareItemCover item={item} tab={tab} />
+        <ShareItemCover preview={item.preview} />
         <span
           aria-hidden
           style={{
@@ -130,15 +107,10 @@ export const ShareItemTile = ({
   );
 };
 
-const ShareItemCover = ({
-  item,
-  tab,
-}: {
-  item: ShareItem;
-  tab: ShareTabId;
-}) => {
-  const { colors } = useUITheme();
-  const preview = item.preview;
+const FILL = { width: "100%", height: "100%" } as const;
+
+const ShareItemCover = ({ preview }: { preview: SharePreview }) => {
+  const { colors, fonts } = useUITheme();
 
   if (preview.kind === "media") {
     return (
@@ -156,12 +128,76 @@ const ShareItemCover = ({
     return (
       <BgSwatch
         bg={preview.background}
-        style={{ width: "100%", height: "100%" }}
+        settings={preview.settings}
+        videoSettings={preview.videoSettings}
+        style={FILL}
       />
     );
   }
 
-  const Icon = preview.kind === "audio" ? Music : TAB_ICON[tab];
+  if (preview.kind === "deck") {
+    const theme = preview.theme;
+    return (
+      <BgSwatch
+        bg={preview.background}
+        settings={preview.settings}
+        videoSettings={preview.videoSettings}
+        style={FILL}
+      >
+        <span
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            padding: "8px 10px",
+            textAlign: theme?.align ?? "center",
+            fontFamily: theme?.fontFamily ?? fonts.display,
+            fontWeight: theme?.fontWeight ?? 600,
+            fontSize: 11,
+            lineHeight: 1.35,
+            letterSpacing: theme ? theme.letterSpacing / 4 : 0,
+            textTransform: theme?.uppercase ? "uppercase" : "none",
+            color: theme?.color ?? colors.text,
+            textShadow: preview.background
+              ? "0 1px 6px rgba(0,0,0,0.65)"
+              : undefined,
+            overflow: "hidden",
+          }}
+        >
+          <span className="ws-clamp-3">{preview.text}</span>
+        </span>
+      </BgSwatch>
+    );
+  }
+
+  if (preview.kind === "theme") {
+    const { theme } = preview;
+    return (
+      <BgSwatch bg={preview.background} style={FILL}>
+        <span
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            fontFamily: theme.fontFamily,
+            fontWeight: theme.fontWeight,
+            fontSize: 22,
+            letterSpacing: theme.letterSpacing / 3,
+            textTransform: theme.uppercase ? "uppercase" : "none",
+            color: theme.color,
+            textShadow: preview.background
+              ? "0 1px 6px rgba(0,0,0,0.65)"
+              : undefined,
+          }}
+        >
+          Aa
+        </span>
+      </BgSwatch>
+    );
+  }
+
   return (
     <div
       style={{
@@ -173,7 +209,7 @@ const ShareItemCover = ({
         color: colors.accentSoft,
       }}
     >
-      <Icon size={22} />
+      {preview.kind === "audio" ? <Music size={22} /> : <Settings size={22} />}
     </div>
   );
 };

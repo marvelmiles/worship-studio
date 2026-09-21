@@ -26,6 +26,8 @@ const roomPath = (room: string): string => `${ROOT_PATH}/${room}/${SHARE_PATH}`;
 export interface ShareDevice {
   id: string;
   name: string;
+  /** When it last said it was here, so a reloaded device replaces its old row. */
+  lastSeen: number;
 }
 
 export interface IncomingCall {
@@ -125,6 +127,7 @@ export const watchShareDevices = (
       devices.push({
         id: entry.key,
         name: value?.name || FALLBACK_DEVICE_NAME,
+        lastSeen: typeof value?.ts === "number" ? value.ts : 0,
       });
     });
     onDevices(devices);
