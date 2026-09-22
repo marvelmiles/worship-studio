@@ -31,11 +31,19 @@ import { RadioDot } from "./RadioDot";
  *  one list however long it gets. */
 const GRID_MAX_HEIGHT = 244;
 
+/** The choice that hands the background back to whatever this place inherits. */
+export interface InheritedBackground {
+  label: string;
+  background?: Background;
+  imageSettings?: ImageSettings | null;
+  videoSettings?: VideoSettings | null;
+}
+
 interface BackgroundPickerProps {
   backgrounds: Background[];
   value: string;
   onSelect: (id: string, image?: ImageSettings) => void;
-  inheritLabel?: string;
+  inherit?: InheritedBackground;
   highlightId?: string;
   onUploaded?: (id: string, image?: ImageSettings) => void;
   onAddColor?: (value: string, name?: string) => void;
@@ -81,13 +89,39 @@ const backgroundFileIds = (backgrounds: Background[]): Set<string> =>
     ),
   );
 
-/** The library entry wins, so its name and settings are the ones on show. */
-const withoutRepeats = (entries: PickerEntry[]): PickerEntry[] => {
+/* The same file uploaded twice, or brought in once as a background and again
+   into its module, is stored under two ids, so its kind, name and size stand
+   in for the file itself. */
+const entryFingerprint = (entry: PickerEntry): string | null => {
+  const { kind, name, size } =
+    entry.source === "library"
+      ? {
+          kind: entry.background.type,
+          name: entry.background.name,
+          size: entry.background.size,
+        }
+      : { kind: entry.item.kind, name: entry.item.name, size: entry.item.size };
+  if (!size || (kind !== "image" && kind !== "video")) return null;
+  return `${kind}:${size}:${name.trim().toLowerCase()}`;
+};
+
+/** The entry in use wins, then the library entry, so its name and settings
+ *  are the ones on show. */
+const withoutRepeats = (
+  entries: PickerEntry[],
+  activeId: string,
+): PickerEntry[] => {
   const seen = new Set<string>();
-  return entries.filter((entry) => {
-    const fileId = entryFileId(entry);
-    if (seen.has(fileId)) return false;
-    seen.add(fileId);
+  const inUseFirst = [
+    ...entries.filter((entry) => entryId(entry) === activeId),
+    ...entries.filter((entry) => entryId(entry) !== activeId),
+  ];
+  return inUseFirst.filter((entry) => {
+    const keys = [entryFileId(entry), entryFingerprint(entry)].filter(
+      (key): key is string => Boolean(key),
+    );
+    if (keys.some((key) => seen.has(key))) return false;
+    for (const key of keys) seen.add(key);
     return true;
   });
 };
@@ -96,7 +130,7 @@ export const BackgroundPicker = ({
   backgrounds,
   value,
   onSelect,
-  inheritLabel,
+  inherit,
   highlightId,
   onUploaded,
   onAddColor,
@@ -140,8 +174,10 @@ export const BackgroundPicker = ({
       ),
       ...unattached.map((item) => ({ source: "module", item }) as PickerEntry),
     ];
-    return mostRecent(withoutRepeats(all), { createdAt: entryCreatedAt });
-  }, [backgrounds, unattached]);
+    return mostRecent(withoutRepeats(all, activeId), {
+      createdAt: entryCreatedAt,
+    });
+  }, [backgrounds, unattached, activeId]);
 
   const selectBackground = (id: string) => {
     const background = backgrounds.find((bg) => bg.id === id);
@@ -238,9 +274,9 @@ export const BackgroundPicker = ({
 
   return (
     <>
-      {inheritLabel && (
+      {inherit && (
         <InheritOption
-          label={inheritLabel}
+          inherit={inherit}
           selected={value === ""}
           onSelect={() => onSelect("")}
         />
@@ -363,13 +399,14 @@ const SwatchGrid = ({ children }: { children: ReactNode }) => (
 );
 
 interface InheritOptionProps {
-  label: string;
+  inherit: InheritedBackground;
   selected: boolean;
   onSelect: () => void;
 }
 
-/** Hands the choice back to whatever this slide, document or theme inherits. */
-const InheritOption = ({ label, selected, onSelect }: InheritOptionProps) => {
+/** Hands the choice back to whatever this slide, document or theme inherits,
+ *  previewing the background that would take over. */
+const InheritOption = ({ inherit, selected, onSelect }: InheritOptionProps) => {
   const { colors, fonts } = useUITheme();
   return (
     <button
@@ -394,9 +431,21 @@ const InheritOption = ({ label, selected, onSelect }: InheritOptionProps) => {
       }}
     >
       <RadioDot selected={selected} />
-      <span className="ws-ellipsis" style={{ minWidth: 0 }}>
-        {label}
+      <span className="ws-ellipsis" style={{ flex: 1, minWidth: 0 }}>
+        {inherit.label}
       </span>
+      <BgSwatch
+        bg={inherit.background}
+        settings={inherit.imageSettings}
+        videoSettings={inherit.videoSettings}
+        style={{
+          width: 34,
+          height: 20,
+          flexShrink: 0,
+          borderRadius: 5,
+          border: `1px solid ${colors.border}`,
+        }}
+      />
     </button>
   );
 };

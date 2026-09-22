@@ -100,6 +100,9 @@ export const PassageSettingsModal = ({
   const themeAudio = theme.defaultAudioId
     ? audio.find((a) => a.id === theme.defaultAudioId)
     : undefined;
+  const themeBackground = backgrounds.find(
+    (bg) => bg.id === theme.backgroundId,
+  );
   const effectiveBackground = backgrounds.find(
     (bg) => bg.id === (passage.defaultBackgroundId || theme.backgroundId),
   );
@@ -291,7 +294,10 @@ export const PassageSettingsModal = ({
         backgrounds={backgrounds}
         value={passage.defaultBackgroundId || ""}
         highlightId={passage.defaultBackgroundId || theme.backgroundId}
-        inheritLabel={`Use theme (${theme.name})`}
+        inherit={{
+          label: `Use theme (${theme.name})`,
+          background: themeBackground,
+        }}
         onSelect={(id, image) =>
           editor.patchDoc({
             defaultBackgroundId: id,
@@ -319,7 +325,7 @@ export const PassageSettingsModal = ({
         audio={audio}
         value={passage.defaultAudioId || ""}
         inheritLabel={
-          themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
+          themeAudio ? `Use theme audio (${themeAudio.name})` : undefined
         }
         onSelect={(id) => editor.patchDoc({ defaultAudioId: id || null })}
         onUploaded={(id) => editor.patchDoc({ defaultAudioId: id })}

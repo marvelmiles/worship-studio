@@ -95,6 +95,11 @@ export const backgroundVideoSettings = (item?: MediaItem): VideoSettings => ({
   loop: true,
 });
 
+/* Stored in place of a sound to keep a slide, document or theme silent on
+   purpose, so the choice stops here instead of falling through to whatever it
+   would otherwise inherit. */
+export const NO_AUDIO_ID = "none";
+
 export const DEFAULT_AUDIO_SETTINGS: AudioSettings = {
   trimStart: 0,
   trimEnd: null,

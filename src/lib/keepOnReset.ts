@@ -1,4 +1,11 @@
 import type { AudioItem, Background, Manuscript, Theme } from "../types";
+import { NO_AUDIO_ID } from "./media";
+
+/** Chosen silence outlives a reset: no sound has to survive for it to hold. */
+const audioSurvives = (
+  id: string | null | undefined,
+  audioIds: Set<string>,
+): boolean => id === NO_AUDIO_ID || Boolean(id && audioIds.has(id));
 
 export const MAX_KEPT_ITEMS = 5;
 
@@ -37,7 +44,7 @@ export const rehomeKeptManuscript = (
     const { backgroundId, audioId } = slide.overrides;
     const staleBackground =
       backgroundId && !surviving.backgroundIds.has(backgroundId);
-    const staleAudio = audioId && !surviving.audioIds.has(audioId);
+    const staleAudio = audioId && !audioSurvives(audioId, surviving.audioIds);
     if (!staleBackground && !staleAudio) return slide;
     const overrides = { ...slide.overrides };
     if (staleBackground) delete overrides.backgroundId;
@@ -55,11 +62,9 @@ export const rehomeKeptManuscript = (
       surviving.backgroundIds.has(manuscript.defaultBackgroundId)
         ? manuscript.defaultBackgroundId
         : "",
-    defaultAudioId:
-      manuscript.defaultAudioId &&
-      surviving.audioIds.has(manuscript.defaultAudioId)
-        ? manuscript.defaultAudioId
-        : null,
+    defaultAudioId: audioSurvives(manuscript.defaultAudioId, surviving.audioIds)
+      ? manuscript.defaultAudioId
+      : null,
     slides,
   };
 };
@@ -77,10 +82,9 @@ export const rehomeKeptTheme = (
     backgroundId: surviving.backgroundIds.has(theme.backgroundId)
       ? theme.backgroundId
       : surviving.defaultBackgroundId,
-    defaultAudioId:
-      theme.defaultAudioId && surviving.audioIds.has(theme.defaultAudioId)
-        ? theme.defaultAudioId
-        : null,
+    defaultAudioId: audioSurvives(theme.defaultAudioId, surviving.audioIds)
+      ? theme.defaultAudioId
+      : null,
   };
 };
 

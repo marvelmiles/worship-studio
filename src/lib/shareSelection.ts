@@ -1,6 +1,7 @@
 import type { Slide, SlideDeckDoc } from "../types";
 import type { BackupSource } from "./backupPayload";
 import { placedMediaSource } from "./slideMedia";
+import { NO_AUDIO_ID } from "./media";
 import { contentIdsOf } from "../features/stream/lib/overlayPresets";
 
 /** Where a record lives, which is also where a backup carries it. */
@@ -123,7 +124,8 @@ const docAssetRefs = (doc: SlideDeckDoc): BackupRecordRef[] => {
   const refs: BackupRecordRef[] = [ref("themes", doc.defaultThemeId)];
   if (doc.defaultBackgroundId)
     refs.push(ref("backgrounds", doc.defaultBackgroundId));
-  if (doc.defaultAudioId) refs.push(ref("audio", doc.defaultAudioId));
+  if (doc.defaultAudioId && doc.defaultAudioId !== NO_AUDIO_ID)
+    refs.push(ref("audio", doc.defaultAudioId));
   for (const slide of doc.slides ?? []) refs.push(...slideAssetRefs(slide));
   return refs;
 };
@@ -132,7 +134,7 @@ const slideAssetRefs = (slide: Slide): BackupRecordRef[] => {
   const refs: BackupRecordRef[] = [];
   if (slide.overrides?.backgroundId)
     refs.push(ref("backgrounds", slide.overrides.backgroundId));
-  if (slide.overrides?.audioId)
+  if (slide.overrides?.audioId && slide.overrides.audioId !== NO_AUDIO_ID)
     refs.push(ref("audio", slide.overrides.audioId));
   for (const placed of slide.media ?? []) {
     refs.push(

@@ -106,7 +106,6 @@ export const ThemeInspectorPanel = ({
       <AudioPicker
         audio={audio}
         value={draft.defaultAudioId || ""}
-        inheritLabel="None"
         onSelect={(id) => patch({ defaultAudioId: id || null })}
         onManage={() => openAssetLibrary("audio", { locked: true })}
       />

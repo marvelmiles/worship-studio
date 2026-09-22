@@ -214,7 +214,6 @@ export const ManuscriptSettingsModal = ({
         backgrounds={backgrounds}
         value={manuscript.defaultBackgroundId || ""}
         highlightId={manuscript.defaultBackgroundId || theme.backgroundId}
-        inheritLabel={`Use theme (${theme.name})`}
         onSelect={(id, image) =>
           onPatchManuscript({
             defaultBackgroundId: id,
@@ -232,7 +231,7 @@ export const ManuscriptSettingsModal = ({
         audio={audio}
         value={manuscript.defaultAudioId || ""}
         inheritLabel={
-          themeAudio ? `Use theme audio (${themeAudio.name})` : "None"
+          themeAudio ? `Use theme audio (${themeAudio.name})` : undefined
         }
         onSelect={(id) => onPatchManuscript({ defaultAudioId: id || null })}
         onManage={() => openAssetLibrary("audio", { locked: true })}

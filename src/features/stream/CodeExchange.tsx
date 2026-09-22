@@ -1,10 +1,13 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { QrCode as QrIcon, Clipboard, Check, Camera } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useElementSize } from "../../hooks/useElementSize";
+import { useViewport } from "../../hooks/useViewport";
 import { useStore } from "../../store/useStore";
 import { Button } from "../../components/ui/Button";
 import { InfoTip } from "../../components/ui/InfoTip";
+import { PillTabs } from "../../components/ui/PillTabs";
+import { pillTabPanelProps } from "../../components/ui/tabPanel";
 import { QrCode } from "./QrCode";
 import { QrScanner } from "./QrScanner";
 import type { ScanFacing } from "./lib/useQrScanner";
@@ -13,6 +16,71 @@ const MAX_QR_SIZE = 420;
 const MIN_QR_SIZE = 240;
 const QR_TILE_PADDING = 34;
 const COPIED_FEEDBACK_MS = 1600;
+
+export type CodePane = "show" | "read";
+
+interface CodeExchangePanesProps {
+  /** Keeps this pair's tab and panel ids apart from any other on the page. */
+  idPrefix: string;
+  show: ReactNode;
+  read: ReactNode;
+  showLabel?: string;
+  readLabel?: string;
+  /** The pane to hold open, for news the other pane would otherwise hide. */
+  focus?: CodePane;
+}
+
+/**
+ * The two halves of a pairing: the code this device shows, and the one it
+ * reads back. Side by side there is room for both at once. On a narrower
+ * screen they would stack into a long scroll with the camera far below the
+ * code, so they become tabs and the device shows one at a time.
+ */
+export const CodeExchangePanes = ({
+  idPrefix,
+  show,
+  read,
+  showLabel = "Show code",
+  readLabel = "Scan code",
+  focus,
+}: CodeExchangePanesProps) => {
+  const { isLaptop } = useViewport();
+  const [chosenPane, setChosenPane] = useState<CodePane>("show");
+  const pane = focus ?? chosenPane;
+
+  if (!isLaptop)
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+          gap: 22,
+          alignItems: "stretch",
+        }}
+      >
+        {show}
+        {read}
+      </div>
+    );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <PillTabs<CodePane>
+        tabs={[
+          { id: "show", label: showLabel, icon: QrIcon },
+          { id: "read", label: readLabel, icon: Camera },
+        ]}
+        value={pane}
+        onChange={setChosenPane}
+        ariaLabel="Pairing steps"
+        idPrefix={idPrefix}
+      />
+      <div {...pillTabPanelProps(idPrefix, pane)}>
+        {pane === "show" ? show : read}
+      </div>
+    </div>
+  );
+};
 
 interface ShowCodeProps {
   value: string;

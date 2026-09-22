@@ -6,6 +6,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import {
   DEFAULT_AUDIO_SETTINGS,
+  NO_AUDIO_ID,
   audioPlayLength,
   audioSettingsOf,
   formatDuration,
@@ -24,6 +25,7 @@ interface AudioPickerProps {
   audio: AudioItem[];
   value: string;
   onSelect: (id: string) => void;
+  /** Names what this place falls back to; left out where nothing is inherited. */
   inheritLabel?: string;
   onUploaded?: (id: string) => void;
   onManage?: () => void;
@@ -100,6 +102,10 @@ export const AudioPicker = ({
     });
   }, [audio, limit, media, value]);
 
+  /* Where nothing is inherited, having made no choice already means silence,
+     so both ways of saying it land on the same row. */
+  const silent = value === NO_AUDIO_ID || (!inheritLabel && !value);
+
   const previewItem = entries.find((item) => item.id === previewId);
 
   const previewPlayback = useMemo<MediaPlayback>(
@@ -159,10 +165,17 @@ export const AudioPicker = ({
           marginBottom: 10,
         }}
       >
+        {inheritLabel && (
+          <AudioRow
+            label={inheritLabel}
+            selected={value === ""}
+            onSelect={() => onSelect("")}
+          />
+        )}
         <AudioRow
-          label={inheritLabel || "None"}
-          selected={value === ""}
-          onSelect={() => onSelect("")}
+          label="None"
+          selected={silent}
+          onSelect={() => onSelect(NO_AUDIO_ID)}
         />
         {entries.map((item) => (
           <AudioRow

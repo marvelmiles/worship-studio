@@ -70,7 +70,7 @@ type ScopedBackgroundProps = Pick<
   ComponentProps<typeof BackgroundPicker>,
   | "value"
   | "highlightId"
-  | "inheritLabel"
+  | "inherit"
   | "imageSettings"
   | "videoSettings"
   | "onSelect"
@@ -185,7 +185,12 @@ export const InspectorPanel = ({
       ? {
           value: slide.overrides?.backgroundId || "",
           highlightId: slideBackground.background.id,
-          inheritLabel: `Use ${documentNoun} / theme`,
+          inherit: {
+            label: `Use ${documentNoun} background`,
+            background: documentBackground.background,
+            imageSettings: documentBackground.image,
+            videoSettings: documentBackground.video,
+          },
           imageSettings: slideBackground.image,
           videoSettings: slideBackground.video,
           onSelect: (id, image) =>
@@ -198,7 +203,6 @@ export const InspectorPanel = ({
       : {
           value: doc.defaultBackgroundId || "",
           highlightId: documentBackground.background.id,
-          inheritLabel: `Use theme (${theme.name})`,
           imageSettings: documentBackground.image,
           videoSettings: documentBackground.video,
           onSelect: (id, image) =>
@@ -224,7 +228,7 @@ export const InspectorPanel = ({
           value: doc.defaultAudioId || "",
           inheritLabel: themeAudio
             ? `Use theme audio (${themeAudio.name})`
-            : "None",
+            : undefined,
           settings: documentAudioItem
             ? resolveAudioSettings(undefined, doc, documentAudioItem)
             : undefined,
@@ -339,7 +343,7 @@ export const InspectorPanel = ({
         />
       </div>
       <BackgroundPicker
-        key={backgroundScope}
+        key={`background-${backgroundScope}`}
         backgrounds={backgrounds}
         onManage={() => openAssetLibrary("backgrounds", { locked: true })}
         {...backgroundProps}
@@ -368,7 +372,7 @@ export const InspectorPanel = ({
         />
       </div>
       <AudioPicker
-        key={audioScope}
+        key={`audio-${audioScope}`}
         audio={audio}
         onManage={() => openAssetLibrary("audio", { locked: true })}
         {...audioProps}

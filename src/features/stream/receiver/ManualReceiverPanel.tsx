@@ -3,7 +3,7 @@ import { MonitorSmartphone, RotateCcw } from "lucide-react";
 import { useStore } from "../../../store/useStore";
 import { Button } from "../../../components/ui/Button";
 import { Spinner } from "../../../components/ui/Spinner";
-import { ReadCode, ShowCode } from "../CodeExchange";
+import { CodeExchangePanes, ReadCode, ShowCode } from "../CodeExchange";
 import { StreamStatusLine } from "../components/StreamStatusLine";
 import type { PeerStatus } from "../lib/peerStatus";
 import { createReceiver, type ReceiverHandle } from "../lib/receiverPeer";
@@ -146,36 +146,37 @@ export const ManualReceiverPanel = ({
 
   return (
     <div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-          gap: 22,
-          alignItems: "start",
-        }}
-      >
-        <PairingStep stepNumber={1} title="Show this to the other device">
-          {invite ? (
-            <ShowCode
-              value={invite}
-              caption="On the other device: open Stream, choose Share this camera, then scan or paste this code."
+      <CodeExchangePanes
+        idPrefix="stream-pairing"
+        readLabel="Scan reply"
+        focus={status === "connecting" ? "read" : undefined}
+        show={
+          <PairingStep stepNumber={1} title="Show this to the other device">
+            {invite ? (
+              <ShowCode
+                value={invite}
+                caption="On the other device: open Stream, choose Share this camera, then scan or paste this code."
+              />
+            ) : (
+              <div
+                style={{ padding: 30, display: "grid", placeItems: "center" }}
+              >
+                <Spinner size={22} />
+              </div>
+            )}
+          </PairingStep>
+        }
+        read={
+          <PairingStep stepNumber={2} title="Then read its reply">
+            <ReadCode
+              scanFacing="user"
+              scanLabel="Point the other device's reply code at this camera."
+              onCode={applyReply}
             />
-          ) : (
-            <div style={{ padding: 30, display: "grid", placeItems: "center" }}>
-              <Spinner size={22} />
-            </div>
-          )}
-        </PairingStep>
-
-        <PairingStep stepNumber={2} title="Then read its reply">
-          <ReadCode
-            scanFacing="user"
-            scanLabel="Point the other device's reply code at this camera."
-            onCode={applyReply}
-          />
-          <PairingStatusLine status={status} />
-        </PairingStep>
-      </div>
+            <PairingStatusLine status={status} />
+          </PairingStep>
+        }
+      />
 
       <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
         {onUseOneTap && (

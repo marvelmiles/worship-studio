@@ -4,7 +4,11 @@ import { useStore } from "../../../store/useStore";
 import { Modal } from "../../../components/ui/Modal";
 import { Button } from "../../../components/ui/Button";
 import { Spinner } from "../../../components/ui/Spinner";
-import { ReadCode, ShowCode } from "../../stream/CodeExchange";
+import {
+  CodeExchangePanes,
+  ReadCode,
+  ShowCode,
+} from "../../stream/CodeExchange";
 import { StreamStatusLine } from "../../stream/components/StreamStatusLine";
 import { PairingStep } from "../../stream/receiver/PairingStep";
 import { addPairedDevice } from "../lib/pairedShareDevices";
@@ -139,39 +143,38 @@ const PairingSteps = ({
   }
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-        gap: 18,
-        alignItems: "start",
-      }}
-    >
-      <PairingStep stepNumber={1} title="Show this to the other device">
-        {invite ? (
-          <ShowCode
-            value={invite.code}
-            caption="On the other device, open Quick Share, choose Receive with a code, then scan or paste this."
-          />
-        ) : (
-          <div style={{ padding: 30, display: "grid", placeItems: "center" }}>
-            <Spinner size={22} />
-          </div>
-        )}
-      </PairingStep>
-
-      <PairingStep stepNumber={2} title="Then read its reply">
-        {phase === "connecting" ? (
-          <StreamStatusLine isBusy>
-            Connecting to the other device
-          </StreamStatusLine>
-        ) : (
-          <ReadCode
-            scanLabel="Point this camera at the reply on the other device."
-            onCode={applyReply}
-          />
-        )}
-      </PairingStep>
-    </div>
+    <CodeExchangePanes
+      idPrefix="quick-share-pairing"
+      readLabel="Scan reply"
+      focus={phase === "connecting" ? "read" : undefined}
+      show={
+        <PairingStep stepNumber={1} title="Show this to the other device">
+          {invite ? (
+            <ShowCode
+              value={invite.code}
+              caption="On the other device, open Quick Share, choose Receive with a code, then scan or paste this."
+            />
+          ) : (
+            <div style={{ padding: 30, display: "grid", placeItems: "center" }}>
+              <Spinner size={22} />
+            </div>
+          )}
+        </PairingStep>
+      }
+      read={
+        <PairingStep stepNumber={2} title="Then read its reply">
+          {phase === "connecting" ? (
+            <StreamStatusLine isBusy>
+              Connecting to the other device
+            </StreamStatusLine>
+          ) : (
+            <ReadCode
+              scanLabel="Point this camera at the reply on the other device."
+              onCode={applyReply}
+            />
+          )}
+        </PairingStep>
+      }
+    />
   );
 };

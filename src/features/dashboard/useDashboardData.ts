@@ -14,6 +14,7 @@ import { COLLECTIONS } from "../../data/collections";
 import { useStore } from "../../store/useStore";
 import { bookById } from "../../data/bibleBooks";
 import { overlayTarget } from "../../lib/overlayTarget";
+import { NO_AUDIO_ID } from "../../lib/media";
 import { loadReadingHistory } from "../bible/lib/readingHistory";
 import { greeting, itemActivity, rank } from "./utils";
 import type { Activity, UsageTab, UsedItem } from "./utils";
@@ -89,7 +90,7 @@ export const useDashboardData = () => {
         themeUse[m.defaultThemeId] = (themeUse[m.defaultThemeId] || 0) + 1;
       if (m.defaultBackgroundId)
         bgUse[m.defaultBackgroundId] = (bgUse[m.defaultBackgroundId] || 0) + 1;
-      if (m.defaultAudioId)
+      if (m.defaultAudioId && m.defaultAudioId !== NO_AUDIO_ID)
         soundUse[m.defaultAudioId] = (soundUse[m.defaultAudioId] || 0) + 1;
     }
     return {

@@ -5,6 +5,7 @@ interface Viewport {
   width: number;
   isMobile: boolean;
   isTablet: boolean;
+  isLaptop: boolean;
 }
 
 const read = (): Viewport => {
@@ -13,6 +14,7 @@ const read = (): Viewport => {
     width,
     isMobile: width <= BREAKPOINTS.mobile,
     isTablet: width <= BREAKPOINTS.tablet,
+    isLaptop: width <= BREAKPOINTS.laptop,
   };
 };
 

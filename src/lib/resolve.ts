@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import { BACKGROUNDS } from "../data/backgrounds";
 import {
+  NO_AUDIO_ID,
   audioSettingsOf,
   backgroundImageSettings,
   backgroundVideoSettings,
@@ -209,17 +210,19 @@ export const resolveAnimation = (
   );
 };
 
+/** Silence chosen here is an answer, so it settles the question rather than
+ *  passing it on to the document or theme underneath. */
 export const resolveAudioId = (
   slide: Slide | undefined,
   doc: SlideDeckDoc | undefined,
   theme?: Theme,
 ): string | null => {
-  return (
+  const chosen =
     slide?.overrides?.audioId ||
     doc?.defaultAudioId ||
     theme?.defaultAudioId ||
-    null
-  );
+    null;
+  return chosen === NO_AUDIO_ID ? null : chosen;
 };
 
 /**
