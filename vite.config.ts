@@ -68,13 +68,20 @@ export default defineConfig({
         short_name: APP_NAME,
         description:
           "Present songs, Bible passages, images and videos live, installable and offline-ready.",
+        lang: "en",
+        dir: "ltr",
         theme_color: "#101013",
         background_color: "#101013",
         display: "standalone",
         orientation: "any",
         start_url: "/",
         scope: "/",
-        categories: ["productivity", "utilities"],
+        categories: ["productivity", "utilities", "education", "music"],
+        shortcuts: [
+          { name: "Manuscripts", url: "/manuscripts" },
+          { name: "Bible", url: "/bible" },
+          { name: "Stream", url: "/stream" },
+        ],
         icons: [
           {
             src: "/icon-192.png",

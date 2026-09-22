@@ -1,9 +1,51 @@
 {
-  "name": "worshipflow",
+  "name": "worship-studio",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Church worship presentation studio: manuscripts (lyrics, hymns, sermons), offline Bible (public-domain KJV/ASV), images and videos with theming and live projection.",
+  "description": "Offline-first church worship presentation studio in the browser: turn lyrics, hymns, sermons and Bible passages into live slides, project them to a second screen, stream phone cameras over WebRTC and share the whole library device to device with no server.",
+  "keywords": [
+    "worship",
+    "worship-presentation",
+    "church",
+    "church-presentation-software",
+    "presentation",
+    "slides",
+    "lyrics",
+    "hymns",
+    "hymnal",
+    "sermon",
+    "bible",
+    "scripture",
+    "kjv",
+    "projection",
+    "projector",
+    "propresenter-alternative",
+    "easyworship-alternative",
+    "openlp-alternative",
+    "offline-first",
+    "pwa",
+    "indexeddb",
+    "webrtc",
+    "peer-to-peer",
+    "live-streaming",
+    "react",
+    "typescript",
+    "vite",
+    "zustand"
+  ],
+  "homepage": "https://worshipstudio.netlify.app/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marvelmiles/worship-studio.git"
+  },
+  "bugs": {
+    "url": "https://github.com/marvelmiles/worship-studio/issues"
+  },
+  "author": "marvelmiles",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

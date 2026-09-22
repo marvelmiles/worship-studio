@@ -1,38 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="WorshipStudio">
-  <!-- Glowing beamed music note rising through a violet night sky.
+  <!-- A beamed music note lit over the bar of a projected slide, in the studio
+       theme's neutral dark and blue accent.
        scripts/generate-icons.mjs derives the PNG set from this file:
        it strips rx + #ring and rescales #art for maskable/apple variants. -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#241245"/>
-      <stop offset="55%" stop-color="#120b26"/>
-      <stop offset="100%" stop-color="#07060e"/>
+      <stop offset="0%" stop-color="#26272c"/>
+      <stop offset="55%" stop-color="#1a1b1f"/>
+      <stop offset="100%" stop-color="#101013"/>
     </linearGradient>
-    <radialGradient id="aura" cx="0.5" cy="0.34" r="0.62">
-      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.5"/>
-      <stop offset="55%" stop-color="#8b5cf6" stop-opacity="0.14"/>
-      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    <radialGradient id="aura" cx="0.5" cy="0.36" r="0.62">
+      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.5"/>
+      <stop offset="55%" stop-color="#2563eb" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="note" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#f3efff"/>
-      <stop offset="100%" stop-color="#b79dfa"/>
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#2563eb"/>
     </linearGradient>
     <radialGradient id="noteGlow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.45"/>
-      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
   <rect width="512" height="512" rx="116" fill="url(#bg)"/>
   <rect width="512" height="512" rx="116" fill="url(#aura)"/>
-  <rect id="ring" x="7" y="7" width="498" height="498" rx="109" fill="none" stroke="#c4b5fd" stroke-opacity="0.22" stroke-width="6"/>
+  <rect id="ring" x="7" y="7" width="498" height="498" rx="109" fill="none" stroke="#60a5fa" stroke-opacity="0.24" stroke-width="6"/>
 
   <g id="art">
-    <!-- Soft halo behind the note -->
-    <ellipse cx="262" cy="250" rx="200" ry="190" fill="url(#noteGlow)"/>
+    <!-- Soft light behind the note -->
+    <ellipse cx="256" cy="232" rx="194" ry="184" fill="url(#noteGlow)"/>
 
     <!-- Beamed note -->
-    <g fill="url(#note)">
+    <g fill="url(#note)" transform="translate(4 -16)">
       <path d="M191 150 L353 120 L353 166 L191 196 Z"/>
       <rect x="191" y="152" width="21" height="208"/>
       <rect x="332" y="122" width="21" height="214"/>
@@ -40,10 +45,8 @@
       <ellipse cx="323" cy="338" rx="37" ry="28" transform="rotate(-18 323 338)"/>
     </g>
 
-    <!-- Sparkles -->
-    <path d="M404 96 L412 122 L438 130 L412 138 L404 164 L396 138 L370 130 L396 122 Z" fill="#e9e2ff" fill-opacity="0.9"/>
-    <circle cx="118" cy="128" r="7" fill="#c4b5fd" fill-opacity="0.75"/>
-    <circle cx="418" cy="238" r="5" fill="#c4b5fd" fill-opacity="0.55"/>
-    <circle cx="96" cy="330" r="5" fill="#a78bfa" fill-opacity="0.5"/>
+    <!-- The lit bar of the slide the note stands on -->
+    <rect x="140" y="404" width="232" height="18" rx="9" fill="url(#bar)"/>
+    <rect x="186" y="436" width="140" height="10" rx="5" fill="#3b82f6" fill-opacity="0.32"/>
   </g>
 </svg>

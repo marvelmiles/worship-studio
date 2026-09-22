@@ -9,7 +9,8 @@ export const APP_TAGLINE = "Worship Presentation Studio";
 
 export const APP_TITLE = `${APP_NAME} · ${APP_TAGLINE}`;
 
-export const APP_DESCRIPTION = `${APP_NAME} is a full worship presentation studio: song lyrics, hymns, sermons, Bible verses, images and videos, projected live with themes, presenter notes and keyboard control. Works offline in your browser.`;
+/* Kept near 155 characters, the length a search result shows before it cuts. */
+export const APP_DESCRIPTION = `Turn lyrics, hymns, sermons and Bible passages into live slides and project them to a second screen. Free, offline, and entirely in your browser.`;
 
 export const APP_SHORT_DESCRIPTION =
   "Present lyrics, sermons, scripture, images and videos live from your browser.";
