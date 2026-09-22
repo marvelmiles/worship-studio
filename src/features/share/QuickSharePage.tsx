@@ -4,17 +4,19 @@ import {
   ArrowRight,
   MonitorSmartphone,
   PackageCheck,
+  QrCode,
   RefreshCw,
+  ScanLine,
   Share2,
+  Unlink,
   Wifi,
   WifiOff,
 } from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { fade } from "../../theme/uiTheme";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { Button } from "../../components/ui/Button";
+import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { InfoTip } from "../../components/ui/InfoTip";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Panel, PanelTitle } from "../../components/ui/Panel";
 import { Spinner } from "../../components/ui/Spinner";
@@ -24,6 +26,8 @@ import {
   type PickedShareItems,
 } from "../../lib/shareCatalog";
 import { IncomingShareDialog } from "./components/IncomingShareDialog";
+import { PairDeviceDialog } from "./components/PairDeviceDialog";
+import { ReceiveCodeDialog } from "./components/ReceiveCodeDialog";
 import { ShareDeviceList } from "./components/ShareDeviceList";
 import { ShareItemPicker } from "./components/ShareItemPicker";
 import { ShareSendFab } from "./components/ShareSendFab";
@@ -31,10 +35,11 @@ import { useBackupSource } from "./lib/useBackupSource";
 import { useIncomingShare } from "./lib/useIncomingShare";
 import { canSendSelection, useQuickShare } from "./lib/useQuickShare";
 import { useStopSharePrompt } from "./lib/useStopSharePrompt";
-import type { LobbyStatus } from "./lib/useShareLobby";
+import { deviceListHint, type LobbyStatus } from "./lib/useShareLobby";
+import type { PairedSender } from "./lib/useIncomingShare";
 
 const SHARE_SUBTITLE =
-  "Send your library straight to another device on this WiFi.";
+  "Send your library straight to another device on this WiFi, with or without internet.";
 
 type Step = "devices" | "items";
 
@@ -45,6 +50,8 @@ export const QuickSharePage = () => {
 
   const [step, setStep] = useState<Step>("devices");
   const [picked, setPicked] = useState<PickedShareItems>({});
+  const [isPairing, setIsPairing] = useState(false);
+  const [isReceivingCode, setIsReceivingCode] = useState(false);
 
   const startOver = () => {
     setPicked({});
@@ -86,7 +93,7 @@ export const QuickSharePage = () => {
           <PanelTitle
             icon={Share2}
             title="This device"
-            info="While this page is open, other devices running Quick Share on the same WiFi can see this one and send it data. Close the page and it disappears from their list."
+            info="While this page is open, other devices running Quick Share on the same WiFi can see this one and send it data. With no internet, choose Receive with a code and read the sending device's code instead. Close the page and it disappears from their list."
           />
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
             <DeviceBadge />
@@ -104,6 +111,19 @@ export const QuickSharePage = () => {
               </div>
               <LobbyStatusLine status={quickShare.status} />
             </div>
+          </div>
+          <div
+            className="ws-row"
+            style={{ gap: 6, marginTop: 12, flexWrap: "wrap" }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsReceivingCode(true)}
+            >
+              <ScanLine size={14} />
+              Receive with a code
+            </Button>
             {quickShare.status !== "unavailable" && (
               <Button
                 variant="ghost"
@@ -115,26 +135,41 @@ export const QuickSharePage = () => {
               </Button>
             )}
           </div>
+          <PairedSenderList
+            senders={incoming.pairedSenders}
+            onDisconnect={incoming.disconnectSender}
+          />
         </Panel>
 
-        {quickShare.status === "unavailable" ? (
-          <UnavailableNote />
-        ) : step === "devices" ? (
+        {step === "devices" ? (
           <>
             <Panel>
               <PanelTitle
                 icon={MonitorSmartphone}
                 title="Devices here now"
-                info="Open Quick Share on the other device. It only needs to be on the same WiFi."
+                info="Open Quick Share on the other device. With internet, devices on the same WiFi show up here on their own. Without it, pair with a code: the two devices only need the same WiFi or hotspot, and nothing leaves it."
+                trailing={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={quickShare.isBusy}
+                    onClick={() => setIsPairing(true)}
+                  >
+                    <QrCode size={14} />
+                    Pair with a code
+                  </Button>
+                }
               />
               <ShareDeviceList
                 devices={quickShare.devices}
                 selectedIds={quickShare.selectedDeviceIds}
                 transfers={quickShare.transfers}
                 isSearching={quickShare.isSearching}
+                emptyHint={deviceListHint(quickShare.status)}
                 disabled={quickShare.isBusy}
                 onToggle={quickShare.toggleDevice}
                 onStop={stopPrompt.askForDevice}
+                onForget={(device) => quickShare.forgetDevice(device.id)}
               />
             </Panel>
 
@@ -194,7 +229,7 @@ export const QuickSharePage = () => {
         )}
       </div>
 
-      {step === "items" && quickShare.status !== "unavailable" && (
+      {step === "items" && (
         <ShareSendFab
           canSend={canSend}
           isBusy={quickShare.isBusy}
@@ -211,6 +246,20 @@ export const QuickSharePage = () => {
         confirmLabel={stopPrompt.prompt?.confirmLabel ?? "Stop"}
         onConfirm={stopPrompt.confirm}
         onCancel={stopPrompt.cancel}
+      />
+
+      <PairDeviceDialog
+        open={isPairing}
+        deviceName={quickShare.deviceName}
+        onClose={() => setIsPairing(false)}
+        onPaired={(device) => quickShare.selectDevice(device.id)}
+      />
+
+      <ReceiveCodeDialog
+        open={isReceivingCode}
+        deviceName={quickShare.deviceName}
+        onClose={() => setIsReceivingCode(false)}
+        onConnected={incoming.adoptPairedLink}
       />
 
       <IncomingShareDialog
@@ -272,48 +321,65 @@ const LobbyStatusLine = ({ status }: { status: LobbyStatus }) => {
     );
   }
   return (
-    <span style={{ ...style, color: colors.warning }}>
+    <span style={style}>
       <WifiOff size={13} />
       {status === "offline"
-        ? "Could not read this network. Check the connection and refresh."
-        : "Quick share is not set up in this build."}
+        ? "No internet. Pair with a code to share over this WiFi."
+        : "Pair with a code to share over this WiFi."}
     </span>
   );
 };
 
-const UnavailableNote = () => {
+interface PairedSenderListProps {
+  senders: PairedSender[];
+  onDisconnect: (senderId: string) => void;
+}
+
+const PairedSenderList = ({ senders, onDisconnect }: PairedSenderListProps) => {
   const { colors, fonts } = useUITheme();
+  if (senders.length === 0) return null;
   return (
-    <Panel>
-      <PanelTitle icon={WifiOff} title="Quick share is unavailable" />
-      <p
-        style={{
-          margin: 0,
-          fontFamily: fonts.ui,
-          fontSize: 13.5,
-          lineHeight: 1.65,
-          color: colors.sub,
-        }}
-      >
-        Devices find each other through a short online lookup, and this build
-        has no lookup settings. You can still move a library with Export and
-        Import in Settings.
-      </p>
-      <p
-        style={{
-          margin: "10px 0 0",
-          fontFamily: fonts.ui,
-          fontSize: 12.5,
-          lineHeight: 1.6,
-          color: colors.dim,
-        }}
-      >
-        <InfoTip title="Why an online lookup">
-          The two devices only use the internet to introduce themselves. The
-          data itself travels straight between them over your WiFi.
-        </InfoTip>{" "}
-        The data never travels through that lookup.
-      </p>
-    </Panel>
+    <ul
+      aria-label="Devices paired with a code"
+      style={{
+        listStyle: "none",
+        margin: "12px 0 0",
+        padding: 0,
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+      }}
+    >
+      {senders.map((sender) => (
+        <li
+          key={sender.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 6px 6px 11px",
+            borderRadius: 10,
+            background: colors.bg,
+            border: `1px solid ${colors.border}`,
+            fontFamily: fonts.ui,
+            fontSize: 12.5,
+            color: colors.sub,
+          }}
+        >
+          <span className="ws-ellipsis" style={{ flex: 1, minWidth: 0 }}>
+            Can receive from{" "}
+            <span style={{ color: colors.text, fontWeight: 600 }}>
+              {sender.name}
+            </span>
+          </span>
+          <IconButton
+            icon={Unlink}
+            size="sm"
+            title={`Disconnect ${sender.name}`}
+            onClick={() => onDisconnect(sender.id)}
+          />
+        </li>
+      ))}
+    </ul>
   );
 };

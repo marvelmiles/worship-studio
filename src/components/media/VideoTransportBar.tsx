@@ -45,9 +45,10 @@ export const VideoTransportBar = ({
   const { colors, controls, fonts, stage } = useUITheme();
   const seekMax = Math.max(end, start + 0.1);
   const position = Math.min(Math.max(time, start), seekMax);
-  const seekPercent = ((position - start) / (seekMax - start)) * 100;
+  const span = seekMax - start;
+  const seekPercent = ((position - start) / span) * 100;
   const level = muted ? 0 : volume;
-  const withHours = needsHoursField(seekMax);
+  const withHours = needsHoursField(span);
   const fill = (percent: number) =>
     `linear-gradient(90deg, ${colors.accent} 0%, ${colors.accentSoft} ${percent}%, ${controls.track} ${percent}%)`;
 
@@ -93,7 +94,7 @@ export const VideoTransportBar = ({
         onClick={onRestart}
       />
       <span style={{ ...readout, textAlign: "right" }}>
-        {formatTimecode(position, withHours)}
+        {formatTimecode(position - start, withHours)}
       </span>
       <input
         type="range"
@@ -108,7 +109,7 @@ export const VideoTransportBar = ({
       />
       {!compact && (
         <span style={{ ...readout, color: colors.sub }}>
-          {formatTimecode(seekMax, withHours)}
+          {formatTimecode(span, withHours)}
         </span>
       )}
       <StageButton

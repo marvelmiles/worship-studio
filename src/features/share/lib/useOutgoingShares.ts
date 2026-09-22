@@ -13,7 +13,11 @@ import {
   selectionCount,
   type BackupSelection,
 } from "../../../lib/shareSelection";
-import { sendLibraryTo, type SendState } from "./shareSession";
+import {
+  sendLibraryTo,
+  type SendState,
+  type ShareConnector,
+} from "./shareSession";
 import type { ShareDevice } from "./shareSignaling";
 
 export type OutgoingState = SendState | "queued";
@@ -30,8 +34,8 @@ export interface OutgoingShare {
 export type OutgoingShareMap = Readonly<Record<string, OutgoingShare>>;
 
 export interface OutgoingShareOptions {
-  room: string | null;
-  deviceId: string;
+  /** How to reach a device, or null once it can no longer be reached. */
+  connectTo: (target: ShareDevice) => ShareConnector | null;
   deviceName: string;
   /** Named as soon as a device turns the send down or never replies. */
   onDeviceLost?: (device: ShareDevice, reason: string) => void;
@@ -104,8 +108,7 @@ const overallProgress = (transfers: OutgoingShareMap): number | null => {
 };
 
 export const useOutgoingShares = ({
-  room,
-  deviceId,
+  connectTo,
   deviceName,
   onDeviceLost,
   onAllSent,
@@ -139,7 +142,7 @@ export const useOutgoingShares = ({
 
   const send = useCallback(
     async (targets: ShareDevice[], selection: BackupSelection) => {
-      if (!room || targets.length === 0 || isSelectionEmpty(selection)) return;
+      if (targets.length === 0 || isSelectionEmpty(selection)) return;
       runRef.current += 1;
       const run = runRef.current;
       const isCurrent = () => runRef.current === run;
@@ -198,12 +201,20 @@ export const useOutgoingShares = ({
         if (!isCurrent()) return;
         const shouldStop = () => !isCurrent() || stoppedDevices.has(target.id);
         if (shouldStop()) continue;
+        const connect = connectTo(target);
+        if (!connect) {
+          drop(target.id);
+          callbacksRef.current.onDeviceLost?.(
+            target,
+            `${target.name} can no longer be reached.`,
+          );
+          continue;
+        }
         patch(target.id, { totalBytes: archive.size });
         const outcome = await sendLibraryTo({
-          room,
-          fromId: deviceId,
+          connect,
           fromName: deviceName,
-          target,
+          targetName: target.name,
           archive,
           summary,
           items: selectionCount(selection),
@@ -230,7 +241,7 @@ export const useOutgoingShares = ({
       if (deliveredCount > 0) callbacksRef.current.onAllSent?.();
       else callbacksRef.current.onNothingLeft?.();
     },
-    [deviceId, deviceName, pushToast, room],
+    [connectTo, deviceName, pushToast],
   );
 
   const reset = useCallback(() => {

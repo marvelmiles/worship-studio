@@ -16,7 +16,7 @@ import { useStore } from "../../store/useStore";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useLibraryLayout } from "../../hooks/useLibraryLayout";
 import { formatBytes } from "../../lib/storageStats";
-import { formatDuration } from "../../lib/media";
+import { formatDuration, mediaPlayLength } from "../../lib/media";
 import { formatDate } from "../../lib/id";
 import { sortPinnedFirst } from "../../lib/pinning";
 import {
@@ -292,8 +292,10 @@ const MediaThumb = ({ item }: { item: MediaItem }) => (
     ) : (
       <>
         <VideoThumb item={item} />
-        {item.duration !== undefined && (
-          <div className="ws-thumb-badge">{formatDuration(item.duration)}</div>
+        {mediaPlayLength(item) !== undefined && (
+          <div className="ws-thumb-badge">
+            {formatDuration(mediaPlayLength(item))}
+          </div>
         )}
       </>
     )}
@@ -303,7 +305,9 @@ const MediaThumb = ({ item }: { item: MediaItem }) => (
 const mediaDetails = (item: MediaItem): string[] => [
   ...(item.width && item.height ? [`${item.width}×${item.height}`] : []),
   formatBytes(item.size || 0),
-  ...(item.duration !== undefined ? [formatDuration(item.duration)] : []),
+  ...(mediaPlayLength(item) !== undefined
+    ? [formatDuration(mediaPlayLength(item))]
+    : []),
   `Added ${formatDate(item.createdAt)}`,
   `Last modified ${formatDate(item.updatedAt)}`,
 ];

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { useStore } from "../../store/useStore";
 import { useBgMap } from "../../hooks/useBgMap";
-import { videoSettingsOf } from "../../lib/media";
+import { trimmedDuration, videoSettingsOf } from "../../lib/media";
 import { SlideCanvas } from "../../components/SlideCanvas";
 import { VideoSurface } from "../../components/media/VideoSurface";
 import { useDeck } from "../presentation/useDeck";
@@ -153,11 +153,12 @@ const MediaOverlayLayer = ({
   if (!item) return null;
 
   const { video } = overlay;
+  const settings = videoSettingsOf(item);
   return (
     <VideoSurface
       item={item}
       settings={{
-        ...videoSettingsOf(item),
+        ...settings,
         playbackRate: video.rate,
         loop: video.loop,
         volume: video.volume,
@@ -167,12 +168,16 @@ const MediaOverlayLayer = ({
         playing: video.playing && Boolean(live),
         muted: video.muted,
         volume: video.volume,
-        seekTime: video.seekTime,
+        seekTime: settings.trimStart + video.seekTime,
         seekToken: video.seekToken,
       }}
       forceMuted={muted}
       onTimeUpdate={(time, duration) =>
-        reportOverlayVideoProgress(overlay.id, time, duration)
+        reportOverlayVideoProgress(
+          overlay.id,
+          Math.max(0, time - settings.trimStart),
+          trimmedDuration(duration, settings) ?? 0,
+        )
       }
     />
   );

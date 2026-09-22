@@ -4,6 +4,12 @@ import {
   isSelectionEmpty,
   type BackupSelection,
 } from "../../../lib/shareSelection";
+import { connectToNetworkDevice } from "./networkShareConnection";
+import {
+  forgetPairedDevice,
+  pairedDeviceConnector,
+  usePairedDevices,
+} from "./pairedShareDevices";
 import { useOutgoingShares, type OutgoingShareMap } from "./useOutgoingShares";
 import { useShareLobby, type LobbyStatus } from "./useShareLobby";
 import type { ShareDevice } from "./shareSignaling";
@@ -30,6 +36,9 @@ export interface QuickShare {
   transfers: OutgoingShareMap;
   selectedDeviceIds: string[];
   toggleDevice: (deviceId: string) => void;
+  selectDevice: (deviceId: string) => void;
+  /** Drops a device paired with a code and closes its link. */
+  forgetDevice: (deviceId: string) => void;
   isSearching: boolean;
   isBusy: boolean;
   progress: number | null;
@@ -52,6 +61,7 @@ export const useQuickShare = ({
 }: QuickShareOptions = {}): QuickShare => {
   const pushToast = useStore((s) => s.pushToast);
   const lobby = useShareLobby({ announce });
+  const pairedDevices = usePairedDevices();
   const [pickedDeviceIds, setPickedDeviceIds] = useState<string[]>([]);
   const [lostDeviceIds, setLostDeviceIds] = useState<string[]>([]);
   const [stoppedDeviceIds, setStoppedDeviceIds] = useState<string[]>([]);
@@ -82,10 +92,24 @@ export const useQuickShare = ({
     callbacksRef.current.onReset?.();
   }, []);
 
+  const { room, deviceId, deviceName } = lobby;
+  const connectTo = useCallback(
+    (target: ShareDevice) =>
+      pairedDeviceConnector(target.id) ??
+      (room
+        ? connectToNetworkDevice({
+            room,
+            fromId: deviceId,
+            fromName: deviceName,
+            target,
+          })
+        : null),
+    [deviceId, deviceName, room],
+  );
+
   const outgoing = useOutgoingShares({
-    room: lobby.room,
-    deviceId: lobby.deviceId,
-    deviceName: lobby.deviceName,
+    connectTo,
+    deviceName,
     onDeviceLost: handleDeviceLost,
     onAllSent: handleAllSent,
     onNothingLeft: handleNothingLeft,
@@ -93,14 +117,25 @@ export const useQuickShare = ({
 
   const devices = useMemo(() => {
     const hidden = new Set([...lostDeviceIds, ...stoppedDeviceIds]);
-    const listed = lobby.devices.filter((device) => !hidden.has(device.id));
+    /* A paired device keeps its card after a no or a stop: its link is still
+       up, and it only leaves once that link goes or it is forgotten. */
+    const listed = [
+      ...lobby.devices.filter((device) => !hidden.has(device.id)),
+      ...pairedDevices,
+    ];
     /* A sleeping or minimised device drops out of the network list while the
        link between the two is still carrying data, so its card stays put. */
     const sending = Object.values(outgoing.transfers)
       .filter((row) => !listed.some((device) => device.id === row.deviceId))
       .map((row) => ({ id: row.deviceId, name: row.name, lastSeen: 0 }));
     return [...listed, ...sending];
-  }, [lobby.devices, lostDeviceIds, outgoing.transfers, stoppedDeviceIds]);
+  }, [
+    lobby.devices,
+    lostDeviceIds,
+    outgoing.transfers,
+    pairedDevices,
+    stoppedDeviceIds,
+  ]);
 
   /* A device that has since left the network stays out of the selection
      without needing a round of state to prune it. */
@@ -118,6 +153,17 @@ export const useQuickShare = ({
         ? current.filter((id) => id !== deviceId)
         : [...current, deviceId],
     );
+  }, []);
+
+  const selectDevice = useCallback((deviceId: string) => {
+    setPickedDeviceIds((current) =>
+      current.includes(deviceId) ? current : [...current, deviceId],
+    );
+  }, []);
+
+  const forgetDevice = useCallback((deviceId: string) => {
+    setPickedDeviceIds((current) => current.filter((id) => id !== deviceId));
+    forgetPairedDevice(deviceId);
   }, []);
 
   const { reset, stopDevice: stopOutgoingDevice } = outgoing;
@@ -160,10 +206,12 @@ export const useQuickShare = ({
     transfers: outgoing.transfers,
     selectedDeviceIds,
     toggleDevice,
+    selectDevice,
+    forgetDevice,
     isSearching: lobby.status === "starting",
     isBusy: outgoing.isBusy,
     progress: outgoing.progress,
-    canSend: lobby.status === "ready" && !outgoing.isBusy && targets.length > 0,
+    canSend: !outgoing.isBusy && targets.length > 0,
     send: sendSelection,
     stopDevice,
     stopAll: outgoing.stopAll,

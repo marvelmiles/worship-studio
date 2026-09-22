@@ -17,7 +17,7 @@ import type {
 } from "../../types";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
-import { formatDuration } from "../../lib/media";
+import { formatDuration, trimmedDuration } from "../../lib/media";
 import {
   createSlideMedia,
   DEFAULT_SLIDE_MEDIA_OPACITY,
@@ -147,7 +147,10 @@ export const SlideElementsPanel = ({
 
   const duration =
     media && placedMediaSource(media) === "media"
-      ? library.find((item) => item.id === media.mediaId)?.duration
+      ? trimmedDuration(
+          library.find((item) => item.id === media.mediaId)?.duration,
+          media.kind === "video" ? placedVideoSettings(media) : undefined,
+        )
       : undefined;
 
   const canPlace = allowsAnySlideElement(capabilities);

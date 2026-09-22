@@ -19,7 +19,8 @@ export const VideoTimecode = ({ progress, style }: VideoTimecodeProps) => {
         ...style,
       }}
     >
-      {formatDuration(videoPosition(progress))} / {formatDuration(progress.end)}
+      {formatDuration(videoPosition(progress) - progress.start)} /{" "}
+      {formatDuration(Math.max(progress.end - progress.start, 0))}
     </span>
   );
 };

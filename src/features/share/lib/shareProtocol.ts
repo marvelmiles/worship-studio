@@ -9,6 +9,9 @@ export const SHARE_BUFFER_HIGH_BYTES = 1024 * 1024;
 export const SHARE_BUFFER_LOW_BYTES = 256 * 1024;
 
 const shareMessageSchema = z.discriminatedUnion("type", [
+  /* A link paired by hand has no presence row to read a name from, so each
+     side says who it is as soon as the channel opens. */
+  z.object({ type: z.literal("hello"), name: z.string().min(1).max(120) }),
   z.object({
     type: z.literal("offer"),
     name: z.string().min(1).max(120),
@@ -31,6 +34,7 @@ const shareMessageSchema = z.discriminatedUnion("type", [
 ]);
 
 export type ShareMessage = z.infer<typeof shareMessageSchema>;
+export type ShareOfferMessage = Extract<ShareMessage, { type: "offer" }>;
 
 export const parseShareMessage = (data: unknown): ShareMessage | null => {
   if (typeof data !== "string") return null;

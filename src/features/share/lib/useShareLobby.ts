@@ -14,9 +14,9 @@ export type LobbyStatus =
   | "starting"
   /** Visible to the other devices, and listening for what they send. */
   | "ready"
-  /** The network could not be read, so nothing can find anything. */
+  /** There is no internet to find devices with, so pairing is by code. */
   | "offline"
-  /** This build has no signalling settings, so quick share cannot run. */
+  /** This build has no signalling settings, so pairing is by code. */
   | "unavailable";
 
 export interface ShareLobbyOptions {
@@ -43,8 +43,8 @@ export const useShareLobby = ({
   announce = true,
 }: ShareLobbyOptions = {}): ShareLobby => {
   const [deviceId] = useState(() => crypto.randomUUID());
-  const [status, setStatus] = useState<LobbyStatus>(
-    signalingConfigured ? "starting" : "unavailable",
+  const [status, setStatus] = useState<LobbyStatus>(() =>
+    !signalingConfigured ? "unavailable" : isOnline() ? "starting" : "offline",
   );
   const [room, setRoom] = useState<string | null>(null);
   const [deviceName, setDeviceName] = useState<string | null>(null);
@@ -61,17 +61,36 @@ export const useShareLobby = ({
     };
   }, []);
 
+  /* Coming back online is the moment the network list can work again, and
+     losing it is the moment to stop waiting on a lookup that cannot answer. */
+  useEffect(() => {
+    if (!signalingConfigured) return;
+    const lookAgain = () => setAttempt((count) => count + 1);
+    window.addEventListener("online", lookAgain);
+    window.addEventListener("offline", lookAgain);
+    return () => {
+      window.removeEventListener("online", lookAgain);
+      window.removeEventListener("offline", lookAgain);
+    };
+  }, []);
+
   useEffect(() => {
     if (!signalingConfigured || !deviceName) return;
     let isCancelled = false;
     let stopWatching = () => {};
     let presence: SharePresence | null = null;
-    setStatus("starting");
     setDevices([]);
+    if (!isOnline()) {
+      setRoom(null);
+      setStatus("offline");
+      return;
+    }
+    setStatus("starting");
 
     void deriveNetworkRoom().then((networkRoom) => {
       if (isCancelled) return;
       if (!networkRoom) {
+        setRoom(null);
         setStatus("offline");
         return;
       }
@@ -116,6 +135,9 @@ export const useShareLobby = ({
   };
 };
 
+const isOnline = (): boolean =>
+  typeof navigator === "undefined" || navigator.onLine;
+
 /* A device that reloads announces itself under a new id while its old row is
    still counting down to stale, so only the newer of the two is listed. */
 const newestPerDevice = (devices: ShareDevice[]): ShareDevice[] => {
@@ -127,3 +149,9 @@ const newestPerDevice = (devices: ShareDevice[]): ShareDevice[] => {
   }
   return [...byName.values()];
 };
+
+/** What an empty device list says, depending on how devices can be found. */
+export const deviceListHint = (status: LobbyStatus): string =>
+  status === "ready"
+    ? "No other device is here yet. Open Quick Share on the other device and it appears in this list, or pair with a code."
+    : "No device paired yet. Choose Pair with a code, then on the other device open Quick Share and choose Receive with a code.";

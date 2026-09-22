@@ -27,7 +27,7 @@ import {
 import { useBlobUrl } from "../../lib/blobUrls";
 import { shallowEqual } from "../../lib/equality";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
-import { formatDuration } from "../../lib/media";
+import { formatTrimmedDuration } from "../../lib/media";
 import { settingsGrouping } from "../../lib/settingsHistory";
 import { Button, IconButton } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -586,8 +586,7 @@ const AudioUsageWorkspace = ({
                 fontVariantNumeric: "tabular-nums",
               }}
             >
-              Plays {formatDuration(Math.max(0, trimEnd - draft.trimStart))} of{" "}
-              {formatDuration(duration)}
+              Plays {formatTrimmedDuration(duration, draft)}
             </div>
           )}
           <VideoTransportBar

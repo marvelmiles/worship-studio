@@ -14,7 +14,11 @@ import { fade } from "../../theme/uiTheme";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
-import { formatDuration, sortMediaByRecency } from "../../lib/media";
+import {
+  formatDuration,
+  mediaPlayLength,
+  sortMediaByRecency,
+} from "../../lib/media";
 import routes from "../../routes";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -258,7 +262,7 @@ export const MediaSourceList = ({
                     >
                       {item.name}
                     </div>
-                    {item.duration ? (
+                    {mediaPlayLength(item) ? (
                       <div
                         style={{
                           fontFamily: fonts.ui,
@@ -267,7 +271,7 @@ export const MediaSourceList = ({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {formatDuration(item.duration)}
+                        {formatDuration(mediaPlayLength(item))}
                       </div>
                     ) : null}
                   </div>

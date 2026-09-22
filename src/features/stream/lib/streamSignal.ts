@@ -2,10 +2,18 @@ import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate";
 import { compactSdp } from "./sdp";
 import { SDP_DICTIONARY } from "./sdpDictionary";
 
-export type SignalKind = "offer" | "answer";
+export type SignalKind = "offer" | "answer" | "share-offer" | "share-answer";
 
 const PREFIX = "WS3";
-const KIND_CODE: Record<SignalKind, string> = { offer: "O", answer: "A" };
+const KIND_CODE: Record<SignalKind, string> = {
+  offer: "O",
+  answer: "A",
+  "share-offer": "S",
+  "share-answer": "R",
+};
+const KIND_BY_CODE = new Map<string, SignalKind>(
+  Object.entries(KIND_CODE).map(([kind, code]) => [code, kind as SignalKind]),
+);
 const SDP_FIRST_LINE = "v=0";
 
 // Base45 keeps the payload inside QR alphanumeric mode, which is far less dense than byte mode.
@@ -70,7 +78,7 @@ export const decodeSignal = (
   if (!bytes) return null;
   try {
     const raw = strFromU8(inflateSync(bytes, { dictionary: SDP_DICTIONARY }));
-    const kind = raw[0] === "O" ? "offer" : raw[0] === "A" ? "answer" : null;
+    const kind = KIND_BY_CODE.get(raw[0]);
     const body = raw.slice(1);
     if (!kind || !body.startsWith(SDP_FIRST_LINE)) return null;
     return { kind, sdp: body.replace(/\n/g, "\r\n") + "\r\n" };

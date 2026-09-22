@@ -8,6 +8,7 @@ import { useStore } from "../../store/useStore";
 import {
   formatDuration,
   isImageBackground,
+  mediaPlayLength,
   sortMediaByRecency,
 } from "../../lib/media";
 import { backgroundChoice, mediaItemChoice } from "../../lib/slideMedia";
@@ -156,7 +157,7 @@ export const SlideMediaPicker = ({
                     name={item.name}
                     meta={
                       item.kind === "video"
-                        ? formatDuration(item.duration)
+                        ? formatDuration(mediaPlayLength(item))
                         : undefined
                     }
                     onPick={() => pick(mediaItemChoice(item))}

@@ -5,6 +5,10 @@ Quick Share is the automated side of Export and Import. Instead of writing a
 archive and pushes it straight to another device on the same WiFi, which reads
 it through the same validated import path.
 
+It works with no internet at all. With internet, devices on the same WiFi find
+each other on their own; without it, two devices pair by reading each other's
+code (see **Sharing with no internet**) and everything else is the same.
+
 Open it from the share icon in the header, or from **Settings → Data → Quick
 Share**.
 
@@ -49,6 +53,42 @@ Share**.
    wins where both hold the same item. The result travels back, so the sender
    sees whether it landed.
 
+## Sharing with no internet
+
+Browsers cannot look for each other on a network by themselves, so with no
+internet the two devices introduce themselves by code instead of through the
+online lookup. The data path does not change: it was always straight between
+the two devices over the WiFi.
+
+1. **On the sending device**, choose **Pair with a code** (under Devices here
+   now, or in the quick share modal of any library). It shows a QR code.
+2. **On the receiving device**, open Quick Share and choose **Receive with a
+   code**. Scan the sender's code, or paste it if it was copied across. It
+   shows a reply code.
+3. **Back on the sending device**, scan or paste the reply. The two link up,
+   say their names to each other (a `hello` message), and the receiving
+   device joins the device list marked "Paired with a code".
+
+From there it is the ordinary flow: tick it, pick what to send, press send.
+Declines, stops and failures behave the same as for a device found on the
+network.
+
+- **The pairing lasts.** The link stays up between sends, so one pairing
+  covers as many sends as needed, from the page or from any library's quick
+  share modal (`lib/pairedShareDevices.ts` holds it for the whole app). It
+  ends when either side forgets or disconnects it, the receiving page closes,
+  or the link drops; the card then leaves the list.
+- **What it needs.** Both devices on the same WiFi or phone hotspot. The
+  network does not need internet, and nothing leaves it. The app itself
+  loads offline once it has been opened before, since it is installed as a
+  PWA.
+- **Going offline is noticed.** With no connection the lobby does not wait
+  on the lookup: it says so at once and points at pairing by code. Coming
+  back online, it looks for network devices again by itself.
+- **Codes cannot be crossed.** A quick share code and a Stream camera code
+  carry different kinds, so scanning one in the wrong place is refused with
+  a clear message rather than failing to connect.
+
 ## Sending and stopping
 
 - A floating send button appears once at least one device and one item are
@@ -80,7 +120,8 @@ Send. The refresh button in its header looks for devices again. The item's recor
 as both, and a manuscript still takes its assets with it.
 
 A modal is sending only, so it does not announce this device to the others:
-there is nowhere for an incoming library to be accepted from a library page.
+there is nowhere for an incoming library to be accepted from a library page. Any device already paired with a code is listed there too, and the modal
+can pair a new one.
 
 ## Why it merges rather than replaces
 
@@ -91,20 +132,23 @@ front of the person doing it.
 
 ## What each part does
 
-| File                        | Role                                                              |
-| --------------------------- | ----------------------------------------------------------------- |
-| `lib/shareSignaling.ts`     | Presence and offer/answer relay, under `signal/<room>/share`      |
-| `lib/sharePeer.ts`          | The LAN-only peer connection and its data channel                 |
-| `lib/shareProtocol.ts`      | The control messages, validated with Zod                          |
-| `lib/shareTransfer.ts`      | Chunking, backpressure and reassembly                             |
-| `lib/shareSession.ts`       | One conversation, from offer to result, for either side           |
-| `lib/useShareLobby.ts`      | This device's presence and the list of the others                 |
-| `lib/shareSelection.ts`     | Which records travel, and what they cannot arrive without         |
-| `lib/shareCatalog.ts`       | Everything shareable, grouped into modules with real covers       |
-| `lib/useOutgoingShares.ts`  | Building the archive and sending it, one device at a time         |
-| `lib/useQuickShare.ts`      | Lobby, selection and sending together, for the page and the modal |
-| `lib/useStopSharePrompt.ts` | The confirmation in front of every stop                           |
-| `lib/useIncomingShare.ts`   | Answering offers and importing what arrives                       |
+| File                            | Role                                                                 |
+| ------------------------------- | -------------------------------------------------------------------- |
+| `lib/shareSignaling.ts`         | Presence and offer/answer relay, under `signal/<room>/share`         |
+| `lib/sharePeer.ts`              | The LAN-only peer connection and its data channel                    |
+| `lib/shareProtocol.ts`          | The control messages, validated with Zod                             |
+| `lib/shareTransfer.ts`          | Chunking, backpressure and reassembly                                |
+| `lib/shareSession.ts`           | One conversation, from offer to result, over any open channel        |
+| `lib/networkShareConnection.ts` | Reaching a device found on the network, through the relay            |
+| `lib/sharePairing.ts`           | Pairing two devices by code, with no server                          |
+| `lib/pairedShareDevices.ts`     | The devices paired by code, held for the whole app                   |
+| `lib/useShareLobby.ts`          | This device's presence, the others, and whether it is online         |
+| `lib/shareSelection.ts`         | Which records travel, and what they cannot arrive without            |
+| `lib/shareCatalog.ts`           | Everything shareable, grouped into modules with real covers          |
+| `lib/useOutgoingShares.ts`      | Building the archive and sending it, one device at a time            |
+| `lib/useQuickShare.ts`          | Lobby, pairing, selection and sending together, for page and modal   |
+| `lib/useStopSharePrompt.ts`     | The confirmation in front of every stop                              |
+| `lib/useIncomingShare.ts`       | Answering offers from the relay and from paired links, and importing |
 
 ## What Firebase carries
 
@@ -120,8 +164,8 @@ recommended rules in `../stream/STREAM_SIGNALING.md` already open, so an
 existing deployment needs no rules change. Those rules include optional
 validation for this subtree.
 
-Without Firebase settings the page says so and points at Export and Import,
-which need no server at all.
+Without Firebase settings, or without internet, none of this is used and
+devices pair by code instead.
 
 ## Limits worth knowing
 

@@ -5,15 +5,11 @@ import {
   timecodeShape,
   validateTrimEnd,
   validateTrimStart,
+  type TrimRange,
 } from "../../lib/media";
 import { IconButton } from "../ui/Button";
 import { Field } from "../ui/Field";
 import { TimecodeInput } from "../ui/TimecodeInput";
-
-export interface TrimRange {
-  trimStart: number;
-  trimEnd: number | null;
-}
 
 interface TrimFieldsProps {
   trim: TrimRange;

@@ -28,6 +28,8 @@ export interface ShareDevice {
   name: string;
   /** When it last said it was here, so a reloaded device replaces its old row. */
   lastSeen: number;
+  /** Reached over a link set up with a code rather than found on the network. */
+  isPaired?: boolean;
 }
 
 export interface IncomingCall {

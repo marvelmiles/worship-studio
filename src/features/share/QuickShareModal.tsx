@@ -1,5 +1,11 @@
-import { useMemo } from "react";
-import { RefreshCw, SendHorizontal, Share2, Square } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  QrCode,
+  RefreshCw,
+  SendHorizontal,
+  Share2,
+  Square,
+} from "lucide-react";
 import { useUITheme } from "../../theme/ThemeProvider";
 import { Modal } from "../../components/ui/Modal";
 import { Button, IconButton } from "../../components/ui/Button";
@@ -7,10 +13,12 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { describeSelection, selectionBytes } from "../../lib/backupPayload";
 import { selectionFrom, type BackupRecordRef } from "../../lib/shareSelection";
 import { formatBytes } from "../../lib/storageStats";
+import { PairDeviceDialog } from "./components/PairDeviceDialog";
 import { ShareDeviceList } from "./components/ShareDeviceList";
 import { useBackupSource } from "./lib/useBackupSource";
 import { canSendSelection, useQuickShare } from "./lib/useQuickShare";
 import { useStopSharePrompt } from "./lib/useStopSharePrompt";
+import { deviceListHint } from "./lib/useShareLobby";
 
 interface QuickShareModalProps {
   /** What is being handed over, named by the records behind it. */
@@ -22,7 +30,7 @@ interface QuickShareModalProps {
 /**
  * Sends one thing from wherever it is listed. It joins the same network lobby
  * the Quick Share page uses, so the devices offered here are the ones already
- * waiting there.
+ * waiting there, along with any device already paired with a code.
  */
 export const QuickShareModal = ({
   records,
@@ -32,6 +40,7 @@ export const QuickShareModal = ({
   const { colors, fonts } = useUITheme();
   const source = useBackupSource();
   const quickShare = useQuickShare({ announce: false, onSent: onClose });
+  const [isPairing, setIsPairing] = useState(false);
   const stopPrompt = useStopSharePrompt({
     isBusy: quickShare.isBusy,
     stopDevice: quickShare.stopDevice,
@@ -50,7 +59,6 @@ export const QuickShareModal = ({
   );
 
   const canSend = canSendSelection(quickShare, selection);
-  const isUnavailable = quickShare.status === "unavailable";
 
   const note = {
     margin: "0 0 12px",
@@ -69,7 +77,7 @@ export const QuickShareModal = ({
         title="Quick Share"
         width={460}
         headerActions={
-          isUnavailable ? undefined : (
+          quickShare.status === "unavailable" ? undefined : (
             <IconButton
               icon={RefreshCw}
               title="Look again for devices"
@@ -107,29 +115,40 @@ export const QuickShareModal = ({
           needs, such as its background or sound, travels with it.
         </p>
 
-        {isUnavailable ? (
-          <p style={{ ...note, marginBottom: 0, color: colors.warning }}>
-            Quick share is not set up in this build. Use Export and Import in
-            Settings to move data between devices.
-          </p>
-        ) : (
-          <>
-            <p style={{ ...note, marginBottom: 8 }}>
-              <Share2 size={13} style={{ verticalAlign: "-2px" }} /> The other
-              device needs the Quick Share page open.
-            </p>
-            <ShareDeviceList
-              devices={quickShare.devices}
-              selectedIds={quickShare.selectedDeviceIds}
-              transfers={quickShare.transfers}
-              isSearching={quickShare.isSearching}
-              disabled={quickShare.isBusy}
-              onToggle={quickShare.toggleDevice}
-              onStop={stopPrompt.askForDevice}
-            />
-          </>
-        )}
+        <p style={{ ...note, marginBottom: 8 }}>
+          <Share2 size={13} style={{ verticalAlign: "-2px" }} /> The other
+          device needs the Quick Share page open.
+        </p>
+        <ShareDeviceList
+          devices={quickShare.devices}
+          selectedIds={quickShare.selectedDeviceIds}
+          transfers={quickShare.transfers}
+          isSearching={quickShare.isSearching}
+          emptyHint={deviceListHint(quickShare.status)}
+          disabled={quickShare.isBusy}
+          onToggle={quickShare.toggleDevice}
+          onStop={stopPrompt.askForDevice}
+          onForget={(device) => quickShare.forgetDevice(device.id)}
+        />
+        <div style={{ marginTop: 10 }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={quickShare.isBusy}
+            onClick={() => setIsPairing(true)}
+          >
+            <QrCode size={14} />
+            Pair with a code
+          </Button>
+        </div>
       </Modal>
+
+      <PairDeviceDialog
+        open={isPairing}
+        deviceName={quickShare.deviceName}
+        onClose={() => setIsPairing(false)}
+        onPaired={(device) => quickShare.selectDevice(device.id)}
+      />
 
       <ConfirmDialog
         open={stopPrompt.prompt !== null}

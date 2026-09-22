@@ -1,4 +1,10 @@
-import { Check, CircleCheck, MonitorSmartphone, Square } from "lucide-react";
+import {
+  Check,
+  CircleCheck,
+  MonitorSmartphone,
+  Square,
+  Unlink,
+} from "lucide-react";
 import { useUITheme } from "../../../theme/ThemeProvider";
 import { fade } from "../../../theme/uiTheme";
 import { IconButton } from "../../../components/ui/Button";
@@ -19,9 +25,12 @@ interface ShareDeviceListProps {
   /** How far each device has got, keyed by device, so none is listed twice. */
   transfers: OutgoingShareMap;
   isSearching: boolean;
+  /** What to say while nothing is listed and nothing is being looked for. */
+  emptyHint: string;
   disabled: boolean;
   onToggle: (deviceId: string) => void;
   onStop: (device: ShareDevice) => void;
+  onForget: (device: ShareDevice) => void;
 }
 
 export const ShareDeviceList = ({
@@ -29,9 +38,11 @@ export const ShareDeviceList = ({
   selectedIds,
   transfers,
   isSearching,
+  emptyHint,
   disabled,
   onToggle,
   onStop,
+  onForget,
 }: ShareDeviceListProps) => {
   const { colors, fonts } = useUITheme();
   const selected = new Set(selectedIds);
@@ -58,9 +69,7 @@ export const ShareDeviceList = ({
             maxWidth: 320,
           }}
         >
-          {isSearching
-            ? "Looking for devices on this WiFi"
-            : "No other device is here yet. Open Quick Share on the other device and it appears in this list."}
+          {isSearching ? "Looking for devices on this WiFi" : emptyHint}
         </span>
       </div>
     );
@@ -77,6 +86,7 @@ export const ShareDeviceList = ({
           disabled={disabled}
           onToggle={() => onToggle(device.id)}
           onStop={() => onStop(device)}
+          onForget={() => onForget(device)}
         />
       ))}
     </div>
@@ -98,6 +108,7 @@ interface ShareDeviceRowProps {
   disabled: boolean;
   onToggle: () => void;
   onStop: () => void;
+  onForget: () => void;
 }
 
 const ShareDeviceRow = ({
@@ -107,6 +118,7 @@ const ShareDeviceRow = ({
   disabled,
   onToggle,
   onStop,
+  onForget,
 }: ShareDeviceRowProps) => {
   const { colors, fonts } = useUITheme();
   const isActive = transfer ? isTransferActive(transfer.state) : false;
@@ -119,7 +131,9 @@ const ShareDeviceRow = ({
       ? `${formatBytes(transfer.sentBytes)} of ${formatBytes(transfer.totalBytes)}`
       : transfer
         ? (STATUS_LABEL[transfer.state] ?? "")
-        : "";
+        : device.isPaired
+          ? "Paired with a code"
+          : "";
 
   return (
     <div
@@ -239,6 +253,13 @@ const ShareDeviceRow = ({
           size={19}
           color={colors.accent}
           style={{ flexShrink: 0 }}
+        />
+      ) : device.isPaired && !disabled ? (
+        <IconButton
+          icon={Unlink}
+          size="sm"
+          title={`Forget ${device.name}`}
+          onClick={onForget}
         />
       ) : null}
     </div>

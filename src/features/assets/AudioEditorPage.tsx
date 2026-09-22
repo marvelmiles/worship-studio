@@ -22,7 +22,7 @@ import { mediaSurfaceProps } from "../../lib/mediaKeys";
 import {
   audioSettingsOf,
   DEFAULT_AUDIO_SETTINGS,
-  formatDuration,
+  formatTrimmedDuration,
 } from "../../lib/media";
 import { settingsGrouping } from "../../lib/settingsHistory";
 import { formatBytes } from "../../lib/storageStats";
@@ -211,8 +211,7 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            Plays {formatDuration(Math.max(0, trimEnd - settings.trimStart))} of{" "}
-            {formatDuration(duration)}
+            Plays {formatTrimmedDuration(duration, settings)}
           </div>
         )}
         <VideoTransportBar
@@ -256,7 +255,7 @@ const AudioWorkspace = ({ item }: { item: AudioItem }) => {
         }}
       >
         {formatBytes(item.size || 0)}
-        {duration ? ` · ${formatDuration(duration)}` : ""}
+        {duration ? ` · ${formatTrimmedDuration(duration, settings)}` : ""}
       </p>
       <AudioSettingsControls
         settings={settings}

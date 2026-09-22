@@ -6,7 +6,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import { useAssetUrl } from "../../hooks/useAssetUrl";
 import { ATTENTION_CLASS, attentionAttribute } from "../../hooks/useAttention";
-import { formatDuration } from "../../lib/media";
+import { audioPlayLength, formatDuration } from "../../lib/media";
 import { Button, IconButton } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LibrarySection } from "../../components/ui/LibrarySection";
@@ -222,7 +222,9 @@ const AudioRow = ({
             : item.mediaId
               ? "From a video"
               : "Uploaded"}
-          {item.duration ? ` · ${formatDuration(item.duration)}` : ""}
+          {audioPlayLength(item)
+            ? ` · ${formatDuration(audioPlayLength(item))}`
+            : ""}
         </div>
       </div>
       {url && (

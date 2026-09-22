@@ -6,6 +6,7 @@ import { useUITheme } from "../../theme/ThemeProvider";
 import { useStore } from "../../store/useStore";
 import {
   DEFAULT_AUDIO_SETTINGS,
+  audioPlayLength,
   audioSettingsOf,
   formatDuration,
 } from "../../lib/media";
@@ -167,7 +168,11 @@ export const AudioPicker = ({
           <AudioRow
             key={item.id}
             label={item.name}
-            meta={item.duration ? formatDuration(item.duration) : undefined}
+            meta={
+              audioPlayLength(item)
+                ? formatDuration(audioPlayLength(item))
+                : undefined
+            }
             selected={value === item.id}
             onSelect={() => select(item)}
             actions={

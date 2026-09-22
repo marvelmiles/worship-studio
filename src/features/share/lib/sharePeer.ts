@@ -6,7 +6,16 @@ import { SHARE_CHANNEL_LABEL } from "./shareProtocol";
 
 /* Long enough for a phone to wake its radio and gather candidates, short
    enough that a device which never answers stops holding up the queue. */
-const LINK_TIMEOUT_MS = 25000;
+export const LINK_TIMEOUT_MS = 25000;
+
+export interface ShareLinkOptions {
+  /**
+   * How long the channel has to open, or null to wait for as long as it takes.
+   * A link paired by hand waits on a person lining up a camera, so it only
+   * starts counting once both codes have been read.
+   */
+  timeoutMs?: number | null;
+}
 
 export interface ShareLink {
   connection: RTCPeerConnection;
@@ -18,24 +27,31 @@ export interface ShareLink {
 const whenChannelOpen = (
   connection: RTCPeerConnection,
   channel: Promise<RTCDataChannel>,
+  timeoutMs: number | null,
 ): Promise<RTCDataChannel> =>
   new Promise((resolve, reject) => {
     let settled = false;
     const finish = (run: () => void) => {
       if (settled) return;
       settled = true;
-      window.clearTimeout(timer);
+      if (timer !== null) window.clearTimeout(timer);
       connection.removeEventListener("connectionstatechange", onStateChange);
       run();
     };
     const fail = (reason: string) => finish(() => reject(new Error(reason)));
 
-    const timer = window.setTimeout(
-      () => fail("The other device did not answer."),
-      LINK_TIMEOUT_MS,
-    );
+    const timer =
+      timeoutMs === null
+        ? null
+        : window.setTimeout(
+            () => fail("The other device did not answer."),
+            timeoutMs,
+          );
     const onStateChange = () => {
-      if (connection.connectionState === "failed") {
+      if (
+        connection.connectionState === "failed" ||
+        connection.connectionState === "closed"
+      ) {
         fail("The devices could not reach each other.");
       }
     };
@@ -63,7 +79,9 @@ const closeLink = (connection: RTCPeerConnection) => () => {
 };
 
 /** The sending side: it opens the channel the archive travels down. */
-export const openShareLink = async (): Promise<{
+export const openShareLink = async ({
+  timeoutMs = LINK_TIMEOUT_MS,
+}: ShareLinkOptions = {}): Promise<{
   link: ShareLink;
   offerSdp: string;
 }> => {
@@ -72,7 +90,11 @@ export const openShareLink = async (): Promise<{
     ordered: true,
   });
   channel.binaryType = "arraybuffer";
-  const ready = whenChannelOpen(connection, Promise.resolve(channel));
+  const ready = whenChannelOpen(
+    connection,
+    Promise.resolve(channel),
+    timeoutMs,
+  );
   await connection.setLocalDescription(await connection.createOffer());
   await waitForIceGathering(connection);
   return {
@@ -94,6 +116,7 @@ export const completeShareLink = async (
 /** The receiving side: it waits for the channel the sender opens. */
 export const acceptShareLink = async (
   offerSdp: string,
+  { timeoutMs = LINK_TIMEOUT_MS }: ShareLinkOptions = {},
 ): Promise<{ link: ShareLink; answerSdp: string }> => {
   const connection = createPeerConnection();
   const channel = new Promise<RTCDataChannel>((resolve) => {
@@ -103,7 +126,7 @@ export const acceptShareLink = async (
       resolve(event.channel);
     });
   });
-  const ready = whenChannelOpen(connection, channel);
+  const ready = whenChannelOpen(connection, channel, timeoutMs);
   await connection.setRemoteDescription({ type: "offer", sdp: offerSdp });
   await connection.setLocalDescription(await connection.createAnswer());
   await waitForIceGathering(connection);

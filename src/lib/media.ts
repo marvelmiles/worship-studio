@@ -177,6 +177,57 @@ export const formatTimecode = (seconds: number, withHours: boolean): string => {
     : `${pad(minutes)}:${pad(secs)}`;
 };
 
+export interface TrimRange {
+  trimStart: number;
+  trimEnd: number | null;
+}
+
+const knownLength = (duration?: number): number | undefined =>
+  duration !== undefined && Number.isFinite(duration) && duration > 0
+    ? duration
+    : undefined;
+
+export const trimmedDuration = (
+  duration?: number,
+  trim?: TrimRange,
+): number | undefined => {
+  const fullLength = knownLength(duration);
+  const start = Math.max(0, trim?.trimStart ?? 0);
+  const end = trim?.trimEnd ?? fullLength;
+  if (end === undefined) return undefined;
+  const cappedEnd = fullLength === undefined ? end : Math.min(end, fullLength);
+  return Math.max(0, cappedEnd - start);
+};
+
+export const isTrimmed = (duration?: number, trim?: TrimRange): boolean => {
+  const played = trimmedDuration(duration, trim);
+  const fullLength = knownLength(duration);
+  return (
+    played !== undefined &&
+    fullLength !== undefined &&
+    Math.round(played) !== Math.round(fullLength)
+  );
+};
+
+export const formatTrimmedDuration = (
+  duration?: number,
+  trim?: TrimRange,
+): string => {
+  const played = trimmedDuration(duration, trim);
+  if (played === undefined) return "";
+  return isTrimmed(duration, trim)
+    ? `${formatDuration(played)} of ${formatDuration(duration)}`
+    : formatDuration(played);
+};
+
+export const mediaPlayLength = (item: MediaItem): number | undefined =>
+  item.kind === "video"
+    ? trimmedDuration(item.duration, item.video)
+    : item.duration;
+
+export const audioPlayLength = (item: AudioItem): number | undefined =>
+  trimmedDuration(item.duration, item.settings);
+
 export const timecodeShape = (withHours: boolean): string =>
   withHours ? "hh:mm:ss" : "mm:ss";
 

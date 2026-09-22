@@ -18,7 +18,7 @@ import {
 } from "../../hooks/useUnsavedChanges";
 import { useBlobUrl } from "../../lib/blobUrls";
 import { mediaSurfaceProps } from "../../lib/mediaKeys";
-import { formatDuration } from "../../lib/media";
+import { formatTrimmedDuration } from "../../lib/media";
 import { syncedPosition } from "../../lib/presentChannel";
 import { formatBytes } from "../../lib/storageStats";
 import { validateName } from "../../lib/validation";
@@ -251,7 +251,7 @@ const MediaWorkspace = ({ item }: { item: MediaItem }) => {
       >
         {item.width && item.height ? `${item.width}×${item.height} · ` : ""}
         {formatBytes(item.size || 0)}
-        {duration ? ` · ${formatDuration(duration)}` : ""}
+        {duration ? ` · ${formatTrimmedDuration(duration, videoSettings)}` : ""}
       </p>
       {isImage ? (
         <ImageSettingsControls
