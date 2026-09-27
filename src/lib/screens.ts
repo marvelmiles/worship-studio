@@ -124,14 +124,44 @@ export const readScreenDetails = async (): Promise<ScreenDetails | null> => {
 };
 
 /**
+ * The display a window is standing on, judged by its middle so a window
+ * straddling two displays counts for the one holding most of it.
+ */
+export const screenOfWindow = (
+  details: ScreenDetails,
+  target: Window,
+): ScreenDetailed | null => {
+  try {
+    const x = target.screenX + target.outerWidth / 2;
+    const y = target.screenY + target.outerHeight / 2;
+    return (
+      details.screens.find(
+        (screen) =>
+          x >= screen.left &&
+          y >= screen.top &&
+          x < screen.left + screen.width &&
+          y < screen.top + screen.height,
+      ) ?? null
+    );
+  } catch {
+    return null;
+  }
+};
+
+/**
  * The display to project onto: an external one before an internal one, and
- * never the one this page is on if there is any other choice.
+ * never the one the operator is working on if there is any other choice.
+ *
+ * The live window is not the operator: once it stands on the television, its
+ * own current screen is the projector, so it passes the operator's display in.
  */
 export const pickProjectorScreen = (
   details: ScreenDetails,
+  operatorScreen: ScreenDetailed = details.currentScreen,
 ): ScreenDetailed | null => {
-  const { screens, currentScreen } = details;
-  const elsewhere = screens.filter((screen) => screen !== currentScreen);
+  const elsewhere = details.screens.filter(
+    (screen) => screen !== operatorScreen,
+  );
   return (
     elsewhere.find(
       (screen) => screen.isInternal === false && screen.isPrimary === false,
@@ -163,8 +193,9 @@ export const screenLabel = (screen: ScreenDetailed, index: number): string =>
 
 export const projectorScreenOf = (
   details: ScreenDetails,
+  operatorScreen?: ScreenDetailed,
 ): ProjectorScreen | null => {
-  const screen = pickProjectorScreen(details);
+  const screen = pickProjectorScreen(details, operatorScreen);
   if (!screen) return null;
   return {
     placement: placementOf(screen),
@@ -263,7 +294,13 @@ export const fillProjector = async (
   element: HTMLElement,
 ): Promise<ProjectorFill> => {
   const details = isExtendedDisplay() ? await readScreenDetails() : null;
-  const projector = details ? projectorScreenOf(details) : null;
+  const operatorScreen =
+    details && window.opener
+      ? screenOfWindow(details, window.opener as Window)
+      : null;
+  const projector = details
+    ? projectorScreenOf(details, operatorScreen ?? undefined)
+    : null;
 
   if (!projector)
     return {

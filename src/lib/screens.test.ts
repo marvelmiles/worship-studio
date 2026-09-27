@@ -4,6 +4,7 @@ import {
   pickProjectorScreen,
   projectorScreenOf,
   screenLabel,
+  screenOfWindow,
   type ScreenDetailed,
   type ScreenDetails,
 } from "./screens";
@@ -48,6 +49,15 @@ describe("pickProjectorScreen", () => {
     /* The operator has dragged the app onto the television, so the laptop is
        the one left to project onto. */
     expect(pickProjectorScreen(details([laptop, tv], 1))?.label).toBe("laptop");
+  });
+
+  it("keeps the live window on the television it opened on", () => {
+    const laptop = screen("laptop", { isPrimary: true, isInternal: true });
+    const tv = screen("tv", { left: 1920 });
+
+    expect(pickProjectorScreen(details([laptop, tv], 1), laptop)?.label).toBe(
+      "tv",
+    );
   });
 
   it("falls back to any other display when none says what it is", () => {
@@ -129,6 +139,32 @@ describe("isOnScreen", () => {
 
   it("rejects a window left behind on the laptop", () => {
     expect(isOnScreen(windowAt(300, 200), projector!)).toBe(false);
+  });
+});
+
+describe("screenOfWindow", () => {
+  const laptop = screen("laptop", { isPrimary: true, isInternal: true });
+  const tv = screen("tv", { left: 1920 });
+
+  const windowAt = (screenX: number, outerWidth: number) =>
+    ({ screenX, screenY: 0, outerWidth, outerHeight: 800 }) as Window;
+
+  it("finds the display a window stands on", () => {
+    expect(screenOfWindow(details([laptop, tv]), windowAt(200, 1200))).toBe(
+      laptop,
+    );
+  });
+
+  it("counts a straddling window for the display holding most of it", () => {
+    expect(screenOfWindow(details([laptop, tv]), windowAt(1800, 1200))).toBe(
+      tv,
+    );
+  });
+
+  it("finds nothing for a window off every display", () => {
+    expect(
+      screenOfWindow(details([laptop, tv]), windowAt(-5000, 800)),
+    ).toBeNull();
   });
 });
 
