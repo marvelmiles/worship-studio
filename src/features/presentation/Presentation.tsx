@@ -48,14 +48,7 @@ export const Presentation = () => {
   const mode = useStore((s) => s.presentationMode);
   const setPresentationMode = useStore((s) => s.setPresentationMode);
   const publishPresentedMedia = useStore((s) => s.publishPresentedMedia);
-  const {
-    isExtended,
-    isLive,
-    isLiveFullscreen,
-    goLive,
-    endLive,
-    toggleLiveFullscreen,
-  } = useGoLive();
+  const { isExtended, isLive, goLive, endLive } = useGoLive();
 
   const pipRef = useRef<HTMLDivElement>(null);
   const videoHost = usePortalHost();
@@ -69,25 +62,7 @@ export const Presentation = () => {
     [mode],
   );
 
-  const requestLiveFullscreen = useCallback(() => {
-    void toggleLiveFullscreen().then((ok) => {
-      if (!ok) {
-        pushToast(
-          "The live window is in front. Press F there, or use its fullscreen button, to fill the display.",
-        );
-      }
-    });
-  }, [pushToast, toggleLiveFullscreen]);
-
-  const fullscreenOverride = useMemo(
-    () =>
-      isLive
-        ? { isFullscreen: isLiveFullscreen, toggle: requestLiveFullscreen }
-        : undefined,
-    [isLive, isLiveFullscreen, requestLiveFullscreen],
-  );
-
-  const presentation = usePresentation(fullscreenOverride, shortcutGate);
+  const presentation = usePresentation(shortcutGate);
   const togglePopOut = useCallback(() => {
     if (mode === "pip") {
       setPresentationMode("stage");

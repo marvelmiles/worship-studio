@@ -155,12 +155,12 @@ export const StageHeader = ({
           size="sm"
           onClick={onToggleFullscreen}
           title={viewCommandTitle(
-            isFullscreen ? "Exit fullscreen" : "Project fullscreen",
+            isFullscreen ? "Exit fullscreen" : "Fullscreen",
             "fullscreen",
           )}
         >
           {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-          {isFullscreen ? "Exit fullscreen" : "Project fullscreen"}
+          {isFullscreen ? "Exit fullscreen" : "Fullscreen"}
         </Button>
         <Button
           variant="ghost"

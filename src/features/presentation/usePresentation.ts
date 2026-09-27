@@ -27,15 +27,7 @@ const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
 const VIDEO_SEEK_STEP = 5;
 
-interface FullscreenOverride {
-  isFullscreen: boolean;
-  toggle: () => void;
-}
-
-export const usePresentation = (
-  fullscreenOverride?: FullscreenOverride,
-  shortcutGate?: () => boolean,
-) => {
+export const usePresentation = (shortcutGate?: () => boolean) => {
   const presentation = useStore((s) => s.presentation);
   const audio = useStore((s) => s.audio);
   const prefs = useStore((s) => s.prefs);
@@ -62,10 +54,7 @@ export const usePresentation = (
   const ctrlNumBuffer = useRef<string>("");
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const localFullscreen = useFullscreen(rootRef);
-  const isFullscreen =
-    fullscreenOverride?.isFullscreen ?? localFullscreen.isFullscreen;
-  const toggleFullscreen = fullscreenOverride?.toggle ?? localFullscreen.toggle;
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(rootRef);
 
   const media = useStore((s) => s.media);
   const currentSlide = slides[slideIndex];

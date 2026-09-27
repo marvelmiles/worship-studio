@@ -17,7 +17,6 @@ export { isExtendedDisplay };
 
 export interface LiveWindowState {
   isLive: boolean;
-  isFullscreen: boolean;
 }
 
 /** Where the live window ended up, as far as the browser would say. */
@@ -45,7 +44,6 @@ export interface GoLiveResult {
 export interface LiveWindowController {
   goLive: () => Promise<GoLiveResult>;
   endLive: () => void;
-  toggleFullscreen: () => Promise<boolean>;
   subscribe: (listener: () => void) => () => void;
   getState: () => LiveWindowState;
 }
@@ -167,19 +165,14 @@ export const createLiveWindow = (
   windowName: string,
 ): LiveWindowController => {
   let win: Window | null = null;
-  let state: LiveWindowState = { isLive: false, isFullscreen: false };
+  let state: LiveWindowState = { isLive: false };
   let closeWatcher: number | undefined;
   const settleTimers = new Set<number>();
   const listeners = new Set<Listener>();
 
-  const setState = (next: Partial<LiveWindowState>): void => {
-    const merged = { ...state, ...next };
-    if (
-      merged.isLive === state.isLive &&
-      merged.isFullscreen === state.isFullscreen
-    )
-      return;
-    state = merged;
+  const setIsLive = (isLive: boolean): void => {
+    if (state.isLive === isLive) return;
+    state = { isLive };
     for (const listener of listeners) listener();
   };
 
@@ -200,7 +193,7 @@ export const createLiveWindow = (
       win?.close();
     } catch {}
     win = null;
-    setState({ isLive: false, isFullscreen: false });
+    setIsLive(false);
   };
 
   /* Pressed rather than set once: a window that is already filling the display
@@ -250,7 +243,7 @@ export const createLiveWindow = (
         ? isOnScreen(standing, target) && isFillingScreen(standing, target)
         : true;
       if (isSettled || !canFillOnOpen) {
-        setState({ isLive: true });
+        setIsLive(true);
         standing.focus();
         return {
           ok: true,
@@ -283,7 +276,7 @@ export const createLiveWindow = (
     }
 
     win = opened;
-    setState({ isLive: true });
+    setIsLive(true);
 
     /* Some browsers take the position on open, some ignore it and some land
        the window half on each display, so it is pushed into place as well. */
@@ -292,23 +285,12 @@ export const createLiveWindow = (
       whenLoaded(opened, () => settleOnto(opened, projector));
     }
 
-    whenLoaded(opened, () => {
-      try {
-        opened.document.addEventListener("fullscreenchange", () => {
-          setState({
-            isFullscreen: Boolean(opened.document.fullscreenElement),
-          });
-        });
-        setState({ isFullscreen: Boolean(opened.document.fullscreenElement) });
-      } catch {}
-    });
-
     closeWatcher = window.setInterval(() => {
       if (win?.closed) {
         win = null;
         stopWatchingClose();
         stopSettling();
-        setState({ isLive: false, isFullscreen: false });
+        setIsLive(false);
       }
     }, 800);
 
@@ -321,26 +303,9 @@ export const createLiveWindow = (
     };
   };
 
-  /* The live window asks for fullscreen itself: only it can name the display
-     to fill, and only it still carries the click that opened it. */
-  const toggleFullscreen = async (): Promise<boolean> => {
-    if (!win || win.closed) return false;
-    try {
-      if (win.document.fullscreenElement) {
-        await win.document.exitFullscreen();
-        return true;
-      }
-      win.focus();
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
   return {
     goLive,
     endLive,
-    toggleFullscreen,
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);

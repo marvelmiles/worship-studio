@@ -11,7 +11,7 @@ export type { GoLiveResult };
 export const useGoLive = (
   controller: LiveWindowController = presentLiveWindow,
 ) => {
-  const { isLive, isFullscreen } = useSyncExternalStore(
+  const { isLive } = useSyncExternalStore(
     controller.subscribe,
     controller.getState,
   );
@@ -29,17 +29,6 @@ export const useGoLive = (
 
   const goLive = useCallback(() => controller.goLive(), [controller]);
   const endLive = useCallback(() => controller.endLive(), [controller]);
-  const toggleLiveFullscreen = useCallback(
-    () => controller.toggleFullscreen(),
-    [controller],
-  );
 
-  return {
-    isExtended,
-    isLive,
-    isLiveFullscreen: isFullscreen,
-    goLive,
-    endLive,
-    toggleLiveFullscreen,
-  };
+  return { isExtended, isLive, goLive, endLive };
 };
